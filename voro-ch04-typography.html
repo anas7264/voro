@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VORO — Chapter 04: Typography System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600;1,700&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=JetBrains+Mono:wght@400;500;600&family=Barlow+Condensed:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --s0:#050403;--s1:#0C0906;--s2:#1A1410;--s3:#251D16;
+  --brand-h:38;
+  --brand:hsl(var(--brand-h),85%,56%);
+  --brand-dim:hsl(var(--brand-h),70%,22%);
+  --brand-glow:hsl(var(--brand-h),100%,70%);
+  --text-primary:rgba(237,232,224,.95);
+  --text-secondary:rgba(200,185,168,.65);
+  --text-muted:rgba(140,124,108,.45);
+
+  /* ── Font Families ── */
+  --ff-display:'Cormorant Garamond',Georgia,serif;
+  --ff-condensed:'Barlow Condensed',sans-serif;
+  --ff-body:'Instrument Sans',system-ui,sans-serif;
+  --ff-mono:'JetBrains Mono','Courier New',monospace;
+
+  /* ── Fluid Type Scale ── */
+  --text-xs:   clamp(.70rem,  1.0vw,  .80rem);
+  --text-sm:   clamp(.85rem,  1.2vw,  .95rem);
+  --text-base: clamp(1.00rem, 1.4vw,  1.10rem);
+  --text-lg:   clamp(1.10rem, 1.8vw,  1.30rem);
+  --text-xl:   clamp(1.30rem, 2.5vw,  1.80rem);
+  --text-2xl:  clamp(1.80rem, 3.5vw,  2.50rem);
+  --text-3xl:  clamp(2.50rem, 5.0vw,  4.00rem);
+  --text-hero: clamp(3.50rem, 9.0vw,  9.00rem);
+
+  /* ── Tracking Presets ── */
+  --track-hero:  -0.04em;
+  --track-sub:   -0.02em;
+  --track-body:   0.00em;
+  --track-label:  0.10em;
+  --track-mono:   0.18em;
+}
+html{scroll-behavior:smooth;}
+body{background:var(--s0);color:var(--text-primary);font-family:var(--ff-body);overflow-x:hidden;cursor:none;font-size:var(--text-base);}
+
+/* ── CURSOR ── */
+#cur {position:fixed;top:0;left:0;width:10px;height:10px;background:var(--brand);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:width .2s,height .2s;}
+#curl{position:fixed;top:0;left:0;width:36px;height:36px;border:1px solid rgba(232,144,32,.35);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:left .14s,top .14s;}
+#sprog{position:fixed;left:0;top:0;width:3px;height:0%;background:linear-gradient(to bottom,var(--brand),var(--brand-glow));z-index:1000;pointer-events:none;}
+.grain{position:fixed;inset:0;pointer-events:none;z-index:9990;opacity:.038;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.73' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)'/%3E%3C/svg%3E");background-size:300px;}
+
+/* ── ANIMATIONS ── */
+@keyframes slideUpReveal{to{transform:translateY(0);}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+/* ── REVEAL UTIL ── */
+.rv {opacity:0;transform:translateY(28px);transition:opacity .7s ease,transform .7s cubic-bezier(.16,1,.3,1);}
+.rvl{opacity:0;transform:translateX(-28px);transition:opacity .7s ease,transform .7s cubic-bezier(.16,1,.3,1);}
+.rvr{opacity:0;transform:translateX(28px);transition:opacity .7s ease,transform .7s cubic-bezier(.16,1,.3,1);}
+.rv.on,.rvl.on,.rvr.on{opacity:1;transform:translate(0);}
+.d1{transition-delay:.08s}.d2{transition-delay:.16s}.d3{transition-delay:.24s}
+.d4{transition-delay:.32s}.d5{transition-delay:.40s}.d6{transition-delay:.48s}
+.d7{transition-delay:.56s}.d8{transition-delay:.64s}
+
+/* ══════════════════════════════════════════════
+   HERO
+   ══════════════════════════════════════════════ */
+.hero{
+  position:relative;min-height:100vh;display:flex;align-items:center;
+  overflow:hidden;padding:120px 64px 80px;
+}
+.hero-ghost{
+  position:absolute;right:-2vw;top:50%;transform:translateY(-50%);
+  font-family:var(--ff-display);font-weight:700;font-style:italic;
+  font-size:clamp(200px,32vw,480px);line-height:1;
+  color:transparent;-webkit-text-stroke:1px rgba(237,232,224,.04);
+  pointer-events:none;letter-spacing:var(--track-hero);user-select:none;
+  white-space:nowrap;
+}
+.hero-grid-lines{
+  position:absolute;inset:0;
+  background-image:linear-gradient(rgba(232,144,32,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(232,144,32,.025) 1px,transparent 1px);
+  background-size:52px 52px;pointer-events:none;
+}
+.hero-inner{position:relative;z-index:2;max-width:900px;}
+.hero-chapter{font-family:var(--ff-mono);font-size:var(--text-xs);letter-spacing:var(--track-mono);text-transform:uppercase;color:var(--text-muted);margin-bottom:40px;opacity:0;animation:fadeUp .6s ease .2s forwards;}
+
+/* The big clip-path-revealed headline */
+.hero-headline{
+  font-family:var(--ff-display);font-weight:600;font-style:italic;
+  font-size:var(--text-hero);line-height:.9;
+  letter-spacing:var(--track-hero);color:var(--text-primary);
+  margin-bottom:40px;
+}
+/* word spans injected by JS */
+.hero-headline .word-wrap{display:inline-block;overflow:hidden;vertical-align:top;}
+.hero-headline .word-inner{display:inline-block;transform:translateY(105%);}
+
+.hero-accent{color:var(--brand);}
+
+.hero-bottom{
+  display:flex;align-items:flex-start;gap:64px;
+  opacity:0;animation:fadeUp .7s ease 1.2s forwards;
+}
+.hero-deck{
+  font-family:var(--ff-condensed);font-weight:900;font-size:var(--text-xl);
+  text-transform:uppercase;letter-spacing:var(--track-label);color:var(--text-secondary);
+  flex-shrink:0;
+}
+.hero-desc{
+  font-family:var(--ff-body);font-size:var(--text-base);
+  line-height:1.75;color:var(--text-muted);font-weight:400;
+  max-width:420px;border-left:1px solid var(--s3);padding-left:24px;
+}
+
+/* Font label strip at bottom of hero */
+.hero-font-strip{
+  position:absolute;bottom:36px;left:64px;right:64px;
+  display:flex;gap:32px;
+  opacity:0;animation:fadeUp .6s ease 1.5s forwards;
+}
+.hfs-item{display:flex;align-items:center;gap:10px;}
+.hfs-swatch{width:3px;height:20px;background:var(--brand);}
+.hfs-swatch.s-sec{background:var(--text-secondary);}
+.hfs-swatch.s-mut{background:var(--text-muted);}
+.hfs-name{font-family:var(--ff-mono);font-size:var(--text-xs);letter-spacing:var(--track-mono);text-transform:uppercase;color:var(--text-muted);}
+.hfs-role{font-family:var(--ff-mono);font-size:var(--text-xs);letter-spacing:var(--track-mono);text-transform:uppercase;color:var(--text-secondary);}
+
+/* ══════════════════════════════════════════════
+   SECTIONS BASE
+   ══════════════════════════════════════════════ */
+.section{padding:112px 64px;border-top:1px solid var(--s3);}
+.section-alt{background:var(--s1);}
+.sec-head{margin-bottom:72px;}
+.eyebrow{font-family:var(--ff-mono);font-size:var(--text-xs);letter-spacing:var(--track-mono);text-transform:uppercase;color:var(--brand);margin-bottom:14px;}
+.sec-title{font-family:var(--ff-condensed);font-weight:900;font-size:clamp(48px,7vw,88px);text-transform:uppercase;line-height:.87;letter-spacing:var(--track-sub);}
+.sec-title em{font-style:italic;font-family:var(--ff-display);font-weight:600;color:var(--brand);}
+.sec-body{font-size:var(--text-base);line-height:1.8;color:var(--text-secondary);max-width:520px;margin-top:16px;}
+
+/* ══════════════════════════════════════════════
+   FONT SYSTEM — 4 CARDS
+   ══════════════════════════════════════════════ */
+.font-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;}
+.font-card{
+  background:var(--s2);border:1px solid var(--s3);
+  padding:44px 36px;display:flex;flex-direction:column;
+  position:relative;overflow:hidden;transition:border-color .25s,background .25s;
+}
+.font-card:hover{border-color:var(--brand);background:#1E1712;}
+.font-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--brand);transform:scaleX(0);transform-origin:left;transition:transform .4s cubic-bezier(.16,1,.3,1);}
+.font-card:hover::before{transform:scaleX(1);}
+.fc-num{font-family:var(--ff-mono);font-size:var(--text-xs);letter-spacing:var(--track-mono);color:var(--text-muted);margin-bottom:32px;}
+.fc-specimen{flex:1;display:flex;align-items:flex-end;margin-bottom:28px;}
+.fc-specimen-text{line-height:1;}
+.fc-name{font-family:var(--ff-mono);font-size:var(--text-sm);font-weight:600;color:var(--brand);letter-spacing:.02em;margin-bottom:4px;}
+.fc-role{font-family:var(--ff-mono);font-size:var(--text-xs);letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;}
+.fc-divider{height:1px;background:var(--s3);margin-bottom:12px;}
+.fc-weights{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+.fc-w{font-family:var(--ff-mono);font-size:var(--text-xs);color:var(--text-secondary);padding:2px 7px;background:var(--s3);}
+.fc-use{font-size:var(--text-xs);color:var(--text-muted);line-height:1.6;font-family:var(--ff-body);}
+
+/* ══════════════════════════════════════════════
+   FLUID TYPE SCALE
+   ══════════════════════════════════════════════ */
+.scale-steps{display:flex;flex-direction:column;gap:2px;}
+.scale-step{
+  display:grid;grid-template-columns:120px 200px 1fr;
+  align-items:center;gap:32px;
+  padding:24px 0;border-bottom:1px solid var(--s3);
+}
+.scale-step:last-child{border-bottom:none;}
+.ss-var{font-family:var(--ff-mono);font-size:var(--text-xs);letter-spacing:.12em;color:var(--brand);}
+.ss-clamp{font-family:var(--ff-mono);font-size:var(--text-xs);color:var(--text-muted);line-height:1.5;}
+.ss-sample{font-family:var(--ff-display);font-weight:600;font-style:italic;color:var(--text-primary);line-height:1;letter-spacing:var(--track-hero);white-space:nowrap;overflow:hidden;}
+
+/* ══════════════════════════════════════════════
+   HEADLINE TREATMENTS
+   ══════════════════════════════════════════════ */
+.treatments-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;}
+.treatment{
+  background:var(--s2);padding:56px 48px;border:1px solid var(--s3);
+  position:relative;overflow:hidden;
+}
+.treatment-num{font-family:var(--ff-mono);font-size:var(--text-xs);letter-spacing:.2em;color:var(--text-muted);margin-bottom:28px;}
+.treatment-headline{margin-bottom:24px;}
+.treatment-meta{font-family:var(--ff-mono);font-size:var(--text-xs);color:var(--text-muted);letter-spacing:.1em;}
+.treatment-meta b{color:var(--brand);}
+
+/* Treatment 1: Display Serif */
+.t1 .treatment-headline{
+  font-family:var(--ff-display);font-weight:600;font-style:italic;
+  font-size:clamp(36px,5vw,64px);line-height:.95;
+  letter-spacing:var(--track-hero);color:var(--text-primary);
+}
+/* Treatment 2: Condensed Gothic */
+.t2 .treatment-headline{
+  font-family:var(--ff-condensed);font-weight:900;
+  font-size:clamp(40px,6vw,80px);line-height:.85;
+  text-transform:uppercase;letter-spacing:var(--track-sub);
+  color:var(--text-primary);
+}
+.t2 .hl-amber{color:var(--brand);}
+/* Treatment 3: Humanist Body */
+.t3 .treatment-headline{
+  font-family:var(--ff-body);font-weight:700;
+  font-size:clamp(24px,3vw,40px);line-height:1.15;
+  letter-spacing:-.01em;color:var(--text-primary);
+}
+/* Treatment 4: Data Mono */
+.t4 .treatment-headline{
+  font-family:var(--ff-mono);font-weight:500;
+  font-size:clamp(20px,2.5vw,32px);line-height:1.4;
+  letter-spacing:.04em;color:var(--brand);
+}
+.t4 .hl-dim{color:var(--text-muted);}
+
+/* ══════════════════════════════════════════════
+   PULL QUOTE — FULL BLEED
+   ══════════════════════════════════════════════ */
+.pullquote{
+  padding:120px 64px;background:var(--s1);
+  text-align:center;border-top:1px solid var(--s3);border-bottom:1px solid var(--s3);
+  position:relative;overflow:hidden;
+}
+.pullquote::before{
+  content:'\201C';position:absolute;
+  top:-60px;left:50%;transform:translateX(-50%);
+  font-family:var(--ff-display);font-weight:700;
+  font-size:360px;line-height:1;
+  color:rgba(232,144,32,.04);pointer-events:none;
+}
+.pq-text{
+  font-family:var(--ff-display);font-weight:400;font-style:italic;
+  font-size:clamp(28px,4.5vw,64px);line-height:1.22;
+  letter-spacing:-.01em;color:var(--text-primary);
+  max-width:960px;margin:0 auto 32px;position:relative;z-index:1;
+}
+.pq-text em{color:var(--brand);font-style:normal;}
+.pq-attr{font-family:var(--ff-mono);font-size:var(--text-xs);letter-spacing:var(--track-mono);text-transform:uppercase;color:var(--text-muted);}
+
+/* ══════════════════════════════════════════════
+   BODY COPY SPECIMEN
+   ══════════════════════════════════════════════ */
+.article-layout{
+  display:grid;grid-template-columns:1fr 2fr;
+  gap:64px;align-items:start;
+}
+.article-aside{}
+.article-kicker{font-family:var(--ff-mono);font-size:var(--text-xs);letter-spacing:var(--track-mono);text-transform:uppercase;color:var(--brand);margin-bottom:16px;}
+.article-title{
+  font-family:var(--ff-display);font-weight:700;font-style:italic;
+  font-size:clamp(32px,4vw,56px);line-height:1.0;
+  letter-spacing:var(--track-hero);color:var(--text-primary);margin-bottom:20px;
+}
+.article-byline{font-family:var(--ff-mono);font-size:var(--text-xs);color:var(--text-muted);line-height:1.6;}
+.article-main{}
+.article-lede{
+  font-family:var(--ff-body);font-size:var(--text-lg);font-weight:500;
+  line-height:1.65;color:var(--text-primary);margin-bottom:24px;
+  border-left:3px solid var(--brand);padding-left:20px;
+}
+.article-body{
+  font-family:var(--ff-body);font-size:var(--text-base);
+  line-height:1.82;color:var(--text-secondary);font-weight:400;
+  column-count:2;column-gap:36px;
+}
+.article-body p+p{text-indent:1.5em;}
+.inline-pull{
+  column-span:all;
+  font-family:var(--ff-display);font-weight:400;font-style:italic;
+  font-size:var(--text-2xl);line-height:1.2;color:var(--text-primary);
+  border-top:1px solid var(--brand);border-bottom:1px solid var(--s3);
+  padding:20px 0;margin:24px 0;letter-spacing:-.01em;
+}
+.article-caption{
+  font-family:var(--ff-mono);font-size:var(--text-xs);
+  color:var(--text-muted);line-height:1.7;margin-top:24px;
+  padding-top:16px;border-top:1px solid var(--s3);letter-spacing:.04em;
+}
+
+/* ══════════════════════════════════════════════
+   TRACKING & LEADING DEMO
+   ══════════════════════════════════════════════ */
+.tl-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;}
+.tl-card{background:var(--s2);padding:40px;border:1px solid var(--s3);}
+.tl-label{font-family:var(--ff-mono);font-size:var(--text-xs);letter-spacing:.18em;text-transform:uppercase;color:var(--brand);margin-bottom:20px;}
+.tl-rows{display:flex;flex-direction:column;gap:20px;}
+.tl-row{}
+.tl-meta{font-family:var(--ff-mono);font-size:var(--text-xs);color:var(--text-muted);margin-bottom:4px;}
+.track-demo{font-family:var(--ff-condensed);font-weight:900;font-size:clamp(24px,3vw,36px);text-transform:uppercase;color:var(--text-primary);line-height:1;}
+.lead-demo{font-family:var(--ff-body);font-size:var(--text-base);color:var(--text-secondary);}
+
+/* ══════════════════════════════════════════════
+   VORO IN CONTEXT
+   ══════════════════════════════════════════════ */
+.context-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;}
+.ctx-card{background:var(--s1);border:1px solid var(--s3);padding:44px 40px;}
+
+/* Card 1: Editorial headline */
+.ctx-editorial .ctx-kicker{font-family:var(--ff-mono);font-size:var(--text-xs);letter-spacing:.2em;text-transform:uppercase;color:var(--brand);margin-bottom:14px;}
+.ctx-editorial .ctx-h{font-family:var(--ff-display);font-weight:700;font-style:italic;font-size:clamp(28px,3.5vw,48px);line-height:.95;letter-spacing:var(--track-hero);margin-bottom:16px;}
+.ctx-editorial .ctx-body{font-size:var(--text-sm);line-height:1.75;color:var(--text-secondary);}
+
+/* Card 2: Stat block */
+.ctx-stats .ctx-label-sm{font-family:var(--ff-mono);font-size:var(--text-xs);letter-spacing:.2em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;}
+.ctx-stats .ctx-stat-num{font-family:var(--ff-mono);font-weight:600;font-size:clamp(36px,4vw,56px);color:var(--brand);line-height:1;letter-spacing:-.02em;}
+.ctx-stats .ctx-stat-unit{font-family:var(--ff-mono);font-size:var(--text-sm);color:var(--text-secondary);}
+.ctx-stats-grid{display:flex;flex-direction:column;gap:20px;}
+.ctx-divider{height:1px;background:var(--s3);margin:4px 0;}
+
+/* Card 3: Challenge card */
+.ctx-challenge .ctx-tag{font-family:var(--ff-mono);font-size:var(--text-xs);letter-spacing:.18em;text-transform:uppercase;color:var(--brand);background:var(--brand-dim);padding:4px 10px;display:inline-block;margin-bottom:16px;}
+.ctx-challenge .ctx-ch{font-family:var(--ff-condensed);font-weight:900;font-size:clamp(28px,3vw,44px);text-transform:uppercase;letter-spacing:var(--track-sub);line-height:.9;margin-bottom:12px;}
+.ctx-challenge .ctx-desc{font-size:var(--text-sm);line-height:1.7;color:var(--text-secondary);margin-bottom:20px;}
+.ctx-challenge .ctx-xp{font-family:var(--ff-mono);font-size:var(--text-sm);font-weight:600;color:var(--brand-glow);}
+
+/* ══════════════════════════════════════════════
+   CSS EXPORT
+   ══════════════════════════════════════════════ */
+.export-block{
+  background:var(--s2);border:1px solid var(--s3);border-left:2px solid var(--brand);
+  padding:40px 44px;font-family:var(--ff-mono);font-size:var(--text-sm);
+  line-height:2.1;overflow-x:auto;white-space:pre;position:relative;
+}
+.ec{color:var(--text-muted);}
+.ea{color:var(--brand);}
+.ev{color:var(--text-primary);}
+.es{color:var(--brand-glow);}
+.export-copy-btn{
+  position:absolute;top:20px;right:20px;background:var(--brand);
+  color:var(--s0);font-family:var(--ff-mono);font-size:var(--text-xs);
+  letter-spacing:.12em;text-transform:uppercase;border:none;padding:8px 16px;cursor:none;transition:background .2s;
+}
+.export-copy-btn:hover{background:var(--brand-glow);}
+.export-copy-btn.ok{background:#22c55e;color:#fff;}
+
+/* ── FOOTER ── */
+.footer-strip{
+  background:var(--s1);padding:36px 64px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-top:1px solid var(--s3);
+}
+.fl{font-family:var(--ff-condensed);font-weight:900;font-size:20px;letter-spacing:.2em;color:var(--text-primary);}
+.fl b{color:var(--brand);}
+.fc{font-family:var(--ff-mono);font-size:var(--text-xs);letter-spacing:.1em;color:var(--text-muted);}
+.f-links{display:flex;gap:24px;}
+.f-links a{font-family:var(--ff-mono);font-size:var(--text-xs);letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);text-decoration:none;transition:color .2s;}
+.f-links a:hover{color:var(--brand);}
+</style>
+</head>
+<body>
+
+<div class="grain"></div>
+<div id="sprog"></div>
+<div id="cur"></div>
+<div id="curl"></div>
+
+<!-- ══════════════════════════════════════════════════════
+     HERO — CLIP-PATH WORD REVEAL
+     ══════════════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-grid-lines"></div>
+  <div class="hero-ghost">FORM.</div>
+
+  <div class="hero-inner">
+    <p class="hero-chapter">// VORO Design System &nbsp;·&nbsp; Chapter 04</p>
+
+    <!-- JS injects word-by-word clip-path spans -->
+    <h1 class="hero-headline" id="heroHeadline">The forge speaks in letters.</h1>
+
+    <div class="hero-bottom">
+      <p class="hero-deck">Typography System</p>
+      <p class="hero-desc">Four families. Eight fluid scales. One voice that builds trust, commands attention, and refuses to be ignored.</p>
+    </div>
+  </div>
+
+  <div class="hero-font-strip">
+    <div class="hfs-item"><div class="hfs-swatch"></div><span class="hfs-role">Display</span>&nbsp;<span class="hfs-name">Cormorant Garamond</span></div>
+    <div class="hfs-item"><div class="hfs-swatch s-sec"></div><span class="hfs-role">Condensed</span>&nbsp;<span class="hfs-name">Barlow Condensed</span></div>
+    <div class="hfs-item"><div class="hfs-swatch s-mut"></div><span class="hfs-role">Body</span>&nbsp;<span class="hfs-name">Instrument Sans</span></div>
+    <div class="hfs-item"><div class="hfs-swatch s-mut"></div><span class="hfs-role">Mono</span>&nbsp;<span class="hfs-name">JetBrains Mono</span></div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     THE FOUR FONTS
+     ══════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="sec-head rv">
+    <p class="eyebrow">// 01 — The Font System</p>
+    <h2 class="sec-title">FOUR<br><em>Families</em></h2>
+    <p class="sec-body">Each family occupies a distinct role in the visual hierarchy — no overlap, no redundancy. Together they cover every communication register from editorial drama to technical precision.</p>
+  </div>
+  <div class="font-grid">
+
+    <!-- 01: Cormorant Garamond -->
+    <div class="font-card rv d1">
+      <p class="fc-num">// 01</p>
+      <div class="fc-specimen">
+        <span class="fc-specimen-text" style="font-family:var(--ff-display);font-weight:600;font-style:italic;font-size:clamp(56px,8vw,100px);color:var(--text-primary);letter-spacing:-.03em;line-height:.85">Ag</span>
+      </div>
+      <div class="fc-name">Cormorant Garamond</div>
+      <div class="fc-role">Display Serif · --ff-display</div>
+      <div class="fc-divider"></div>
+      <div class="fc-weights">
+        <span class="fc-w">300</span><span class="fc-w">400</span><span class="fc-w">600</span><span class="fc-w">700</span><span class="fc-w">Italic</span>
+      </div>
+      <p class="fc-use">Hero headlines, editorial moments, pull quotes. Extreme thin-thick contrast reads as hammered steel — effortless tension between power and precision.</p>
+    </div>
+
+    <!-- 02: Barlow Condensed -->
+    <div class="font-card rv d2">
+      <p class="fc-num">// 02</p>
+      <div class="fc-specimen">
+        <span class="fc-specimen-text" style="font-family:var(--ff-condensed);font-weight:900;font-size:clamp(52px,7.5vw,96px);text-transform:uppercase;letter-spacing:-.02em;line-height:.85">VR</span>
+      </div>
+      <div class="fc-name">Barlow Condensed</div>
+      <div class="fc-role">Condensed Gothic · --ff-condensed</div>
+      <div class="fc-divider"></div>
+      <div class="fc-weights">
+        <span class="fc-w">700</span><span class="fc-w">800</span><span class="fc-w">900</span>
+      </div>
+      <p class="fc-use">Section headlines, UI labels, navigation, all-caps lockups. Industrial grit: maximum information density, zero fat.</p>
+    </div>
+
+    <!-- 03: Instrument Sans -->
+    <div class="font-card rv d3">
+      <p class="fc-num">// 03</p>
+      <div class="fc-specimen">
+        <span class="fc-specimen-text" style="font-family:var(--ff-body);font-weight:600;font-size:clamp(44px,6.5vw,84px);letter-spacing:-.02em;line-height:.9">Hg</span>
+      </div>
+      <div class="fc-name">Instrument Sans</div>
+      <div class="fc-role">Humanist Body · --ff-body</div>
+      <div class="fc-divider"></div>
+      <div class="fc-weights">
+        <span class="fc-w">400</span><span class="fc-w">500</span><span class="fc-w">600</span><span class="fc-w">700</span><span class="fc-w">Italic</span>
+      </div>
+      <p class="fc-use">Body copy, descriptions, card content. Warm optical shapes pair perfectly with Cormorant's classical geometry — technical clarity with human warmth.</p>
+    </div>
+
+    <!-- 04: JetBrains Mono -->
+    <div class="font-card rv d4">
+      <p class="fc-num">// 04</p>
+      <div class="fc-specimen">
+        <span class="fc-specimen-text" style="font-family:var(--ff-mono);font-weight:500;font-size:clamp(36px,5.5vw,68px);color:var(--brand);letter-spacing:.04em;line-height:.9">01</span>
+      </div>
+      <div class="fc-name">JetBrains Mono</div>
+      <div class="fc-role">Data Mono · --ff-mono</div>
+      <div class="fc-divider"></div>
+      <div class="fc-weights">
+        <span class="fc-w">400</span><span class="fc-w">500</span><span class="fc-w">600</span>
+      </div>
+      <p class="fc-use">Data readouts, stats, labels, code, timestamps. Optical precision at any size — every glyph occupies identical width, every digit perfectly aligned.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     FLUID TYPE SCALE
+     ══════════════════════════════════════════════════════ -->
+<section class="section section-alt">
+  <div class="sec-head rv">
+    <p class="eyebrow">// 02 — Fluid Type Scale</p>
+    <h2 class="sec-title">EIGHT<br><em>Steps</em></h2>
+    <p class="sec-body">Each step is defined by <code style="font-family:var(--ff-mono);color:var(--brand);font-size:.9em">clamp(min, viewport, max)</code> — fluid between breakpoints, never jumping, never jarring.</p>
+  </div>
+  <div class="scale-steps">
+    <div class="scale-step rv d1">
+      <span class="ss-var">--text-xs</span>
+      <span class="ss-clamp">clamp(.70rem,<br>1.0vw, .80rem)</span>
+      <span class="ss-sample" style="font-size:var(--text-xs)">The warrior forges form from fire.</span>
+    </div>
+    <div class="scale-step rv d2">
+      <span class="ss-var">--text-sm</span>
+      <span class="ss-clamp">clamp(.85rem,<br>1.2vw, .95rem)</span>
+      <span class="ss-sample" style="font-size:var(--text-sm)">The warrior forges form from fire.</span>
+    </div>
+    <div class="scale-step rv d2">
+      <span class="ss-var">--text-base</span>
+      <span class="ss-clamp">clamp(1.00rem,<br>1.4vw, 1.10rem)</span>
+      <span class="ss-sample" style="font-size:var(--text-base)">The warrior forges form from fire.</span>
+    </div>
+    <div class="scale-step rv d3">
+      <span class="ss-var">--text-lg</span>
+      <span class="ss-clamp">clamp(1.10rem,<br>1.8vw, 1.30rem)</span>
+      <span class="ss-sample" style="font-size:var(--text-lg)">The warrior forges form from fire.</span>
+    </div>
+    <div class="scale-step rv d3">
+      <span class="ss-var">--text-xl</span>
+      <span class="ss-clamp">clamp(1.30rem,<br>2.5vw, 1.80rem)</span>
+      <span class="ss-sample" style="font-size:var(--text-xl)">Forge form from fire.</span>
+    </div>
+    <div class="scale-step rv d4">
+      <span class="ss-var">--text-2xl</span>
+      <span class="ss-clamp">clamp(1.80rem,<br>3.5vw, 2.50rem)</span>
+      <span class="ss-sample" style="font-size:var(--text-2xl)">Forge form from fire.</span>
+    </div>
+    <div class="scale-step rv d5">
+      <span class="ss-var">--text-3xl</span>
+      <span class="ss-clamp">clamp(2.50rem,<br>5.0vw, 4.00rem)</span>
+      <span class="ss-sample" style="font-size:var(--text-3xl)">Forge form.</span>
+    </div>
+    <div class="scale-step rv d6">
+      <span class="ss-var">--text-hero</span>
+      <span class="ss-clamp">clamp(3.50rem,<br>9.0vw, 9.00rem)</span>
+      <span class="ss-sample" style="font-size:clamp(3.5rem,7vw,7rem)">Forge.</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     HEADLINE TREATMENTS — 4 STYLES
+     ══════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="sec-head rv">
+    <p class="eyebrow">// 03 — Headline Treatments</p>
+    <h2 class="sec-title">FOUR<br><em>Voices</em></h2>
+  </div>
+  <div class="treatments-grid">
+
+    <div class="treatment t1 rv d1">
+      <div class="treatment-num">// DISPLAY SERIF · Cormorant Garamond 600i</div>
+      <div class="treatment-headline js-reveal">The athlete who refuses to guess.</div>
+      <div class="treatment-meta">Font: <b>--ff-display</b> · Weight: <b>600 italic</b> · Track: <b>-0.04em</b> · Use: Hero, editorial, pullquotes</div>
+    </div>
+
+    <div class="treatment t2 rv d2">
+      <div class="treatment-num">// CONDENSED GOTHIC · Barlow Condensed 900</div>
+      <div class="treatment-headline js-reveal">FORGE YOUR<br><span class="hl-amber">FORM.</span></div>
+      <div class="treatment-meta">Font: <b>--ff-condensed</b> · Weight: <b>900</b> · Track: <b>-0.02em</b> · Use: Section heads, callouts</div>
+    </div>
+
+    <div class="treatment t3 rv d3">
+      <div class="treatment-num">// HUMANIST BODY · Instrument Sans 700</div>
+      <div class="treatment-headline js-reveal">Your macros, mastered. Your training, transformed.</div>
+      <div class="treatment-meta">Font: <b>--ff-body</b> · Weight: <b>700</b> · Track: <b>-0.01em</b> · Use: Subheads, card titles, decks</div>
+    </div>
+
+    <div class="treatment t4 rv d4">
+      <div class="treatment-num">// DATA MONO · JetBrains Mono 500</div>
+      <div class="treatment-headline">
+        <span class="hl-dim">// PROTOCOL_ID:</span> IRON_030<br>
+        <span class="hl-dim">STATUS:</span> ACTIVE<br>
+        <span class="hl-dim">PROGRESS:</span> 19/30 DAYS<br>
+        <span class="hl-dim">XP_REWARD:</span> +500
+      </div>
+      <div class="treatment-meta">Font: <b>--ff-mono</b> · Weight: <b>500</b> · Track: <b>+0.04em</b> · Use: Stats, labels, data, code</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     PULL QUOTE — FULL BLEED
+     ══════════════════════════════════════════════════════ -->
+<div class="pullquote">
+  <p class="pq-text rv">"Your body is the most sophisticated machine ever built. <em>Decode it.</em> Forge it. Make it <em>undeniable.</em>"</p>
+  <p class="pq-attr rv d1">// Cormorant Garamond 400i · --text-2xl · line-height 1.22</p>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     BODY COPY SPECIMEN
+     ══════════════════════════════════════════════════════ -->
+<section class="section section-alt">
+  <div class="sec-head rv">
+    <p class="eyebrow">// 04 — Body Copy</p>
+    <h2 class="sec-title">READING<br><em>Rhythm</em></h2>
+  </div>
+  <div class="article-layout">
+    <div class="article-aside rvl">
+      <p class="article-kicker">// Feature · Training</p>
+      <h3 class="article-title">The Science of the Forge</h3>
+      <p class="article-byline">By Voro Intelligence System<br>10 May 2026 · 8 min read<br><br>Font: Instrument Sans 400<br>Size: --text-base<br>Leading: 1.82</p>
+    </div>
+    <div class="article-main rvr d1">
+      <p class="article-lede">Progressive overload is not a philosophy. It is a physical law. Apply force, recover, apply more — the body has no choice but to adapt.</p>
+      <div class="article-body">
+        <p>The principle is ancient, the application is modern. Every rep logged inside Voro feeds a model that understands not just what you lifted, but when your recovery curve peaks and how your caloric intake shapes your ceiling for growth.</p>
+        <p>Most athletes train hard. Few train intelligently. The difference lies in data density — how much signal you extract from each session and how precisely you act on it between sessions.</p>
+        <div class="inline-pull">"Precision is the difference between training and forging."</div>
+        <p>Voro's challenge system operationalises this principle through structured 7, 14, and 30-day protocols. Each protocol is a controlled experiment with a hypothesis: given these inputs, this output is achievable. The warrior is both scientist and subject.</p>
+        <p>Every meal logged is a data point. Every XP earned is a measurement. The leaderboard is not vanity — it is a real-time benchmark against the aggregate performance of every warrior who came before.</p>
+      </div>
+      <p class="article-caption">// Typography specimen: Instrument Sans 400/700 · --text-base · line-height 1.82 · Pull: Cormorant Garamond 400i · --text-2xl</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     TRACKING & LEADING
+     ══════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="sec-head rv">
+    <p class="eyebrow">// 05 — Tracking &amp; Leading</p>
+    <h2 class="sec-title">SPACE<br><em>Is Type</em></h2>
+  </div>
+  <div class="tl-grid">
+    <div class="tl-card rv d1">
+      <p class="tl-label">Letter-Spacing (Tracking)</p>
+      <div class="tl-rows">
+        <div class="tl-row">
+          <p class="tl-meta">--track-hero · -0.04em · Hero headlines</p>
+          <p class="track-demo" style="letter-spacing:-0.04em">FORGE YOUR FORM</p>
+        </div>
+        <div class="tl-row">
+          <p class="tl-meta">--track-sub · -0.02em · Subheadings</p>
+          <p class="track-demo" style="letter-spacing:-0.02em">FORGE YOUR FORM</p>
+        </div>
+        <div class="tl-row">
+          <p class="tl-meta">--track-label · +0.10em · UI labels</p>
+          <p class="track-demo" style="letter-spacing:0.10em;font-size:clamp(16px,2vw,24px)">FORGE YOUR FORM</p>
+        </div>
+        <div class="tl-row">
+          <p class="tl-meta">--track-mono · +0.18em · Mono/data</p>
+          <p class="track-demo" style="letter-spacing:0.18em;font-family:var(--ff-mono);font-size:clamp(12px,1.5vw,18px);font-weight:500">FORGE YOUR FORM</p>
+        </div>
+      </div>
+    </div>
+    <div class="tl-card rv d2">
+      <p class="tl-label">Line Height (Leading)</p>
+      <div class="tl-rows">
+        <div class="tl-row">
+          <p class="tl-meta">1.0 · Display / Hero — tight, monolithic</p>
+          <p class="lead-demo" style="line-height:1.0;font-family:var(--ff-display);font-weight:600;font-style:italic;font-size:var(--text-xl)">Precision is the difference between training and forging.</p>
+        </div>
+        <div class="tl-row">
+          <p class="tl-meta">1.4 · Subheadings — confident breathing room</p>
+          <p class="lead-demo" style="line-height:1.4;font-size:var(--text-base);font-weight:600">Precision is the difference between training and forging your best self.</p>
+        </div>
+        <div class="tl-row">
+          <p class="tl-meta">1.82 · Body copy — optimal reading rhythm</p>
+          <p class="lead-demo" style="line-height:1.82;font-size:var(--text-base)">Precision is the difference between training and forging. Every rep, every macro, every recovery window — data feeding the machine.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     VORO IN CONTEXT
+     ══════════════════════════════════════════════════════ -->
+<section class="section section-alt">
+  <div class="sec-head rv">
+    <p class="eyebrow">// 06 — VORO In Context</p>
+    <h2 class="sec-title">TYPE<br><em>Applied</em></h2>
+    <p class="sec-body">The type system serving real VORO interfaces — where every typographic decision carries functional weight.</p>
+  </div>
+  <div class="context-grid">
+
+    <!-- Editorial -->
+    <div class="ctx-card ctx-editorial rv d1">
+      <p class="ctx-kicker">// Feature Article</p>
+      <h3 class="ctx-h">The Athlete Who Refuses To Guess</h3>
+      <p class="ctx-body">Inside the data model that turns nutrition logging into competitive advantage — and how Voro's warriors use information density as their secret weapon.</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="ctx-card ctx-stats rv d2">
+      <div class="ctx-stats-grid">
+        <div>
+          <p class="ctx-label-sm">// Calories Today</p>
+          <p class="ctx-stat-num">1,842 <span class="ctx-stat-unit">kcal</span></p>
+        </div>
+        <div class="ctx-divider"></div>
+        <div>
+          <p class="ctx-label-sm">// Protein</p>
+          <p class="ctx-stat-num">140 <span class="ctx-stat-unit">g</span></p>
+        </div>
+        <div class="ctx-divider"></div>
+        <div>
+          <p class="ctx-label-sm">// Session XP</p>
+          <p class="ctx-stat-num">+340 <span class="ctx-stat-unit">xp</span></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Challenge -->
+    <div class="ctx-card ctx-challenge rv d3">
+      <span class="ctx-tag">⚡ Mission 001 · Active</span>
+      <h3 class="ctx-ch">30-Day Iron<br>Protocol</h3>
+      <p class="ctx-desc">Complete a full-body resistance session every day for 30 days. Logged inside Voro. No exceptions. No rest. Only results.</p>
+      <p class="ctx-xp">+500 XP · Day 19 of 30 · 62% Complete</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     CSS EXPORT
+     ══════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="sec-head rv">
+    <p class="eyebrow">// 07 — CSS Export</p>
+    <h2 class="sec-title">THE SYSTEM<br><em>In Code</em></h2>
+  </div>
+  <div class="export-block rv d1">
+    <button class="export-copy-btn" id="exportCopy">Copy CSS</button><span class="ec">/* ══ VORO Typography System — Chapter 04 ══════════════════════════ */</span>
+
+<span class="ec">/* 1. Load fonts */</span>
+<span class="ea">@import url</span>(<span class="es">'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,400;1,600&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Barlow+Condensed:wght@700;900&display=swap'</span>);
+
+<span class="ec">/* 2. Font families */</span>
+<span class="ea">:root</span> {
+  <span class="ea">--ff-display</span>:   <span class="ev">'Cormorant Garamond'</span>, Georgia, serif;
+  <span class="ea">--ff-condensed</span>: <span class="ev">'Barlow Condensed'</span>, sans-serif;
+  <span class="ea">--ff-body</span>:      <span class="ev">'Instrument Sans'</span>, system-ui, sans-serif;
+  <span class="ea">--ff-mono</span>:      <span class="ev">'JetBrains Mono'</span>, 'Courier New', monospace;
+
+  <span class="ec">/* 3. Fluid scale */</span>
+  <span class="ea">--text-xs</span>:   <span class="ev">clamp(.70rem,  1.0vw, .80rem)</span>;
+  <span class="ea">--text-sm</span>:   <span class="ev">clamp(.85rem,  1.2vw, .95rem)</span>;
+  <span class="ea">--text-base</span>: <span class="ev">clamp(1.00rem, 1.4vw, 1.10rem)</span>;
+  <span class="ea">--text-lg</span>:   <span class="ev">clamp(1.10rem, 1.8vw, 1.30rem)</span>;
+  <span class="ea">--text-xl</span>:   <span class="ev">clamp(1.30rem, 2.5vw, 1.80rem)</span>;
+  <span class="ea">--text-2xl</span>:  <span class="ev">clamp(1.80rem, 3.5vw, 2.50rem)</span>;
+  <span class="ea">--text-3xl</span>:  <span class="ev">clamp(2.50rem, 5.0vw, 4.00rem)</span>;
+  <span class="ea">--text-hero</span>: <span class="ev">clamp(3.50rem, 9.0vw, 9.00rem)</span>;
+
+  <span class="ec">/* 4. Tracking presets */</span>
+  <span class="ea">--track-hero</span>:  <span class="ev">-0.04em</span>; <span class="ec">/* Hero headlines      */</span>
+  <span class="ea">--track-sub</span>:   <span class="ev">-0.02em</span>; <span class="ec">/* Subheadings         */</span>
+  <span class="ea">--track-label</span>: <span class="ev"> 0.10em</span>; <span class="ec">/* UI labels           */</span>
+  <span class="ea">--track-mono</span>:  <span class="ev"> 0.18em</span>; <span class="ec">/* Mono / data labels  */</span>
+}</div>
+</section>
+
+<div class="footer-strip">
+  <span class="fl">VO<b>R</b>O</span>
+  <span class="fc">Chapter 04 · Typography System · 4 Families · 8 Scales</span>
+  <div class="f-links">
+    <a href="voro-reimagined.html">← Ch.01</a>
+    <a href="voro-ch02-logo-system.html">Ch.02</a>
+    <a href="voro-ch03-color-architecture.html">Ch.03</a>
+  </div>
+</div>
+
+<script>
+/* ══ CURSOR ══ */
+const cur=document.getElementById('cur'),curl=document.getElementById('curl');
+let mx=0,my=0,lx=0,ly=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px';});
+(function tick(){lx+=(mx-lx)*.14;ly+=(my-ly)*.14;curl.style.left=lx+'px';curl.style.top=ly+'px';requestAnimationFrame(tick);})();
+document.querySelectorAll('a,button').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{cur.style.width='20px';cur.style.height='20px';curl.style.transform='translate(-50%,-50%) scale(1.5)';});
+  el.addEventListener('mouseleave',()=>{cur.style.width='10px';cur.style.height='10px';curl.style.transform='translate(-50%,-50%) scale(1)';});
+});
+
+/* ══ SCROLL PROGRESS ══ */
+const sp=document.getElementById('sprog');
+window.addEventListener('scroll',()=>{sp.style.height=(window.scrollY/(document.body.scrollHeight-window.innerHeight)*100)+'%';});
+
+/* ══ SCROLL REVEALS ══ */
+const io=new IntersectionObserver(e=>e.forEach(x=>{if(x.isIntersecting){x.target.classList.add('on');io.unobserve(x.target);}}),{threshold:.1});
+document.querySelectorAll('.rv,.rvl,.rvr').forEach(el=>io.observe(el));
+
+/* ══ CLIP-PATH WORD REVEAL ══ */
+function revealText(el, baseDelay=0) {
+  const raw = el.textContent;
+  // Split on spaces, preserve newlines via <br> if any
+  const words = raw.trim().split(/\s+/);
+  el.innerHTML = words.map((w, i) =>
+    `<span style="display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:.08em">` +
+    `<span class="word-inner" style="display:inline-block;transform:translateY(105%);` +
+    `animation:slideUpReveal .78s cubic-bezier(.16,1,.3,1) ${baseDelay + i*72}ms forwards">` +
+    `${w}&nbsp;</span></span>`
+  ).join('');
+}
+
+/* Hero: fire on load */
+window.addEventListener('load', () => {
+  revealText(document.getElementById('heroHeadline'), 400);
+});
+
+/* Treatment/section headlines: fire on scroll */
+const textIo = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    const el = e.target;
+    if (!el.dataset.revealed) {
+      el.dataset.revealed = '1';
+      revealText(el, 0);
+    }
+    textIo.unobserve(el);
+  });
+}, {threshold: .3});
+document.querySelectorAll('.js-reveal').forEach(el => textIo.observe(el));
+
+/* ══ COPY CSS ══ */
+document.getElementById('exportCopy').addEventListener('click', function(){
+  const css=`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,400;1,600&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Barlow+Condensed:wght@700;900&display=swap');
+
+:root {
+  --ff-display:   'Cormorant Garamond', Georgia, serif;
+  --ff-condensed: 'Barlow Condensed', sans-serif;
+  --ff-body:      'Instrument Sans', system-ui, sans-serif;
+  --ff-mono:      'JetBrains Mono', 'Courier New', monospace;
+
+  --text-xs:   clamp(.70rem,  1.0vw, .80rem);
+  --text-sm:   clamp(.85rem,  1.2vw, .95rem);
+  --text-base: clamp(1.00rem, 1.4vw, 1.10rem);
+  --text-lg:   clamp(1.10rem, 1.8vw, 1.30rem);
+  --text-xl:   clamp(1.30rem, 2.5vw, 1.80rem);
+  --text-2xl:  clamp(1.80rem, 3.5vw, 2.50rem);
+  --text-3xl:  clamp(2.50rem, 5.0vw, 4.00rem);
+  --text-hero: clamp(3.50rem, 9.0vw, 9.00rem);
+
+  --track-hero:  -0.04em;
+  --track-sub:   -0.02em;
+  --track-label:  0.10em;
+  --track-mono:   0.18em;
+}`;
+  navigator.clipboard.writeText(css).then(()=>{
+    this.textContent='Copied ✓';this.classList.add('ok');
+    setTimeout(()=>{this.textContent='Copy CSS';this.classList.remove('ok');},2200);
+  });
+});
+</script>
+</body>
+</html>

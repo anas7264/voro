@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VORO — FORGE YOUR FORM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,800;0,900;1,900&family=IBM+Plex+Mono:wght@400;500;600&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --black:     #050403;
+      --warm-dark: #0C0906;
+      --mid:       #1A1410;
+      --mid2:      #251D16;
+      --amber:     #E89020;
+      --ember:     #FF3D00;
+      --bone:      #EDE8E0;
+      --muted:     #524438;
+      --fd: 'Barlow Condensed', sans-serif;
+      --fm: 'IBM Plex Mono', monospace;
+      --fb: 'Barlow', sans-serif;
+    }
+    html { scroll-behavior:smooth; }
+    body { background:var(--black); color:var(--bone); font-family:var(--fb); overflow-x:hidden; cursor:none; }
+
+    /* ── CURSOR ── */
+    #cur  { position:fixed;top:0;left:0;width:10px;height:10px;background:var(--amber);
+            border-radius:50%;pointer-events:none;z-index:9999;
+            transform:translate(-50%,-50%);transition:width .25s,height .25s,background .25s; }
+    #curl { position:fixed;top:0;left:0;width:36px;height:36px;
+            border:1px solid rgba(232,144,32,.4);border-radius:50%;
+            pointer-events:none;z-index:9998;transform:translate(-50%,-50%);
+            transition:left .14s ease,top .14s ease; }
+
+    /* ── PROGRESS BAR ── */
+    #sprog { position:fixed;left:0;top:0;width:3px;height:0%;
+             background:linear-gradient(to bottom,var(--amber),var(--ember));
+             z-index:1000;pointer-events:none;transition:height .08s linear; }
+
+    /* ── GRAIN ── */
+    .grain { position:fixed;inset:0;pointer-events:none;z-index:9990;opacity:.04;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-repeat:repeat;background-size:300px; }
+
+    /* ── NAV ── */
+    nav { position:fixed;top:0;left:0;right:0;z-index:100;
+          padding:22px 52px;display:flex;align-items:center;justify-content:space-between; }
+    nav::after { content:'';position:absolute;inset:0;
+                 background:linear-gradient(to bottom,rgba(5,4,3,.96) 0%,transparent 100%);z-index:-1; }
+    .nav-logo { font-family:var(--fd);font-weight:900;font-size:26px;
+                letter-spacing:.18em;color:var(--bone);text-decoration:none; }
+    .nav-logo b { color:var(--amber); }
+    .nav-links { display:flex;align-items:center;gap:36px;list-style:none; }
+    .nav-links a { font-family:var(--fm);font-size:10px;letter-spacing:.2em;
+                   text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color .2s; }
+    .nav-links a:hover { color:var(--bone); }
+    .nav-cta { font-family:var(--fm);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+               color:var(--black);background:var(--amber);padding:10px 24px;
+               text-decoration:none;transition:background .2s; }
+    .nav-cta:hover { background:var(--bone); }
+
+    /* ── HERO ── */
+    .hero { position:relative;min-height:100vh;display:flex;
+            align-items:center;justify-content:center;overflow:hidden; }
+    #hcanvas { position:absolute;inset:0;width:100%;height:100%; }
+    .hero-vline { position:absolute;left:52px;top:0;bottom:0;width:1px;
+                  background:linear-gradient(to bottom,transparent,var(--mid),transparent);
+                  opacity:.5;pointer-events:none; }
+    .hero-vline2 { position:absolute;right:52px;top:0;bottom:0;width:1px;
+                   background:linear-gradient(to bottom,transparent,var(--mid),transparent);
+                   opacity:.5;pointer-events:none; }
+    .hero-inner { position:relative;z-index:2;text-align:center;padding:0 24px; }
+    .hero-tag { font-family:var(--fm);font-size:10px;letter-spacing:.4em;text-transform:uppercase;
+                color:var(--amber);margin-bottom:32px;
+                opacity:0;animation:fadeUp .8s ease .4s forwards; }
+    .hero-tag span { opacity:.5;color:var(--muted); }
+    .hero-title { font-family:var(--fd);font-weight:900;
+                  font-size:clamp(100px,19vw,272px);
+                  line-height:.82;letter-spacing:-.025em;text-transform:uppercase;
+                  margin-bottom:38px;overflow:hidden; }
+    .hero-title .ln { display:block;transform:translateY(106%);
+                      animation:slideUp .75s cubic-bezier(.16,1,.3,1) forwards; }
+    .hero-title .ln:nth-child(1) { animation-delay:.46s; }
+    .hero-title .ln:nth-child(2) { animation-delay:.6s;  color:var(--amber); }
+    .hero-title .ln:nth-child(3) { animation-delay:.72s; }
+    .hero-sub { font-family:var(--fm);font-size:11px;letter-spacing:.3em;text-transform:uppercase;
+                color:var(--muted);margin-bottom:52px;
+                opacity:0;animation:fadeUp .8s ease .92s forwards; }
+    .hero-btns { display:flex;align-items:center;justify-content:center;gap:14px;
+                 opacity:0;animation:fadeUp .8s ease 1.08s forwards; }
+    .btn-p { display:inline-flex;align-items:center;gap:8px;
+             font-family:var(--fm);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+             color:var(--black);background:var(--amber);padding:15px 34px;
+             text-decoration:none;border:none;position:relative;overflow:hidden;transition:transform .2s; }
+    .btn-p::after { content:'';position:absolute;inset:0;background:var(--bone);
+                    transform:translateX(-102%);transition:transform .38s cubic-bezier(.16,1,.3,1); }
+    .btn-p:hover { transform:scale(1.02); }
+    .btn-p:hover::after { transform:translateX(0); }
+    .btn-p span { position:relative;z-index:1; }
+    .btn-g { display:inline-flex;align-items:center;gap:8px;
+             font-family:var(--fm);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+             color:var(--muted);border:1px solid var(--muted);padding:15px 34px;
+             text-decoration:none;transition:color .2s,border-color .2s; }
+    .btn-g:hover { color:var(--bone);border-color:var(--bone); }
+    .hero-scroll { position:absolute;bottom:30px;left:50%;transform:translateX(-50%);
+                   display:flex;flex-direction:column;align-items:center;gap:8px;
+                   opacity:0;animation:fadeUp .8s ease 1.45s forwards; }
+    .hero-scroll span { font-family:var(--fm);font-size:9px;letter-spacing:.25em;
+                        text-transform:uppercase;color:var(--muted); }
+    .scroll-line { width:1px;height:44px;
+                   background:linear-gradient(to bottom,var(--amber),transparent);
+                   animation:linePulse 2s ease-in-out infinite; }
+
+    /* ── TICKER ── */
+    .ticker { background:var(--amber);padding:14px 0;overflow:hidden;white-space:nowrap; }
+    .ticker-track { display:inline-flex;animation:marquee 24s linear infinite; }
+    .t-item { font-family:var(--fd);font-weight:900;font-size:13px;
+              letter-spacing:.32em;text-transform:uppercase;color:var(--black);padding:0 26px; }
+    .t-dot { color:var(--ember); }
+
+    /* ── GLOBAL SECTION ── */
+    section { padding:120px 52px; }
+    .eyebrow { font-family:var(--fm);font-size:10px;letter-spacing:.32em;
+               text-transform:uppercase;color:var(--amber);margin-bottom:16px; }
+
+    /* ── FEATURES ── */
+    .features { background:var(--warm-dark); }
+    .feat-head { display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:72px; }
+    .feat-title { font-family:var(--fd);font-weight:900;
+                  font-size:clamp(52px,8vw,96px);text-transform:uppercase;
+                  line-height:.88;max-width:580px; }
+    .feat-title em { font-style:italic;color:var(--amber); }
+    .feat-desc { max-width:270px;font-size:15px;line-height:1.75;
+                 color:var(--muted);font-weight:300; }
+    .feat-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:2px; }
+    .feat-card { background:var(--mid);padding:52px 42px;position:relative;
+                 overflow:hidden;transition:background .3s; }
+    .feat-card::before { content:'';position:absolute;top:0;left:0;right:0;height:2px;
+                         background:var(--amber);transform:scaleX(0);transform-origin:left;
+                         transition:transform .45s cubic-bezier(.16,1,.3,1); }
+    .feat-card:hover { background:#221C15; }
+    .feat-card:hover::before { transform:scaleX(1); }
+    .feat-num { font-family:var(--fm);font-size:10px;letter-spacing:.2em;
+                color:var(--muted);margin-bottom:40px; }
+    .feat-icon { width:46px;height:46px;color:var(--amber);margin-bottom:22px; }
+    .feat-ttl { font-family:var(--fd);font-weight:800;font-size:30px;
+                text-transform:uppercase;letter-spacing:.02em;margin-bottom:14px;line-height:1; }
+    .feat-body { font-size:14px;line-height:1.82;color:var(--muted);font-weight:300; }
+    .feat-link { display:inline-flex;align-items:center;gap:6px;margin-top:28px;
+                 font-family:var(--fm);font-size:10px;letter-spacing:.15em;text-transform:uppercase;
+                 color:var(--amber);text-decoration:none;transition:gap .2s; }
+    .feat-link:hover { gap:12px; }
+
+    /* ── STATS ── */
+    .stats-section { background:var(--black);
+                     border-top:1px solid var(--mid);border-bottom:1px solid var(--mid);padding:0; }
+    .stats-row { display:grid;grid-template-columns:repeat(4,1fr); }
+    .stat-cell { padding:64px 44px;border-right:1px solid var(--mid); }
+    .stat-cell:last-child { border-right:none; }
+    .stat-val { font-family:var(--fd);font-weight:900;
+                font-size:clamp(52px,5.5vw,80px);
+                letter-spacing:-.02em;color:var(--bone);line-height:1;margin-bottom:10px; }
+    .stat-val b { color:var(--amber); }
+    .stat-lbl { font-family:var(--fm);font-size:10px;letter-spacing:.25em;
+                text-transform:uppercase;color:var(--muted); }
+
+    /* ── SYSTEM SPLIT ── */
+    .system { background:var(--warm-dark);display:grid;
+              grid-template-columns:1fr 1fr;gap:80px;align-items:center; }
+    .sys-title { font-family:var(--fd);font-weight:900;
+                 font-size:clamp(52px,6vw,80px);text-transform:uppercase;
+                 line-height:.88;margin-bottom:28px; }
+    .sys-body  { font-size:16px;line-height:1.82;color:var(--muted);
+                 font-weight:300;margin-bottom:36px; }
+    .sys-list  { list-style:none; }
+    .sys-list li { display:flex;align-items:center;gap:12px;
+                   font-family:var(--fm);font-size:11px;letter-spacing:.04em;
+                   color:var(--bone);padding:13px 0;border-bottom:1px solid var(--mid); }
+    .sys-list li::before { content:'▸';color:var(--amber);font-size:9px;flex-shrink:0; }
+
+    /* ── DASHBOARD MOCK ── */
+    .dmock { background:var(--mid);border:1px solid #2A2018;border-radius:6px;
+             padding:28px;box-shadow:0 40px 100px rgba(0,0,0,.7),0 0 0 1px rgba(232,144,32,.06); }
+    .dm-hd { display:flex;align-items:center;justify-content:space-between;
+             padding-bottom:18px;border-bottom:1px solid var(--mid2);margin-bottom:22px; }
+    .dm-ttl { font-family:var(--fd);font-weight:700;font-size:18px;letter-spacing:.07em; }
+    .dm-date { font-family:var(--fm);font-size:9px;color:var(--muted); }
+    .dm-rings { display:flex;gap:10px;margin-bottom:16px; }
+    .dm-ring { flex:1;background:#0C0906;padding:14px 8px;border-radius:4px;text-align:center; }
+    .dm-rlbl { font-family:var(--fm);font-size:8px;letter-spacing:.2em;color:var(--muted);
+               text-transform:uppercase;margin-bottom:8px; }
+    .dm-rval { font-family:var(--fm);font-size:12px;font-weight:500;color:var(--bone);margin-top:4px; }
+    .dm-macros { display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px; }
+    .dm-mac { background:#0C0906;padding:12px;border-radius:4px; }
+    .dm-mlbl { font-family:var(--fm);font-size:8px;letter-spacing:.18em;color:var(--muted);
+               text-transform:uppercase;margin-bottom:5px; }
+    .dm-mval { font-family:var(--fd);font-weight:700;font-size:26px;line-height:1; }
+    .dm-bar { height:3px;background:var(--mid);border-radius:2px;margin-top:8px;overflow:hidden; }
+    .dm-fill { height:100%;border-radius:2px; }
+    .dm-challenge { background:#0C0906;padding:14px;border-radius:4px; }
+    .dm-clbl { font-family:var(--fm);font-size:8px;letter-spacing:.2em;color:var(--muted);
+               text-transform:uppercase;margin-bottom:10px; }
+    .dm-crow { display:flex;align-items:center;justify-content:space-between;margin-bottom:10px; }
+    .dm-cttl { font-family:var(--fd);font-weight:700;font-size:16px; }
+    .dm-xp   { font-family:var(--fm);font-size:10px;color:var(--amber);
+               background:rgba(232,144,32,.12);padding:3px 8px; }
+    .dm-prog { height:4px;background:var(--mid);border-radius:2px;overflow:hidden; }
+    .dm-pfill { height:100%;background:linear-gradient(to right,var(--amber),var(--ember));
+                border-radius:2px;width:62%; }
+
+    /* ── PULSE DIVIDER ── */
+    .pulse-div { background:var(--black);overflow:hidden;padding:0;line-height:0; }
+    .pulse-div svg { display:block;width:100%;height:60px; }
+
+    /* ── CHALLENGES ── */
+    .challenges { background:var(--black); }
+    .ch-head { display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:60px; }
+    .ch-title { font-family:var(--fd);font-weight:900;
+                font-size:clamp(48px,8vw,100px);text-transform:uppercase;
+                line-height:.85; }
+    .ch-sub { max-width:260px;font-family:var(--fm);font-size:11px;
+              letter-spacing:.08em;color:var(--muted);line-height:1.7; }
+    .ch-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:2px; }
+    .ch-card { background:var(--warm-dark);padding:40px;position:relative;overflow:hidden;
+               border-top:1px solid var(--mid);transition:border-color .3s,background .3s; }
+    .ch-card:hover { border-top-color:var(--amber);background:var(--mid2); }
+    .ch-card-id { font-family:var(--fm);font-size:9px;letter-spacing:.25em;
+                  color:var(--muted);text-transform:uppercase;margin-bottom:24px; }
+    .ch-card-name { font-family:var(--fd);font-weight:800;font-size:28px;
+                    text-transform:uppercase;margin-bottom:10px;line-height:1; }
+    .ch-card-desc { font-size:14px;line-height:1.75;color:var(--muted);font-weight:300;margin-bottom:28px; }
+    .ch-meta { display:flex;align-items:center;justify-content:space-between; }
+    .ch-dur  { font-family:var(--fm);font-size:10px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase; }
+    .ch-xp   { display:flex;align-items:center;gap:6px;
+               font-family:var(--fm);font-size:11px;font-weight:600;color:var(--amber); }
+    .ch-xp::before { content:'⚡';font-size:10px; }
+    .ch-bg-num { position:absolute;bottom:-20px;right:-10px;
+                 font-family:var(--fd);font-weight:900;font-size:120px;
+                 color:rgba(232,144,32,.04);pointer-events:none;line-height:1; }
+
+    /* ── TESTIMONIALS ── */
+    .testi { background:var(--warm-dark); }
+    .testi-head { margin-bottom:60px; }
+    .testi-title { font-family:var(--fd);font-weight:900;
+                   font-size:clamp(52px,9vw,112px);text-transform:uppercase;line-height:.85; }
+    .testi-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:2px; }
+    .testi-card { background:var(--mid);padding:44px 40px;position:relative;overflow:hidden;
+                  border-top:2px solid var(--mid2);transition:border-color .3s; }
+    .testi-card:hover { border-top-color:var(--amber); }
+    .testi-id { font-family:var(--fm);font-size:9px;letter-spacing:.25em;color:var(--muted);
+                text-transform:uppercase;margin-bottom:28px; }
+    .testi-q { font-family:var(--fd);font-weight:700;font-size:22px;
+               line-height:1.3;color:var(--bone);margin-bottom:28px; }
+    .testi-name { font-family:var(--fm);font-size:11px;letter-spacing:.15em;
+                  text-transform:uppercase;color:var(--amber); }
+    .testi-meta { font-family:var(--fm);font-size:10px;color:var(--muted);margin-top:4px; }
+    .testi-res  { position:absolute;bottom:32px;right:36px;font-family:var(--fd);
+                  font-weight:900;font-size:52px;color:rgba(232,144,32,.1);line-height:1; }
+
+    /* ── FINAL CTA ── */
+    .final { background:var(--amber);padding:120px 52px;position:relative;overflow:hidden; }
+    .final-inner { position:relative;z-index:1;max-width:900px; }
+    .final-title { font-family:var(--fd);font-weight:900;
+                   font-size:clamp(64px,13vw,180px);text-transform:uppercase;
+                   line-height:.82;color:var(--black);margin-bottom:48px; }
+    .final-form { display:flex;gap:0;max-width:520px; }
+    .final-inp { flex:1;background:rgba(5,4,3,.14);border:1px solid rgba(5,4,3,.25);
+                 border-right:none;padding:16px 22px;font-family:var(--fm);font-size:12px;
+                 color:var(--black);outline:none; }
+    .final-inp::placeholder { color:rgba(5,4,3,.45); }
+    .final-sub { background:var(--black);color:var(--amber);border:none;padding:16px 26px;
+                 font-family:var(--fm);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+                 transition:background .2s; }
+    .final-sub:hover { background:var(--warm-dark); }
+    .final-ghost { position:absolute;bottom:-30px;right:-20px;
+                   font-family:var(--fd);font-weight:900;font-size:clamp(180px,22vw,320px);
+                   line-height:1;color:rgba(5,4,3,.07);pointer-events:none;text-transform:uppercase; }
+    .final-note { font-family:var(--fm);font-size:10px;letter-spacing:.1em;
+                  color:rgba(5,4,3,.5);margin-top:20px; }
+
+    /* ── FOOTER ── */
+    footer { background:var(--warm-dark);padding:44px 52px;
+             display:flex;align-items:center;justify-content:space-between;
+             border-top:1px solid var(--mid); }
+    .f-logo { font-family:var(--fd);font-weight:900;font-size:24px;
+              letter-spacing:.18em;text-transform:uppercase;color:var(--bone); }
+    .f-logo b { color:var(--amber); }
+    .f-copy { font-family:var(--fm);font-size:10px;letter-spacing:.1em;color:var(--muted); }
+    .f-links { display:flex;gap:28px;list-style:none; }
+    .f-links a { font-family:var(--fm);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+                 color:var(--muted);text-decoration:none;transition:color .2s; }
+    .f-links a:hover { color:var(--bone); }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp  { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes slideUp { from{transform:translateY(106%)} to{transform:translateY(0)} }
+    @keyframes marquee { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+    @keyframes linePulse { 0%,100%{height:44px;opacity:1} 50%{height:18px;opacity:.25} }
+
+    /* ── SCROLL REVEALS ── */
+    .rv  { opacity:0;transform:translateY(32px);
+           transition:opacity .75s ease,transform .75s cubic-bezier(.16,1,.3,1); }
+    .rvl { opacity:0;transform:translateX(-32px);
+           transition:opacity .75s ease,transform .75s cubic-bezier(.16,1,.3,1); }
+    .rvr { opacity:0;transform:translateX(32px);
+           transition:opacity .75s ease,transform .75s cubic-bezier(.16,1,.3,1); }
+    .rv.on,.rvl.on,.rvr.on { opacity:1;transform:translate(0,0); }
+    .d1 { transition-delay:.1s } .d2 { transition-delay:.2s }
+    .d3 { transition-delay:.3s } .d4 { transition-delay:.4s }
+  </style>
+</head>
+<body>
+
+<div class="grain"></div>
+<div id="sprog"></div>
+<div id="cur"></div>
+<div id="curl"></div>
+
+<!-- ══════════════════════════ NAV ══════════════════════════ -->
+<nav>
+  <a href="#" class="nav-logo">VO<b>R</b>O</a>
+  <ul class="nav-links">
+    <li><a href="#features">System</a></li>
+    <li><a href="#system">Nutrition</a></li>
+    <li><a href="#challenges">Challenges</a></li>
+    <li><a href="#testimonials">Warriors</a></li>
+  </ul>
+  <a href="#final" class="nav-cta">Enter the Forge</a>
+</nav>
+
+<!-- ══════════════════════════ HERO ══════════════════════════ -->
+<section class="hero" id="hero">
+  <canvas id="hcanvas"></canvas>
+  <div class="hero-vline"></div>
+  <div class="hero-vline2"></div>
+
+  <div class="hero-inner">
+    <p class="hero-tag"><span>// </span>PERFORMANCE INTELLIGENCE SYSTEM<span> //</span></p>
+    <h1 class="hero-title">
+      <span class="ln">FORGE</span>
+      <span class="ln">YOUR</span>
+      <span class="ln">FORM.</span>
+    </h1>
+    <p class="hero-sub">Nutrition &nbsp;·&nbsp; Training &nbsp;·&nbsp; XP &nbsp;·&nbsp; Mastery</p>
+    <div class="hero-btns">
+      <a href="#final" class="btn-p"><span>⚡ &nbsp;Start Your Forge</span></a>
+      <a href="#system" class="btn-g">Explore System</a>
+    </div>
+  </div>
+
+  <div class="hero-scroll">
+    <span>Scroll</span>
+    <div class="scroll-line"></div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ TICKER ══════════════════════════ -->
+<div class="ticker">
+  <div class="ticker-track">
+    <span class="t-item">NUTRITION</span><span class="t-item t-dot">◆</span>
+    <span class="t-item">TRAINING</span><span class="t-item t-dot">◆</span>
+    <span class="t-item">CHALLENGES</span><span class="t-item t-dot">◆</span>
+    <span class="t-item">ANALYTICS</span><span class="t-item t-dot">◆</span>
+    <span class="t-item">TRANSFORMATION</span><span class="t-item t-dot">◆</span>
+    <span class="t-item">XP REWARDS</span><span class="t-item t-dot">◆</span>
+    <span class="t-item">NUTRITION</span><span class="t-item t-dot">◆</span>
+    <span class="t-item">TRAINING</span><span class="t-item t-dot">◆</span>
+    <span class="t-item">CHALLENGES</span><span class="t-item t-dot">◆</span>
+    <span class="t-item">ANALYTICS</span><span class="t-item t-dot">◆</span>
+    <span class="t-item">TRANSFORMATION</span><span class="t-item t-dot">◆</span>
+    <span class="t-item">XP REWARDS</span><span class="t-item t-dot">◆</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════ FEATURES ══════════════════════════ -->
+<section class="features" id="features">
+  <div class="feat-head rv">
+    <h2 class="feat-title">THE INTELLIGENCE<br>OF YOUR <em>BODY</em></h2>
+    <p class="feat-desc">Voro transforms raw performance data into actionable intelligence. Every meal. Every rep. Every victory tracked.</p>
+  </div>
+  <div class="feat-grid">
+
+    <div class="feat-card rv d1">
+      <p class="feat-num">// 01</p>
+      <svg class="feat-icon" viewBox="0 0 46 46" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="23" cy="23" r="19"/>
+        <path d="M23 13v10l7 4" stroke-linecap="round"/>
+        <circle cx="23" cy="23" r="2" fill="currentColor"/>
+        <path d="M12 8l2 3M34 8l-2 3M8 23h3M35 23h3" stroke-linecap="round"/>
+      </svg>
+      <h3 class="feat-ttl">Nutrition<br>Intelligence</h3>
+      <p class="feat-body">Track macros, calories, and micronutrients with military precision. Log meals in seconds and decode exactly what your body needs to perform.</p>
+      <a href="#" class="feat-link">Explore system →</a>
+    </div>
+
+    <div class="feat-card rv d2">
+      <p class="feat-num">// 02</p>
+      <svg class="feat-icon" viewBox="0 0 46 46" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M6 34l10-13 8 7 9-16 7 9" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="6" cy="34" r="2" fill="currentColor"/>
+        <circle cx="40" cy="21" r="2" fill="currentColor"/>
+        <path d="M6 40h34" stroke-linecap="round"/>
+      </svg>
+      <h3 class="feat-ttl">Training<br>Forge</h3>
+      <p class="feat-body">Build and execute workouts engineered for results. Progressive overload, real-time calorie burn, and analytics that make every session count.</p>
+      <a href="#" class="feat-link">Explore forge →</a>
+    </div>
+
+    <div class="feat-card rv d3">
+      <p class="feat-num">// 03</p>
+      <svg class="feat-icon" viewBox="0 0 46 46" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M23 6l4.5 9.1L38 16.6l-7.5 7.3 1.8 10.3L23 29.3l-9.3 4.9 1.8-10.3L8 16.6l10.5-1.5z" stroke-linejoin="round"/>
+        <path d="M23 36v6M17 40h12" stroke-linecap="round"/>
+      </svg>
+      <h3 class="feat-ttl">Challenge<br>Protocol</h3>
+      <p class="feat-body">Daily missions. Weekly wars. Earn XP, unlock achievements, and dominate leaderboards alongside thousands of warriors forging their best selves.</p>
+      <a href="#" class="feat-link">View challenges →</a>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════════════════════ STATS ══════════════════════════ -->
+<div class="stats-section">
+  <div class="stats-row">
+    <div class="stat-cell rv">
+      <div class="stat-val"><span class="counter" data-target="147293">0</span><b>+</b></div>
+      <p class="stat-lbl">// Meals Logged</p>
+    </div>
+    <div class="stat-cell rv d1">
+      <div class="stat-val"><span class="counter" data-target="2400">0</span><b>M+</b></div>
+      <p class="stat-lbl">// Calories Crushed</p>
+    </div>
+    <div class="stat-cell rv d2">
+      <div class="stat-val">89<b>%</b></div>
+      <p class="stat-lbl">// Goal Completion Rate</p>
+    </div>
+    <div class="stat-cell rv d3">
+      <div class="stat-val"><span class="counter" data-target="31847">0</span><b>+</b></div>
+      <p class="stat-lbl">// Active Warriors</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════ SYSTEM ══════════════════════════ -->
+<section class="system" id="system">
+  <div class="sys-text rvl">
+    <p class="eyebrow">// The System</p>
+    <h2 class="sys-title">YOUR BODY<br>IS DATA.<br>DECODE IT.</h2>
+    <p class="sys-body">Voro fuses nutrition science, exercise physiology, and behavioral psychology into one obsessively refined intelligence system. Built for athletes who refuse to guess.</p>
+    <ul class="sys-list">
+      <li>Real-time macro tracking &amp; calorie balance</li>
+      <li>AI-powered exercise library &amp; recommendations</li>
+      <li>XP-driven challenge system &amp; leaderboards</li>
+      <li>Progressive overload tracking &amp; trend analysis</li>
+      <li>Habit formation through gamified daily rituals</li>
+      <li>Full nutritional breakdown per meal &amp; day</li>
+    </ul>
+  </div>
+
+  <!-- ── Dashboard Mock ── -->
+  <div class="dmock rvr d2">
+    <div class="dm-hd">
+      <span class="dm-ttl">TODAY'S FORGE</span>
+      <span class="dm-date">// MAY 10 · 2026</span>
+    </div>
+
+    <div class="dm-rings">
+      <div class="dm-ring">
+        <div class="dm-rlbl">Calories</div>
+        <svg width="64" height="64" viewBox="0 0 64 64" display="block" style="margin:0 auto">
+          <circle cx="32" cy="32" r="26" fill="none" stroke="#1A1410" stroke-width="5"/>
+          <circle cx="32" cy="32" r="26" fill="none" stroke="#E89020" stroke-width="5"
+            stroke-dasharray="163.36" stroke-dashoffset="44"
+            transform="rotate(-90 32 32)" stroke-linecap="round"/>
+          <text x="32" y="37" text-anchor="middle" font-family="IBM Plex Mono,monospace"
+            font-size="10" fill="#EDE8E0">73%</text>
+        </svg>
+        <div class="dm-rval">1,842 kcal</div>
+      </div>
+      <div class="dm-ring">
+        <div class="dm-rlbl">Protein</div>
+        <svg width="64" height="64" viewBox="0 0 64 64" display="block" style="margin:0 auto">
+          <circle cx="32" cy="32" r="26" fill="none" stroke="#1A1410" stroke-width="5"/>
+          <circle cx="32" cy="32" r="26" fill="none" stroke="#FF3D00" stroke-width="5"
+            stroke-dasharray="163.36" stroke-dashoffset="49"
+            transform="rotate(-90 32 32)" stroke-linecap="round"/>
+          <text x="32" y="37" text-anchor="middle" font-family="IBM Plex Mono,monospace"
+            font-size="10" fill="#EDE8E0">70%</text>
+        </svg>
+        <div class="dm-rval">140g / 200g</div>
+      </div>
+      <div class="dm-ring">
+        <div class="dm-rlbl">XP Today</div>
+        <svg width="64" height="64" viewBox="0 0 64 64" display="block" style="margin:0 auto">
+          <circle cx="32" cy="32" r="26" fill="none" stroke="#1A1410" stroke-width="5"/>
+          <circle cx="32" cy="32" r="26" fill="none" stroke="#E89020" stroke-width="5"
+            stroke-dasharray="163.36" stroke-dashoffset="65"
+            transform="rotate(-90 32 32)" stroke-linecap="round"/>
+          <text x="32" y="37" text-anchor="middle" font-family="IBM Plex Mono,monospace"
+            font-size="10" fill="#EDE8E0">60%</text>
+        </svg>
+        <div class="dm-rval">+340 XP</div>
+      </div>
+    </div>
+
+    <div class="dm-macros">
+      <div class="dm-mac">
+        <div class="dm-mlbl">Protein</div>
+        <div class="dm-mval" style="color:#FF3D00">140<span style="font-size:12px;font-family:var(--fm)">g</span></div>
+        <div class="dm-bar"><div class="dm-fill" style="width:70%;background:#FF3D00"></div></div>
+      </div>
+      <div class="dm-mac">
+        <div class="dm-mlbl">Carbs</div>
+        <div class="dm-mval" style="color:#E89020">182<span style="font-size:12px;font-family:var(--fm)">g</span></div>
+        <div class="dm-bar"><div class="dm-fill" style="width:65%;background:#E89020"></div></div>
+      </div>
+      <div class="dm-mac">
+        <div class="dm-mlbl">Fat</div>
+        <div class="dm-mval" style="color:var(--bone)">54<span style="font-size:12px;font-family:var(--fm)">g</span></div>
+        <div class="dm-bar"><div class="dm-fill" style="width:80%;background:var(--amber)"></div></div>
+      </div>
+    </div>
+
+    <div class="dm-challenge">
+      <div class="dm-clbl">Active Challenge</div>
+      <div class="dm-crow">
+        <div class="dm-cttl">30-Day Iron Protocol</div>
+        <div class="dm-xp">+500 XP</div>
+      </div>
+      <div class="dm-prog"><div class="dm-pfill"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px">
+        <span style="font-family:var(--fm);font-size:9px;color:var(--muted)">Day 19 of 30</span>
+        <span style="font-family:var(--fm);font-size:9px;color:var(--amber)">62%</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ PULSE DIVIDER ══════════════════════════ -->
+<div class="pulse-div">
+  <svg viewBox="0 0 1440 60" preserveAspectRatio="none" fill="none">
+    <path d="M0 30 L80 30 L100 10 L120 50 L140 20 L160 40 L180 30
+             L260 30 L280 5  L300 55 L320 15 L340 45 L360 30
+             L440 30 L460 20 L480 40 L500 30
+             L580 30 L600 8  L620 52 L640 18 L660 42 L680 30
+             L760 30 L780 22 L800 38 L820 30
+             L900 30 L920 12 L940 48 L960 22 L980 38 L1000 30
+             L1080 30 L1100 18 L1120 42 L1140 30
+             L1220 30 L1240 6  L1260 54 L1280 14 L1300 46 L1320 30
+             L1440 30"
+      stroke="#E89020" stroke-width="1.5" stroke-opacity="0.35"/>
+  </svg>
+</div>
+
+<!-- ══════════════════════════ CHALLENGES ══════════════════════════ -->
+<section class="challenges" id="challenges">
+  <div class="ch-head rv">
+    <h2 class="ch-title">CHALLENGE<br>PROTOCOL</h2>
+    <p class="ch-sub">// Every day is a war against your former self. Accept the mission. Earn the XP. Rise.</p>
+  </div>
+  <div class="ch-grid">
+
+    <div class="ch-card rv d1">
+      <div class="ch-card-id">// MISSION — 001 · ACTIVE</div>
+      <h3 class="ch-card-name">30-Day Iron<br>Protocol</h3>
+      <p class="ch-card-desc">Complete a full-body resistance workout every day for 30 days. No rest days. Iron will forged in fire.</p>
+      <div class="ch-meta">
+        <span class="ch-dur">30 Days</span>
+        <span class="ch-xp">500 XP</span>
+      </div>
+      <div class="ch-bg-num">01</div>
+    </div>
+
+    <div class="ch-card rv d2">
+      <div class="ch-card-id">// MISSION — 002 · OPEN</div>
+      <h3 class="ch-card-name">Macro<br>Mastery</h3>
+      <p class="ch-card-desc">Hit your protein, carb, and fat targets within 5% accuracy for 21 consecutive days. Precision is power.</p>
+      <div class="ch-meta">
+        <span class="ch-dur">21 Days</span>
+        <span class="ch-xp">350 XP</span>
+      </div>
+      <div class="ch-bg-num">02</div>
+    </div>
+
+    <div class="ch-card rv d3">
+      <div class="ch-card-id">// MISSION — 003 · OPEN</div>
+      <h3 class="ch-card-name">Caloric<br>Siege</h3>
+      <p class="ch-card-desc">Maintain a 500 kcal daily deficit for 14 days while hitting your protein goal. The forge burns fat, not muscle.</p>
+      <div class="ch-meta">
+        <span class="ch-dur">14 Days</span>
+        <span class="ch-xp">280 XP</span>
+      </div>
+      <div class="ch-bg-num">03</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════════════════════ TESTIMONIALS ══════════════════════════ -->
+<section class="testi" id="testimonials">
+  <div class="testi-head rv">
+    <p class="eyebrow">// Field Reports</p>
+    <h2 class="testi-title">WARRIORS<br>SPEAK</h2>
+  </div>
+  <div class="testi-grid">
+
+    <div class="testi-card rv d1">
+      <div class="testi-id">// DISPATCH · 001 — VERIFIED</div>
+      <p class="testi-q">"I dropped 18 lbs in 60 days. The macro tracking is so clean I actually use it. No more guessing — just data and results."</p>
+      <div class="testi-name">Marcus T.</div>
+      <div class="testi-meta">Software Engineer · Level 34</div>
+      <div class="testi-res">−18lbs</div>
+    </div>
+
+    <div class="testi-card rv d2">
+      <div class="testi-id">// DISPATCH · 002 — VERIFIED</div>
+      <p class="testi-q">"The challenge system is addictive. I've completed 12 protocols in 4 months. My consistency has never been higher."</p>
+      <div class="testi-name">Alicia V.</div>
+      <div class="testi-meta">CrossFit Athlete · Level 52</div>
+      <div class="testi-res">×12</div>
+    </div>
+
+    <div class="testi-card rv d3">
+      <div class="testi-id">// DISPATCH · 003 — VERIFIED</div>
+      <p class="testi-q">"Finally an app that treats me like an adult. No fluff. No cutesy animations. Just intelligent tracking and brutal honesty."</p>
+      <div class="testi-name">Devon K.</div>
+      <div class="testi-meta">Powerlifter · Level 61</div>
+      <div class="testi-res">+61</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════════════════════ FINAL CTA ══════════════════════════ -->
+<section class="final" id="final">
+  <div class="final-inner rv">
+    <p class="eyebrow" style="color:rgba(5,4,3,.55)">// BEGIN YOUR TRANSFORMATION</p>
+    <h2 class="final-title">THE<br>FORGE<br>AWAITS.</h2>
+    <div class="final-form">
+      <input class="final-inp" type="email" placeholder="your@email.com">
+      <button class="final-sub">Enter Now →</button>
+    </div>
+    <p class="final-note">// Free forever plan. No credit card. No excuses.</p>
+  </div>
+  <div class="final-ghost">VORO</div>
+</section>
+
+<!-- ══════════════════════════ FOOTER ══════════════════════════ -->
+<footer>
+  <span class="f-logo">VO<b>R</b>O</span>
+  <span class="f-copy">© 2026 Voro Inc. · Forge Your Form</span>
+  <ul class="f-links">
+    <li><a href="#">Privacy</a></li>
+    <li><a href="#">Terms</a></li>
+    <li><a href="#">Careers</a></li>
+    <li><a href="#">Contact</a></li>
+  </ul>
+</footer>
+
+<script>
+/* ══ CURSOR ══ */
+const cur  = document.getElementById('cur');
+const curl = document.getElementById('curl');
+let mx=0, my=0, lx=0, ly=0;
+document.addEventListener('mousemove', e => {
+  mx = e.clientX; my = e.clientY;
+  cur.style.left  = mx+'px';
+  cur.style.top   = my+'px';
+});
+(function loop() {
+  lx += (mx - lx) * 0.14;
+  ly += (my - ly) * 0.14;
+  curl.style.left = lx+'px';
+  curl.style.top  = ly+'px';
+  requestAnimationFrame(loop);
+})();
+document.querySelectorAll('a,button').forEach(el => {
+  el.addEventListener('mouseenter', () => {
+    cur.style.width='20px'; cur.style.height='20px'; cur.style.background='var(--bone)';
+    curl.style.transform='translate(-50%,-50%) scale(1.5)';
+  });
+  el.addEventListener('mouseleave', () => {
+    cur.style.width='10px'; cur.style.height='10px'; cur.style.background='var(--amber)';
+    curl.style.transform='translate(-50%,-50%) scale(1)';
+  });
+});
+
+/* ══ SCROLL PROGRESS ══ */
+const sprog = document.getElementById('sprog');
+window.addEventListener('scroll', () => {
+  const pct = window.scrollY / (document.body.scrollHeight - window.innerHeight) * 100;
+  sprog.style.height = pct + '%';
+});
+
+/* ══ HERO CANVAS — PARTICLE CONSTELLATION ══ */
+(function(){
+  const canvas = document.getElementById('hcanvas');
+  const ctx    = canvas.getContext('2d');
+  let W, H, pts=[];
+  const NUM=110, MAX_DIST=140;
+
+  function resize(){
+    W=canvas.width=window.innerWidth;
+    H=canvas.height=window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  for(let i=0;i<NUM;i++){
+    pts.push({
+      x: Math.random()*W, y: Math.random()*H,
+      vx:(Math.random()-.5)*.35, vy:(Math.random()-.5)*.35,
+      r: Math.random()*1.5+.4,
+      a: Math.random()*.7+.2
+    });
+  }
+
+  let mouse={x:W/2,y:H/2};
+  window.addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY;});
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    // Draw connections
+    for(let i=0;i<pts.length;i++){
+      for(let j=i+1;j<pts.length;j++){
+        const dx=pts[i].x-pts[j].x, dy=pts[i].y-pts[j].y;
+        const d=Math.sqrt(dx*dx+dy*dy);
+        if(d<MAX_DIST){
+          const alpha=(1-d/MAX_DIST)*0.18;
+          ctx.beginPath();
+          ctx.moveTo(pts[i].x,pts[i].y);
+          ctx.lineTo(pts[j].x,pts[j].y);
+          ctx.strokeStyle=`rgba(232,144,32,${alpha})`;
+          ctx.lineWidth=0.6;
+          ctx.stroke();
+        }
+      }
+    }
+    // Mouse connections
+    for(let i=0;i<pts.length;i++){
+      const dx=pts[i].x-mouse.x, dy=pts[i].y-mouse.y;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d<180){
+        const alpha=(1-d/180)*0.4;
+        ctx.beginPath();
+        ctx.moveTo(pts[i].x,pts[i].y);
+        ctx.lineTo(mouse.x,mouse.y);
+        ctx.strokeStyle=`rgba(255,61,0,${alpha})`;
+        ctx.lineWidth=0.8;
+        ctx.stroke();
+      }
+    }
+    // Draw points
+    pts.forEach(p=>{
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(232,144,32,${p.a})`;
+      ctx.fill();
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0||p.x>W) p.vx*=-1;
+      if(p.y<0||p.y>H) p.vy*=-1;
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ══ SCROLL REVEALS ══ */
+const revEls = document.querySelectorAll('.rv,.rvl,.rvr');
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if(e.isIntersecting){ e.target.classList.add('on'); io.unobserve(e.target); }
+  });
+}, {threshold:0.12});
+revEls.forEach(el => io.observe(el));
+
+/* ══ COUNTER ANIMATION ══ */
+const counters = document.querySelectorAll('.counter[data-target]');
+const cio = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if(!e.isIntersecting) return;
+    const el     = e.target;
+    const target = parseInt(el.dataset.target);
+    const dur    = 1800;
+    const start  = performance.now();
+    function tick(now){
+      const p = Math.min((now-start)/dur,1);
+      // ease out cubic
+      const ep = 1-Math.pow(1-p,3);
+      const val = Math.floor(ep*target);
+      el.textContent = val.toLocaleString();
+      if(p<1) requestAnimationFrame(tick);
+      else el.textContent = target.toLocaleString();
+    }
+    requestAnimationFrame(tick);
+    cio.unobserve(el);
+  });
+},{threshold:0.5});
+counters.forEach(c => cio.observe(c));
+</script>
+</body>
+</html>

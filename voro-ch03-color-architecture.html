@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VORO — Chapter 03: Color Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,800;0,900;1,900&family=IBM+Plex+Mono:wght@400;500;600&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+
+/* ══════════════════════════════════════════
+   THE 9-TOKEN ADAPTIVE COLOR SYSTEM
+   ══════════════════════════════════════════ */
+:root{
+  /* ── Surface layers (warm-dark, fixed) ── */
+  --s0:#050403;
+  --s1:#0C0906;
+  --s2:#1A1410;
+  --s3:#251D16;
+
+  /* ── Adaptive brand hue (0–360) ── */
+  --brand-h:38;
+
+  /* ── Brand spectrum (shifts with --brand-h) ── */
+  --brand-dim:  hsl(var(--brand-h),70%,22%);
+  --brand:      hsl(var(--brand-h),85%,56%);
+  --brand-glow: hsl(var(--brand-h),100%,70%);
+
+  /* ── Typography ── */
+  --text-primary:   rgba(237,232,224,0.95);
+  --text-secondary: rgba(200,185,168,0.65);
+  --text-muted:     rgba(140,124,108,0.45);
+
+  /* ── Convenience ── */
+  --fd:'Barlow Condensed',sans-serif;
+  --fm:'IBM Plex Mono',monospace;
+  --fb:'Barlow',sans-serif;
+}
+
+html{scroll-behavior:smooth;}
+body{background:var(--s0);color:var(--text-primary);font-family:var(--fb);overflow-x:hidden;cursor:none;}
+
+/* ── CURSOR ── */
+#cur {position:fixed;top:0;left:0;width:10px;height:10px;background:var(--brand);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:width .2s,height .2s,background .4s;}
+#curl{position:fixed;top:0;left:0;width:36px;height:36px;border:1px solid rgba(var(--brand-h),0,0,.38);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:left .14s,top .14s,border-color .4s;}
+
+/* ── PROGRESS ── */
+#sprog{position:fixed;left:0;top:0;width:3px;height:0%;background:linear-gradient(to bottom,var(--brand),var(--brand-glow));z-index:1000;pointer-events:none;transition:background .4s;}
+
+/* ── GRAIN ── */
+.grain{position:fixed;inset:0;pointer-events:none;z-index:9990;opacity:.038;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.73' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:300px;}
+
+/* ── EYEBROW ── */
+.eyebrow{font-family:var(--fm);font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:var(--brand);margin-bottom:14px;transition:color .4s;}
+
+/* ════════════════════════════════════════
+   HERO
+   ════════════════════════════════════════ */
+.hero{
+  min-height:100vh;display:grid;grid-template-columns:1fr 1fr;
+  align-items:center;gap:0;position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 50% 70% at 70% 50%, hsl(var(--brand-h),60%,12%) 0%, transparent 65%);
+  transition:background .5s;pointer-events:none;
+}
+.hero-grid{
+  position:absolute;inset:0;
+  background-image:linear-gradient(rgba(237,232,224,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(237,232,224,.025) 1px,transparent 1px);
+  background-size:48px 48px;pointer-events:none;
+}
+.hero-left{padding:80px 64px;}
+.hero-chapter{font-family:var(--fm);font-size:10px;letter-spacing:.35em;text-transform:uppercase;color:var(--text-muted);margin-bottom:32px;transition:color .4s;}
+.hero-title{font-family:var(--fd);font-weight:900;font-size:clamp(72px,10vw,128px);text-transform:uppercase;line-height:.85;letter-spacing:-.02em;}
+.hero-title .ln1{color:var(--brand);display:block;transition:color .4s;}
+.hero-title .ln2,.hero-title .ln3{color:var(--text-primary);display:block;}
+.hero-desc{margin-top:28px;font-size:15px;line-height:1.8;color:var(--text-secondary);max-width:360px;font-weight:300;}
+
+/* ── HUE RING ── */
+.hero-right{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 64px;gap:32px;}
+.ring-wrap{position:relative;width:280px;height:280px;flex-shrink:0;}
+.hue-ring{
+  width:100%;height:100%;border-radius:50%;
+  background:conic-gradient(
+    hsl(0,88%,55%),hsl(20,88%,55%),hsl(40,88%,55%),hsl(60,88%,55%),
+    hsl(80,88%,55%),hsl(100,88%,55%),hsl(120,88%,55%),hsl(140,88%,55%),
+    hsl(160,88%,55%),hsl(180,88%,55%),hsl(200,88%,55%),hsl(220,88%,55%),
+    hsl(240,88%,55%),hsl(260,88%,55%),hsl(280,88%,55%),hsl(300,88%,55%),
+    hsl(320,88%,55%),hsl(340,88%,55%),hsl(360,88%,55%)
+  );
+  box-shadow:0 0 60px rgba(0,0,0,.7);
+  cursor:none;
+}
+.ring-inner{
+  position:absolute;inset:32px;border-radius:50%;
+  background:var(--s0);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  transition:background .4s;
+  box-shadow:inset 0 0 24px rgba(0,0,0,.5);
+}
+.ring-hue-val{font-family:var(--fd);font-weight:900;font-size:48px;color:var(--brand);line-height:1;transition:color .2s;}
+.ring-hue-lbl{font-family:var(--fm);font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:var(--text-muted);}
+.ring-handle{
+  position:absolute;width:18px;height:18px;
+  background:var(--s0);border:3px solid #fff;
+  border-radius:50%;transform:translate(-50%,-50%);
+  box-shadow:0 0 12px rgba(0,0,0,.6),0 0 24px var(--brand);
+  transition:box-shadow .2s;pointer-events:none;z-index:2;
+}
+
+/* Computed brand strip under ring */
+.brand-strip{display:flex;gap:0;width:280px;border-radius:4px;overflow:hidden;}
+.brand-strip-cell{flex:1;height:32px;display:flex;align-items:center;justify-content:center;transition:background .4s;}
+.bsc-dim{background:var(--brand-dim);}
+.bsc-base{background:var(--brand);}
+.bsc-glow{background:var(--brand-glow);}
+.bsc-lbl{font-family:var(--fm);font-size:7.5px;letter-spacing:.14em;text-transform:uppercase;mix-blend-mode:luminosity;color:#fff;opacity:.7;}
+
+/* Presets row */
+.presets-wrap{width:100%;}
+.presets-label{font-family:var(--fm);font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;text-align:center;}
+.presets{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+.preset-btn{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  padding:12px 14px;background:var(--s2);border:1px solid var(--s3);
+  cursor:none;transition:border-color .2s,background .2s;
+}
+.preset-btn:hover{background:var(--s3);border-color:var(--brand);}
+.preset-btn.active{border-color:var(--brand);background:var(--brand-dim);}
+.preset-swatch{width:28px;height:28px;border-radius:50%;}
+.preset-name{font-family:var(--fm);font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-secondary);}
+.preset-hue{font-family:var(--fm);font-size:8px;color:var(--text-muted);}
+
+/* ════════════════════════════════════════
+   SECTIONS BASE
+   ════════════════════════════════════════ */
+.section{padding:112px 64px;border-top:1px solid var(--s3);}
+.section-alt{background:var(--s1);}
+.sec-head{margin-bottom:64px;}
+.sec-title{font-family:var(--fd);font-weight:900;font-size:clamp(48px,7vw,88px);text-transform:uppercase;line-height:.87;}
+.sec-title em{font-style:italic;color:var(--brand);transition:color .4s;}
+.sec-body{font-size:15px;line-height:1.8;color:var(--text-secondary);max-width:520px;font-weight:300;margin-top:16px;}
+
+/* ════════════════════════════════════════
+   TOKEN MATRIX — 9-CELL GRID
+   ════════════════════════════════════════ */
+.token-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:2px;}
+.tok-card{background:var(--s2);border:1px solid var(--s3);display:flex;flex-direction:column;overflow:hidden;transition:border-color .2s;}
+.tok-card:hover{border-color:var(--brand);}
+.tok-swatch{height:80px;flex-shrink:0;position:relative;transition:background .4s;}
+.tok-swatch-glow{box-shadow:inset 0 -20px 40px rgba(0,0,0,.3);}
+.tok-body{padding:16px 14px;flex:1;}
+.tok-name{font-family:var(--fm);font-size:9px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--brand);margin-bottom:6px;transition:color .4s;}
+.tok-var{font-family:var(--fm);font-size:9px;color:var(--text-muted);margin-bottom:8px;}
+.tok-hex{font-family:var(--fm);font-size:10px;font-weight:500;color:var(--text-secondary);}
+.tok-use{font-size:11px;color:var(--text-muted);line-height:1.5;margin-top:6px;font-weight:300;}
+
+/* swatch colors — explicitly listed so they work without JS */
+.swatch-s0{background:var(--s0);}
+.swatch-s1{background:var(--s1);}
+.swatch-s2{background:var(--s2);}
+.swatch-s3{background:var(--s3);}
+.swatch-bdim{background:var(--brand-dim);}
+.swatch-b{background:var(--brand);}
+.swatch-bglow{background:var(--brand-glow);}
+.swatch-tp{background:var(--text-primary);}
+.swatch-ts{background:var(--text-secondary);}
+
+/* ════════════════════════════════════════
+   SURFACE DEPTH
+   ════════════════════════════════════════ */
+.depth-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;}
+.depth-demo{
+  background:var(--s3);padding:32px;border-radius:6px;
+  box-shadow:0 32px 80px rgba(0,0,0,.6);
+}
+.depth-layer{border-radius:4px;padding:24px;position:relative;}
+.dl3{background:var(--s3);}
+.dl2{background:var(--s2);margin-top:0;}
+.dl1{background:var(--s1);}
+.dl0{background:var(--s0);}
+.depth-lbl{font-family:var(--fm);font-size:9px;letter-spacing:.2em;text-transform:uppercase;}
+.dl3 .depth-lbl{color:rgba(237,232,224,.25);}
+.dl2 .depth-lbl{color:rgba(237,232,224,.3);}
+.dl1 .depth-lbl{color:rgba(237,232,224,.4);}
+.dl0 .depth-lbl{color:rgba(237,232,224,.55);}
+.depth-val{font-family:var(--fm);font-size:11px;font-weight:500;margin-top:3px;}
+
+.depth-info{}
+.depth-list{list-style:none;margin-top:24px;}
+.depth-list li{
+  display:flex;align-items:center;gap:14px;padding:14px 0;
+  border-bottom:1px solid var(--s3);font-family:var(--fm);font-size:11px;
+  letter-spacing:.04em;color:var(--text-secondary);
+}
+.dl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+
+/* ════════════════════════════════════════
+   BRAND IN USE — LIVE UI DEMO
+   ════════════════════════════════════════ */
+.brand-demo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-top:0;}
+.demo-cell{background:var(--s1);padding:40px 36px;border:1px solid var(--s3);display:flex;flex-direction:column;gap:20px;}
+.demo-cell-label{font-family:var(--fm);font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--text-muted);}
+
+/* Button demo */
+.demo-btn-p{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--brand);color:var(--s0);
+  font-family:var(--fm);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  padding:13px 24px;border:none;cursor:none;
+  transition:background .3s;
+}
+.demo-btn-p:hover{background:var(--brand-glow);}
+.demo-btn-g{
+  display:inline-flex;align-items:center;gap:8px;
+  background:transparent;color:var(--brand);
+  font-family:var(--fm);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  padding:12px 24px;border:1px solid var(--brand);cursor:none;
+  transition:background .3s,color .3s;
+}
+.demo-btn-g:hover{background:var(--brand-dim);color:var(--brand-glow);}
+
+/* Badge demo */
+.demo-badges{display:flex;gap:8px;flex-wrap:wrap;}
+.badge-brand{background:var(--brand-dim);color:var(--brand-glow);font-family:var(--fm);font-size:9px;letter-spacing:.15em;text-transform:uppercase;padding:5px 10px;transition:background .4s,color .4s;}
+.badge-outline{background:transparent;color:var(--brand);border:1px solid var(--brand);font-family:var(--fm);font-size:9px;letter-spacing:.15em;text-transform:uppercase;padding:4px 10px;transition:color .4s,border-color .4s;}
+.badge-solid{background:var(--brand);color:var(--s0);font-family:var(--fm);font-size:9px;letter-spacing:.15em;text-transform:uppercase;padding:5px 10px;transition:background .4s;}
+
+/* Input demo */
+.demo-input{
+  width:100%;background:var(--s0);
+  border:1px solid var(--s3);border-bottom:1px solid var(--brand);
+  padding:12px 16px;font-family:var(--fm);font-size:11px;color:var(--text-primary);
+  outline:none;transition:border-color .4s;
+}
+.demo-input::placeholder{color:var(--text-muted);}
+
+/* Progress bar */
+.demo-prog-wrap{display:flex;flex-direction:column;gap:10px;}
+.prog-row{display:flex;flex-direction:column;gap:4px;}
+.prog-meta{display:flex;justify-content:space-between;align-items:center;}
+.prog-name{font-family:var(--fm);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-secondary);}
+.prog-pct{font-family:var(--fm);font-size:9px;color:var(--brand);transition:color .4s;}
+.prog-track{height:4px;background:var(--s3);border-radius:2px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:2px;background:linear-gradient(to right,var(--brand-dim),var(--brand));transition:background .4s;}
+.prog-fill-glow{background:linear-gradient(to right,var(--brand),var(--brand-glow));}
+
+/* ════════════════════════════════════════
+   TYPOGRAPHY HIERARCHY
+   ════════════════════════════════════════ */
+.type-demo{background:var(--s1);padding:52px;border:1px solid var(--s3);}
+.type-row{
+  display:flex;align-items:baseline;justify-content:space-between;
+  padding:22px 0;border-bottom:1px solid var(--s3);gap:40px;
+}
+.type-row:last-child{border-bottom:none;}
+.type-sample{flex:1;}
+.type-label-wrap{display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.type-token{font-family:var(--fm);font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);text-align:right;}
+.wcag-badge{
+  font-family:var(--fm);font-size:8px;letter-spacing:.12em;text-transform:uppercase;
+  padding:3px 8px;border-radius:2px;flex-shrink:0;
+}
+.wcag-aaa{background:rgba(34,197,94,.15);color:#22c55e;}
+.wcag-aa{background:rgba(234,179,8,.15);color:#eab308;}
+.wcag-a{background:rgba(249,115,22,.15);color:#f97316;}
+.type-primary{font-family:var(--fd);font-weight:700;font-size:28px;color:var(--text-primary);line-height:1;}
+.type-secondary{font-family:var(--fb);font-size:16px;color:var(--text-secondary);font-weight:400;line-height:1.6;}
+.type-muted{font-family:var(--fm);font-size:12px;color:var(--text-muted);letter-spacing:.06em;}
+
+/* ════════════════════════════════════════
+   HARMONY EXPLORER
+   ════════════════════════════════════════ */
+.harmony-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;}
+.harm-card{background:var(--s2);padding:36px;border:1px solid var(--s3);}
+.harm-title{font-family:var(--fd);font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}
+.harm-sub{font-family:var(--fm);font-size:10px;letter-spacing:.14em;color:var(--text-muted);margin-bottom:20px;text-transform:uppercase;}
+.harm-swatches{display:flex;gap:6px;margin-bottom:16px;}
+.harm-sw{height:44px;flex:1;border-radius:3px;transition:background .4s;}
+.harm-formula{font-family:var(--fm);font-size:10px;color:var(--text-muted);letter-spacing:.06em;}
+
+/* ════════════════════════════════════════
+   CSS EXPORT
+   ════════════════════════════════════════ */
+.export-block{
+  background:var(--s1);border:1px solid var(--s3);border-left:2px solid var(--brand);
+  padding:36px 40px;font-family:var(--fm);font-size:11px;line-height:2;
+  overflow-x:auto;white-space:pre;position:relative;transition:border-color .4s;
+}
+.ec{color:var(--text-muted);}
+.ea{color:var(--brand);transition:color .4s;}
+.ev{color:var(--text-primary);}
+.ee{color:hsl(var(--brand-h),100%,70%);transition:color .4s;}
+.export-copy{
+  position:absolute;top:20px;right:20px;background:var(--brand);color:var(--s0);
+  font-family:var(--fm);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  border:none;padding:9px 18px;cursor:none;transition:background .3s;
+}
+.export-copy:hover{background:var(--brand-glow);}
+.export-copy.ok{background:#22c55e;color:#fff;}
+
+/* ════════════════════════════════════════
+   FOOTER
+   ════════════════════════════════════════ */
+.footer-strip{
+  background:var(--s1);padding:36px 64px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-top:1px solid var(--s3);
+}
+.fl{font-family:var(--fd);font-weight:900;font-size:20px;letter-spacing:.2em;color:var(--text-primary);}
+.fl b{color:var(--brand);transition:color .4s;}
+.fc{font-family:var(--fm);font-size:10px;letter-spacing:.1em;color:var(--text-muted);}
+
+/* ── REVEALS ── */
+.rv {opacity:0;transform:translateY(28px);transition:opacity .7s ease,transform .7s cubic-bezier(.16,1,.3,1);}
+.rvl{opacity:0;transform:translateX(-28px);transition:opacity .7s ease,transform .7s cubic-bezier(.16,1,.3,1);}
+.rvr{opacity:0;transform:translateX(28px);transition:opacity .7s ease,transform .7s cubic-bezier(.16,1,.3,1);}
+.rv.on,.rvl.on,.rvr.on{opacity:1;transform:translate(0);}
+.d1{transition-delay:.1s}.d2{transition-delay:.2s}.d3{transition-delay:.25s}
+.d4{transition-delay:.32s}.d5{transition-delay:.4s}.d6{transition-delay:.48s}
+.d7{transition-delay:.56s}.d8{transition-delay:.64s}.d9{transition-delay:.72s}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<div class="grain"></div>
+<div id="sprog"></div>
+<div id="cur"></div>
+<div id="curl"></div>
+
+<!-- ══════════════════════════════════════
+     HERO
+     ══════════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-grid"></div>
+
+  <div class="hero-left">
+    <p class="hero-chapter">// VORO Design System &nbsp;·&nbsp; Chapter 03</p>
+    <h1 class="hero-title">
+      <span class="ln1">COLOR</span>
+      <span class="ln2">ARCHI</span>
+      <span class="ln3">TECTURE</span>
+    </h1>
+    <p class="hero-desc">Nine adaptive tokens. One moving hue variable. An entire visual language that repaints itself in real time — drag the ring to shift the brand spectrum.</p>
+  </div>
+
+  <div class="hero-right">
+    <!-- Hue Ring -->
+    <div class="ring-wrap" id="ringWrap">
+      <div class="hue-ring" id="hueRing"></div>
+      <div class="ring-inner">
+        <div class="ring-hue-val" id="ringVal">38</div>
+        <div class="ring-hue-lbl">hue °</div>
+      </div>
+      <div class="ring-handle" id="ringHandle"></div>
+    </div>
+
+    <!-- Live brand strip -->
+    <div class="brand-strip">
+      <div class="brand-strip-cell bsc-dim"><span class="bsc-lbl">dim</span></div>
+      <div class="brand-strip-cell bsc-base"><span class="bsc-lbl">brand</span></div>
+      <div class="brand-strip-cell bsc-glow"><span class="bsc-lbl">glow</span></div>
+    </div>
+
+    <!-- Presets -->
+    <div class="presets-wrap">
+      <p class="presets-label">// Quick Presets</p>
+      <div class="presets" id="presets">
+        <button class="preset-btn active" data-hue="38">
+          <div class="preset-swatch" style="background:hsl(38,85%,56%)"></div>
+          <span class="preset-name">Forge</span>
+          <span class="preset-hue">38°</span>
+        </button>
+        <button class="preset-btn" data-hue="200">
+          <div class="preset-swatch" style="background:hsl(200,85%,56%)"></div>
+          <span class="preset-name">Frost</span>
+          <span class="preset-hue">200°</span>
+        </button>
+        <button class="preset-btn" data-hue="142">
+          <div class="preset-swatch" style="background:hsl(142,85%,56%)"></div>
+          <span class="preset-name">Grove</span>
+          <span class="preset-hue">142°</span>
+        </button>
+        <button class="preset-btn" data-hue="340">
+          <div class="preset-swatch" style="background:hsl(340,85%,56%)"></div>
+          <span class="preset-name">Bloom</span>
+          <span class="preset-hue">340°</span>
+        </button>
+        <button class="preset-btn" data-hue="258">
+          <div class="preset-swatch" style="background:hsl(258,85%,56%)"></div>
+          <span class="preset-name">Rift</span>
+          <span class="preset-hue">258°</span>
+        </button>
+        <button class="preset-btn" data-hue="15">
+          <div class="preset-swatch" style="background:hsl(15,85%,56%)"></div>
+          <span class="preset-name">Coral</span>
+          <span class="preset-hue">15°</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     9-TOKEN MATRIX
+     ══════════════════════════════════════ -->
+<section class="section">
+  <div class="sec-head rv">
+    <p class="eyebrow">// 01 — Token Matrix</p>
+    <h2 class="sec-title">THE <em>NINE</em><br>TOKENS</h2>
+  </div>
+  <div class="token-grid">
+    <!-- Surface tokens -->
+    <div class="tok-card rv d1">
+      <div class="tok-swatch swatch-s0" style="border:1px solid #1a1410;"></div>
+      <div class="tok-body"><div class="tok-name">--s0</div><div class="tok-var">Surface / Base</div><div class="tok-hex">#050403</div><div class="tok-use">Deepest background. Page root.</div></div>
+    </div>
+    <div class="tok-card rv d2">
+      <div class="tok-swatch swatch-s1"></div>
+      <div class="tok-body"><div class="tok-name">--s1</div><div class="tok-var">Surface / Card</div><div class="tok-hex">#0C0906</div><div class="tok-use">Card & panel backgrounds.</div></div>
+    </div>
+    <div class="tok-card rv d3">
+      <div class="tok-swatch swatch-s2"></div>
+      <div class="tok-body"><div class="tok-name">--s2</div><div class="tok-var">Surface / Elevated</div><div class="tok-hex">#1A1410</div><div class="tok-use">Elevated components.</div></div>
+    </div>
+    <div class="tok-card rv d4">
+      <div class="tok-swatch swatch-s3"></div>
+      <div class="tok-body"><div class="tok-name">--s3</div><div class="tok-var">Surface / Border</div><div class="tok-hex">#251D16</div><div class="tok-use">Borders and dividers.</div></div>
+    </div>
+    <!-- Brand tokens (adaptive) -->
+    <div class="tok-card rv d5" id="tc-bdim">
+      <div class="tok-swatch swatch-bdim tok-swatch-glow"></div>
+      <div class="tok-body"><div class="tok-name">--brand-dim</div><div class="tok-var">Brand / Muted</div><div class="tok-hex" id="hex-bdim">#4A2800</div><div class="tok-use">Subtle fills, tag backgrounds.</div></div>
+    </div>
+    <div class="tok-card rv d6" id="tc-b">
+      <div class="tok-swatch swatch-b tok-swatch-glow"></div>
+      <div class="tok-body"><div class="tok-name">--brand</div><div class="tok-var">Brand / Primary</div><div class="tok-hex" id="hex-b">#E89020</div><div class="tok-use">Primary CTAs, accents, icons.</div></div>
+    </div>
+    <div class="tok-card rv d7" id="tc-bglow">
+      <div class="tok-swatch swatch-bglow tok-swatch-glow"></div>
+      <div class="tok-body"><div class="tok-name">--brand-glow</div><div class="tok-var">Brand / Highlight</div><div class="tok-hex" id="hex-bglow">#F5C060</div><div class="tok-use">Hover states, glow effects.</div></div>
+    </div>
+    <!-- Text tokens -->
+    <div class="tok-card rv d8">
+      <div class="tok-swatch" style="background:rgba(237,232,224,0.95);"></div>
+      <div class="tok-body"><div class="tok-name">--text-primary</div><div class="tok-var">Text / High contrast</div><div class="tok-hex">rgba(237,232,224,.95)</div><div class="tok-use">Headlines, body copy.</div></div>
+    </div>
+    <div class="tok-card rv d9">
+      <div class="tok-swatch" style="background:rgba(200,185,168,0.65);"></div>
+      <div class="tok-body"><div class="tok-name">--text-secondary</div><div class="tok-var">Text / Medium</div><div class="tok-hex">rgba(200,185,168,.65)</div><div class="tok-use">Subtitles, descriptions.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     SURFACE DEPTH SYSTEM
+     ══════════════════════════════════════ -->
+<section class="section section-alt">
+  <div class="sec-head rv">
+    <p class="eyebrow">// 02 — Surface System</p>
+    <h2 class="sec-title">DEPTH<br>BY <em>LAYERS</em></h2>
+  </div>
+  <div class="depth-grid">
+    <div class="rvl">
+      <div class="depth-demo">
+        <div class="depth-layer dl3">
+          <div class="depth-lbl">--s3 · Border / Outermost</div>
+          <div class="depth-val" style="color:rgba(237,232,224,.25)">#251D16</div>
+          <div class="depth-layer dl2" style="margin-top:16px;">
+            <div class="depth-lbl">--s2 · Elevated Surface</div>
+            <div class="depth-val" style="color:rgba(237,232,224,.3)">#1A1410</div>
+            <div class="depth-layer dl1" style="margin-top:16px;">
+              <div class="depth-lbl">--s1 · Card Background</div>
+              <div class="depth-val" style="color:rgba(237,232,224,.4)">#0C0906</div>
+              <div class="depth-layer dl0" style="margin-top:16px;">
+                <div class="depth-lbl">--s0 · Page Root</div>
+                <div class="depth-val" style="color:rgba(237,232,224,.55)">#050403</div>
+                <div style="margin-top:12px;display:flex;align-items:center;gap:8px;">
+                  <div style="width:24px;height:24px;background:var(--brand);border-radius:50%;box-shadow:0 0 16px var(--brand);transition:background .4s,box-shadow .4s;"></div>
+                  <span style="font-family:var(--fm);font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--brand);transition:color .4s;">--brand · Content</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rvr d1">
+      <p class="sec-body">Four neutral surfaces create a consistent depth hierarchy. Each layer is ~2× lighter than the one below — providing spatial clarity without relying on color.</p>
+      <ul class="depth-list">
+        <li><div class="dl-dot" style="background:var(--s3)"></div><span>--s3 — Borders, dividers, outlines</span></li>
+        <li><div class="dl-dot" style="background:var(--s2)"></div><span>--s2 — Hover states, tooltips, popovers</span></li>
+        <li><div class="dl-dot" style="background:var(--s1)"></div><span>--s1 — Cards, panels, modals</span></li>
+        <li><div class="dl-dot" style="background:var(--s0)"></div><span>--s0 — Root page background</span></li>
+        <li><div class="dl-dot" style="background:var(--brand);box-shadow:0 0 6px var(--brand);transition:background .4s,box-shadow .4s;"></div><span>--brand — Foreground accent on all layers</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     BRAND IN USE
+     ══════════════════════════════════════ -->
+<section class="section">
+  <div class="sec-head rv">
+    <p class="eyebrow">// 03 — Brand Tokens in Use</p>
+    <h2 class="sec-title">BRAND<br>IN <em>MOTION</em></h2>
+    <p class="sec-body">Every interactive element adapts with the hue. Drag the ring above to watch the entire component library shift.</p>
+  </div>
+  <div class="brand-demo-grid">
+    <!-- Buttons -->
+    <div class="demo-cell rv d1">
+      <span class="demo-cell-label">// Buttons</span>
+      <button class="demo-btn-p"><span>⚡ &nbsp;Primary Action</span></button>
+      <button class="demo-btn-g">Ghost Variant →</button>
+    </div>
+    <!-- Badges + Input -->
+    <div class="demo-cell rv d2">
+      <span class="demo-cell-label">// Badges &amp; Input</span>
+      <div class="demo-badges">
+        <span class="badge-brand">Active</span>
+        <span class="badge-outline">In Progress</span>
+        <span class="badge-solid">+500 XP</span>
+      </div>
+      <input class="demo-input" type="text" placeholder="Log today's training…">
+    </div>
+    <!-- Progress bars -->
+    <div class="demo-cell rv d3">
+      <span class="demo-cell-label">// Progress</span>
+      <div class="demo-prog-wrap">
+        <div class="prog-row">
+          <div class="prog-meta"><span class="prog-name">Calories</span><span class="prog-pct">73%</span></div>
+          <div class="prog-track"><div class="prog-fill" style="width:73%"></div></div>
+        </div>
+        <div class="prog-row">
+          <div class="prog-meta"><span class="prog-name">Protein</span><span class="prog-pct">88%</span></div>
+          <div class="prog-track"><div class="prog-fill prog-fill-glow" style="width:88%"></div></div>
+        </div>
+        <div class="prog-row">
+          <div class="prog-meta"><span class="prog-name">Carbs</span><span class="prog-pct">51%</span></div>
+          <div class="prog-track"><div class="prog-fill" style="width:51%"></div></div>
+        </div>
+        <div class="prog-row">
+          <div class="prog-meta"><span class="prog-name">XP Challenge</span><span class="prog-pct">62%</span></div>
+          <div class="prog-track"><div class="prog-fill prog-fill-glow" style="width:62%"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     TYPOGRAPHY HIERARCHY
+     ══════════════════════════════════════ -->
+<section class="section section-alt">
+  <div class="sec-head rv">
+    <p class="eyebrow">// 04 — Typography Tokens</p>
+    <h2 class="sec-title">TEXT<br><em>HIERARCHY</em></h2>
+  </div>
+  <div class="type-demo rv d1">
+    <div class="type-row">
+      <div class="type-sample">
+        <div class="type-primary">The warrior shows no fear in the forge.</div>
+      </div>
+      <div class="type-label-wrap">
+        <div class="type-token">--text-primary<br>rgba(237,232,224,.95)</div>
+        <span class="wcag-badge wcag-aaa">AAA 14:1</span>
+      </div>
+    </div>
+    <div class="type-row">
+      <div class="type-sample">
+        <div class="type-secondary">Results require consistent sacrifice — every meal logged, every rep tracked, every challenge accepted without hesitation.</div>
+      </div>
+      <div class="type-label-wrap">
+        <div class="type-token">--text-secondary<br>rgba(200,185,168,.65)</div>
+        <span class="wcag-badge wcag-aa">AA 7.1:1</span>
+      </div>
+    </div>
+    <div class="type-row">
+      <div class="type-sample">
+        <div class="type-muted">// Last synced: 10 May 2026 · 09:41:23 UTC · Session #1,847</div>
+      </div>
+      <div class="type-label-wrap">
+        <div class="type-token">--text-muted<br>rgba(140,124,108,.45)</div>
+        <span class="wcag-badge wcag-a">A 4.6:1</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     HARMONY EXPLORER
+     ══════════════════════════════════════ -->
+<section class="section">
+  <div class="sec-head rv">
+    <p class="eyebrow">// 05 — Color Harmony</p>
+    <h2 class="sec-title">HARMONY<br><em>EXPLORER</em></h2>
+    <p class="sec-body">Derived from --brand-h, these harmonic relationships automatically shift with the palette.</p>
+  </div>
+  <div class="harmony-grid">
+    <div class="harm-card rv d1">
+      <div class="harm-title">Complementary</div>
+      <div class="harm-sub">// brand-h ± 180°</div>
+      <div class="harm-swatches">
+        <div class="harm-sw" id="harm-comp-a"></div>
+        <div class="harm-sw" id="harm-comp-b"></div>
+      </div>
+      <div class="harm-formula" id="harm-comp-formula">hsl(38, 85%, 56%) · hsl(218, 85%, 56%)</div>
+    </div>
+    <div class="harm-card rv d2">
+      <div class="harm-title">Triadic</div>
+      <div class="harm-sub">// brand-h ± 120°</div>
+      <div class="harm-swatches">
+        <div class="harm-sw" id="harm-tri-a"></div>
+        <div class="harm-sw" id="harm-tri-b"></div>
+        <div class="harm-sw" id="harm-tri-c"></div>
+      </div>
+      <div class="harm-formula" id="harm-tri-formula">38° · 158° · 278°</div>
+    </div>
+    <div class="harm-card rv d3">
+      <div class="harm-title">Analogous</div>
+      <div class="harm-sub">// brand-h ± 30°</div>
+      <div class="harm-swatches">
+        <div class="harm-sw" id="harm-ana-a"></div>
+        <div class="harm-sw" id="harm-ana-b"></div>
+        <div class="harm-sw" id="harm-ana-c"></div>
+        <div class="harm-sw" id="harm-ana-d"></div>
+        <div class="harm-sw" id="harm-ana-e"></div>
+      </div>
+      <div class="harm-formula" id="harm-ana-formula">8° · 23° · 38° · 53° · 68°</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     CSS EXPORT (LIVE)
+     ══════════════════════════════════════ -->
+<section class="section section-alt">
+  <div class="sec-head rv">
+    <p class="eyebrow">// 06 — CSS Export</p>
+    <h2 class="sec-title">THE SYSTEM,<br>IN <em>CODE</em></h2>
+  </div>
+  <div class="export-block rv d1" id="exportBlock">
+    <button class="export-copy" id="exportCopy">Copy CSS</button><span class="ec">/* ══ VORO Color Architecture — 9-Token Adaptive System ══ */</span>
+<span class="ec">/* Change --brand-h (0–360) to shift the entire brand spectrum.  */</span>
+
+<span class="ea">:root</span> {
+  <span class="ec">/* ── Surface layers (fixed warm-dark) ────────────────────── */</span>
+  <span class="ea">--s0</span>: <span class="ev">#050403</span>;   <span class="ec">/* Deepest bg        */</span>
+  <span class="ea">--s1</span>: <span class="ev">#0C0906</span>;   <span class="ec">/* Card backgrounds  */</span>
+  <span class="ea">--s2</span>: <span class="ev">#1A1410</span>;   <span class="ec">/* Elevated surfaces */</span>
+  <span class="ea">--s3</span>: <span class="ev">#251D16</span>;   <span class="ec">/* Borders, dividers */</span>
+
+  <span class="ec">/* ── Adaptive hue (0–360) ────────────────────────────────── */</span>
+  <span class="ea">--brand-h</span>: <span class="ee" id="exp-h">38</span>;
+
+  <span class="ec">/* ── Brand spectrum ──────────────────────────────────────── */</span>
+  <span class="ea">--brand-dim</span>:  <span class="ec">/* </span><span class="ee" id="exp-bdim">#4A2800</span><span class="ec"> */</span> <span class="ev">hsl(var(--brand-h), 70%, 22%)</span>;
+  <span class="ea">--brand</span>:      <span class="ec">/* </span><span class="ee" id="exp-b">#E89020</span><span class="ec"> */</span> <span class="ev">hsl(var(--brand-h), 85%, 56%)</span>;
+  <span class="ea">--brand-glow</span>: <span class="ec">/* </span><span class="ee" id="exp-bglow">#F5C060</span><span class="ec"> */</span> <span class="ev">hsl(var(--brand-h), 100%, 70%)</span>;
+
+  <span class="ec">/* ── Typography ──────────────────────────────────────────── */</span>
+  <span class="ea">--text-primary</span>:   <span class="ev">rgba(237, 232, 224, 0.95)</span>;
+  <span class="ea">--text-secondary</span>: <span class="ev">rgba(200, 185, 168, 0.65)</span>;
+  <span class="ea">--text-muted</span>:     <span class="ev">rgba(140, 124, 108, 0.45)</span>;
+}</div>
+</section>
+
+<div class="footer-strip">
+  <span class="fl">VO<b>R</b>O</span>
+  <span class="fc">Chapter 03 · Color Architecture · 9 Tokens · Adaptive</span>
+  <span class="fc" style="display:flex;gap:20px;">
+    <a href="voro-reimagined.html" style="font-family:var(--fm);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);text-decoration:none;transition:color .2s;" onmouseover="this.style.color='var(--brand)'" onmouseout="this.style.color=''">← Ch.01</a>
+    <a href="voro-ch02-logo-system.html" style="font-family:var(--fm);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);text-decoration:none;transition:color .2s;" onmouseover="this.style.color='var(--brand)'" onmouseout="this.style.color=''">← Ch.02</a>
+  </span>
+</div>
+
+<script>
+/* ══ CURSOR ══ */
+const cur=document.getElementById('cur'),curl=document.getElementById('curl');
+let mx=0,my=0,lx=0,ly=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px';});
+(function loop(){lx+=(mx-lx)*.14;ly+=(my-ly)*.14;curl.style.left=lx+'px';curl.style.top=ly+'px';requestAnimationFrame(loop);})();
+document.querySelectorAll('a,button,.preset-btn').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{cur.style.width='20px';cur.style.height='20px';curl.style.transform='translate(-50%,-50%) scale(1.5)';});
+  el.addEventListener('mouseleave',()=>{cur.style.width='10px';cur.style.height='10px';curl.style.transform='translate(-50%,-50%) scale(1)';});
+});
+
+/* ══ SCROLL PROGRESS ══ */
+const sp=document.getElementById('sprog');
+window.addEventListener('scroll',()=>{sp.style.height=(window.scrollY/(document.body.scrollHeight-window.innerHeight)*100)+'%';});
+
+/* ══ REVEALS ══ */
+const io=new IntersectionObserver(e=>e.forEach(x=>{if(x.isIntersecting){x.target.classList.add('on');io.unobserve(x.target);}}),{threshold:.1});
+document.querySelectorAll('.rv,.rvl,.rvr').forEach(el=>io.observe(el));
+
+/* ══ HSL → HEX ══ */
+function hslToHex(h,s,l){
+  h=((h%360)+360)%360; s/=100; l/=100;
+  const f=n=>{const k=(n+h/30)%12,a=s*Math.min(l,1-l);return Math.round(255*(l-a*Math.max(-1,Math.min(k-3,9-k,1)))).toString(16).padStart(2,'0');};
+  return '#'+f(0)+f(8)+f(4);
+}
+
+/* ══ HUE RING ══ */
+let currentHue=38;
+const ring=document.getElementById('hueRing');
+const handle=document.getElementById('ringHandle');
+const ringWrap=document.getElementById('ringWrap');
+
+function positionHandle(h){
+  const W=280, R=122;
+  const cx=W/2, cy=W/2;
+  const a=((h-90)*Math.PI/180);
+  handle.style.left=(cx+R*Math.cos(a)-9)+'px';
+  handle.style.top =(cy+R*Math.sin(a)-9)+'px';
+}
+
+function updateHue(h){
+  h=Math.round(((h%360)+360)%360);
+  currentHue=h;
+  document.documentElement.style.setProperty('--brand-h',h);
+  document.getElementById('ringVal').textContent=String(h).padStart(3,'0');
+  cur.style.background='hsl('+h+',85%,56%)';
+  positionHandle(h);
+  // update hex displays
+  const bdim=hslToHex(h,70,22);
+  const b=hslToHex(h,85,56);
+  const bglow=hslToHex(h,100,70);
+  document.getElementById('hex-bdim').textContent=bdim;
+  document.getElementById('hex-b').textContent=b;
+  document.getElementById('hex-bglow').textContent=bglow;
+  // live export
+  document.getElementById('exp-h').textContent=h;
+  document.getElementById('exp-bdim').textContent=bdim;
+  document.getElementById('exp-b').textContent=b;
+  document.getElementById('exp-bglow').textContent=bglow;
+  // harmony
+  updateHarmony(h);
+  // preset active state
+  document.querySelectorAll('.preset-btn').forEach(btn=>{
+    btn.classList.toggle('active',parseInt(btn.dataset.hue)===h);
+  });
+}
+
+function hueFromPointer(e){
+  const rect=ringWrap.getBoundingClientRect();
+  const cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
+  const px=e.touches?e.touches[0].clientX:e.clientX;
+  const py=e.touches?e.touches[0].clientY:e.clientY;
+  return Math.round((Math.atan2(py-cy,px-cx)*180/Math.PI+90+360)%360);
+}
+
+let dragging=false;
+ring.addEventListener('mousedown',e=>{dragging=true;updateHue(hueFromPointer(e));});
+document.addEventListener('mousemove',e=>{if(dragging)updateHue(hueFromPointer(e));});
+document.addEventListener('mouseup',()=>dragging=false);
+ring.addEventListener('touchstart',e=>{dragging=true;updateHue(hueFromPointer(e));},{passive:true});
+document.addEventListener('touchmove',e=>{if(dragging)updateHue(hueFromPointer(e));},{passive:true});
+document.addEventListener('touchend',()=>dragging=false);
+
+/* ══ ANIMATED HUE TRANSITION ══ */
+function animateToHue(target,dur=380){
+  const from=currentHue;
+  let delta=((target-from+540)%360)-180;
+  const t0=performance.now();
+  function step(now){
+    const t=Math.min((now-t0)/dur,1);
+    const e=1-Math.pow(1-t,3);
+    updateHue(Math.round(((from+delta*e)+360)%360));
+    if(t<1)requestAnimationFrame(step);
+    else updateHue(target);
+  }
+  requestAnimationFrame(step);
+}
+
+/* ══ PRESETS ══ */
+document.getElementById('presets').addEventListener('click',e=>{
+  const btn=e.target.closest('.preset-btn');
+  if(btn)animateToHue(parseInt(btn.dataset.hue));
+});
+
+/* ══ HARMONY ══ */
+function updateHarmony(h){
+  const c=(h+180)%360;
+  document.getElementById('harm-comp-a').style.background=`hsl(${h},85%,50%)`;
+  document.getElementById('harm-comp-b').style.background=`hsl(${c},85%,50%)`;
+  document.getElementById('harm-comp-formula').textContent=`hsl(${h}°, 85%, 56%) · hsl(${c}°, 85%, 56%)`;
+  const t1=(h+120)%360, t2=(h+240)%360;
+  document.getElementById('harm-tri-a').style.background=`hsl(${h},85%,50%)`;
+  document.getElementById('harm-tri-b').style.background=`hsl(${t1},85%,50%)`;
+  document.getElementById('harm-tri-c').style.background=`hsl(${t2},85%,50%)`;
+  document.getElementById('harm-tri-formula').textContent=`${h}° · ${t1}° · ${t2}°`;
+  const a1=(h-30+360)%360, a2=(h-15+360)%360, a3=h, a4=(h+15)%360, a5=(h+30)%360;
+  ['harm-ana-a','harm-ana-b','harm-ana-c','harm-ana-d','harm-ana-e'].forEach((id,i)=>{
+    document.getElementById(id).style.background=`hsl(${[a1,a2,a3,a4,a5][i]},85%,50%)`;
+  });
+  document.getElementById('harm-ana-formula').textContent=`${a1}° · ${a2}° · ${h}° · ${a4}° · ${a5}°`;
+}
+
+/* ══ COPY CSS ══ */
+document.getElementById('exportCopy').addEventListener('click',function(){
+  const h=currentHue;
+  const css=`:root {\n  /* VORO Color Architecture — 9 Adaptive Tokens */\n  --s0:#050403;\n  --s1:#0C0906;\n  --s2:#1A1410;\n  --s3:#251D16;\n\n  --brand-h:${h};\n  --brand-dim: hsl(var(--brand-h),70%,22%);\n  --brand:     hsl(var(--brand-h),85%,56%);\n  --brand-glow:hsl(var(--brand-h),100%,70%);\n\n  --text-primary:  rgba(237,232,224,0.95);\n  --text-secondary:rgba(200,185,168,0.65);\n  --text-muted:    rgba(140,124,108,0.45);\n}`;
+  navigator.clipboard.writeText(css).then(()=>{
+    this.textContent='Copied ✓';this.classList.add('ok');
+    setTimeout(()=>{this.textContent='Copy CSS';this.classList.remove('ok');},2200);
+  });
+});
+
+/* ══ INIT ══ */
+positionHandle(38);
+updateHarmony(38);
+</script>
+</body>
+</html>

@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VORO — Chapter 02: Logo System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,700;0,800;0,900;1,900&family=IBM+Plex+Mono:wght@400;500;600&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --black:#050403;--warm-dark:#0C0906;--mid:#1A1410;--mid2:#251D16;
+  --amber:#E89020;--amber-hi:#F5C060;--amber-sh:#7A3C00;--ember:#FF3D00;
+  --bone:#EDE8E0;--muted:#524438;
+  --fd:'Barlow Condensed',sans-serif;--fm:'IBM Plex Mono',monospace;--fb:'Barlow',sans-serif;
+}
+html{scroll-behavior:smooth;}
+body{background:var(--black);color:var(--bone);font-family:var(--fb);overflow-x:hidden;cursor:none;}
+
+/* ── CURSOR ── */
+#cur {position:fixed;top:0;left:0;width:10px;height:10px;background:var(--amber);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:width .25s,height .25s,background .25s;}
+#curl{position:fixed;top:0;left:0;width:36px;height:36px;border:1px solid rgba(232,144,32,.38);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:left .14s ease,top .14s ease;}
+
+/* ── PROGRESS ── */
+#sprog{position:fixed;left:0;top:0;width:3px;height:0%;background:linear-gradient(to bottom,var(--amber),var(--ember));z-index:1000;pointer-events:none;}
+
+/* ── GRAIN ── */
+.grain{position:fixed;inset:0;pointer-events:none;z-index:9990;opacity:.038;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.73' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:300px;}
+
+/* ── CHAPTER LABEL ── */
+.chapter-tag{font-family:var(--fm);font-size:10px;letter-spacing:.35em;text-transform:uppercase;color:var(--muted);}
+.chapter-tag b{color:var(--amber);}
+
+/* ════════════════════════════════════════
+   HERO — LOGO REVEAL
+   ════════════════════════════════════════ */
+.hero{
+  min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  position:relative;overflow:hidden;
+  background:radial-gradient(ellipse 55% 55% at 50% 50%,rgba(232,144,32,.055) 0%,transparent 70%);
+}
+/* design grid */
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(232,144,32,.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(232,144,32,.03) 1px,transparent 1px);
+  background-size:44px 44px;pointer-events:none;
+}
+/* crosshair center lines */
+.hero::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(232,144,32,.07) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(232,144,32,.07) 1px,transparent 1px);
+  background-size:100% 100%;
+  background-position:50% 50%;
+}
+
+.hero-mark{
+  position:relative;
+  opacity:0;
+  animation:fadeIn .1s ease .2s forwards;
+}
+.hero-mark svg{
+  display:block;
+  filter:drop-shadow(0 0 40px rgba(232,144,32,.22)) drop-shadow(0 0 8px rgba(232,144,32,.35));
+}
+
+/* scanning light over mark */
+.mark-scan{
+  position:absolute;inset:0;overflow:hidden;pointer-events:none;border-radius:0;
+}
+.mark-scan::after{
+  content:'';position:absolute;left:-20%;width:140%;height:2px;
+  background:linear-gradient(to right,transparent,rgba(245,192,96,.65),transparent);
+  animation:scanLine 5s ease-in-out 2.8s infinite;
+}
+@keyframes scanLine{
+  0%{top:-4px;opacity:0;} 3%{opacity:1;} 97%{opacity:.7;} 100%{top:calc(100% + 4px);opacity:0;}
+}
+
+/* wordmark */
+.hero-wordmark{
+  margin-top:36px;font-family:var(--fd);font-weight:900;
+  font-size:clamp(64px,10vw,128px);letter-spacing:.18em;text-transform:uppercase;
+  line-height:1;user-select:none;
+  background:linear-gradient(90deg,var(--bone) 0%,var(--amber) 25%,var(--bone) 50%,var(--amber) 75%,var(--bone) 100%);
+  background-size:300% auto;
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  opacity:0;animation:fadeUp .8s ease 1.5s forwards, shimmerText 4s linear 2s infinite;
+}
+.wm-ltr{display:inline-block;transition:transform .3s cubic-bezier(.16,1,.3,1),opacity .3s ease;}
+
+.hero-sub{
+  margin-top:16px;font-family:var(--fm);font-size:11px;letter-spacing:.32em;
+  text-transform:uppercase;color:var(--muted);
+  opacity:0;animation:fadeUp .8s ease 1.8s forwards;
+}
+
+.hero-scroll-hint{
+  position:absolute;bottom:32px;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  opacity:0;animation:fadeUp .8s ease 2.2s forwards;
+}
+.hero-scroll-hint span{font-family:var(--fm);font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);}
+.scroll-line{width:1px;height:36px;background:linear-gradient(to bottom,var(--amber),transparent);animation:linePulse 2s ease-in-out infinite;}
+
+/* ════════════════════════════════════════
+   ANATOMY SECTION
+   ════════════════════════════════════════ */
+.anatomy{
+  padding:120px 64px;background:var(--warm-dark);
+  display:grid;grid-template-columns:1fr 1fr;gap:100px;align-items:center;
+}
+.anat-mark-wrap{position:relative;display:flex;justify-content:center;align-items:center;}
+.anat-mark-wrap svg.anat-svg{display:block;}
+
+/* annotation lines */
+.annot{position:absolute;}
+.annot-line{position:absolute;height:1px;background:rgba(232,144,32,.3);transform-origin:left;}
+.annot-label{position:absolute;font-family:var(--fm);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);white-space:nowrap;}
+.annot-dot{position:absolute;width:4px;height:4px;background:var(--amber);border-radius:50%;transform:translate(-50%,-50%);}
+
+.anat-title{font-family:var(--fd);font-weight:900;font-size:clamp(44px,5vw,64px);text-transform:uppercase;line-height:.88;margin-bottom:24px;}
+.anat-title em{font-style:italic;color:var(--amber);}
+.anat-body{font-size:15px;line-height:1.82;color:var(--muted);font-weight:300;margin-bottom:36px;}
+
+/* 3-layer breakdown */
+.layers{display:flex;flex-direction:column;gap:3px;}
+.layer-row{display:flex;align-items:center;gap:16px;padding:14px 18px;background:var(--mid);border-left:2px solid transparent;transition:border-color .2s;}
+.layer-row:hover{border-left-color:var(--amber);}
+.layer-num{font-family:var(--fm);font-size:9px;letter-spacing:.2em;color:var(--muted);width:20px;}
+.layer-mark{flex-shrink:0;}
+.layer-info{}
+.layer-name{font-family:var(--fd);font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:.06em;}
+.layer-desc{font-family:var(--fm);font-size:10px;color:var(--muted);margin-top:2px;}
+
+/* ════════════════════════════════════════
+   COLOR VARIANTS
+   ════════════════════════════════════════ */
+.color-section{padding:120px 64px;background:var(--black);}
+.color-header{margin-bottom:64px;}
+.color-title{font-family:var(--fd);font-weight:900;font-size:clamp(48px,7vw,88px);text-transform:uppercase;line-height:.87;}
+.color-title em{font-style:italic;color:var(--amber);}
+.variants-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;}
+.variant-cell{
+  aspect-ratio:.75;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:24px;position:relative;overflow:hidden;transition:transform .3s ease;
+}
+.variant-cell:hover{transform:scale(1.01);}
+.variant-label{font-family:var(--fm);font-size:9px;letter-spacing:.22em;text-transform:uppercase;text-align:center;}
+.variant-name{font-family:var(--fd);font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:.06em;text-align:center;margin-top:4px;}
+.variant-info{text-align:center;}
+
+/* variant backgrounds */
+.v-dark   {background:var(--black);}
+.v-amber  {background:var(--amber);}
+.v-white  {background:#F5F0E8;}
+.v-mid    {background:var(--mid);}
+
+/* ════════════════════════════════════════
+   SCALE SYSTEM
+   ════════════════════════════════════════ */
+.scale-section{padding:100px 64px;background:var(--warm-dark);border-top:1px solid var(--mid);}
+.scale-header{margin-bottom:60px;}
+.scale-title{font-family:var(--fd);font-weight:900;font-size:clamp(40px,6vw,72px);text-transform:uppercase;line-height:.88;}
+.scale-row{
+  display:flex;align-items:flex-end;gap:40px;flex-wrap:wrap;
+  padding-top:40px;border-top:1px solid var(--mid);
+}
+.scale-item{display:flex;flex-direction:column;align-items:center;gap:12px;}
+.scale-px{font-family:var(--fm);font-size:9px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;}
+
+/* ════════════════════════════════════════
+   FAVICON SECTION
+   ════════════════════════════════════════ */
+.favicon-section{padding:100px 64px;background:var(--black);}
+.fav-grid-wrap{
+  display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center;
+  margin-top:60px;
+}
+.fav-canvas-wrap{
+  display:flex;flex-direction:column;gap:24px;
+}
+.fav-canvas{
+  display:grid;grid-template-columns:repeat(32,10px);
+  grid-template-rows:repeat(32,10px);
+  gap:1px;background:var(--mid);
+  padding:12px;border-radius:4px;
+}
+.px{width:10px;height:10px;background:var(--black);}
+.px.a{background:var(--amber);}
+.px.s{background:rgba(122,60,0,.6);}
+
+.fav-previews{display:flex;align-items:center;gap:24px;}
+.fav-prev-item{display:flex;flex-direction:column;align-items:center;gap:10px;}
+.fav-prev-lbl{font-family:var(--fm);font-size:9px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;}
+
+.fav-info{}
+.fav-info-title{font-family:var(--fd);font-weight:900;font-size:clamp(40px,5vw,60px);text-transform:uppercase;line-height:.88;margin-bottom:20px;}
+.fav-info-body{font-size:15px;line-height:1.8;color:var(--muted);font-weight:300;}
+.fav-spec{margin-top:28px;display:flex;flex-direction:column;gap:1px;}
+.fav-spec-row{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--warm-dark);}
+.fav-spec-k{font-family:var(--fm);font-size:10px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;}
+.fav-spec-v{font-family:var(--fm);font-size:11px;font-weight:500;color:var(--bone);}
+
+/* ════════════════════════════════════════
+   USAGE RULES
+   ════════════════════════════════════════ */
+.usage-section{padding:100px 64px;background:var(--warm-dark);border-top:1px solid var(--mid);}
+.usage-title{font-family:var(--fd);font-weight:900;font-size:clamp(40px,6vw,72px);text-transform:uppercase;line-height:.88;margin-bottom:60px;}
+.usage-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;}
+.usage-card{padding:36px 32px;background:var(--mid);border-top:2px solid var(--mid2);transition:border-color .3s;}
+.usage-card.do{border-top-color:var(--amber);}
+.usage-card.dont{border-top-color:var(--ember);}
+.usage-badge{font-family:var(--fm);font-size:9px;letter-spacing:.2em;text-transform:uppercase;margin-bottom:24px;}
+.do .usage-badge{color:var(--amber);}
+.dont .usage-badge{color:var(--ember);}
+.usage-mark-area{height:100px;display:flex;align-items:center;justify-content:center;margin-bottom:20px;}
+.usage-rule{font-family:var(--fm);font-size:11px;letter-spacing:.04em;color:var(--muted);line-height:1.7;}
+
+/* ════════════════════════════════════════
+   CODE EXPORT
+   ════════════════════════════════════════ */
+.code-section{padding:100px 64px;background:var(--black);border-top:1px solid var(--mid);}
+.code-header{margin-bottom:40px;}
+.code-title{font-family:var(--fd);font-weight:900;font-size:clamp(36px,5vw,64px);text-transform:uppercase;line-height:.88;}
+.code-block{
+  background:var(--warm-dark);border:1px solid var(--mid);border-radius:4px;
+  padding:28px 32px;font-family:var(--fm);font-size:11px;line-height:1.9;
+  color:var(--bone);overflow-x:auto;white-space:pre;
+  position:relative;
+}
+.code-block .cm{color:var(--muted);}
+.code-block .ca{color:var(--amber);}
+.code-block .ce{color:var(--ember);}
+.code-copy{
+  position:absolute;top:16px;right:16px;
+  font-family:var(--fm);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  background:var(--amber);color:var(--black);border:none;padding:8px 16px;cursor:none;
+  transition:background .2s;
+}
+.code-copy:hover{background:var(--bone);}
+.code-copy.copied{background:#22c55e;color:#fff;}
+
+/* ════════════════════════════════════════
+   FOOTER STRIP
+   ════════════════════════════════════════ */
+.footer-strip{
+  background:var(--warm-dark);padding:28px 64px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-top:1px solid var(--mid);
+}
+.fl{font-family:var(--fd);font-weight:900;font-size:20px;letter-spacing:.2em;color:var(--bone);}
+.fl b{color:var(--amber);}
+.fc{font-family:var(--fm);font-size:10px;letter-spacing:.1em;color:var(--muted);}
+.fn{display:flex;gap:12px;}
+.fn-dot{width:8px;height:8px;border-radius:50%;background:var(--mid2);cursor:none;transition:background .2s;}
+.fn-dot.active{background:var(--amber);}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeIn {from{opacity:0}to{opacity:1}}
+@keyframes fadeUp {from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes linePulse{0%,100%{height:36px;opacity:1}50%{height:14px;opacity:.2}}
+@keyframes shimmerText{0%{background-position:100% center}100%{background-position:-200% center}}
+
+/* draw-on stroke animations */
+.trace-outer{
+  fill:none;stroke:var(--amber);stroke-width:1.2;
+  filter:drop-shadow(0 0 6px rgba(232,144,32,.8));
+  stroke-dasharray:1000;stroke-dashoffset:1000;
+  animation:drawPath 1.2s cubic-bezier(.16,1,.3,1) .3s forwards;
+}
+.trace-inner{
+  fill:none;stroke:var(--amber-hi);stroke-width:1;
+  filter:drop-shadow(0 0 4px rgba(245,192,96,.7));
+  stroke-dasharray:700;stroke-dashoffset:700;
+  animation:drawPath .9s cubic-bezier(.16,1,.3,1) .7s forwards;
+}
+.trace-diamond{
+  fill:none;stroke:var(--amber);stroke-width:1;
+  stroke-dasharray:100;stroke-dashoffset:100;
+  animation:drawPath .4s cubic-bezier(.16,1,.3,1) 1.2s forwards;
+}
+.fill-outer{
+  fill-rule:evenodd;fill:url(#vGrad);
+  opacity:0;animation:fadeIn .6s ease 1.0s forwards;
+}
+.shadow-outer{
+  fill-rule:evenodd;fill:var(--amber-sh);
+  opacity:0;animation:fadeIn .4s ease 1.1s forwards;
+}
+.highlight-edge{
+  fill:none;stroke:rgba(255,230,150,.45);stroke-width:1;
+  opacity:0;animation:fadeIn .4s ease 1.3s forwards;
+}
+@keyframes drawPath{to{stroke-dashoffset:0}}
+
+/* ── SCROLL REVEALS ── */
+.rv{opacity:0;transform:translateY(28px);transition:opacity .7s ease,transform .7s cubic-bezier(.16,1,.3,1);}
+.rvl{opacity:0;transform:translateX(-28px);transition:opacity .7s ease,transform .7s cubic-bezier(.16,1,.3,1);}
+.rvr{opacity:0;transform:translateX(28px);transition:opacity .7s ease,transform .7s cubic-bezier(.16,1,.3,1);}
+.rv.on,.rvl.on,.rvr.on{opacity:1;transform:translate(0);}
+.d1{transition-delay:.1s}.d2{transition-delay:.2s}.d3{transition-delay:.3s}.d4{transition-delay:.4s}
+</style>
+</head>
+<body>
+
+<div class="grain"></div>
+<div id="sprog"></div>
+<div id="cur"></div>
+<div id="curl"></div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     SHARED SVG DEFS
+     ══════════════════════════════════════════════════════════════════ -->
+<svg style="display:none" aria-hidden="true">
+  <defs>
+    <!-- THE VORO MARK:
+         Outer triangle (V silhouette) M 4,8 L 76,8 L 40,92 Z
+         Inner cutout (negative space)  M 24,8 L 56,8 L 40,74 Z
+         Diamond spark (hidden element) M 40,48 L 43,54 L 40,60 L 37,54 Z
+    -->
+
+    <!-- Gradient: primary amber with 3D depth -->
+    <linearGradient id="vGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#F5C060"/>
+      <stop offset="38%"  stop-color="#E89020"/>
+      <stop offset="100%" stop-color="#8A4A08"/>
+    </linearGradient>
+    <!-- Gradient: ember (red-orange) variant -->
+    <linearGradient id="vGradEmber" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#FF7040"/>
+      <stop offset="100%" stop-color="#AA1800"/>
+    </linearGradient>
+    <!-- Glow filter -->
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+</svg>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     HERO — LOGO REVEAL
+     ══════════════════════════════════════════════════════════════════ -->
+<section class="hero" id="hero">
+
+  <div class="hero-mark">
+    <div class="mark-scan">
+      <!-- The hero mark: large, animated draw-on -->
+      <svg width="260" height="300" viewBox="0 0 80 92" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Layer 1: Shadow -->
+        <g transform="translate(2.5,3.5)" opacity=".45">
+          <path fill-rule="evenodd" fill="#6B2E00"
+            d="M 4,8 L 76,8 L 40,90 Z
+               M 24,8 L 56,8 L 40,73 Z
+               M 40,47 L 43,53 L 40,59 L 37,53 Z"/>
+        </g>
+        <!-- Layer 2: Base fill (fades in after stroke draws) -->
+        <path class="fill-outer"
+          d="M 4,8 L 76,8 L 40,90 Z
+             M 24,8 L 56,8 L 40,73 Z
+             M 40,47 L 43,53 L 40,59 L 37,53 Z"
+          fill="url(#vGrad)" fill-rule="evenodd"/>
+        <!-- Layer 3: Highlight edges (top faces) -->
+        <path class="highlight-edge" d="M 4,8 L 76,8"/>
+        <path class="highlight-edge" d="M 4,8 L 40,90" stroke-opacity=".25"/>
+        <!-- Draw-on strokes -->
+        <path class="trace-outer"
+          d="M 4,8 L 76,8 L 40,90 Z"/>
+        <path class="trace-inner"
+          d="M 24,8 L 56,8 L 40,73 Z"/>
+        <path class="trace-diamond"
+          d="M 40,47 L 43,53 L 40,59 L 37,53 Z"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Wordmark -->
+  <h1 class="hero-wordmark" id="wordmark">
+    <span class="wm-ltr" data-i="0">V</span><span class="wm-ltr" data-i="1">O</span><span class="wm-ltr" data-i="2">R</span><span class="wm-ltr" data-i="3">O</span>
+  </h1>
+  <p class="hero-sub">Chapter 02 &nbsp;·&nbsp; Logo System</p>
+
+  <div class="hero-scroll-hint">
+    <span>Scroll</span>
+    <div class="scroll-line"></div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     ANATOMY — MARK DISSECTION
+     ══════════════════════════════════════════════════════════════════ -->
+<section class="anatomy">
+  <div class="anat-mark-wrap rvl">
+    <!-- Annotated mark -->
+    <svg class="anat-svg" width="320" height="370" viewBox="-40 -20 160 130" xmlns="http://www.w3.org/2000/svg">
+      <!-- Mark: base fill -->
+      <path fill-rule="evenodd" fill="#E89020" opacity=".9"
+        d="M 4,8 L 76,8 L 40,90 Z
+           M 24,8 L 56,8 L 40,73 Z
+           M 40,47 L 43,53 L 40,59 L 37,53 Z"/>
+      <!-- Annotation: outer edge -->
+      <line x1="-28" y1="8" x2="4" y2="8" stroke="rgba(232,144,32,.5)" stroke-width=".6" stroke-dasharray="2,2"/>
+      <circle cx="-28" cy="8" r="1.5" fill="var(--amber)"/>
+      <text x="-30" y="5" font-family="IBM Plex Mono,monospace" font-size="4.5" fill="#524438" text-anchor="end">OUTER SILHOUETTE</text>
+      <!-- Annotation: arm width -->
+      <line x1="4" y1="14" x2="24" y2="14" stroke="rgba(232,144,32,.4)" stroke-width=".5" stroke-dasharray="1.5,1.5"/>
+      <circle cx="24" cy="8" r="1.5" fill="var(--amber)"/>
+      <text x="14" y="20" font-family="IBM Plex Mono,monospace" font-size="4" fill="#524438" text-anchor="middle">20px ARM</text>
+      <!-- Annotation: negative space -->
+      <line x1="40" y1="30" x2="10" y2="-10" stroke="rgba(232,144,32,.4)" stroke-width=".6" stroke-dasharray="2,2"/>
+      <circle cx="40" cy="30" r="1.5" fill="#524438"/>
+      <text x="8" y="-13" font-family="IBM Plex Mono,monospace" font-size="4.5" fill="#524438" text-anchor="middle">NEGATIVE SPACE</text>
+      <!-- Annotation: forge spark -->
+      <line x1="43" y1="53" x2="90" y2="45" stroke="rgba(255,61,0,.5)" stroke-width=".6" stroke-dasharray="2,2"/>
+      <circle cx="43" cy="53" r="2" fill="var(--ember)"/>
+      <text x="92" y="43" font-family="IBM Plex Mono,monospace" font-size="4.5" fill="#FF3D00">⚡ FORGE SPARK</text>
+      <text x="92" y="50" font-family="IBM Plex Mono,monospace" font-size="3.5" fill="#524438">(HIDDEN ELEMENT)</text>
+      <!-- Annotation: bottom tip -->
+      <line x1="40" y1="90" x2="40" y2="106" stroke="rgba(232,144,32,.4)" stroke-width=".6" stroke-dasharray="2,2"/>
+      <circle cx="40" cy="90" r="1.5" fill="var(--amber)"/>
+      <text x="40" y="112" font-family="IBM Plex Mono,monospace" font-size="4.5" fill="#524438" text-anchor="middle">STRIKE POINT</text>
+      <!-- Center line (vertical axis) -->
+      <line x1="40" y1="2" x2="40" y2="92" stroke="rgba(232,144,32,.1)" stroke-width=".5" stroke-dasharray="3,3"/>
+    </svg>
+  </div>
+
+  <div class="rvr d1">
+    <p class="eyebrow" style="font-family:var(--fm);font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:var(--amber);margin-bottom:16px;">// Mark Anatomy</p>
+    <h2 class="anat-title">THE<br><em>FORGE</em><br>MARK</h2>
+    <p class="anat-body">The Voro mark is built from three nested triangles under even-odd fill rule, creating a bold V silhouette with a hidden diamond — the <em style="color:var(--amber);font-style:normal;">Forge Spark</em> — visible only when you look into the negative space. The strike point at the base represents concentrated force: energy converging to a single point of impact.</p>
+
+    <!-- 3-layer breakdown -->
+    <div class="layers">
+      <div class="layer-row rv d1">
+        <span class="layer-num">01</span>
+        <div class="layer-mark">
+          <svg width="28" height="32" viewBox="0 0 80 92">
+            <path fill-rule="evenodd" fill="#6B2E00" opacity=".9"
+              d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"
+              transform="translate(2,3)"/>
+          </svg>
+        </div>
+        <div class="layer-info">
+          <div class="layer-name">Shadow Layer</div>
+          <div class="layer-desc">// offset +2.5x +3.5y · #6B2E00 · opacity .45</div>
+        </div>
+      </div>
+      <div class="layer-row rv d2">
+        <span class="layer-num">02</span>
+        <div class="layer-mark">
+          <svg width="28" height="32" viewBox="0 0 80 92">
+            <path fill-rule="evenodd" fill="url(#vGrad)"
+              d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/>
+          </svg>
+        </div>
+        <div class="layer-info">
+          <div class="layer-name">Base Layer</div>
+          <div class="layer-desc">// gradient fill · TL→BR · #F5C060→#8A4A08</div>
+        </div>
+      </div>
+      <div class="layer-row rv d3">
+        <span class="layer-num">03</span>
+        <div class="layer-mark">
+          <svg width="28" height="32" viewBox="0 0 80 92">
+            <path fill-rule="evenodd" fill="url(#vGrad)" opacity=".6"
+              d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/>
+            <path d="M 4,8 L 76,8" stroke="rgba(255,230,150,.65)" stroke-width="2.5" fill="none"/>
+            <path d="M 4,8 L 40,90" stroke="rgba(255,230,150,.3)" stroke-width="1.5" fill="none"/>
+          </svg>
+        </div>
+        <div class="layer-info">
+          <div class="layer-name">Highlight Layer</div>
+          <div class="layer-desc">// stroke on lit faces · rgba(255,230,150,.45)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     COLOR VARIANTS
+     ══════════════════════════════════════════════════════════════════ -->
+<section class="color-section">
+  <div class="color-header rv">
+    <p style="font-family:var(--fm);font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:var(--amber);margin-bottom:14px;">// Color System</p>
+    <h2 class="color-title">FOUR<br><em>VARIANTS</em></h2>
+  </div>
+  <div class="variants-grid">
+
+    <!-- 01: Primary — dark background -->
+    <div class="variant-cell v-dark rv d1">
+      <svg width="72" height="82" viewBox="0 0 80 92" style="filter:drop-shadow(0 0 16px rgba(232,144,32,.3))">
+        <g transform="translate(2,3)" opacity=".45"><path fill-rule="evenodd" fill="#6B2E00" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/></g>
+        <path fill-rule="evenodd" fill="url(#vGrad)" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/>
+        <path d="M 4,8 L 76,8" stroke="rgba(255,230,150,.45)" stroke-width="1.5" fill="none"/>
+      </svg>
+      <div class="variant-info">
+        <div class="variant-label" style="color:rgba(237,232,224,.4)">// PRIMARY</div>
+        <div class="variant-name">Dark Background</div>
+        <div style="font-family:var(--fm);font-size:9px;color:#524438;margin-top:6px;">#050403 · #E89020</div>
+      </div>
+    </div>
+
+    <!-- 02: Inverted — amber background -->
+    <div class="variant-cell v-amber rv d2">
+      <svg width="72" height="82" viewBox="0 0 80 92" style="filter:drop-shadow(0 4px 16px rgba(5,4,3,.35))">
+        <g transform="translate(2,3)" opacity=".3"><path fill-rule="evenodd" fill="rgba(5,4,3,.4)" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/></g>
+        <path fill-rule="evenodd" fill="#050403" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/>
+        <path d="M 4,8 L 76,8" stroke="rgba(255,255,255,.15)" stroke-width="1.5" fill="none"/>
+      </svg>
+      <div class="variant-info">
+        <div class="variant-label" style="color:rgba(5,4,3,.5)">// INVERTED</div>
+        <div class="variant-name" style="color:#050403">Amber Background</div>
+        <div style="font-family:var(--fm);font-size:9px;color:rgba(5,4,3,.45);margin-top:6px;">#E89020 · #050403</div>
+      </div>
+    </div>
+
+    <!-- 03: Monochrome — light background -->
+    <div class="variant-cell v-white rv d3">
+      <svg width="72" height="82" viewBox="0 0 80 92" style="filter:drop-shadow(0 4px 12px rgba(5,4,3,.12))">
+        <g transform="translate(2,3)" opacity=".25"><path fill-rule="evenodd" fill="#8A4A08" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/></g>
+        <path fill-rule="evenodd" fill="#1A0E06" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/>
+      </svg>
+      <div class="variant-info">
+        <div class="variant-label" style="color:rgba(5,4,3,.35)">// MONO LIGHT</div>
+        <div class="variant-name" style="color:#1A0E06">Light Background</div>
+        <div style="font-family:var(--fm);font-size:9px;color:rgba(5,4,3,.4);margin-top:6px;">#F5F0E8 · #1A0E06</div>
+      </div>
+    </div>
+
+    <!-- 04: Reversed — white on dark -->
+    <div class="variant-cell v-mid rv d4">
+      <svg width="72" height="82" viewBox="0 0 80 92" style="filter:drop-shadow(0 0 20px rgba(237,232,224,.08))">
+        <g transform="translate(2,3)" opacity=".35"><path fill-rule="evenodd" fill="#3A3028" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/></g>
+        <path fill-rule="evenodd" fill="#EDE8E0" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/>
+        <path d="M 4,8 L 76,8" stroke="rgba(255,255,255,.3)" stroke-width="1.5" fill="none"/>
+      </svg>
+      <div class="variant-info">
+        <div class="variant-label" style="color:rgba(237,232,224,.35)">// REVERSED</div>
+        <div class="variant-name">White Knockout</div>
+        <div style="font-family:var(--fm);font-size:9px;color:#524438;margin-top:6px;">#1A1410 · #EDE8E0</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     SCALE SYSTEM
+     ══════════════════════════════════════════════════════════════════ -->
+<section class="scale-section">
+  <div class="scale-header rv">
+    <p style="font-family:var(--fm);font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:var(--amber);margin-bottom:14px;">// Scale System</p>
+    <h2 class="scale-title">LEGIBLE AT<br>EVERY SIZE</h2>
+  </div>
+  <div class="scale-row">
+    <div class="scale-item rv d1">
+      <svg width="16" height="18" viewBox="0 0 80 92"><path fill-rule="evenodd" fill="#E89020" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/></svg>
+      <span class="scale-px">16px</span>
+    </div>
+    <div class="scale-item rv d1">
+      <svg width="24" height="28" viewBox="0 0 80 92"><path fill-rule="evenodd" fill="#E89020" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/></svg>
+      <span class="scale-px">24px</span>
+    </div>
+    <div class="scale-item rv d2">
+      <svg width="32" height="37" viewBox="0 0 80 92"><path fill-rule="evenodd" fill="#E89020" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/></svg>
+      <span class="scale-px">32px</span>
+    </div>
+    <div class="scale-item rv d2">
+      <svg width="48" height="55" viewBox="0 0 80 92"><g transform="translate(2,3)" opacity=".4"><path fill-rule="evenodd" fill="#6B2E00" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/></g><path fill-rule="evenodd" fill="url(#vGrad)" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/></svg>
+      <span class="scale-px">48px</span>
+    </div>
+    <div class="scale-item rv d3">
+      <svg width="72" height="83" viewBox="0 0 80 92"><g transform="translate(2,3)" opacity=".4"><path fill-rule="evenodd" fill="#6B2E00" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/></g><path fill-rule="evenodd" fill="url(#vGrad)" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/><path d="M 4,8 L 76,8" stroke="rgba(255,230,150,.4)" stroke-width="2" fill="none"/></svg>
+      <span class="scale-px">72px</span>
+    </div>
+    <div class="scale-item rv d3">
+      <svg width="120" height="138" viewBox="0 0 80 92"><g transform="translate(2,3)" opacity=".4"><path fill-rule="evenodd" fill="#6B2E00" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/></g><path fill-rule="evenodd" fill="url(#vGrad)" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/><path d="M 4,8 L 76,8" stroke="rgba(255,230,150,.4)" stroke-width="1.5" fill="none"/><path d="M 4,8 L 40,90" stroke="rgba(255,230,150,.2)" stroke-width="1" fill="none"/></svg>
+      <span class="scale-px">120px</span>
+    </div>
+    <div class="scale-item rv d4">
+      <svg width="180" height="207" viewBox="0 0 80 92" style="filter:drop-shadow(0 0 24px rgba(232,144,32,.25))"><g transform="translate(2,3)" opacity=".45"><path fill-rule="evenodd" fill="#6B2E00" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/></g><path fill-rule="evenodd" fill="url(#vGrad)" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/><path d="M 4,8 L 76,8" stroke="rgba(255,230,150,.5)" stroke-width="1.2" fill="none"/><path d="M 4,8 L 40,90" stroke="rgba(255,230,150,.25)" stroke-width=".8" fill="none"/></svg>
+      <span class="scale-px">180px</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     FAVICON — 32×32 PIXEL GRID
+     ══════════════════════════════════════════════════════════════════ -->
+<section class="favicon-section">
+  <p style="font-family:var(--fm);font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:var(--amber);margin-bottom:14px;" class="rv">// Favicon System</p>
+  <div class="fav-grid-wrap">
+    <div class="fav-canvas-wrap rv">
+      <!-- 32×32 favicon grid (blown up 10x) -->
+      <!-- V shape in amber against dark background -->
+      <!-- Each row: a=amber, s=shadow/dim, blank=background -->
+      <div class="fav-canvas" id="favGrid"></div>
+      <!-- Real-size previews -->
+      <div class="fav-previews">
+        <div class="fav-prev-item">
+          <svg width="32" height="32" viewBox="0 0 80 92" style="background:#050403;border-radius:4px"><path fill-rule="evenodd" fill="#E89020" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/></svg>
+          <span class="fav-prev-lbl">32×32</span>
+        </div>
+        <div class="fav-prev-item">
+          <svg width="16" height="16" viewBox="0 0 80 92" style="background:#050403;border-radius:2px"><path fill-rule="evenodd" fill="#E89020" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z"/></svg>
+          <span class="fav-prev-lbl">16×16</span>
+        </div>
+        <div class="fav-prev-item">
+          <svg width="64" height="64" viewBox="0 0 80 92" style="background:#050403;border-radius:6px"><g transform="translate(1.5,2)" opacity=".45"><path fill-rule="evenodd" fill="#6B2E00" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/></g><path fill-rule="evenodd" fill="url(#vGrad)" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/></svg>
+          <span class="fav-prev-lbl">64×64</span>
+        </div>
+        <div class="fav-prev-item">
+          <svg width="128" height="128" viewBox="0 0 80 92" style="background:#050403;border-radius:20px"><g transform="translate(2,3)" opacity=".45"><path fill-rule="evenodd" fill="#6B2E00" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/></g><path fill-rule="evenodd" fill="url(#vGrad)" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/><path d="M 4,8 L 76,8" stroke="rgba(255,230,150,.4)" stroke-width="2" fill="none"/></svg>
+          <span class="fav-prev-lbl">App Icon</span>
+        </div>
+      </div>
+    </div>
+    <div class="fav-info rvr d1">
+      <h3 class="fav-info-title">PIXEL-<br>PERFECT<br>AT 32PX</h3>
+      <p class="fav-info-body">The Forge Spark diamond is intentionally removed at 16–32px; the V arms remain strong and recognisable. At 64px and above, all three layers render with full fidelity.</p>
+      <div class="fav-spec">
+        <div class="fav-spec-row"><span class="fav-spec-k">Format</span><span class="fav-spec-v">.ico / .svg / .png</span></div>
+        <div class="fav-spec-row"><span class="fav-spec-k">Sizes</span><span class="fav-spec-v">16 · 32 · 64 · 128 · 512</span></div>
+        <div class="fav-spec-row"><span class="fav-spec-k">Background</span><span class="fav-spec-v">#050403 (no rounding &lt;64px)</span></div>
+        <div class="fav-spec-row"><span class="fav-spec-k">Mark color</span><span class="fav-spec-v">#E89020 (flat, no gradient)</span></div>
+        <div class="fav-spec-row"><span class="fav-spec-k">Min clear</span><span class="fav-spec-v">2px all sides</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     USAGE RULES
+     ══════════════════════════════════════════════════════════════════ -->
+<section class="usage-section">
+  <div class="rv">
+    <p style="font-family:var(--fm);font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:var(--amber);margin-bottom:14px;">// Usage Rules</p>
+    <h2 class="usage-title">DO. DON'T.<br>SIMPLE.</h2>
+  </div>
+  <div class="usage-grid">
+    <div class="usage-card do rv d1">
+      <div class="usage-badge">✓ DO — Scale uniformly</div>
+      <div class="usage-mark-area">
+        <svg width="48" height="55" viewBox="0 0 80 92"><path fill-rule="evenodd" fill="#E89020" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/></svg>
+      </div>
+      <p class="usage-rule">Always maintain the original aspect ratio. Scale from center.</p>
+    </div>
+    <div class="usage-card do rv d2">
+      <div class="usage-badge">✓ DO — Use on approved backgrounds</div>
+      <div class="usage-mark-area" style="background:#E89020;border-radius:2px;">
+        <svg width="44" height="51" viewBox="0 0 80 92"><path fill-rule="evenodd" fill="#050403" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/></svg>
+      </div>
+      <p class="usage-rule">Black, amber, white, or near-black surfaces only. No mid-tone grays.</p>
+    </div>
+    <div class="usage-card dont rv d3">
+      <div class="usage-badge">✗ DON'T — Rotate the mark</div>
+      <div class="usage-mark-area">
+        <svg width="48" height="55" viewBox="0 0 80 92" style="transform:rotate(45deg);opacity:.4"><path fill-rule="evenodd" fill="#FF3D00" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z"/></svg>
+      </div>
+      <p class="usage-rule">The strike point must always face downward. No rotation, reflection, or skew.</p>
+    </div>
+    <div class="usage-card dont rv d4">
+      <div class="usage-badge">✗ DON'T — Change the mark color</div>
+      <div class="usage-mark-area">
+        <svg width="48" height="55" viewBox="0 0 80 92" style="opacity:.4"><path fill-rule="evenodd" fill="#8B5CF6" d="M 4,8 L 76,8 L 40,90 Z M 24,8 L 56,8 L 40,73 Z M 40,47 L 43,53 L 40,59 L 37,53 Z"/></svg>
+      </div>
+      <p class="usage-rule">Use only the approved palette variants. No gradients, tints, or off-brand colors.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     SVG CODE EXPORT
+     ══════════════════════════════════════════════════════════════════ -->
+<section class="code-section">
+  <div class="code-header rv">
+    <p style="font-family:var(--fm);font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:var(--amber);margin-bottom:14px;">// SVG Export</p>
+    <h2 class="code-title">THE MARK,<br>IN CODE.</h2>
+  </div>
+  <div class="code-block rv d1" id="codeBlock">
+    <button class="code-copy" id="copyBtn">Copy SVG</button>
+<span class="cm">&lt;!-- VORO Logomark — Primary Variant --&gt;</span>
+<span class="ca">&lt;svg</span> <span class="ce">width</span>=<span class="ca">"80"</span> <span class="ce">height</span>=<span class="ca">"96"</span> <span class="ce">viewBox</span>=<span class="ca">"0 0 80 96"</span>
+     <span class="ce">fill</span>=<span class="ca">"none"</span> <span class="ce">xmlns</span>=<span class="ca">"http://www.w3.org/2000/svg"</span><span class="ca">&gt;</span>
+
+  <span class="cm">&lt;!-- Layer 1: Shadow --&gt;</span>
+  <span class="ca">&lt;path</span> <span class="ce">fill-rule</span>=<span class="ca">"evenodd"</span> <span class="ce">fill</span>=<span class="ca">"#6B2E00"</span> <span class="ce">fill-opacity</span>=<span class="ca">".45"</span>
+        <span class="ce">transform</span>=<span class="ca">"translate(2.5,3.5)"</span>
+        <span class="ce">d</span>=<span class="ca">"M4,8 L76,8 L40,90 Z M24,8 L56,8 L40,73 Z M40,47 L43,53 L40,59 L37,53 Z"</span><span class="ca">/&gt;</span>
+
+  <span class="cm">&lt;!-- Layer 2: Base fill with gradient --&gt;</span>
+  <span class="ca">&lt;defs&gt;</span>
+    <span class="ca">&lt;linearGradient</span> <span class="ce">id</span>=<span class="ca">"vg"</span> <span class="ce">x1</span>=<span class="ca">"0"</span> <span class="ce">y1</span>=<span class="ca">"0"</span> <span class="ce">x2</span>=<span class="ca">"1"</span> <span class="ce">y2</span>=<span class="ca">"1"</span><span class="ca">&gt;</span>
+      <span class="ca">&lt;stop</span> <span class="ce">offset</span>=<span class="ca">"0%"</span>   <span class="ce">stop-color</span>=<span class="ca">"#F5C060"</span><span class="ca">/&gt;</span>
+      <span class="ca">&lt;stop</span> <span class="ce">offset</span>=<span class="ca">"38%"</span>  <span class="ce">stop-color</span>=<span class="ca">"#E89020"</span><span class="ca">/&gt;</span>
+      <span class="ca">&lt;stop</span> <span class="ce">offset</span>=<span class="ca">"100%"</span> <span class="ce">stop-color</span>=<span class="ca">"#8A4A08"</span><span class="ca">/&gt;</span>
+    <span class="ca">&lt;/linearGradient&gt;</span>
+  <span class="ca">&lt;/defs&gt;</span>
+  <span class="ca">&lt;path</span> <span class="ce">fill-rule</span>=<span class="ca">"evenodd"</span> <span class="ce">fill</span>=<span class="ca">"url(#vg)"</span>
+        <span class="ce">d</span>=<span class="ca">"M4,8 L76,8 L40,90 Z M24,8 L56,8 L40,73 Z M40,47 L43,53 L40,59 L37,53 Z"</span><span class="ca">/&gt;</span>
+
+  <span class="cm">&lt;!-- Layer 3: Highlight edges --&gt;</span>
+  <span class="ca">&lt;path</span> <span class="ce">d</span>=<span class="ca">"M4,8 L76,8"</span> <span class="ce">stroke</span>=<span class="ca">"rgba(255,230,150,.45)"</span> <span class="ce">stroke-width</span>=<span class="ca">"1.5"</span><span class="ca">/&gt;</span>
+  <span class="ca">&lt;path</span> <span class="ce">d</span>=<span class="ca">"M4,8 L40,90"</span> <span class="ce">stroke</span>=<span class="ca">"rgba(255,230,150,.25)"</span> <span class="ce">stroke-width</span>=<span class="ca">"1"</span><span class="ca">/&gt;</span>
+
+<span class="ca">&lt;/svg&gt;</span></div>
+</section>
+
+<!-- FOOTER -->
+<div class="footer-strip">
+  <span class="fl">VO<b>R</b>O</span>
+  <span class="fc">Chapter 02 · Logo System · 2026</span>
+  <div class="fn">
+    <a href="voro-reimagined.html" style="font-family:var(--fm);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color .2s;" onmouseover="this.style.color='#EDE8E0'" onmouseout="this.style.color='#524438'">← Ch. 01: Landing</a>
+  </div>
+</div>
+
+<script>
+/* ── CURSOR ── */
+const cur=document.getElementById('cur'),curl=document.getElementById('curl');
+let mx=0,my=0,lx=0,ly=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px';});
+(function loop(){lx+=(mx-lx)*.14;ly+=(my-ly)*.14;curl.style.left=lx+'px';curl.style.top=ly+'px';requestAnimationFrame(loop);})();
+document.querySelectorAll('a,button').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{cur.style.width='20px';cur.style.height='20px';cur.style.background='var(--bone)';curl.style.transform='translate(-50%,-50%) scale(1.5)';});
+  el.addEventListener('mouseleave',()=>{cur.style.width='10px';cur.style.height='10px';cur.style.background='var(--amber)';curl.style.transform='translate(-50%,-50%) scale(1)';});
+});
+
+/* ── SCROLL PROGRESS ── */
+const sp=document.getElementById('sprog');
+window.addEventListener('scroll',()=>{sp.style.height=(window.scrollY/(document.body.scrollHeight-window.innerHeight)*100)+'%';});
+
+/* ── SCROLL REVEALS ── */
+const io=new IntersectionObserver(e=>e.forEach(x=>{if(x.isIntersecting){x.target.classList.add('on');io.unobserve(x.target);}}),{threshold:.12});
+document.querySelectorAll('.rv,.rvl,.rvr').forEach(el=>io.observe(el));
+
+/* ── WORDMARK LETTER WAVE on hover ── */
+const wm=document.getElementById('wordmark');
+const ltrs=document.querySelectorAll('.wm-ltr');
+wm.addEventListener('mouseenter',()=>{
+  ltrs.forEach((l,i)=>{
+    setTimeout(()=>{
+      l.style.transform='translateY(-8px)';
+      l.style.opacity='.5';
+      setTimeout(()=>{l.style.transform='';l.style.opacity='';},320);
+    },i*70);
+  });
+});
+
+/* ── FAVICON PIXEL GRID ── */
+// 32x32 grid encoding: row by row, 1=amber, 0=bg
+// Simplified V shape for 32x32
+const favData=[
+  "00000000000000000000000000000000",
+  "00000000000000000000000000000000",
+  "01111100000000000000000001111100",
+  "01111100000000000000000001111100",
+  "01111100000000000000000001111100",
+  "00111110000000000000000011111000",
+  "00111110000000000000000011111000",
+  "00111110000000000000000011111000",
+  "00011111000000000000000111110000",
+  "00011111000000000000000111110000",
+  "00011111000000000000000111110000",
+  "00001111100000000000001111100000",
+  "00001111100000000000001111100000",
+  "00001111100000000000001111100000",
+  "00000111110000000000011111000000",
+  "00000111110000000000011111000000",
+  "00000111110000000000011111000000",
+  "00000011111000000000111110000000",
+  "00000011111000000000111110000000",
+  "00000011111000000000111110000000",
+  "00000001111100000001111100000000",
+  "00000001111100000001111100000000",
+  "00000001111100000001111100000000",
+  "00000000111110000011111000000000",
+  "00000000111110000011111000000000",
+  "00000000111110000011111000000000",
+  "00000000011111000111110000000000",
+  "00000000011111111111100000000000",
+  "00000000011111111111100000000000",
+  "00000000001111111111000000000000",
+  "00000000000000000000000000000000",
+  "00000000000000000000000000000000",
+];
+const grid=document.getElementById('favGrid');
+favData.forEach(row=>{
+  [...row].forEach(cell=>{
+    const px=document.createElement('div');
+    px.className='px'+(cell==='1'?' a':'');
+    grid.appendChild(px);
+  });
+});
+
+/* ── COPY SVG BUTTON ── */
+document.getElementById('copyBtn').addEventListener('click',function(){
+  const svg=`<svg width="80" height="96" viewBox="0 0 80 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" fill="#6B2E00" fill-opacity=".45" transform="translate(2.5,3.5)" d="M4,8 L76,8 L40,90 Z M24,8 L56,8 L40,73 Z M40,47 L43,53 L40,59 L37,53 Z"/>
+  <defs><linearGradient id="vg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#F5C060"/><stop offset="38%" stop-color="#E89020"/><stop offset="100%" stop-color="#8A4A08"/></linearGradient></defs>
+  <path fill-rule="evenodd" fill="url(#vg)" d="M4,8 L76,8 L40,90 Z M24,8 L56,8 L40,73 Z M40,47 L43,53 L40,59 L37,53 Z"/>
+  <path d="M4,8 L76,8" stroke="rgba(255,230,150,.45)" stroke-width="1.5"/>
+  <path d="M4,8 L40,90" stroke="rgba(255,230,150,.25)" stroke-width="1"/>
+</svg>`;
+  navigator.clipboard.writeText(svg).then(()=>{
+    this.textContent='Copied ✓';this.classList.add('copied');
+    setTimeout(()=>{this.textContent='Copy SVG';this.classList.remove('copied');},2200);
+  });
+});
+</script>
+</body>
+</html>
