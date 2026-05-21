@@ -1,0 +1,1 @@
+import{j as d}from"./index-DzlPef6F.js";const n=({children:r,className:o="",hover:s=!1,...a})=>{const e=["bg-card border border-border rounded-lg p-4 shadow-sm",s&&"hover:shadow-md transition-shadow duration-200 cursor-pointer",o].filter(Boolean).join(" ");return d.jsx("div",{className:e,...a,children:r})};export{n as C};
