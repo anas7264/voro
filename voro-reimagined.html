@@ -35,9 +35,10 @@
             transition:left .14s ease,top .14s ease; }
 
     /* ── PROGRESS BAR ── */
-    #sprog { position:fixed;left:0;top:0;width:3px;height:0%;
+    #sprog { position:fixed;left:0;top:0;width:3px;height:100%;
              background:linear-gradient(to bottom,var(--amber),var(--ember));
-             z-index:1000;pointer-events:none;transition:height .08s linear; }
+             z-index:1000;pointer-events:none;transform:scaleY(0);
+             transform-origin:top;transition:transform .08s linear; }
 
     /* ── GRAIN ── */
     .grain { position:fixed;inset:0;pointer-events:none;z-index:9990;opacity:.04;
@@ -691,16 +692,16 @@ document.querySelectorAll('a,button').forEach(el => {
 /* ══ SCROLL PROGRESS ══ */
 const sprog = document.getElementById('sprog');
 window.addEventListener('scroll', () => {
-  const pct = window.scrollY / (document.body.scrollHeight - window.innerHeight) * 100;
-  sprog.style.height = pct + '%';
-});
+  const pct = window.scrollY / (document.body.scrollHeight - window.innerHeight);
+  sprog.style.transform = `scaleY(${pct})`;
+}, { passive: true });
 
 /* ══ HERO CANVAS — PARTICLE CONSTELLATION ══ */
 (function(){
   const canvas = document.getElementById('hcanvas');
   const ctx    = canvas.getContext('2d');
   let W, H, pts=[];
-  const NUM=110, MAX_DIST=140;
+  const NUM=110, MAX_DIST=140, MAX_DIST_SQ=MAX_DIST*MAX_DIST;
 
   function resize(){
     W=canvas.width=window.innerWidth;
@@ -724,32 +725,37 @@ window.addEventListener('scroll', () => {
   function draw(){
     ctx.clearRect(0,0,W,H);
     // Draw connections
+    ctx.lineWidth=0.6;
     for(let i=0;i<pts.length;i++){
+      const p1 = pts[i];
       for(let j=i+1;j<pts.length;j++){
-        const dx=pts[i].x-pts[j].x, dy=pts[i].y-pts[j].y;
-        const d=Math.sqrt(dx*dx+dy*dy);
-        if(d<MAX_DIST){
+        const p2 = pts[j];
+        const dx=p1.x-p2.x, dy=p1.y-p2.y;
+        const dSq=dx*dx+dy*dy;
+        if(dSq<MAX_DIST_SQ){
+          const d = Math.sqrt(dSq);
           const alpha=(1-d/MAX_DIST)*0.18;
           ctx.beginPath();
-          ctx.moveTo(pts[i].x,pts[i].y);
-          ctx.lineTo(pts[j].x,pts[j].y);
+          ctx.moveTo(p1.x,p1.y);
+          ctx.lineTo(p2.x,p2.y);
           ctx.strokeStyle=`rgba(232,144,32,${alpha})`;
-          ctx.lineWidth=0.6;
           ctx.stroke();
         }
       }
     }
     // Mouse connections
+    ctx.lineWidth=0.8;
     for(let i=0;i<pts.length;i++){
-      const dx=pts[i].x-mouse.x, dy=pts[i].y-mouse.y;
-      const d=Math.sqrt(dx*dx+dy*dy);
-      if(d<180){
+      const p = pts[i];
+      const dx=p.x-mouse.x, dy=p.y-mouse.y;
+      const dSq=dx*dx+dy*dy;
+      if(dSq<32400){ // 180^2
+        const d = Math.sqrt(dSq);
         const alpha=(1-d/180)*0.4;
         ctx.beginPath();
-        ctx.moveTo(pts[i].x,pts[i].y);
+        ctx.moveTo(p.x,p.y);
         ctx.lineTo(mouse.x,mouse.y);
         ctx.strokeStyle=`rgba(255,61,0,${alpha})`;
-        ctx.lineWidth=0.8;
         ctx.stroke();
       }
     }
