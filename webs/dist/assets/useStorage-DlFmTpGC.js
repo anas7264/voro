@@ -1,1 +1,0 @@
-import{r as t,S as r}from"./index-DzlPef6F.js";const s=()=>{const e=t.useContext(r);if(!e)throw new Error("useStorage must be used within StorageProvider");return{...e,getStorage:e.getItem,setStorage:e.setItem,removeStorage:e.deleteItem}};export{s as u};

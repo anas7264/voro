@@ -6,11 +6,14 @@ import Input from '@/components/Input';
 import Select from '@/components/Select';
 import { useAppContext, useApp } from '@/hooks/useAppContext';
 import { useStorage } from '@/hooks/useStorage';
+import { useNotifications } from '@/hooks/useNotifications';
 import { calculateBMI, calculateBMR, calculateTDEE } from '@/utils/calculators';
+import { validateFitnessProfile } from '@/utils/validators';
 
 const Profile = () => {
   const { user, updateUser: setUser } = useApp();
   const { getStorage, setStorage } = useStorage();
+  const { addNotification } = useNotifications();
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState(user || {});
 
@@ -27,9 +30,28 @@ const Profile = () => {
   };
 
   const handleSave = () => {
+    // Security: Validate fitness profile before saving to storage
+    const { valid, errors } = validateFitnessProfile({
+      age: formData.age,
+      height: formData.heightCm,
+      weight: formData.currentWeight,
+      gender: formData.gender,
+      goal: formData.primaryGoal, // Map primaryGoal to goal for validator
+      activityLevel: formData.activityLevel || 'moderately_active'
+    });
+
+    if (!valid) {
+      const errorMsg = Object.values(errors).join('. ');
+      addNotification(`Validation failed: ${errorMsg}`, 'error');
+      return;
+    }
+
     const bmi = calculateBMI(formData.currentWeight, formData.heightCm);
     const bmr = Number(calculateBMR(formData.currentWeight, formData.heightCm, formData.age, formData.gender || 'Male'));
-    const tdee = calculateTDEE(bmr, 'moderately_active');
+
+    // Security: Use the validated activity level from formData
+    const activityLevel = formData.activityLevel?.toLowerCase().replace(' ', '_') || 'moderately_active';
+    const tdee = calculateTDEE(bmr, activityLevel);
 
     const updated = {
       ...formData,
@@ -40,6 +62,7 @@ const Profile = () => {
 
     setStorage('voro_profile', updated);
     setUser(updated);
+    addNotification('Profile updated successfully!', 'success');
     setEditing(false);
   };
 
