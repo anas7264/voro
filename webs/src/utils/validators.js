@@ -178,7 +178,10 @@ export const isValidGender = (gender) => {
 
 // Goal validation
 export const isValidGoal = (goal) => {
-  const validGoals = ["weight_loss", "muscle_gain", "maintenance", "athletic_performance", "health_optimization"];
+  const validGoals = [
+    "weight_loss", "muscle_gain", "maintenance", "athletic_performance", "health_optimization",
+    "lose weight", "build muscle", "improve fitness", "body recomposition", "general health"
+  ];
   return validGoals.includes(goal?.toLowerCase());
 };
 
@@ -190,7 +193,10 @@ export const isValidExperienceLevel = (level) => {
 
 // Activity level validation
 export const isValidActivityLevel = (level) => {
-  const validLevels = ["sedentary", "lightly_active", "moderately_active", "very_active", "extremely_active"];
+  const validLevels = [
+    "sedentary", "lightly_active", "moderately_active", "very_active", "extremely_active",
+    "lightly active", "moderately active", "very active", "extremely active"
+  ];
   return validLevels.includes(level?.toLowerCase());
 };
 
