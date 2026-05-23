@@ -6,11 +6,14 @@ import Input from '@/components/Input';
 import LineChartComponent from '@/components/LineChartComponent';
 import { useStorage } from '@/hooks/useStorage';
 import { useApp } from '@/hooks/useAppContext';
+import { useNotifications } from '@/hooks/useNotifications';
 import { calculateBMI, calculateFFMI } from '@/utils/calculators';
+import { isValidWeight, isValidBodyFat, isPositiveNumber } from '@/utils/validators';
 
 const BodyMetrics = () => {
   const { getStorage, setStorage } = useStorage();
   const { user } = useApp();
+  const { addNotification } = useNotifications();
   const [metrics, setMetrics] = useState(null);
   const [weight, setWeight] = useState('');
   const [bodyFat, setBodyFat] = useState('');
@@ -40,6 +43,12 @@ const BodyMetrics = () => {
 
   const addWeight = () => {
     if (!weight) return;
+
+    if (!isValidWeight(weight)) {
+      addNotification('Invalid weight value. Must be between 30 and 500 kg.', 'error');
+      return;
+    }
+
     const allMetrics = getStorage('voro_body_metrics') || {
       weights: [],
       measurements: [],
@@ -53,9 +62,23 @@ const BodyMetrics = () => {
     setStorage('voro_body_metrics', allMetrics);
     setWeight('');
     loadMetrics();
+    addNotification('Weight logged successfully', 'success');
   };
 
   const addMeasurement = () => {
+    // Validate all measurement fields
+    const invalidFields = Object.entries(measurements).filter(([_, val]) => val && !isPositiveNumber(val));
+    if (invalidFields.length > 0) {
+      addNotification('All measurements must be positive numbers', 'error');
+      return;
+    }
+
+    // Ensure at least one value is provided
+    if (Object.values(measurements).every(v => v === '')) {
+      addNotification('Please provide at least one measurement', 'info');
+      return;
+    }
+
     const allMetrics = getStorage('voro_body_metrics') || {
       weights: [],
       measurements: [],
@@ -76,10 +99,17 @@ const BodyMetrics = () => {
       calf: '',
     });
     loadMetrics();
+    addNotification('Measurements saved successfully', 'success');
   };
 
   const addBodyFat = () => {
     if (!bodyFat) return;
+
+    if (!isValidBodyFat(bodyFat)) {
+      addNotification('Invalid body fat value. Must be between 0 and 100%.', 'error');
+      return;
+    }
+
     const allMetrics = getStorage('voro_body_metrics') || {
       weights: [],
       measurements: [],
@@ -93,6 +123,7 @@ const BodyMetrics = () => {
     setStorage('voro_body_metrics', allMetrics);
     setBodyFat('');
     loadMetrics();
+    addNotification('Body fat logged successfully', 'success');
   };
 
   if (!metrics) return <div className="p-8">Loading...</div>;
@@ -214,7 +245,7 @@ const BodyMetrics = () => {
               <Input
                 key={key}
                 type="number"
-                placeholder={key.charAt(0).toUpperCase() + key.slice(1)} 
+                placeholder={key.charAt(0).toUpperCase() + key.slice(1)}
                 value={value}
                 onChange={(e) => setMeasurements(prev => ({ ...prev, [key]: e.target.value }))}
                 step="0.1"
