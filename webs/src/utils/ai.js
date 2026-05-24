@@ -1,7 +1,7 @@
 // VORO Claude AI Integration
 // API wrapper for Claude AI with streaming and error handling
 
-const CLAUDE_API_KEY = process.env.REACT_APP_CLAUDE_API_KEY;
+const CLAUDE_API_KEY = import.meta.env.VITE_CLAUDE_API_KEY;
 const CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-3-5-sonnet-20241022"; // Latest Claude model
 
