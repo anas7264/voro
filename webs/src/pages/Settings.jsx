@@ -8,7 +8,7 @@ import { useStorage } from '@/hooks/useStorage';
 import { useApp } from '@/hooks/useAppContext';
 
 const Settings = () => {
-  const { getStorage, setStorage } = useStorage();
+  const { getStorage, setStorage, exportData, clearAllData } = useStorage();
   const { user } = useApp();
   const [settings, setSettings] = useState(null);
   const [theme, setTheme] = useState('dark');
@@ -34,15 +34,9 @@ const Settings = () => {
   };
 
   const handleExportData = () => {
-    const allData = {
-      profile: getStorage('voro_profile'),
-      nutrition: getStorage('voro_nutrition_log'),
-      workouts: getStorage('voro_workout_log'),
-      metrics: getStorage('voro_body_metrics'),
-      settings: getStorage('voro_settings'),
-      gamification: getStorage('voro_gamification'),
-    };
-    const json = JSON.stringify(allData, null, 2);
+    const backup = exportData();
+    if (!backup) return;
+    const json = JSON.stringify(backup, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -52,23 +46,12 @@ const Settings = () => {
   };
 
   const handleClearData = () => {
-    if (window.confirm('Are you sure? This will delete all your data.')) {
-      const keys = [
-        'voro_profile',
-        'voro_nutrition_log',
-        'voro_workout_log',
-        'voro_body_metrics',
-        'voro_settings',
-        'voro_gamification',
-      ];
-      keys.forEach(key => {
-        try {
-          window.localStorage.removeItem(key);
-        } catch (e) {
-          console.error(`Failed to clear ${key}:`, e);
-        }
-      });
-      alert('Data cleared');
+    const msg = 'Are you sure? This will delete all your data (profile, workouts, nutrition, chat history, etc.).';
+    if (window.confirm(msg)) {
+      if (clearAllData()) {
+        alert('All data cleared successfully');
+        window.location.reload();
+      }
     }
   };
 
