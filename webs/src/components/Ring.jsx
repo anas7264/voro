@@ -1,6 +1,12 @@
-import React from 'react';
+import React, { memo } from 'react';
 
-const Ring = ({ value, max, size = 180, unit = 'kcal', color = '#7C3AED', label }) => {
+/**
+ * ⚡ OPTIMIZATION: Memoized Ring component to prevent unnecessary re-renders.
+ * Since this component performs calculations for SVG paths and is used in the
+ * Dashboard (which may re-render frequently), memoization helps avoid
+ * redundant work when values haven't changed.
+ */
+const Ring = memo(({ value, max, size = 180, unit = 'kcal', color = '#7C3AED', label }) => {
   const safeMax = max > 0 ? max : 1;
   const percentage = Math.min((value / safeMax) * 100, 100);
   const radius = size / 2 - 15;
@@ -45,6 +51,8 @@ const Ring = ({ value, max, size = 180, unit = 'kcal', color = '#7C3AED', label 
       </div>
     </div>
   );
-};
+});
+
+Ring.displayName = 'Ring';
 
 export default Ring;
