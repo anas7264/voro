@@ -6,10 +6,13 @@ import Input from '@/components/Input';
 import Select from '@/components/Select';
 import Badge from '@/components/Badge';
 import { useStorage } from '@/hooks/useStorage';
+import { useNotifications } from '@/hooks/useNotifications';
+import { validateWorkoutEntry } from '@/utils/validators';
 import { exercises } from '@/data/exercises';
 
 const WorkoutLog = () => {
   const { getStorage, setStorage } = useStorage();
+  const { addNotification } = useNotifications();
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [workoutData, setWorkoutData] = useState(null);
   const [sessionDuration, setSessionDuration] = useState(60);
@@ -69,6 +72,18 @@ const WorkoutLog = () => {
   };
 
   const saveWorkout = () => {
+    // Security: Validate workout session data before persisting to storage
+    const { valid, errors } = validateWorkoutEntry({
+      date,
+      exercises: selectedExercises
+    });
+
+    if (!valid) {
+      const errorMsg = Object.values(errors)[0]; // Get the first error message
+      addNotification(`Validation failed: ${errorMsg}`, 'error');
+      return;
+    }
+
     const allWorkouts = getStorage('voro_workout_log') || {};
     const volume = selectedExercises.reduce((sum, ex) => {
       return sum + ex.sets.reduce((exSum, set) => exSum + (set.weight * set.reps), 0);
@@ -88,6 +103,7 @@ const WorkoutLog = () => {
 
     setStorage('voro_workout_log', allWorkouts);
     setWorkoutData(allWorkouts[date]);
+    addNotification('Workout saved successfully', 'success');
   };
 
   if (!workoutData) return <div className="p-8">Loading...</div>;
