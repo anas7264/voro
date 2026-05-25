@@ -1,6 +1,11 @@
-import React from "react";
+import React, { memo } from "react";
 
-export const Badge = ({ children, variant = "primary", className = "", ...props }) => {
+/**
+ * ⚡ OPTIMIZATION: Memoized Badge component to prevent unnecessary re-renders.
+ * Small UI elements like badges are often used in lists and can contribute to
+ * cumulative render time if not memoized.
+ */
+export const Badge = memo(({ children, variant = "primary", className = "", ...props }) => {
   const variants = {
     primary: "bg-primary text-white",
     secondary: "bg-secondary text-white",
@@ -24,6 +29,8 @@ export const Badge = ({ children, variant = "primary", className = "", ...props 
       {children}
     </span>
   );
-};
+});
+
+Badge.displayName = "Badge";
 
 export default Badge;

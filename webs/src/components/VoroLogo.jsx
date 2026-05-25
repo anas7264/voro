@@ -1,6 +1,11 @@
-import React from 'react';
+import React, { memo } from 'react';
 
-const VoroLogo = ({ size = 80, className = '' }) => {
+/**
+ * ⚡ OPTIMIZATION: Memoized VoroLogo component to prevent unnecessary re-renders.
+ * This component contains SVG path data. Memoizing it ensures that it doesn't
+ * re-calculate or re-render unless its size or className changes.
+ */
+const VoroLogo = memo(({ size = 80, className = '' }) => {
   return (
     <div
       className={`flex items-center justify-center ${className}`}
@@ -29,6 +34,8 @@ const VoroLogo = ({ size = 80, className = '' }) => {
       </svg>
     </div>
   );
-};
+});
+
+VoroLogo.displayName = 'VoroLogo';
 
 export default VoroLogo;
