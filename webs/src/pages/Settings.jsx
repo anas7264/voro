@@ -152,22 +152,22 @@ const Settings = () => {
           <h3 className="text-lg font-semibold text-white mb-4">Notifications</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-white">Meal Reminders</span>
               <Toggle
+                label="Meal Reminders"
                 enabled={settings.mealReminders !== false}
                 onChange={(val) => handleSettingChange('mealReminders', val)}
               />
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-white">Workout Reminders</span>
               <Toggle
+                label="Workout Reminders"
                 enabled={settings.workoutReminders !== false}
                 onChange={(val) => handleSettingChange('workoutReminders', val)}
               />
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-white">Water Reminders</span>
               <Toggle
+                label="Water Reminders"
                 enabled={settings.waterReminders !== false}
                 onChange={(val) => handleSettingChange('waterReminders', val)}
               />
