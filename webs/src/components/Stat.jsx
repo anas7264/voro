@@ -1,6 +1,11 @@
-import React from "react";
+import React, { memo } from "react";
 
-export const Stat = ({ label, value, unit = "", change, icon: Icon, color = "primary", className = "" }) => {
+/**
+ * ⚡ OPTIMIZATION: Memoized Stat component to prevent unnecessary re-renders.
+ * This component is often used in grids (like Dashboard) where multiple instances
+ * are present. Memoization ensures they only re-render when their specific data changes.
+ */
+export const Stat = memo(({ label, value, unit = "", change, icon: Icon, color = "primary", className = "" }) => {
   const isPositive = change && change >= 0;
 
   return (
@@ -26,6 +31,8 @@ export const Stat = ({ label, value, unit = "", change, icon: Icon, color = "pri
       </div>
     </div>
   );
-};
+});
+
+Stat.displayName = "Stat";
 
 export default Stat;

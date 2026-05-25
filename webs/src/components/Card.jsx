@@ -1,6 +1,11 @@
-import React from "react";
+import React, { memo } from "react";
 
-export const Card = ({ children, className = "", hover = false, ...props }) => {
+/**
+ * ⚡ OPTIMIZATION: Memoized Card component to prevent unnecessary re-renders.
+ * Since this is a core layout component used extensively in dashboards and lists,
+ * memoization helps avoid redundant reconciliation when parent state updates.
+ */
+export const Card = memo(({ children, className = "", hover = false, ...props }) => {
   const classes = [
     "bg-card border border-border rounded-lg p-4 shadow-sm",
     hover && "hover:shadow-md transition-shadow duration-200 cursor-pointer",
@@ -14,6 +19,8 @@ export const Card = ({ children, className = "", hover = false, ...props }) => {
       {children}
     </div>
   );
-};
+});
+
+Card.displayName = "Card";
 
 export default Card;

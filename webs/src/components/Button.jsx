@@ -1,6 +1,11 @@
-import React from "react";
+import React, { memo } from "react";
 
-export const Button = ({
+/**
+ * ⚡ OPTIMIZATION: Memoized Button component to prevent unnecessary re-renders.
+ * As a high-frequency UI element, memoization ensures that buttons don't re-render
+ * during parent state changes unless their specific props (like isLoading or children) change.
+ */
+export const Button = memo(({
   children,
   variant = "primary",
   size = "md",
@@ -56,6 +61,8 @@ export const Button = ({
       {children}
     </button>
   );
-};
+});
+
+Button.displayName = "Button";
 
 export default Button;
