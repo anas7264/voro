@@ -7,3 +7,8 @@
 **Vulnerability:** Body metrics (weight, body fat, measurements) were persisted to localStorage without validation, allowing for malformed data to potentially corrupt health calculations (BMI, FFMI) and UI components.
 **Learning:** Even internal-only tracking features often skip validation because they don't involve formal "forms", but security-in-depth requires validation at every persistence boundary.
 **Prevention:** Always use centralized validation utilities before saving any user-inputted data to storage, even for simple numeric fields.
+
+## 2025-05-16 - [Workout Session Input Validation]
+**Vulnerability:** Workout logs containing multiple exercises and sets were persisted to storage without validation, allowing for malformed or out-of-range data (e.g., negative weights or unrealistic rep counts) to corrupt volume calculations and dashboard trends.
+**Learning:** Complex data structures (like arrays of objects) need recursive or structural validation before persistence, not just simple field-level checks.
+**Prevention:** Enhance validation utilities to handle the exact data structures used by the UI components and enforce validation at the point of save.

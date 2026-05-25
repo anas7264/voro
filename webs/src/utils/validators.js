@@ -54,6 +54,12 @@ export const isValidWeight = (weight) => {
   return !isNaN(w) && w >= 30 && w <= 500;
 };
 
+// Exercise weight validation (reasonable range in kg: 0-1000kg)
+export const isValidExerciseWeight = (weight) => {
+  const w = parseFloat(weight);
+  return !isNaN(w) && w >= 0 && w <= 1000;
+};
+
 // Height validation (reasonable range in cm: 100-250cm)
 export const isValidHeight = (height) => {
   const h = parseFloat(height);
@@ -236,11 +242,30 @@ export const validateFitnessProfile = (profile) => {
 export const validateWorkoutEntry = (workout) => {
   const errors = {};
 
-  if (!workout.exercise?.trim()) errors.exercise = "Exercise is required";
-  if (!isValidSets(workout.sets)) errors.sets = "Sets must be between 1-50";
-  if (!isValidReps(workout.reps)) errors.reps = "Reps must be between 1-100";
-  if (!isValidWeight(workout.weight)) errors.weight = "Weight is invalid";
-  if (!isValidDate(workout.date)) errors.date = "Date is invalid";
+  // Handle both single entry and full session structure
+  if (Array.isArray(workout.exercises)) {
+    if (workout.exercises.length === 0) {
+      errors.exercises = "At least one exercise is required";
+    } else {
+      workout.exercises.forEach((ex, idx) => {
+        if (!ex.name?.trim()) errors[`exercise_${idx}_name`] = "Exercise name is required";
+        if (Array.isArray(ex.sets)) {
+          ex.sets.forEach((set, setIdx) => {
+            if (!isValidReps(set.reps)) errors[`exercise_${idx}_set_${setIdx}_reps`] = "Reps must be between 1-100";
+            if (!isValidExerciseWeight(set.weight)) errors[`exercise_${idx}_set_${setIdx}_weight`] = "Weight must be between 0-1000kg";
+          });
+        }
+      });
+    }
+    if (!isValidDate(workout.date)) errors.date = "Date is invalid";
+  } else {
+    // Single entry validation
+    if (!workout.exercise?.trim()) errors.exercise = "Exercise is required";
+    if (!isValidSets(workout.sets)) errors.sets = "Sets must be between 1-50";
+    if (!isValidReps(workout.reps)) errors.reps = "Reps must be between 1-100";
+    if (!isValidExerciseWeight(workout.weight)) errors.weight = "Weight is invalid";
+    if (workout.date && !isValidDate(workout.date)) errors.date = "Date is invalid";
+  }
 
   return { valid: Object.keys(errors).length === 0, errors };
 };
@@ -268,6 +293,7 @@ export default {
   isNonNegativeNumber,
   isInteger,
   isValidWeight,
+  isValidExerciseWeight,
   isValidHeight,
   isValidAge,
   isValidBodyFat,
