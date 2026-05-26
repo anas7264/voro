@@ -56,18 +56,13 @@ const GymSetup = () => {
                 {commonEquipment
                   .filter(e => e.category === category)
                   .map(item => (
-                    <label
+                    <Checkbox
                       key={item.id}
-                      className="flex items-center gap-3 p-3 rounded-lg border border-voro-border cursor-pointer hover:bg-voro-surface transition"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={equipment.some(e => e.id === item.id)}
-                        onChange={() => handleToggleEquipment(item)}
-                        className="w-4 h-4"
-                      />
-                      <span className="text-white">{item.name}</span>
-                    </label>
+                      label={item.name}
+                      checked={equipment.some(e => e.id === item.id)}
+                      onChange={() => handleToggleEquipment(item)}
+                      className="p-3 rounded-lg border border-voro-border hover:bg-voro-surface transition"
+                    />
                   ))}
               </div>
             </div>
