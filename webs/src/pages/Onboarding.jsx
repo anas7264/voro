@@ -335,16 +335,22 @@ const Onboarding = () => {
                   <label className="block text-sm font-medium text-gray-300 mb-2">Dietary Preferences</label>
                   <div className="space-y-2">
                     {dietaryOptions.map((option) => (
-                      <label key={option} className="flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          value={option}
-                          checked={formData.dietaryPreferences.includes(option)}
-                          onChange={handleInputChange}
-                          className="w-4 h-4 rounded"
-                        />
-                        <span className="ml-2 text-gray-300">{option}</span>
-                      </label>
+                      <Checkbox
+                        key={option}
+                        label={option}
+                        value={option}
+                        checked={formData.dietaryPreferences.includes(option)}
+                        onChange={(checked) => {
+                          handleInputChange({
+                            target: {
+                              name: 'dietaryPreferences',
+                              value: option,
+                              type: 'checkbox',
+                              checked
+                            }
+                          });
+                        }}
+                      />
                     ))}
                   </div>
                 </div>
