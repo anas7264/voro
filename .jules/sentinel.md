@@ -12,3 +12,8 @@
 **Vulnerability:** Workout logs containing multiple exercises and sets were persisted to storage without validation, allowing for malformed or out-of-range data (e.g., negative weights or unrealistic rep counts) to corrupt volume calculations and dashboard trends.
 **Learning:** Complex data structures (like arrays of objects) need recursive or structural validation before persistence, not just simple field-level checks.
 **Prevention:** Enhance validation utilities to handle the exact data structures used by the UI components and enforce validation at the point of save.
+
+## 2025-05-17 - [Vitals Input Validation]
+**Vulnerability:** Health vitals (heart rate, blood pressure, sleep, etc.) were persisted to localStorage without validation, which could lead to malformed data corruption in tracking history and UI.
+**Learning:** Even simple numeric trackers or sliders need validation at the persistence layer to ensure data integrity across the application.
+**Prevention:** Always implement structural and range validation for all user-contributed health data using centralized utilities before storage.
