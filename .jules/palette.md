@@ -11,3 +11,11 @@
 ## 2025-05-25 - The "Gold Standard" for Accessible Custom Checkboxes
 **Learning:** While ARIA roles (role="checkbox") can make a button act like a checkbox, the "Gold Standard" for accessibility is using a hidden native <input type="checkbox">. This ensures all native behaviors (tabbing, spacebar to toggle, screen reader integration) are handled automatically.
 **Action:** When creating custom form controls, use a hidden native input as the state manager and use Tailwind's "peer" utility to style the custom visual element based on the native input's state (focus, checked, disabled).
+
+## 2025-05-26 - Context-Aware ARIA Labels for List Items
+**Learning:** When implementing list items with multiple interactive fields (e.g., reps and weight for a workout set), generic labels are insufficient. Providing context-aware 'aria-label' attributes that include parent item identifiers (e.g., exercise name and set number) significantly improves the experience for screen reader users.
+**Action:** Always include identifying context in ARIA labels for repetitive form elements within a list.
+
+## 2025-05-27 - Systemic Component Reuse for Accessibility
+**Learning:** Utilizing systemic components like 'Modal' instead of manual 'div' overlays ensures that accessibility features (Escape key handling, scroll management, focus trapping) are consistently applied throughout the application.
+**Action:** Prioritize refactoring manual overlays to use established UI components to maintain a high accessibility standard.

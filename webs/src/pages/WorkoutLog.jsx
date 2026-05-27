@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Play, CheckCircle } from 'lucide-react';
+import { Plus, Trash2, CheckCircle } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
 import Select from '@/components/Select';
-import Badge from '@/components/Badge';
+import Modal from '@/components/Modal';
+import Checkbox from '@/components/Checkbox';
 import { useStorage } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { validateWorkoutEntry } from '@/utils/validators';
@@ -170,6 +171,7 @@ const WorkoutLog = () => {
                   size="sm"
                   onClick={() => removeExercise(idx)}
                   className="text-danger"
+                  aria-label={`Remove ${exercise.name}`}
                 >
                   <Trash2 size={16} />
                 </Button>
@@ -185,6 +187,7 @@ const WorkoutLog = () => {
                       value={set.reps}
                       onChange={(e) => updateSet(idx, setIdx, 'reps', Number(e.target.value))}
                       className="w-20"
+                      aria-label={`${exercise.name} set ${setIdx + 1} reps`}
                     />
                     <Input
                       type="number"
@@ -193,14 +196,15 @@ const WorkoutLog = () => {
                       onChange={(e) => updateSet(idx, setIdx, 'weight', Number(e.target.value))}
                       step="0.5"
                       className="w-20"
+                      aria-label={`${exercise.name} set ${setIdx + 1} weight`}
                     />
                     <span className="text-sm text-gray-400">kg</span>
-                    <button
-                      onClick={() => updateSet(idx, setIdx, 'completed', !set.completed)}
-                      className={`ml-auto transition-all ${set.completed ? 'text-green-500' : 'text-gray-500'}`}
-                    >
-                      <CheckCircle size={20} />
-                    </button>
+                    <Checkbox
+                      checked={set.completed}
+                      onChange={(checked) => updateSet(idx, setIdx, 'completed', checked)}
+                      className="ml-auto"
+                      aria-label={`Mark ${exercise.name} set ${setIdx + 1} as completed`}
+                    />
                   </div>
                 ))}
               </div>
@@ -231,38 +235,40 @@ const WorkoutLog = () => {
         </Button>
 
         {/* Exercise Search Modal */}
-        {showExerciseSearch && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <Card className="max-w-2xl w-full max-h-96 overflow-y-auto p-6">
-              <h2 className="text-xl font-bold text-white mb-4">Add Exercise</h2>
-              <Input
-                placeholder="Search exercises..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="mb-4"
-              />
-              <div className="space-y-2">
-                {filteredExercises.slice(0, 20).map(ex => (
-                  <div
-                    key={ex.id}
-                    onClick={() => addExercise(ex)}
-                    className="p-3 bg-voro-surface border border-voro-border rounded-lg cursor-pointer hover:border-voro-primary transition-all"
-                  >
-                    <div className="font-medium text-white">{ex.name}</div>
-                    <div className="text-xs text-gray-400">{ex.category} · {ex.difficulty}</div>
-                  </div>
-                ))}
-              </div>
-              <Button
-                variant="secondary"
-                className="w-full mt-4"
-                onClick={() => setShowExerciseSearch(false)}
-              >
-                Close
-              </Button>
-            </Card>
+        <Modal
+          isOpen={showExerciseSearch}
+          onClose={() => setShowExerciseSearch(false)}
+          title="Add Exercise"
+          size="2xl"
+        >
+          <div className="space-y-4">
+            <Input
+              placeholder="Search exercises..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              autoFocus
+            />
+            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+              {filteredExercises.slice(0, 20).map(ex => (
+                <div
+                  key={ex.id}
+                  onClick={() => addExercise(ex)}
+                  className="p-3 bg-voro-surface border border-voro-border rounded-lg cursor-pointer hover:border-voro-primary transition-all"
+                >
+                  <div className="font-medium text-white">{ex.name}</div>
+                  <div className="text-xs text-gray-400">{ex.category} · {ex.difficulty}</div>
+                </div>
+              ))}
+            </div>
+            <Button
+              variant="secondary"
+              className="w-full mt-4"
+              onClick={() => setShowExerciseSearch(false)}
+            >
+              Close
+            </Button>
           </div>
-        )}
+        </Modal>
 
         {/* Save Button */}
         <Button onClick={saveWorkout} className="w-full flex items-center justify-center gap-2">
