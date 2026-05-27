@@ -4,9 +4,12 @@ import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
 import { useStorage } from '@/hooks/useStorage';
+import { useNotifications } from '@/hooks/useNotifications';
+import { validateVitals } from '@/utils/validators';
 
 const VitalsTracker = () => {
   const { getStorage, setStorage } = useStorage();
+  const { addNotification } = useNotifications();
   const [vitals, setVitals] = useState({
     heartRate: 72,
     bloodPressure: '120/80',
@@ -23,6 +26,15 @@ const VitalsTracker = () => {
   }, []);
 
   const handleSaveVitals = () => {
+    // Security: Validate vitals before persisting to storage
+    const { valid, errors } = validateVitals(vitals);
+
+    if (!valid) {
+      const errorMsg = Object.values(errors).join('. ');
+      addNotification(`Validation failed: ${errorMsg}`, 'error');
+      return;
+    }
+
     const entry = {
       date: new Date().toISOString(),
       ...vitals,
@@ -30,7 +42,7 @@ const VitalsTracker = () => {
     const updated = [...history, entry];
     setHistory(updated);
     setStorage('voro_vitals', updated);
-    alert('Vitals recorded!');
+    addNotification('Vitals recorded successfully!', 'success');
   };
 
   return (

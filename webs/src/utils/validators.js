@@ -238,6 +238,30 @@ export const validateFitnessProfile = (profile) => {
   return { valid: Object.keys(errors).length === 0, errors };
 };
 
+// Form validation for vitals
+export const validateVitals = (vitals) => {
+  const errors = {};
+
+  if (!isValidHeartRate(vitals.heartRate)) errors.heartRate = "Heart rate must be between 30-220 bpm";
+
+  if (vitals.bloodPressure) {
+    const parts = vitals.bloodPressure.split('/');
+    if (parts.length === 2) {
+      if (!isValidBloodPressure(parts[0], parts[1])) {
+        errors.bloodPressure = "Invalid blood pressure format or values";
+      }
+    } else {
+      errors.bloodPressure = "Blood pressure must be in 'systolic/diastolic' format";
+    }
+  }
+
+  if (vitals.sleep < 0 || vitals.sleep > 24) errors.sleep = "Sleep must be between 0-24 hours";
+  if (vitals.mood < 1 || vitals.mood > 10) errors.mood = "Mood must be between 1-10";
+  if (vitals.energy < 1 || vitals.energy > 10) errors.energy = "Energy must be between 1-10";
+
+  return { valid: Object.keys(errors).length === 0, errors };
+};
+
 // Form validation for workout entry
 export const validateWorkoutEntry = (workout) => {
   const errors = {};
@@ -319,5 +343,6 @@ export default {
   isValidDifficulty,
   validateFitnessProfile,
   validateWorkoutEntry,
-  validateNutritionEntry
+  validateNutritionEntry,
+  validateVitals
 };
