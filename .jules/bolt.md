@@ -12,3 +12,10 @@
 **Action:**
 1. Apply React.memo to stable presentational components in webs/src/components/.
 2. Always add displayName to memoized components for better devtools debugging.
+
+## 2025-05-16 - Progress Bar Optimization (Layout vs Composite)
+**Learning:** Progress bars that animate 'width' trigger the Layout phase of the browser rendering pipeline on every frame, which is computationally expensive. Switching to 'transform: scaleX()' with 'origin-left' allows the browser to perform the animation in the Composite layer, resulting in smoother 60fps transitions and reduced main thread load.
+
+**Action:**
+1. Use 'transform: scaleX()' for progress and loading bars.
+2. Move static configuration objects (like color mappings) outside the component to avoid redundant allocations during re-renders.
