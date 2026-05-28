@@ -122,38 +122,31 @@ const WorkoutLog = () => {
         {/* Date & Session Info */}
         <Card className="p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm text-gray-300 mb-2">Date</label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full px-4 py-2 bg-voro-surface border border-voro-border rounded-lg text-white"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-300 mb-2">Session Type</label>
-              <Select
-                value={sessionType}
-                onChange={(e) => setSessionType(e.target.value)}
-                options={[
-                  { value: 'Strength', label: 'Strength' },
-                  { value: 'Cardio', label: 'Cardio' },
-                  { value: 'HIIT', label: 'HIIT' },
-                  { value: 'Yoga', label: 'Yoga' },
-                ]}
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-300 mb-2">Duration (min)</label>
-              <Input
-                type="number"
-                value={sessionDuration}
-                onChange={(e) => setSessionDuration(Number(e.target.value))}
-                min="1"
-                max="300"
-              />
-            </div>
+            <Input
+              type="date"
+              label="Date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+            <Select
+              label="Session Type"
+              value={sessionType}
+              onChange={(e) => setSessionType(e.target.value)}
+              options={[
+                { value: 'Strength', label: 'Strength' },
+                { value: 'Cardio', label: 'Cardio' },
+                { value: 'HIIT', label: 'HIIT' },
+                { value: 'Yoga', label: 'Yoga' },
+              ]}
+            />
+            <Input
+              label="Duration (min)"
+              type="number"
+              value={sessionDuration}
+              onChange={(e) => setSessionDuration(Number(e.target.value))}
+              min="1"
+              max="300"
+            />
           </div>
         </Card>
 

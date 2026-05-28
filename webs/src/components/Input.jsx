@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useId } from "react";
 
 export const Input = ({
+  id,
   type = "text",
   placeholder = "",
   value,
@@ -11,6 +12,10 @@ export const Input = ({
   className = "",
   ...props
 }) => {
+  const generatedId = useId();
+  const inputId = id || generatedId;
+  const errorId = `${inputId}-error`;
+
   const classes = [
     "w-full px-3 py-2 border rounded-lg bg-surface text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200",
     error && "border-red-500 focus:ring-red-500",
@@ -23,17 +28,28 @@ export const Input = ({
 
   return (
     <div className="w-full">
-      {label && <label className="block text-sm font-medium mb-1 text-gray-300">{label}</label>}
+      {label && (
+        <label htmlFor={inputId} className="block text-sm font-medium mb-1 text-gray-300">
+          {label}
+        </label>
+      )}
       <input
+        id={inputId}
         type={type}
         value={value}
         onChange={onChange}
         placeholder={placeholder}
         disabled={disabled}
         className={classes}
+        aria-invalid={!!error}
+        aria-describedby={error ? errorId : undefined}
         {...props}
       />
-      {error && <span className="text-xs text-red-500 mt-1">{error}</span>}
+      {error && (
+        <span id={errorId} className="text-xs text-red-500 mt-1">
+          {error}
+        </span>
+      )}
     </div>
   );
 };
