@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Droplet, Trash2, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useStorage } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
+import { validateWaterEntry } from '@/utils/validators';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import LineChartComponent from '@/components/LineChartComponent';
@@ -39,6 +40,15 @@ const WaterTracker = () => {
   };
 
   const addWater = (amount) => {
+    // Security: Validate water intake before persisting to storage
+    const { valid, errors } = validateWaterEntry({ amount, date });
+
+    if (!valid) {
+      const errorMsg = Object.values(errors).join('. ');
+      addNotification(`Validation failed: ${errorMsg}`, 'error');
+      return;
+    }
+
     const newLog = {
       id: `${Date.now()}`,
       amount,
@@ -57,7 +67,7 @@ const WaterTracker = () => {
     setItem('voro_water_history', history);
 
     if (newTotal === dailyGoal) {
-      addNotification('success', 'Hydration goal reached! 💧');
+      addNotification('Hydration goal reached! 💧', 'success');
     }
   };
 
