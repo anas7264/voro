@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Droplet, Trash2, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useStorage } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import LineChartComponent from '@/components/LineChartComponent';
+import Confetti from '@/components/Confetti';
 
 const WaterTracker = () => {
   const { getItem, setItem } = useStorage();
@@ -13,6 +14,8 @@ const WaterTracker = () => {
   const [dailyLogs, setDailyLogs] = useState([]);
   const [waterHistory, setWaterHistory] = useState([]);
   const [dailyGoal] = useState(2000);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const confettiRef = useRef(null);
 
   useEffect(() => {
     document.title = 'VORO | Water Tracker';
@@ -39,6 +42,7 @@ const WaterTracker = () => {
   };
 
   const addWater = (amount) => {
+    const currentTotal = getTodayTotal();
     const newLog = {
       id: `${Date.now()}`,
       amount,
@@ -56,8 +60,10 @@ const WaterTracker = () => {
     history[date] = newTotal;
     setItem('voro_water_history', history);
 
-    if (newTotal === dailyGoal) {
-      addNotification('success', 'Hydration goal reached! 💧');
+    if (newTotal >= dailyGoal && currentTotal < dailyGoal) {
+      addNotification('Hydration goal reached! 💧', 'success');
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 3000);
     }
   };
 
@@ -86,12 +92,27 @@ const WaterTracker = () => {
 
   return (
     <div className="min-h-screen bg-voro-surface p-4 md:p-8">
+      {showConfetti && <Confetti ref={confettiRef} />}
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-white">Water Tracker</h1>
           <div className="flex gap-2">
-            <Button variant="secondary" size="sm" onClick={() => handleDateChange(-1)}><ChevronLeft size={16} /></Button>
-            <Button variant="secondary" size="sm" onClick={() => handleDateChange(1)}><ChevronRight size={16} /></Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handleDateChange(-1)}
+              aria-label="Previous day"
+            >
+              <ChevronLeft size={16} />
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handleDateChange(1)}
+              aria-label="Next day"
+            >
+              <ChevronRight size={16} />
+            </Button>
           </div>
         </div>
 
@@ -169,6 +190,7 @@ const WaterTracker = () => {
                     size="sm"
                     onClick={() => deleteLog(log.id)}
                     className="text-red-400 hover:text-red-300"
+                    aria-label="Delete entry"
                   >
                     <Trash2 size={16} />
                   </Button>
