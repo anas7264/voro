@@ -19,3 +19,10 @@
 **Action:**
 1. Use 'transform: scaleX()' for progress and loading bars.
 2. Move static configuration objects (like color mappings) outside the component to avoid redundant allocations during re-renders.
+
+## 2026-05-29 - Derived Data Optimization (useMemo vs useEffect)
+**Learning:** Using 'useEffect' + 'useState' to filter large datasets (Foods, Exercises) creates a double-render cycle: first render with old data, effect runs, state updates, then second render. Moving this to 'useMemo' calculates the derived data during the initial render, reducing the work by 50%. Additionally, lazy-evaluating these lists (e.g., skipping filtering when a search Modal is closed) prevents O(N) overhead during unrelated state updates like typing in form fields.
+
+**Action:**
+1. Prefer 'useMemo' for all derived data and filtering logic.
+2. Add guard clauses in 'useMemo' to skip expensive computations when the relevant UI (like search modals) is inactive.

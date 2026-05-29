@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
@@ -9,12 +9,21 @@ import { exercises } from '@/data/exercises';
 const ExerciseLibrary = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [filteredExercises, setFilteredExercises] = useState(exercises);
-
-  const categories = ['All', ...new Set(exercises.map(e => e.category))];
 
   useEffect(() => {
     document.title = 'VORO | Exercise Library';
+  }, []);
+
+  /**
+   * ⚡ OPTIMIZATION: Memoize categories to avoid O(N) extraction on every render.
+   */
+  const categories = useMemo(() => ['All', ...new Set(exercises.map(e => e.category))], []);
+
+  /**
+   * ⚡ OPTIMIZATION: Replace useEffect + useState pattern with useMemo for filtering.
+   * This eliminates the double-render cycle and provides cleaner data derivation.
+   */
+  const filteredExercises = useMemo(() => {
     let filtered = exercises;
 
     if (selectedCategory !== 'All') {
@@ -22,12 +31,13 @@ const ExerciseLibrary = () => {
     }
 
     if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
       filtered = filtered.filter(e =>
-        e.name.toLowerCase().includes(searchQuery.toLowerCase())
+        e.name.toLowerCase().includes(query)
       );
     }
 
-    setFilteredExercises(filtered);
+    return filtered;
   }, [searchQuery, selectedCategory]);
 
   return (
@@ -45,7 +55,7 @@ const ExerciseLibrary = () => {
               className="w-full"
               icon={<Search size={18} />}
             />
-            
+
             <div className="flex gap-2 flex-wrap">
               {categories.map(cat => (
                 <Button
@@ -79,7 +89,7 @@ const ExerciseLibrary = () => {
                   Add
                 </Button>
               </div>
-              
+
               {exercise.tips && exercise.tips.length > 0 && (
                 <div className="mt-3 text-xs text-gray-500">
                   <p className="font-semibold text-gray-400 mb-1">Tips:</p>

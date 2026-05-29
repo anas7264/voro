@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Trash2, CheckCircle } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
@@ -109,10 +109,20 @@ const WorkoutLog = () => {
 
   if (!workoutData) return <div className="p-8">Loading...</div>;
 
-  const filteredExercises = exercises.filter(e =>
-    e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    e.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  /**
+   * ⚡ OPTIMIZATION: Memoize filtered exercises and skip calculation when modal is closed.
+   * This avoids O(N) filtering (N=150+) on every keystroke when user is updating
+   * reps or weights in the main workout log.
+   */
+  const filteredExercises = useMemo(() => {
+    if (!showExerciseSearch) return [];
+
+    const query = searchQuery.toLowerCase();
+    return exercises.filter(e =>
+      e.name.toLowerCase().includes(query) ||
+      e.category.toLowerCase().includes(query)
+    );
+  }, [showExerciseSearch, searchQuery]);
 
   return (
     <div className="min-h-screen bg-voro-surface p-4 md:p-8">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Filter, Heart } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
@@ -10,12 +10,21 @@ const FoodLibrary = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [favorites, setFavorites] = useState([]);
-  const [filteredFoods, setFilteredFoods] = useState(foods);
-
-  const categories = ['All', ...new Set(foods.map(f => f.category))];
 
   useEffect(() => {
     document.title = 'VORO | Food Library';
+  }, []);
+
+  /**
+   * ⚡ OPTIMIZATION: Memoize categories to avoid O(N) extraction on every render.
+   */
+  const categories = useMemo(() => ['All', ...new Set(foods.map(f => f.category))], []);
+
+  /**
+   * ⚡ OPTIMIZATION: Replace useEffect + useState pattern with useMemo for filtering.
+   * This eliminates the double-render cycle and provides cleaner data derivation.
+   */
+  const filteredFoods = useMemo(() => {
     let filtered = foods;
 
     if (selectedCategory !== 'All') {
@@ -23,12 +32,13 @@ const FoodLibrary = () => {
     }
 
     if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
       filtered = filtered.filter(f =>
-        f.name.toLowerCase().includes(searchQuery.toLowerCase())
+        f.name.toLowerCase().includes(query)
       );
     }
 
-    setFilteredFoods(filtered);
+    return filtered;
   }, [searchQuery, selectedCategory]);
 
   const toggleFavorite = (foodId) => {
@@ -54,7 +64,7 @@ const FoodLibrary = () => {
               className="w-full"
               icon={<Search size={18} />}
             />
-            
+
             <div className="flex gap-2 flex-wrap">
               {categories.map(cat => (
                 <Button
