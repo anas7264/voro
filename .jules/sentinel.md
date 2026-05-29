@@ -17,3 +17,8 @@
 **Vulnerability:** Health vitals (heart rate, blood pressure, sleep, etc.) were persisted to localStorage without validation, which could lead to malformed data corruption in tracking history and UI.
 **Learning:** Even simple numeric trackers or sliders need validation at the persistence layer to ensure data integrity across the application.
 **Prevention:** Always implement structural and range validation for all user-contributed health data using centralized utilities before storage.
+
+## 2025-05-18 - [Water Intake Input Validation]
+**Vulnerability:** Water intake logs were persisted to localStorage without validation, allowing for malformed or out-of-range data (e.g., negative amounts or unrealistic intake) to potentially corrupt hydration trends and dashboard stats.
+**Learning:** Even when UI components provide fixed-input options (like buttons for 250ml/500ml), the underlying persistence logic must still perform defensive validation to ensure data integrity.
+**Prevention:** Implement range validation for all tracking metrics, including water intake, and enforce it at the persistence boundary.

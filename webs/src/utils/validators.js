@@ -176,6 +176,12 @@ export const isValidDuration = (seconds) => {
   return !isNaN(dur) && dur >= 1 && dur <= 3600;
 };
 
+// Water intake validation (ml: 0-5000)
+export const isValidWaterAmount = (amount) => {
+  const ml = parseInt(amount);
+  return !isNaN(ml) && ml >= 0 && ml <= 5000;
+};
+
 // Gender validation
 export const isValidGender = (gender) => {
   const validGenders = ["male", "female", "other", "prefer_not_to_say"];
@@ -309,6 +315,21 @@ export const validateNutritionEntry = (nutrition) => {
   return { valid: Object.keys(errors).length === 0, errors };
 };
 
+// Form validation for water entry
+export const validateWaterEntry = (entry) => {
+  const errors = {};
+
+  if (!isValidWaterAmount(entry.amount)) {
+    errors.amount = "Water amount must be between 0-5000 ml";
+  }
+
+  if (entry.date && !isValidDate(entry.date)) {
+    errors.date = "Date is invalid";
+  }
+
+  return { valid: Object.keys(errors).length === 0, errors };
+};
+
 export default {
   isValidEmail,
   isValidPassword,
@@ -344,5 +365,7 @@ export default {
   validateFitnessProfile,
   validateWorkoutEntry,
   validateNutritionEntry,
-  validateVitals
+  validateVitals,
+  validateWaterEntry,
+  isValidWaterAmount
 };
