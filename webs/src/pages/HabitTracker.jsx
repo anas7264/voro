@@ -4,6 +4,7 @@ import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
 import Select from '@/components/Select';
+import Modal from '@/components/Modal';
 import { useStorage } from '@/hooks/useStorage';
 import { defaultHabits } from '@/data/defaultHabits';
 
@@ -75,41 +76,46 @@ const HabitTracker = () => {
           </Button>
         </div>
 
-        {/* Add Habit Form */}
-        {showAddForm && (
-          <Card className="p-6 mb-6">
-            <div className="space-y-4">
+        {/* Add Habit Modal */}
+        <Modal
+          isOpen={showAddForm}
+          onClose={() => setShowAddForm(false)}
+          title="Add New Habit"
+        >
+          <div className="space-y-4">
+            <Input
+              label="Habit Name"
+              placeholder="E.g. Morning Meditation"
+              value={newHabit.name}
+              onChange={(e) => setNewHabit(prev => ({ ...prev, name: e.target.value }))}
+              autoFocus
+            />
+            <div className="flex gap-4">
               <Input
-                placeholder="Habit name"
-                value={newHabit.name}
-                onChange={(e) => setNewHabit(prev => ({ ...prev, name: e.target.value }))}
-                autoFocus
+                label="Icon (emoji)"
+                placeholder="✓"
+                value={newHabit.icon}
+                onChange={(e) => setNewHabit(prev => ({ ...prev, icon: e.target.value }))}
+                maxLength="2"
+                className="w-24"
               />
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Icon (emoji)"
-                  value={newHabit.icon}
-                  onChange={(e) => setNewHabit(prev => ({ ...prev, icon: e.target.value }))}
-                  maxLength="2"
-                  className="w-20"
-                />
-                <Select
-                  value={newHabit.color}
-                  onChange={(e) => setNewHabit(prev => ({ ...prev, color: e.target.value }))}
-                  options={[
-                    { value: 'voro-primary', label: 'Violet' },
-                    { value: 'voro-secondary', label: 'Green' },
-                    { value: 'voro-accent', label: 'Amber' },
-                  ]}
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button onClick={addHabit} className="flex-1">Create</Button>
-                <Button variant="secondary" onClick={() => setShowAddForm(false)}>Cancel</Button>
-              </div>
+              <Select
+                label="Theme Color"
+                value={newHabit.color}
+                onChange={(e) => setNewHabit(prev => ({ ...prev, color: e.target.value }))}
+                options={[
+                  { value: 'voro-primary', label: 'Violet' },
+                  { value: 'voro-secondary', label: 'Green' },
+                  { value: 'voro-accent', label: 'Amber' },
+                ]}
+              />
             </div>
-          </Card>
-        )}
+            <div className="flex gap-3 mt-6">
+              <Button onClick={addHabit} className="flex-1">Create Habit</Button>
+              <Button variant="secondary" onClick={() => setShowAddForm(false)}>Cancel</Button>
+            </div>
+          </div>
+        </Modal>
 
         {/* Today's Habits */}
         <h2 className="text-xl font-semibold text-white mb-4">Today's Habits</h2>
@@ -126,16 +132,17 @@ const HabitTracker = () => {
               <div className="flex items-center gap-3 flex-1">
                 <button
                   onClick={() => toggleHabit(habit.id)}
-                  className={`flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all ${
+                  aria-label={`Mark ${habit.name} as ${todayHabits[habit.id] ? 'not done' : 'done'}`}
+                  className={`flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-voro-surface ${
                     todayHabits[habit.id]
                       ? 'border-green-500 bg-green-500'
-                      : 'border-gray-500'
+                      : 'border-gray-500 hover:border-voro-primary'
                   }`}
                 >
                   {todayHabits[habit.id] ? (
                     <Check size={20} className="text-white" />
                   ) : (
-                    <span className="text-lg">{habit.icon}</span>
+                    <span className="text-lg" aria-hidden="true">{habit.icon}</span>
                   )}
                 </button>
                 <div>
@@ -150,6 +157,7 @@ const HabitTracker = () => {
                 size="sm"
                 onClick={() => removeHabit(habit.id)}
                 className="text-gray-400 hover:text-danger"
+                aria-label={`Delete ${habit.name} habit`}
               >
                 <Trash2 size={16} />
               </Button>
