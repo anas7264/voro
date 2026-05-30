@@ -22,3 +22,8 @@
 **Vulnerability:** Water intake logs were persisted to localStorage without validation, allowing for malformed or out-of-range data (e.g., negative amounts or unrealistic intake) to potentially corrupt hydration trends and dashboard stats.
 **Learning:** Even when UI components provide fixed-input options (like buttons for 250ml/500ml), the underlying persistence logic must still perform defensive validation to ensure data integrity.
 **Prevention:** Implement range validation for all tracking metrics, including water intake, and enforce it at the persistence boundary.
+
+## 2025-05-19 - [Food Diary and Water Intake Validation]
+**Vulnerability:** Lack of input validation for food portions and water intake in the Food Diary page allowed malformed data to be persisted, potentially corrupting daily totals and summary rings.
+**Learning:** Even when validation exists for a metric in one part of the app (e.g., WaterTracker), other pages that update the same data (e.g., FoodDiary) might bypass it if not explicitly integrated.
+**Prevention:** Ensure all entry points for the same data type use centralized validation logic and the notification system to inform the user of failures.

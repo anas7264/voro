@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Trash2, Copy } from 'lucide-react';
 import { useStorage } from '@/hooks/useStorage';
 import { useAppContext as useApp } from '@/hooks/useAppContext';
+import { useNotifications } from '@/hooks/useNotifications';
+import { validateFoodDiaryEntry, validateWaterEntry } from '@/utils/validators';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
@@ -13,6 +15,7 @@ import { foods } from '@/data/foods';
 const FoodDiary = () => {
   const { getStorage, setStorage } = useStorage();
   const { user } = useApp();
+  const { addNotification } = useNotifications();
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [nutritionLog, setNutritionLog] = useState(null);
   const [showFoodSearch, setShowFoodSearch] = useState(false);
@@ -45,6 +48,15 @@ const FoodDiary = () => {
 
   const handleAddFood = (food, portion = 100) => {
     if (!selectedSlot || !nutritionLog) return;
+
+    // Security: Validate food entry before calculations and persistence
+    const { valid, errors } = validateFoodDiaryEntry({ portion });
+
+    if (!valid) {
+      const errorMsg = Object.values(errors).join('. ');
+      addNotification(`Validation failed: ${errorMsg}`, 'error');
+      return;
+    }
 
     const allLogs = getStorage('voro_nutrition_log') || {};
     const dayLog = allLogs[date] || {
@@ -112,6 +124,15 @@ const FoodDiary = () => {
   };
 
   const handleWaterAdd = (amount) => {
+    // Security: Validate water intake before persisting to storage
+    const { valid, errors } = validateWaterEntry({ amount, date });
+
+    if (!valid) {
+      const errorMsg = Object.values(errors).join('. ');
+      addNotification(`Validation failed: ${errorMsg}`, 'error');
+      return;
+    }
+
     const allLogs = getStorage('voro_nutrition_log') || {};
     const dayLog = allLogs[date] || {
       meals: Object.fromEntries(mealSlots.map(slot => [slot, []])),
@@ -290,7 +311,7 @@ const FoodSearchModal = ({ isOpen, onClose, onSelectFood }) => {
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="bg-voro-card p-6 rounded-lg border border-voro-border max-w-2xl w-full max-h-96 overflow-y-auto">
         <h2 className="text-xl font-bold text-white mb-4">Add Food</h2>
-        
+
         {!selectedFood ? (
           <div className="space-y-4">
             <Input
@@ -321,7 +342,7 @@ const FoodSearchModal = ({ isOpen, onClose, onSelectFood }) => {
                 {selectedFood.calories} kcal | P:{selectedFood.protein}g | C:{selectedFood.carbs}g | F:{selectedFood.fat}g
               </div>
             </div>
-            
+
             <div>
               <label className="block text-sm text-gray-300 mb-2">Portion (g)</label>
               <Input

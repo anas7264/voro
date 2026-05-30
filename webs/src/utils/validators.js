@@ -244,6 +244,18 @@ export const validateFitnessProfile = (profile) => {
   return { valid: Object.keys(errors).length === 0, errors };
 };
 
+// Form validation for food diary entry
+export const validateFoodDiaryEntry = (entry) => {
+  const errors = {};
+
+  const portion = parseFloat(entry.portion);
+  if (isNaN(portion) || portion < 1 || portion > 5000) {
+    errors.portion = "Portion must be between 1 and 5000 grams";
+  }
+
+  return { valid: Object.keys(errors).length === 0, errors };
+};
+
 // Form validation for vitals
 export const validateVitals = (vitals) => {
   const errors = {};
@@ -389,6 +401,7 @@ export default {
   validateNutritionEntry,
   validateVitals,
   validateWaterEntry,
+  validateFoodDiaryEntry,
   validateHabit,
   isValidWaterAmount
 };
