@@ -315,6 +315,28 @@ export const validateNutritionEntry = (nutrition) => {
   return { valid: Object.keys(errors).length === 0, errors };
 };
 
+// Form validation for habit entry
+export const validateHabit = (habit) => {
+  const errors = {};
+
+  if (!habit.name?.trim()) {
+    errors.name = "Habit name is required";
+  } else if (habit.name.length > 50) {
+    errors.name = "Habit name must be less than 50 characters";
+  }
+
+  if (habit.icon && habit.icon.length > 10) {
+    errors.icon = "Icon is too long";
+  }
+
+  const validColors = ["voro-primary", "voro-secondary", "voro-accent"];
+  if (habit.color && !validColors.includes(habit.color)) {
+    errors.color = "Invalid color selection";
+  }
+
+  return { valid: Object.keys(errors).length === 0, errors };
+};
+
 // Form validation for water entry
 export const validateWaterEntry = (entry) => {
   const errors = {};
@@ -367,5 +389,6 @@ export default {
   validateNutritionEntry,
   validateVitals,
   validateWaterEntry,
+  validateHabit,
   isValidWaterAmount
 };

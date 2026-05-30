@@ -5,10 +5,13 @@ import Card from '@/components/Card';
 import Input from '@/components/Input';
 import Select from '@/components/Select';
 import { useStorage } from '@/hooks/useStorage';
+import { useNotifications } from '@/hooks/useNotifications';
+import { validateHabit } from '@/utils/validators';
 import { defaultHabits } from '@/data/defaultHabits';
 
 const HabitTracker = () => {
   const { getStorage, setStorage } = useStorage();
+  const { addNotification } = useNotifications();
   const [habits, setHabits] = useState([]);
   const [todayHabits, setTodayHabits] = useState({});
   const [showAddForm, setShowAddForm] = useState(false);
@@ -27,7 +30,14 @@ const HabitTracker = () => {
   };
 
   const addHabit = () => {
-    if (!newHabit.name) return;
+    // Security: Validate habit data before persisting to storage
+    const { valid, errors } = validateHabit(newHabit);
+    if (!valid) {
+      const errorMsg = Object.values(errors).join('. ');
+      addNotification(`Validation failed: ${errorMsg}`, 'error');
+      return;
+    }
+
     const data = getStorage('voro_habits') || { list: [], log: {} };
     const habit = {
       id: Date.now().toString(),
@@ -46,7 +56,7 @@ const HabitTracker = () => {
     const today = new Date().toISOString().split('T')[0];
     if (!data.log) data.log = {};
     if (!data.log[today]) data.log[today] = {};
-    
+
     data.log[today][habitId] = !data.log[today][habitId];
     setStorage('voro_habits', data);
     setTodayHabits(data.log[today]);
