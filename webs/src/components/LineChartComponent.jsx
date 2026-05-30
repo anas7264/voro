@@ -1,7 +1,12 @@
-import React from "react";
+import React, { memo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from "recharts";
 
-export const LineChartComponent = ({
+/**
+ * ⚡ OPTIMIZATION: Memoized LineChartComponent to prevent unnecessary re-renders.
+ * Recharts components can be expensive to re-calculate and re-draw. Memoization
+ * ensures the chart only updates when data or core configuration changes.
+ */
+export const LineChartComponent = memo(({
   data,
   dataKey,
   dataKeys,         // array: [{ key, name, color }]
@@ -51,6 +56,8 @@ export const LineChartComponent = ({
       </LineChart>
     </ResponsiveContainer>
   );
-};
+});
+
+LineChartComponent.displayName = "LineChartComponent";
 
 export default LineChartComponent;
