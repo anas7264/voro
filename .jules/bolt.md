@@ -26,3 +26,11 @@
 **Action:**
 1. Prefer 'useMemo' for all derived data and filtering logic.
 2. Add guard clauses in 'useMemo' to skip expensive computations when the relevant UI (like search modals) is inactive.
+
+## 2026-05-30 - Chart Component Memoization
+**Learning:** Recharts components (LineChart, BarChart) are highly complex and perform significant SVG/VML rendering logic. When these charts are part of a high-level page like the Dashboard or Statistics, any state update (e.g., a simple toggle or timer update) triggers a full re-reconcilation of the chart tree. Systemic memoization of these wrapper components prevents redundant "heavy" renders.
+
+**Action:**
+1. Wrap all Recharts wrapper components in React.memo.
+2. Ensure displayName is set for memoized components.
+3. Keep chart data structures stable or memoized at the page level to maximize the benefit of React.memo.

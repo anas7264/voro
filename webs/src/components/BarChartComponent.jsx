@@ -1,7 +1,12 @@
-import React from "react";
+import React, { memo } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from "recharts";
 
-export const BarChartComponent = ({
+/**
+ * ⚡ OPTIMIZATION: Memoized BarChartComponent to prevent unnecessary re-renders.
+ * Recharts components can be expensive to re-calculate and re-draw. Memoization
+ * ensures the chart only updates when data or core configuration changes.
+ */
+export const BarChartComponent = memo(({
   data,
   dataKey,
   dataKeys,         // array: [{ key, name, color }]
@@ -48,6 +53,8 @@ export const BarChartComponent = ({
       </BarChart>
     </ResponsiveContainer>
   );
-};
+});
+
+BarChartComponent.displayName = "BarChartComponent";
 
 export default BarChartComponent;
