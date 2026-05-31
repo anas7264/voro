@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Trash2, Copy } from 'lucide-react';
 import { useStorage } from '@/hooks/useStorage';
 import { useAppContext as useApp } from '@/hooks/useAppContext';
@@ -17,8 +17,6 @@ const FoodDiary = () => {
   const [nutritionLog, setNutritionLog] = useState(null);
   const [showFoodSearch, setShowFoodSearch] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filteredFoods, setFilteredFoods] = useState([]);
 
   const mealSlots = ['Breakfast', 'Morning Snack', 'Lunch', 'Afternoon Snack', 'Dinner', 'Late Snack'];
 
@@ -240,10 +238,10 @@ const FoodDiary = () => {
             <h3 className="text-lg font-semibold text-white">Water Intake</h3>
             <span className="text-sm text-gray-400">{nutritionLog.water} / {waterGoal} ml</span>
           </div>
-          <div className="w-full bg-voro-border rounded-full h-2 mb-4">
+          <div className="w-full bg-voro-border rounded-full h-2 mb-4 overflow-hidden">
             <div
-              className="h-2 rounded-full bg-blue-500 transition-all"
-              style={{ width: `${Math.min((nutritionLog.water / waterGoal) * 100, 100)}%` }}
+              className="h-2 rounded-full bg-blue-500 transition-transform duration-500 origin-left w-full"
+              style={{ transform: `scaleX(${Math.min((nutritionLog.water / waterGoal), 1)})` }}
             />
           </div>
           <div className="flex gap-2">
@@ -268,21 +266,26 @@ const FoodDiary = () => {
 
 const FoodSearchModal = ({ isOpen, onClose, onSelectFood }) => {
   const [search, setSearch] = useState('');
-  const [results, setResults] = useState(foods.slice(0, 20));
   const [selectedFood, setSelectedFood] = useState(null);
   const [portion, setPortion] = useState(100);
 
-  useEffect(() => {
+  /**
+   * ⚡ OPTIMIZATION: Replace useEffect + useState pattern with useMemo for filtering.
+   * This eliminates the double-render cycle and provides cleaner data derivation.
+   * Added guard clause to skip filtering when the modal is closed.
+   */
+  const results = useMemo(() => {
+    if (!isOpen) return [];
+
     if (search.trim()) {
-      const filtered = foods.filter(f =>
-        f.name.toLowerCase().includes(search.toLowerCase()) ||
-        (f.category && f.category.toLowerCase().includes(search.toLowerCase()))
-      );
-      setResults(filtered.slice(0, 30));
-    } else {
-      setResults(foods.slice(0, 20));
+      const query = search.toLowerCase();
+      return foods.filter(f =>
+        f.name.toLowerCase().includes(query) ||
+        (f.category && f.category.toLowerCase().includes(query))
+      ).slice(0, 30);
     }
-  }, [search]);
+    return foods.slice(0, 20);
+  }, [search, isOpen]);
 
   if (!isOpen) return null;
 
@@ -290,7 +293,7 @@ const FoodSearchModal = ({ isOpen, onClose, onSelectFood }) => {
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="bg-voro-card p-6 rounded-lg border border-voro-border max-w-2xl w-full max-h-96 overflow-y-auto">
         <h2 className="text-xl font-bold text-white mb-4">Add Food</h2>
-        
+
         {!selectedFood ? (
           <div className="space-y-4">
             <Input
@@ -321,7 +324,7 @@ const FoodSearchModal = ({ isOpen, onClose, onSelectFood }) => {
                 {selectedFood.calories} kcal | P:{selectedFood.protein}g | C:{selectedFood.carbs}g | F:{selectedFood.fat}g
               </div>
             </div>
-            
+
             <div>
               <label className="block text-sm text-gray-300 mb-2">Portion (g)</label>
               <Input

@@ -34,3 +34,10 @@
 1. Wrap all Recharts wrapper components in React.memo.
 2. Ensure displayName is set for memoized components.
 3. Keep chart data structures stable or memoized at the page level to maximize the benefit of React.memo.
+
+## 2026-06-01 - Static Configuration Hoisting
+**Learning:** Found that common UI patterns like Dashboard macro grids often define their configuration (icons, colors, keys) inside the component body. This causes the array/object to be re-allocated on every render, adding garbage collection pressure and breaking memoization of children that might receive these objects as props.
+
+**Action:**
+1. Hoist all static configuration objects and arrays outside the component definition.
+2. Use stable constants for color mappings and metadata.
