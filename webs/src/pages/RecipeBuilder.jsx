@@ -4,10 +4,13 @@ import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
 import { useStorage } from '@/hooks/useStorage';
+import { useNotifications } from '@/hooks/useNotifications';
+import { validateRecipe } from '@/utils/validators';
 import { foods } from '@/data/foods';
 
 const RecipeBuilder = () => {
   const { getStorage, setStorage } = useStorage();
+  const { addNotification } = useNotifications();
   const [ingredients, setIngredients] = useState([]);
   const [recipeName, setRecipeName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,7 +55,6 @@ const RecipeBuilder = () => {
   };
 
   const handleSaveRecipe = () => {
-    if (!recipeName || ingredients.length === 0) return;
     const recipe = {
       id: Date.now(),
       name: recipeName,
@@ -60,11 +62,21 @@ const RecipeBuilder = () => {
       totals: calculateTotals(),
       servings: 1,
     };
+
+    // Security: Validate recipe data before persisting to storage
+    const { valid, errors } = validateRecipe(recipe);
+    if (!valid) {
+      const errorMsg = Object.values(errors)[0];
+      addNotification(`Validation failed: ${errorMsg}`, 'error');
+      return;
+    }
+
     const updated = [...savedRecipes, recipe];
     setSavedRecipes(updated);
     setStorage('voro_recipes', updated);
     setRecipeName('');
     setIngredients([]);
+    addNotification('Recipe saved successfully', 'success');
   };
 
   const totals = calculateTotals();
