@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, TrendingUp, TrendingDown, Flame, Zap, Droplets, Calendar } from 'lucide-react';
 import { useAppContext } from '@/hooks/useAppContext';
@@ -13,6 +13,17 @@ import Badge from '@/components/Badge';
 import Modal from '@/components/Modal';
 import Input from '@/components/Input';
 import Select from '@/components/Select';
+
+/**
+ * ⚡ OPTIMIZATION: Static macro configuration moved outside the component
+ * to avoid re-allocation on every render.
+ */
+const MACRO_CONFIG = [
+  { label: 'Protein', macro: 'protein', color: 'voro-primary', icon: '🍗' },
+  { label: 'Carbs', macro: 'carbs', color: 'voro-secondary', icon: '🍚' },
+  { label: 'Fat', macro: 'fat', color: 'voro-accent', icon: '🥑' },
+  { label: 'Water', macro: 'water', color: 'info', icon: '💧' }
+];
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -170,12 +181,7 @@ const Dashboard = () => {
 
         {/* Macros Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {[
-            { label: 'Protein', macro: 'protein', color: 'voro-primary', icon: '🍗' },
-            { label: 'Carbs', macro: 'carbs', color: 'voro-secondary', icon: '🍚' },
-            { label: 'Fat', macro: 'fat', color: 'voro-accent', icon: '🥑' },
-            { label: 'Water', macro: 'water', color: 'info', icon: '💧' }
-          ].map((item) => (
+          {MACRO_CONFIG.map((item) => (
             <Card key={item.macro} className="p-4">
               <div className="text-2xl mb-2">{item.icon}</div>
               <div className="text-xs text-gray-400 mb-2">{item.label.toUpperCase()}</div>
@@ -185,10 +191,10 @@ const Dashboard = () => {
                   : nutritionToday?.totals?.[item.macro] || 0
                 }
               </div>
-              <div className="w-full bg-voro-border rounded-full h-2">
+              <div className="w-full bg-voro-border rounded-full h-2 overflow-hidden">
                 <div
-                  className={`h-2 rounded-full bg-${item.color} transition-all`}
-                  style={{ width: `${getMacroProgress(item.macro)}%` }}
+                  className={`h-2 rounded-full bg-${item.color} transition-transform duration-500 origin-left w-full`}
+                  style={{ transform: `scaleX(${getMacroProgress(item.macro) / 100})` }}
                 />
               </div>
               <div className="text-xs text-gray-500 mt-1">
