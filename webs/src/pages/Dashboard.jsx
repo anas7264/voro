@@ -176,7 +176,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#080B14] text-[#F0F4FF] selection:bg-voro-primary/30">
+    <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30">
       {/* Background Decor */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-voro-primary/5 rounded-full blur-[120px]" />
@@ -191,25 +191,25 @@ const Dashboard = () => {
               <Activity size={18} />
               <span className="text-xs font-bold uppercase tracking-[0.2em]">Live Synthesis</span>
             </div>
-            <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-white leading-tight">
-              {greeting}, <span className="text-gradient">{user.name}</span>
+            <h1 className="text-5xl md:text-6xl font-serif italic font-medium tracking-tight text-white leading-tight">
+              {greeting}, <span className="text-gradient not-italic font-bold">{user.name}</span>
             </h1>
-            <p className="text-gray-500 font-medium tracking-wide">{todayDate}</p>
+            <p className="text-gray-500 font-medium tracking-widest text-xs uppercase opacity-60">{todayDate}</p>
           </div>
 
           <div className="flex gap-4">
              <button
               onClick={() => setShowQuickLog(true)}
-              className="group flex items-center gap-3 px-6 py-3 bg-white text-black rounded-full font-bold transition-all hover:scale-105 active:scale-95 shadow-xl shadow-white/5"
+              className="group flex items-center gap-3 px-8 py-3.5 bg-white text-black rounded-full text-[0.65rem] font-black uppercase tracking-[0.3em] transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-white/10"
             >
-              <Plus size={18} />
+              <Plus size={16} />
               <span>Express Log</span>
             </button>
             <button
               onClick={() => navigate('/ai-coach')}
-              className="flex items-center gap-3 px-6 py-3 bg-[#1A2438] border border-[#2A3A52] text-white rounded-full font-bold transition-all hover:bg-[#243044] hover:border-voro-primary/50"
+              className="flex items-center gap-3 px-8 py-3.5 bg-[#0D1424] border border-white/5 text-white rounded-full text-[0.65rem] font-black uppercase tracking-[0.3em] transition-all hover:bg-white/[0.05] hover:border-voro-primary/30"
             >
-              <Zap size={18} className="text-voro-accent" />
+              <Zap size={16} className="text-voro-accent" />
               <span>AI Advisor</span>
             </button>
           </div>
@@ -218,49 +218,50 @@ const Dashboard = () => {
         <div className="grid grid-cols-12 gap-8">
           {/* Main Exhibition: Calorie Performance */}
           <div className="col-span-12 lg:col-span-8 space-y-8">
-            <section className="relative overflow-hidden rounded-[2.5rem] bg-[#111827] border border-white/5 p-8 md:p-12 shadow-2xl shadow-black/40">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-voro-primary/10 rounded-full blur-[80px] -mr-32 -mt-32" />
+            <section className="relative overflow-hidden rounded-[2.5rem] bg-[#0A0C14] border border-white/5 p-8 md:p-12 shadow-2xl shadow-black/40 transition-all hover:border-white/10 group/card">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-voro-primary/5 rounded-full blur-[100px] -mr-32 -mt-32 group-hover/card:bg-voro-primary/10 transition-colors duration-700" />
 
               <div className="relative grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                 <div className="flex justify-center">
-                  <div className="relative p-4 rounded-full bg-black/20 backdrop-blur-sm border border-white/5">
+                  <div className="relative p-2 rounded-full bg-black/40 backdrop-blur-md border border-white/5 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
                     <Ring
                       value={(nutritionToday?.totals?.calories || 0)}
                       max={user.calorieGoal}
-                      size={240}
+                      size={280}
                       unit="kcal"
+                      label="Energy Balance"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-8">
+                <div className="space-y-10">
                   <div>
-                    <h3 className="text-sm font-bold text-gray-500 uppercase tracking-[0.2em] mb-4">Energy Dynamics</h3>
-                    <div className="flex items-baseline gap-3">
-                      <span className="text-7xl font-bold tracking-tighter text-white">
+                    <h3 className="text-[0.65rem] font-black text-gray-500 uppercase tracking-[0.3em] mb-6">Metabolic Velocity</h3>
+                    <div className="flex items-baseline gap-4">
+                      <span className="text-8xl font-serif italic font-medium tracking-tighter text-white">
                         {nutritionToday?.totals?.calories || 0}
                       </span>
-                      <span className="text-xl font-medium text-gray-400">/ {user.calorieGoal} kcal</span>
+                      <span className="text-lg font-medium text-gray-500 tracking-tight">/ {user.calorieGoal} kcal</span>
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg ${calorieStatus.status === 'under' ? 'bg-voro-secondary/20 text-voro-secondary' : 'bg-voro-danger/20 text-voro-danger'}`}>
-                          {calorieStatus.status === 'under' ? <TrendingDown size={18} /> : <TrendingUp size={18} />}
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between p-5 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm">
+                      <div className="flex items-center gap-4">
+                        <div className={`p-2.5 rounded-xl ${calorieStatus.status === 'under' ? 'bg-voro-secondary/10 text-voro-secondary' : 'bg-voro-danger/10 text-voro-danger'}`}>
+                          {calorieStatus.status === 'under' ? <TrendingDown size={20} /> : <TrendingUp size={20} />}
                         </div>
-                        <span className="text-sm font-semibold text-gray-300">Remaining Allowance</span>
+                        <span className="text-xs font-black uppercase tracking-[0.2em] text-gray-400">Allowance</span>
                       </div>
-                      <span className="text-lg font-bold text-white">{calorieStatus.remaining} <span className="text-xs text-gray-500 uppercase ml-1">kcal</span></span>
+                      <span className="text-xl font-serif italic font-bold text-white">{calorieStatus.remaining} <span className="text-[0.6rem] not-italic font-sans font-black text-gray-600 uppercase ml-1 tracking-widest">kcal</span></span>
                     </div>
 
                     <button
                       onClick={() => navigate('/nutrition/diary')}
-                      className="w-full flex items-center justify-between px-6 py-4 rounded-2xl bg-voro-primary text-white font-bold transition-all hover:bg-voro-primary-dark group"
+                      className="w-full flex items-center justify-between px-8 py-5 rounded-2xl bg-voro-primary text-white font-black uppercase tracking-[0.3em] text-[0.65rem] transition-all hover:bg-voro-primary-dark hover:scale-[1.02] active:scale-[0.98] group shadow-xl shadow-voro-primary/20"
                     >
-                      <span>Examine Nutrition Details</span>
-                      <ChevronRight size={18} className="transition-transform group-hover:translate-x-1" />
+                      <span>Examine Nutrition Matrix</span>
+                      <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" />
                     </button>
                   </div>
                 </div>
@@ -275,23 +276,23 @@ const Dashboard = () => {
                 { label: 'Fats', macro: 'fat', color: '#F59E0B', bg: 'bg-[#F59E0B]/10', text: 'text-[#FBBF24]', icon: '🥑' },
                 { label: 'Hydration', macro: 'water', color: '#3B82F6', bg: 'bg-[#3B82F6]/10', text: 'text-[#60A5FA]', icon: '💧' }
               ].map((item) => (
-                <div key={item.macro} className="group relative bg-[#111827] border border-white/5 p-6 rounded-[2rem] transition-all hover:border-white/10 hover:translate-y-[-4px]">
+                <div key={item.macro} className="group relative bg-[#0A0C14] border border-white/5 p-6 rounded-[2rem] transition-all hover:border-white/10 hover:translate-y-[-4px]">
                   <div className="flex items-center justify-between mb-6">
                     <div className={`w-12 h-12 flex items-center justify-center rounded-2xl text-2xl ${item.bg}`}>
                       {item.icon}
                     </div>
-                    <span className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-500">{item.label}</span>
+                    <span className="text-[0.65rem] font-black uppercase tracking-[0.25em] text-gray-600 group-hover:text-gray-400 transition-colors">{item.label}</span>
                   </div>
 
                   <div className="mb-4">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-bold text-white">
+                      <span className="text-4xl font-serif font-bold text-white tracking-tight">
                         {item.macro === 'water'
                           ? (Math.round((nutritionToday?.water || 0) / 100) / 10).toFixed(1)
                           : (nutritionToday?.totals?.[item.macro] || 0)
                         }
                       </span>
-                      <span className="text-xs font-bold text-gray-500">{item.macro === 'water' ? 'L' : 'g'}</span>
+                      <span className="text-[0.65rem] font-black text-gray-600 uppercase tracking-widest ml-1">{item.macro === 'water' ? 'L' : 'g'}</span>
                     </div>
                   </div>
 
@@ -314,11 +315,11 @@ const Dashboard = () => {
 
             {/* Evolutionary Pattern: Weight Trend */}
             {weightTrend.length > 0 && (
-              <section className="bg-[#111827] border border-white/5 p-8 rounded-[2.5rem]">
-                <div className="flex items-center justify-between mb-8">
+              <section className="bg-[#0A0C14] border border-white/5 p-8 rounded-[2.5rem] shadow-xl">
+                <div className="flex items-center justify-between mb-10">
                   <div>
-                    <h3 className="text-sm font-bold text-gray-500 uppercase tracking-[0.2em] mb-1">Body Transformation</h3>
-                    <p className="text-2xl font-bold text-white tracking-tight">Weight Analysis <span className="text-xs text-gray-500 font-medium ml-2">30D Matrix</span></p>
+                    <h3 className="text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-2">Biometric Timeline</h3>
+                    <p className="text-3xl font-serif font-bold text-white tracking-tight">Kinetic Shift <span className="text-[0.65rem] font-sans font-black text-gray-700 uppercase ml-3 tracking-[0.2em]">30D Matrix</span></p>
                   </div>
                   <div className="px-4 py-2 bg-white/5 rounded-xl border border-white/5">
                     <span className={`text-sm font-bold ${weightTrend[weightTrend.length-1].weight < weightTrend[0].weight ? 'text-voro-secondary' : 'text-voro-danger'}`}>
@@ -344,16 +345,16 @@ const Dashboard = () => {
           {/* Side Panels: Consistency & Quick Actions */}
           <div className="col-span-12 lg:col-span-4 space-y-8">
             {/* AI Synchronicity */}
-            <section className="relative overflow-hidden bg-gradient-to-br from-voro-primary/20 to-voro-primary/5 border border-voro-primary/20 p-8 rounded-[2.5rem]">
-              <div className="absolute -right-4 -top-4 w-24 h-24 bg-voro-primary/20 rounded-full blur-2xl" />
+            <section className="relative overflow-hidden bg-gradient-to-br from-voro-primary/10 to-transparent border border-voro-primary/20 p-8 rounded-[2.5rem] shadow-[0_0_40px_rgba(124,58,237,0.1)] group/ai">
+              <div className="absolute -right-4 -top-4 w-32 h-32 bg-voro-primary/10 rounded-full blur-3xl group-hover/ai:bg-voro-primary/20 transition-colors duration-1000" />
               <div className="relative">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 bg-voro-primary rounded-xl">
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="p-2.5 bg-voro-primary rounded-xl shadow-lg shadow-voro-primary/30">
                     <Layout size={20} className="text-white" />
                   </div>
-                  <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white">System Insight</h3>
+                  <h3 className="text-[0.65rem] font-black uppercase tracking-[0.3em] text-white">Neural Synthesis</h3>
                 </div>
-                <p className="text-lg font-medium text-gray-200 leading-relaxed italic">
+                <p className="text-xl font-serif italic font-medium text-gray-200 leading-relaxed">
                    "{aiInsight || `Your current momentum in ${user.primaryGoal?.toLowerCase() || 'health'} is exceptional. Prioritizing ${nutritionToday?.totals?.protein < (user.proteinGoal * 0.8) ? 'protein density' : 'hydration recovery'} will further optimize your evolution.`}"
                 </p>
                 <div className="mt-6 pt-6 border-t border-white/5 flex items-center justify-between">
@@ -368,25 +369,25 @@ const Dashboard = () => {
             </section>
 
             {/* Consistency Matrix: Streaks */}
-            <section className="bg-[#111827] border border-white/5 p-8 rounded-[2.5rem] space-y-6">
-              <h3 className="text-sm font-bold text-gray-500 uppercase tracking-[0.2em]">Consistency Matrix</h3>
+            <section className="bg-[#0A0C14] border border-white/5 p-8 rounded-[2.5rem] space-y-8 shadow-xl">
+              <h3 className="text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em]">Consistency Matrix</h3>
 
-              <div className="space-y-4">
+              <div className="space-y-5">
                 {[
                   { label: 'Training', value: streaks.training, icon: <Flame size={18} />, color: 'text-orange-500', bg: 'bg-orange-500/10' },
                   { label: 'Logging', value: streaks.logging, icon: <Zap size={18} />, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
                   { label: 'Hydration', value: streaks.water, icon: <Droplets size={18} />, color: 'text-blue-500', bg: 'bg-blue-500/10' }
                 ].map((streak) => (
-                  <div key={streak.label} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className={`p-3 rounded-xl ${streak.bg} ${streak.color}`}>
+                  <div key={streak.label} className="flex items-center justify-between p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all group/streak">
+                    <div className="flex items-center gap-5">
+                      <div className={`p-3.5 rounded-xl ${streak.bg} ${streak.color} shadow-lg shadow-black/20 group-hover/streak:scale-110 transition-transform duration-500`}>
                         {streak.icon}
                       </div>
-                      <span className="font-bold text-gray-300">{streak.label}</span>
+                      <span className="text-sm font-bold text-gray-400 group-hover:text-gray-200 transition-colors tracking-tight">{streak.label}</span>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-black text-white leading-none">{streak.value}</div>
-                      <span className="text-[0.6rem] font-bold text-gray-500 uppercase tracking-widest">Days</span>
+                      <div className="text-3xl font-serif font-bold text-white leading-none">{streak.value}</div>
+                      <span className="text-[0.6rem] font-black text-gray-600 uppercase tracking-widest mt-1 block">Days</span>
                     </div>
                   </div>
                 ))}
@@ -394,57 +395,57 @@ const Dashboard = () => {
             </section>
 
             {/* Active Task: Workout */}
-            <section className="bg-[#111827] border border-white/5 p-8 rounded-[2.5rem]">
-              <div className="flex items-center justify-between mb-8">
-                <h3 className="text-sm font-bold text-gray-500 uppercase tracking-[0.2em]">Daily Engagement</h3>
-                <Calendar size={18} className="text-gray-600" />
+            <section className="bg-[#0A0C14] border border-white/5 p-8 rounded-[2.5rem] shadow-xl">
+              <div className="flex items-center justify-between mb-10">
+                <h3 className="text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em]">Daily Engagement</h3>
+                <Calendar size={18} className="text-gray-700" />
               </div>
 
               {workoutToday?.attended ? (
-                <div className="space-y-6">
-                  <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-voro-secondary/10 text-voro-secondary border border-voro-secondary/20 rounded-full text-xs font-bold uppercase tracking-widest">
+                <div className="space-y-8">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-voro-secondary/10 text-voro-secondary border border-voro-secondary/20 rounded-full text-[0.6rem] font-black uppercase tracking-[0.2em]">
                     <div className="w-1.5 h-1.5 rounded-full bg-voro-secondary animate-pulse" />
-                    Completed
+                    Evolution Logged
                   </div>
-                  <div className="space-y-4">
+                  <div className="space-y-5">
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-500 text-sm font-medium">Session Archetype</span>
-                      <span className="text-white font-bold">{workoutToday.type}</span>
+                      <span className="text-gray-500 text-xs font-black uppercase tracking-widest">Archetype</span>
+                      <span className="text-white font-serif italic text-lg font-bold">{workoutToday.type}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-500 text-sm font-medium">Temporal Duration</span>
-                      <span className="text-white font-bold">{workoutToday.duration} min</span>
+                      <span className="text-gray-500 text-xs font-black uppercase tracking-widest">Temporal</span>
+                      <span className="text-white font-serif italic text-lg font-bold">{workoutToday.duration} min</span>
                     </div>
                   </div>
                   <button
                     onClick={() => navigate('/workout/log')}
-                    className="w-full py-4 rounded-2xl bg-white/5 border border-white/5 text-white font-bold transition-all hover:bg-white/10"
+                    className="w-full py-4 rounded-2xl bg-white/[0.03] border border-white/5 text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-400 transition-all hover:bg-white/[0.06] hover:text-white"
                   >
                     Review Manifest
                   </button>
                 </div>
               ) : (
-                <div className="space-y-8 text-center">
-                  <div className="w-16 h-16 mx-auto bg-white/5 rounded-full flex items-center justify-center">
-                    <Target size={28} className="text-gray-600" />
+                <div className="space-y-10 text-center py-4">
+                  <div className="w-20 h-20 mx-auto bg-white/[0.02] border border-white/5 rounded-full flex items-center justify-center shadow-inner">
+                    <Target size={32} className="text-gray-700" />
                   </div>
                   <div>
-                    <p className="text-gray-400 font-medium mb-1">No session recorded</p>
-                    <p className="text-[0.65rem] text-gray-600 uppercase font-black tracking-[0.15em]">Awaiting initiation</p>
+                    <p className="text-gray-400 font-serif italic text-xl mb-2">No session recorded</p>
+                    <p className="text-[0.6rem] text-gray-600 uppercase font-black tracking-[0.3em]">Awaiting initiation</p>
                   </div>
                   <button
                     onClick={() => navigate('/workout/log')}
-                    className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-white text-black font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    className="w-full flex items-center justify-center gap-4 py-5 rounded-2xl bg-white text-black text-[0.65rem] font-black uppercase tracking-[0.3em] transition-all hover:scale-[1.03] active:scale-[0.97] shadow-xl shadow-white/5"
                   >
                     <Plus size={18} />
-                    <span>Begin Workout</span>
+                    <span>Begin Session</span>
                   </button>
                 </div>
               )}
             </section>
 
             {/* Navigation Grid */}
-            <section className="grid grid-cols-2 gap-4">
+            <section className="grid grid-cols-2 gap-5">
               {[
                 { label: 'Metrics', path: '/body/metrics', icon: <TrendingUp size={18} /> },
                 { label: 'Evolution', path: '/ai-coach', icon: <Activity size={18} /> }
@@ -452,12 +453,12 @@ const Dashboard = () => {
                 <button
                   key={link.label}
                   onClick={() => navigate(link.path)}
-                  className="flex flex-col items-center justify-center gap-3 p-6 rounded-[2rem] bg-[#111827] border border-white/5 transition-all hover:border-voro-primary/50 hover:bg-voro-primary/5 group"
+                  className="flex flex-col items-center justify-center gap-4 p-8 rounded-[2rem] bg-[#0A0C14] border border-white/5 transition-all hover:border-voro-primary/30 hover:bg-voro-primary/[0.02] group shadow-lg"
                 >
-                  <div className="text-gray-500 group-hover:text-voro-primary transition-colors">
+                  <div className="text-gray-600 group-hover:text-voro-primary transition-colors duration-500">
                     {link.icon}
                   </div>
-                  <span className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-500 group-hover:text-white transition-colors">{link.label}</span>
+                  <span className="text-[0.6rem] font-black uppercase tracking-[0.3em] text-gray-600 group-hover:text-white transition-colors duration-500">{link.label}</span>
                 </button>
               ))}
             </section>
