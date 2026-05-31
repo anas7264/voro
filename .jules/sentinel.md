@@ -27,3 +27,8 @@
 **Vulnerability:** Lack of input validation for food portions and water intake in the Food Diary page allowed malformed data to be persisted, potentially corrupting daily totals and summary rings.
 **Learning:** Even when validation exists for a metric in one part of the app (e.g., WaterTracker), other pages that update the same data (e.g., FoodDiary) might bypass it if not explicitly integrated.
 **Prevention:** Ensure all entry points for the same data type use centralized validation logic and the notification system to inform the user of failures.
+
+## 2025-05-20 - [Strict CSP and AI Privacy Shield]
+**Vulnerability:** Application lacked a Content Security Policy (CSP), leaving it vulnerable to XSS and unauthorized data exfiltration. Additionally, sensitive user PII was being transmitted to external AI APIs without sanitization.
+**Learning:** Relying on UI-level data filtering is insufficient for privacy; security must be enforced at the data egress point. recursive sanitization is necessary to handle complex, nested objects and free-form text in chat history.
+**Prevention:** Implement a strict CSP in index.html to restrict script/connect sources. Enforce a "Privacy Shield" layer in the AI client that recursively redacts PII and scrubs strings using regex before any external transmission.

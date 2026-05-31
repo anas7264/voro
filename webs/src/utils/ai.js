@@ -14,6 +14,53 @@ class VoroAIClient {
     this.maxRetries = 3;
   }
 
+  /**
+   * Redacts Personally Identifiable Information (PII) and sensitive data
+   * before sending it to external AI services.
+   * This uses a recursive approach with regex for string-based PII.
+   */
+  sanitizeData(data, seen = new WeakSet()) {
+    if (data === null || data === undefined) return data;
+
+    // Handle string-based PII (Emails, Phones)
+    if (typeof data === 'string') {
+      let sanitized = data;
+      // Email Regex
+      sanitized = sanitized.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[REDACTED_EMAIL]');
+      // Phone Regex (basic)
+      sanitized = sanitized.replace(/(\+\d{1,3}[- ]?)?\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}/g, '[REDACTED_PHONE]');
+      return sanitized;
+    }
+
+    // Return non-object types as is
+    if (typeof data !== 'object') return data;
+
+    // Prevent circular references
+    if (seen.has(data)) return '[CIRCULAR_REF]';
+
+    // Handle Arrays
+    if (Array.isArray(data)) {
+      seen.add(data);
+      return data.map(item => this.sanitizeData(item, seen));
+    }
+
+    // Handle Objects
+    seen.add(data);
+    const sanitizedObj = {};
+    const sensitiveKeys = ['name', 'gymName', 'email', 'phone', 'address', 'location', 'lat', 'lng', 'latitude', 'longitude'];
+
+    Object.keys(data).forEach(key => {
+      const lowerKey = key.toLowerCase();
+      if (sensitiveKeys.includes(key) || lowerKey.includes('password') || lowerKey.includes('secret') || lowerKey.includes('token') || lowerKey.includes('key')) {
+        sanitizedObj[key] = '[REDACTED]';
+      } else {
+        sanitizedObj[key] = this.sanitizeData(data[key], seen);
+      }
+    });
+
+    return sanitizedObj;
+  }
+
   // Call Claude API with full parameters
   async callAPI(messages, systemPrompt, options = {}) {
     const {
@@ -143,7 +190,8 @@ class VoroAIClient {
 
   // Meal plan generation
   async generateMealPlan(userProfile, systemPrompt) {
-    const userMessage = `Create a personalized 7-day meal plan for the following profile: ${JSON.stringify(userProfile)}`;
+    const sanitizedProfile = this.sanitizeData(userProfile);
+    const userMessage = `Create a personalized 7-day meal plan for the following profile (Note: PII has been redacted for privacy): ${JSON.stringify(sanitizedProfile)}`;
 
     return this.callAPI(
       [{ role: "user", content: userMessage }],
@@ -158,7 +206,8 @@ class VoroAIClient {
 
   // Training plan generation
   async generateTrainingPlan(userProfile, systemPrompt) {
-    const userMessage = `Create a personalized 4-week training plan for the following profile: ${JSON.stringify(userProfile)}`;
+    const sanitizedProfile = this.sanitizeData(userProfile);
+    const userMessage = `Create a personalized 4-week training plan for the following profile (Note: PII has been redacted for privacy): ${JSON.stringify(sanitizedProfile)}`;
 
     return this.callAPI(
       [{ role: "user", content: userMessage }],
@@ -173,7 +222,8 @@ class VoroAIClient {
 
   // Coaching advice
   async generateCoachingAdvice(userProfile, systemPrompt) {
-    const userMessage = `Provide personalized coaching and motivational advice based on this user profile: ${JSON.stringify(userProfile)}`;
+    const sanitizedProfile = this.sanitizeData(userProfile);
+    const userMessage = `Provide personalized coaching and motivational advice based on this user profile (Note: PII has been redacted for privacy): ${JSON.stringify(sanitizedProfile)}`;
 
     return this.callAPI(
       [{ role: "user", content: userMessage }],
@@ -188,7 +238,8 @@ class VoroAIClient {
 
   // Analyze nutrition data
   async analyzeNutrition(nutritionData, systemPrompt) {
-    const userMessage = `Analyze the following nutrition data and provide recommendations: ${JSON.stringify(nutritionData)}`;
+    const sanitizedData = this.sanitizeData(nutritionData);
+    const userMessage = `Analyze the following nutrition data and provide recommendations (Note: PII has been redacted for privacy): ${JSON.stringify(sanitizedData)}`;
 
     return this.callAPI(
       [{ role: "user", content: userMessage }],
@@ -203,7 +254,8 @@ class VoroAIClient {
 
   // Analyze body composition
   async analyzeBodyComposition(metrics, systemPrompt) {
-    const userMessage = `Analyze this body composition data and provide insights: ${JSON.stringify(metrics)}`;
+    const sanitizedMetrics = this.sanitizeData(metrics);
+    const userMessage = `Analyze this body composition data and provide insights (Note: PII has been redacted for privacy): ${JSON.stringify(sanitizedMetrics)}`;
 
     return this.callAPI(
       [{ role: "user", content: userMessage }],
@@ -218,9 +270,15 @@ class VoroAIClient {
 
   // General conversation with context
   async chat(message, conversationHistory = [], systemPrompt) {
+    const sanitizedMessage = this.sanitizeData(message);
+    const sanitizedHistory = conversationHistory.map(msg => ({
+      ...msg,
+      content: this.sanitizeData(msg.content)
+    }));
+
     const messages = [
-      ...conversationHistory,
-      { role: "user", content: message }
+      ...sanitizedHistory,
+      { role: "user", content: sanitizedMessage }
     ];
 
     return this.callAPI(
@@ -236,7 +294,8 @@ class VoroAIClient {
 
   // Injury assessment and prevention
   async assessInjuryRisk(userData, systemPrompt) {
-    const userMessage = `Based on this user data, assess injury risk and provide prevention recommendations: ${JSON.stringify(userData)}`;
+    const sanitizedData = this.sanitizeData(userData);
+    const userMessage = `Based on this user data, assess injury risk and provide prevention recommendations (Note: PII has been redacted for privacy): ${JSON.stringify(sanitizedData)}`;
 
     return this.callAPI(
       [{ role: "user", content: userMessage }],
@@ -251,9 +310,12 @@ class VoroAIClient {
 
   // Competition preparation
   async prepareForCompetition(userData, competitionDetails, systemPrompt) {
-    const userMessage = `Create a competition preparation plan for: ${JSON.stringify({
-      userData,
-      competitionDetails
+    const sanitizedUser = this.sanitizeData(userData);
+    const sanitizedDetails = this.sanitizeData(competitionDetails);
+
+    const userMessage = `Create a competition preparation plan for (Note: PII has been redacted for privacy): ${JSON.stringify({
+      userData: sanitizedUser,
+      competitionDetails: sanitizedDetails
     })}`;
 
     return this.callAPI(
