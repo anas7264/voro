@@ -87,116 +87,106 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
     <aside
       className={`
         fixed left-0 top-0 h-full z-40 flex flex-col
-        bg-[#0D1424] border-r border-[#1E2D45]
-        transition-all duration-300 ease-in-out
-        ${collapsed ? 'w-16' : 'w-60'}
+        bg-[#020408] border-r border-white/5
+        transition-all duration-500 ease-in-out
+        ${collapsed ? 'w-20' : 'w-72'}
       `}
     >
-      {/* Logo */}
-      <div className={`flex items-center h-16 px-3 border-b border-[#1E2D45] flex-shrink-0 ${collapsed ? 'justify-center' : 'justify-between'}`}>
+      {/* Logo Area */}
+      <div className={`flex items-center h-24 px-6 mb-8 flex-shrink-0 ${collapsed ? 'justify-center' : 'justify-between'}`}>
         {!collapsed && (
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-violet-900/50">
-              <span className="text-white font-black text-sm">V</span>
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-white flex items-center justify-center rotate-45 group-hover:rotate-0 transition-transform duration-500">
+               <span className="text-black font-serif italic font-black text-xl -rotate-45">V</span>
             </div>
-            <span className="text-white font-black text-xl tracking-tight">VORO</span>
+            <span className="text-white font-serif italic font-black text-2xl tracking-tighter">Voro</span>
           </div>
         )}
         {collapsed && (
-          <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center shadow-lg shadow-violet-900/50">
-            <span className="text-white font-black text-sm">V</span>
+          <div className="w-10 h-10 bg-white flex items-center justify-center rotate-45">
+            <span className="text-black font-serif italic font-black text-xl -rotate-45">V</span>
           </div>
-        )}
-        {!collapsed && (
-          <button
-            onClick={() => setCollapsed(true)}
-            className="text-gray-500 hover:text-white transition-colors p-1 rounded hover:bg-white/5 flex-shrink-0"
-          >
-            <ChevronLeft size={16} />
-          </button>
         )}
       </div>
 
-      {/* Expand toggle when collapsed */}
-      {collapsed && (
-        <button
-          onClick={() => setCollapsed(false)}
-          className="mt-3 mx-auto text-gray-500 hover:text-white transition-colors p-1.5 rounded hover:bg-white/5 flex-shrink-0"
-        >
-          <ChevronRight size={16} />
-        </button>
-      )}
-
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 
-        [&::-webkit-scrollbar]:w-1 
+      <nav className="flex-1 overflow-y-auto py-2 px-4 space-y-8
+        [&::-webkit-scrollbar]:w-0.5
         [&::-webkit-scrollbar-track]:bg-transparent 
-        [&::-webkit-scrollbar-thumb]:bg-white/10 
+        [&::-webkit-scrollbar-thumb]:bg-white/5
         [&::-webkit-scrollbar-thumb]:rounded-full">
         {navSections.map((section) => (
-          <div key={section.label} className="mb-3">
+          <div key={section.label} className="space-y-2">
             {!collapsed && (
-              <div className="px-2 mb-1 mt-1">
-                <span className="text-[9px] font-bold text-gray-600 tracking-widest uppercase">
+              <div className="px-4 mb-4">
+                <span className="text-[10px] font-mono font-bold text-gray-700 tracking-[0.4em] uppercase">
                   {section.label}
                 </span>
               </div>
             )}
-            {collapsed && <div className="my-2 mx-2 border-t border-[#1E2D45]" />}
-            {section.items.map((item) => {
-              const Icon = item.icon;
-              const isActive =
-                location.pathname === item.path ||
-                (item.path !== '/dashboard' && location.pathname.startsWith(item.path + '/'));
-              return (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  title={collapsed ? item.label : undefined}
-                  className={`
-                    flex items-center gap-3 px-2 py-2 rounded-lg text-sm font-medium
-                    transition-all duration-150 group relative mb-0.5
-                    ${collapsed ? 'justify-center' : ''}
-                    ${isActive
-                      ? 'bg-violet-600/20 text-violet-300 border border-violet-500/30'
-                      : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
-                    }
-                  `}
-                >
-                  <Icon
-                    size={16}
-                    className={`flex-shrink-0 transition-colors ${isActive ? 'text-violet-400' : 'group-hover:text-white'}`}
-                  />
-                  {!collapsed && (
-                    <span className="truncate leading-none">{item.label}</span>
-                  )}
-                  {/* Tooltip when collapsed */}
-                  {collapsed && (
-                    <div className="
-                      absolute left-full ml-3 px-2.5 py-1.5 
-                      bg-[#1A2438] text-white text-xs rounded-md shadow-xl 
-                      opacity-0 group-hover:opacity-100 pointer-events-none 
-                      whitespace-nowrap z-50 border border-[#2A3A52]
-                      transition-opacity duration-150
-                    ">
-                      {item.label}
-                    </div>
-                  )}
-                </NavLink>
-              );
-            })}
+            <div className="space-y-1">
+              {section.items.map((item) => {
+                const Icon = item.icon;
+                const isActive =
+                  location.pathname === item.path ||
+                  (item.path !== '/dashboard' && location.pathname.startsWith(item.path + '/'));
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    title={collapsed ? item.label : undefined}
+                    className={`
+                      flex items-center gap-4 px-4 py-3 rounded-sm text-xs font-mono tracking-tight
+                      transition-all duration-300 group relative
+                      ${collapsed ? 'justify-center' : ''}
+                      ${isActive
+                        ? 'text-white bg-white/5 border-l-2 border-voro-primary'
+                        : 'text-gray-500 hover:text-white hover:bg-white/5 border-l-2 border-transparent'
+                      }
+                    `}
+                  >
+                    <Icon
+                      size={16}
+                      strokeWidth={isActive ? 2.5 : 1.5}
+                      className={`flex-shrink-0 transition-all duration-300 ${isActive ? 'text-voro-primary scale-110' : 'group-hover:text-white group-hover:scale-110'}`}
+                    />
+                    {!collapsed && (
+                      <span className="truncate uppercase tracking-widest">{item.label}</span>
+                    )}
+                    {/* Premium Tooltip */}
+                    {collapsed && (
+                      <div className="
+                        absolute left-full ml-6 px-4 py-3
+                        bg-black text-white text-[10px] font-black uppercase tracking-[0.2em]
+                        opacity-0 group-hover:opacity-100 pointer-events-none
+                        whitespace-nowrap z-50 border border-white/10 shadow-2xl
+                        transition-all duration-300 transform translate-x-2 group-hover:translate-x-0
+                      ">
+                        {item.label}
+                      </div>
+                    )}
+                  </NavLink>
+                );
+              })}
+            </div>
           </div>
         ))}
       </nav>
 
-      {/* Bottom info */}
-      {!collapsed && (
-        <div className="p-3 border-t border-[#1E2D45] flex-shrink-0">
-          <div className="text-[9px] text-gray-600 text-center tracking-widest uppercase">
-            VORO v1.0 · Your Fitness OS
-          </div>
-        </div>
-      )}
+      {/* Footer Toggle */}
+      <div className="p-6 border-t border-white/5 flex items-center justify-between">
+        {!collapsed && (
+           <div className="text-[8px] font-mono text-gray-700 tracking-[0.3em] uppercase">
+             OS v1.0 // Matrix
+           </div>
+        )}
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="text-gray-500 hover:text-white transition-colors p-2 rounded-full hover:bg-white/5 mx-auto lg:mx-0"
+        >
+          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+        </button>
+      </div>
     </aside>
   );
 };

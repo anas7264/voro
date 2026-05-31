@@ -54,7 +54,7 @@ const CompetitionPrep = lazy(() => import("./pages/CompetitionPrep"));
 const QuickLog = lazy(() => import("./pages/QuickLog"));
 
 const LoadingFallback = () => (
-  <div className="flex items-center justify-center min-h-screen bg-[#080B14]">
+  <div className="flex items-center justify-center min-h-screen bg-[#020408]">
     <LoadingSpinner fullscreen />
   </div>
 );

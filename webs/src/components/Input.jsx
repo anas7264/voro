@@ -17,10 +17,10 @@ export const Input = ({
   const errorId = `${inputId}-error`;
 
   const classes = [
-    "w-full px-3 py-2 border rounded-lg bg-surface text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200",
-    error && "border-red-500 focus:ring-red-500",
-    !error && "border-border",
-    disabled && "opacity-50 cursor-not-allowed bg-gray-600",
+    "w-full bg-transparent border-b-2 py-6 text-2xl font-serif italic text-white placeholder:text-gray-900 focus:outline-none transition-all duration-500",
+    error && "border-red-500",
+    !error && "border-white/10 focus:border-voro-primary",
+    disabled && "opacity-20 cursor-not-allowed",
     className
   ]
     .filter(Boolean)
@@ -29,7 +29,7 @@ export const Input = ({
   return (
     <div className="w-full">
       {label && (
-        <label htmlFor={inputId} className="block text-sm font-medium mb-1 text-gray-300">
+        <label htmlFor={inputId} className="block text-[10px] font-mono font-bold uppercase tracking-[0.3em] text-gray-500 mb-1">
           {label}
         </label>
       )}

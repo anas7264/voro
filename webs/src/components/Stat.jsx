@@ -9,23 +9,26 @@ export const Stat = memo(({ label, value, unit = "", change, icon: Icon, color =
   const isPositive = change && change >= 0;
 
   return (
-    <div className={`bg-card border border-border rounded-lg p-4 ${className}`}>
+    <div className={`bg-[#0A0C14] border border-white/5 rounded-sm p-8 group hover:border-white/10 transition-all ${className}`}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-gray-400 text-sm font-medium">{label}</p>
-          <div className="flex items-baseline gap-2 mt-2">
-            <p className="text-2xl font-bold text-white">{value}</p>
-            {unit && <p className="text-gray-400 text-sm">{unit}</p>}
+          <p className="text-[10px] font-mono font-bold text-gray-600 uppercase tracking-[0.3em] mb-4">{label}</p>
+          <div className="flex items-baseline gap-4">
+            <p className="text-5xl font-serif italic text-white tracking-tighter">{value}</p>
+            {unit && <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">{unit}</p>}
           </div>
           {change !== undefined && (
-            <p className={`text-sm mt-2 ${isPositive ? "text-green-400" : "text-red-400"}`}>
-              {isPositive ? "+" : ""}{change}%
-            </p>
+            <div className="flex items-center gap-2 mt-4">
+               <div className={`w-2 h-2 rounded-full ${isPositive ? "bg-emerald-500 animate-pulse" : "bg-red-500"}`} />
+               <p className={`text-[10px] font-mono font-bold tracking-widest ${isPositive ? "text-emerald-500" : "text-red-500"}`}>
+                {isPositive ? "+" : ""}{change}% DELTA
+               </p>
+            </div>
           )}
         </div>
         {Icon && (
-          <div className={`p-3 rounded-lg bg-${color} bg-opacity-10`}>
-            <Icon size={24} className={`text-${color}`} />
+          <div className="p-4 bg-white/5 rounded-full group-hover:scale-110 transition-transform duration-500">
+            <Icon size={20} className="text-white opacity-40 group-hover:opacity-100 transition-opacity" />
           </div>
         )}
       </div>

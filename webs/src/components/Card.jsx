@@ -7,8 +7,8 @@ import React, { memo } from "react";
  */
 export const Card = memo(({ children, className = "", hover = false, ...props }) => {
   const classes = [
-    "bg-card border border-border rounded-lg p-4 shadow-sm",
-    hover && "hover:shadow-md transition-shadow duration-200 cursor-pointer",
+    "bg-[#0A0C14] border border-white/5 rounded-sm p-8 transition-all duration-500 ease-in-out",
+    hover && "hover:border-voro-primary/30 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] cursor-pointer",
     className
   ]
     .filter(Boolean)

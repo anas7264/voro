@@ -125,160 +125,151 @@ const WorkoutLog = () => {
   }, [showExerciseSearch, searchQuery]);
 
   return (
-    <div className="min-h-screen bg-voro-surface p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-white mb-6">Workout Log</h1>
-
-        {/* Date & Session Info */}
-        <Card className="p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Input
-              type="date"
-              label="Date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
-            <Select
-              label="Session Type"
-              value={sessionType}
-              onChange={(e) => setSessionType(e.target.value)}
-              options={[
-                { value: 'Strength', label: 'Strength' },
-                { value: 'Cardio', label: 'Cardio' },
-                { value: 'HIIT', label: 'HIIT' },
-                { value: 'Yoga', label: 'Yoga' },
-              ]}
-            />
-            <Input
-              label="Duration (min)"
-              type="number"
-              value={sessionDuration}
-              onChange={(e) => setSessionDuration(Number(e.target.value))}
-              min="1"
-              max="300"
-            />
+    <div className="min-h-screen bg-[#020408] text-[#F0F4FF] overflow-x-hidden p-8 lg:p-24">
+      <div className="max-w-[1400px] mx-auto">
+        <header className="mb-24 flex flex-col lg:flex-row lg:items-end justify-between gap-12">
+          <div className="space-y-4">
+            <div className="flex items-center gap-4 text-emerald-500">
+              <span className="text-[10px] font-mono uppercase tracking-[0.4em]">Kinetic Manifest</span>
+              <div className="h-[1px] w-12 bg-emerald-500/30" />
+            </div>
+            <h1 className="text-7xl font-black font-serif italic text-white leading-[0.9] tracking-tighter">
+              Neural <span className="text-gradient-emerald not-italic">Drive</span>
+            </h1>
           </div>
-        </Card>
 
-        {/* Exercises */}
-        <div className="space-y-4 mb-6">
-          {selectedExercises.map((exercise, idx) => (
-            <Card key={exercise.id} className="p-4">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-white">{exercise.name}</h3>
-                  <p className="text-xs text-gray-400">{exercise.category}</p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeExercise(idx)}
-                  className="text-danger"
-                  aria-label={`Remove ${exercise.name}`}
+          <div className="flex flex-wrap gap-4">
+            <button onClick={() => setShowExerciseSearch(true)} className="px-8 py-5 bg-white text-black text-[10px] font-black uppercase tracking-[0.3em] hover:scale-105 transition-all">
+              Add Stimulus
+            </button>
+            <button onClick={saveWorkout} className="px-8 py-5 border border-white/10 bg-black text-white text-[10px] font-black uppercase tracking-[0.3em] hover:border-emerald-500 transition-all">
+              Synchronize Session
+            </button>
+          </div>
+        </header>
+
+        {/* Temporal Parameters */}
+        <div className="grid grid-cols-12 gap-8 mb-24">
+           <div className="col-span-12 lg:col-span-4">
+              <Input type="date" label="Temporal Node" value={date} onChange={(e) => setDate(e.target.value)} />
+           </div>
+           <div className="col-span-12 lg:col-span-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-mono font-bold uppercase tracking-[0.3em] text-gray-500">Modality</label>
+                <select
+                  value={sessionType}
+                  onChange={(e) => setSessionType(e.target.value)}
+                  className="w-full bg-transparent border-b-2 border-white/10 py-6 text-2xl font-serif italic text-white focus:outline-none focus:border-emerald-500 transition-all"
                 >
-                  <Trash2 size={16} />
-                </Button>
+                  <option value="Strength">Strength</option>
+                  <option value="Cardio">Cardio</option>
+                  <option value="HIIT">HIIT</option>
+                </select>
+              </div>
+           </div>
+           <div className="col-span-12 lg:col-span-4">
+              <Input label="Temporal Duration (MIN)" type="number" value={sessionDuration} onChange={(e) => setSessionDuration(Number(e.target.value))} />
+           </div>
+        </div>
+
+        {/* Integration Sequence (Exercises) */}
+        <div className="space-y-12">
+          {selectedExercises.map((exercise, idx) => (
+            <section key={exercise.id} className="relative group">
+              <div className="flex items-end justify-between mb-8">
+                <div>
+                  <h3 className="text-4xl font-serif italic text-white leading-none mb-2">{exercise.name}</h3>
+                  <p className="text-[10px] font-mono text-gray-600 uppercase tracking-[0.3em]">{exercise.category} // Sequence Node {idx + 1}</p>
+                </div>
+                <button onClick={() => removeExercise(idx)} className="text-gray-800 hover:text-red-500 transition-colors">
+                  <Trash2 size={18} />
+                </button>
               </div>
 
-              <div className="space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {exercise.sets.map((set, setIdx) => (
-                  <div key={setIdx} className="flex gap-2 items-center">
-                    <span className="text-sm text-gray-400 w-8">Set {setIdx + 1}</span>
-                    <Input
-                      type="number"
-                      placeholder="Reps"
-                      value={set.reps}
-                      onChange={(e) => updateSet(idx, setIdx, 'reps', Number(e.target.value))}
-                      className="w-20"
-                      aria-label={`${exercise.name} set ${setIdx + 1} reps`}
-                    />
-                    <Input
-                      type="number"
-                      placeholder="Weight"
-                      value={set.weight}
-                      onChange={(e) => updateSet(idx, setIdx, 'weight', Number(e.target.value))}
-                      step="0.5"
-                      className="w-20"
-                      aria-label={`${exercise.name} set ${setIdx + 1} weight`}
-                    />
-                    <span className="text-sm text-gray-400">kg</span>
-                    <Checkbox
-                      checked={set.completed}
-                      onChange={(checked) => updateSet(idx, setIdx, 'completed', checked)}
-                      className="ml-auto"
-                      aria-label={`Mark ${exercise.name} set ${setIdx + 1} as completed`}
-                    />
+                  <div key={setIdx} className={`p-8 border transition-all ${set.completed ? 'bg-emerald-500/5 border-emerald-500/30' : 'bg-white/5 border-white/5'}`}>
+                    <div className="flex justify-between items-center mb-6">
+                      <span className="text-[10px] font-mono font-bold text-gray-600 uppercase tracking-widest">Set {setIdx + 1}</span>
+                      <Checkbox checked={set.completed} onChange={(checked) => updateSet(idx, setIdx, 'completed', checked)} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                       <div>
+                         <p className="text-[8px] font-mono text-gray-500 uppercase mb-1">Reps</p>
+                         <input
+                           type="number" value={set.reps}
+                           onChange={(e) => updateSet(idx, setIdx, 'reps', Number(e.target.value))}
+                           className="w-full bg-transparent border-b border-white/10 text-xl font-mono text-white focus:outline-none focus:border-emerald-500"
+                         />
+                       </div>
+                       <div>
+                         <p className="text-[8px] font-mono text-gray-500 uppercase mb-1">Mass (KG)</p>
+                         <input
+                           type="number" value={set.weight}
+                           onChange={(e) => updateSet(idx, setIdx, 'weight', Number(e.target.value))}
+                           className="w-full bg-transparent border-b border-white/10 text-xl font-mono text-white focus:outline-none focus:border-emerald-500"
+                         />
+                       </div>
+                    </div>
                   </div>
                 ))}
+                <button
+                  onClick={() => {
+                    const updated = [...selectedExercises];
+                    updated[idx].sets.push({ reps: 8, weight: 0, completed: false });
+                    setSelectedExercises(updated);
+                  }}
+                  className="p-8 bg-transparent border border-dashed border-white/10 flex items-center justify-center text-[10px] font-black uppercase tracking-[0.2em] text-gray-600 hover:text-white hover:border-white transition-all"
+                >
+                  + Add Volumetric Set
+                </button>
               </div>
-
-              <Button
-                variant="secondary"
-                size="sm"
-                className="mt-3 w-full"
-                onClick={() => {
-                  const updated = [...selectedExercises];
-                  updated[idx].sets.push({ reps: 8, weight: 0, completed: false });
-                  setSelectedExercises(updated);
-                }}
-              >
-                + Add Set
-              </Button>
-            </Card>
+            </section>
           ))}
         </div>
 
-        {/* Add Exercise Button */}
-        <Button
-          onClick={() => setShowExerciseSearch(true)}
-          className="w-full mb-6 flex items-center justify-center gap-2"
-        >
-          <Plus size={18} />
-          Add Exercise
-        </Button>
+        {/* Empty State */}
+        {selectedExercises.length === 0 && (
+           <div className="py-32 border border-dashed border-white/5 flex flex-col items-center justify-center text-center">
+              <div className="w-16 h-16 rounded-full border border-white/10 flex items-center justify-center mb-6">
+                 <Plus size={24} className="text-gray-700" />
+              </div>
+              <p className="text-sm font-serif italic text-gray-500 mb-2">Quiescent State: Stimulus Required</p>
+              <button onClick={() => setShowExerciseSearch(true)} className="text-[10px] font-mono font-bold text-voro-primary uppercase tracking-[0.3em]">Initialize Training Sequence</button>
+           </div>
+        )}
 
         {/* Exercise Search Modal */}
-        <Modal
-          isOpen={showExerciseSearch}
-          onClose={() => setShowExerciseSearch(false)}
-          title="Add Exercise"
-          size="2xl"
-        >
-          <div className="space-y-4">
-            <Input
-              placeholder="Search exercises..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              autoFocus
-            />
-            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-              {filteredExercises.slice(0, 20).map(ex => (
+        <Modal isOpen={showExerciseSearch} onClose={() => setShowExerciseSearch(false)} title="Kinetic Database: Stimulus Search" size="lg">
+          <div className="space-y-12">
+            <Input placeholder="Query kinetic nodes..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} autoFocus />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[50vh] overflow-y-auto pr-1
+              [&::-webkit-scrollbar]:w-0.5
+              [&::-webkit-scrollbar-track]:bg-transparent
+              [&::-webkit-scrollbar-thumb]:bg-white/5">
+              {filteredExercises.slice(0, 24).map(ex => (
                 <div
                   key={ex.id}
                   onClick={() => addExercise(ex)}
-                  className="p-3 bg-voro-surface border border-voro-border rounded-lg cursor-pointer hover:border-voro-primary transition-all"
+                  className="p-8 bg-white/[0.02] border border-white/5 hover:border-emerald-500 cursor-pointer transition-all group"
                 >
-                  <div className="font-medium text-white">{ex.name}</div>
-                  <div className="text-xs text-gray-400">{ex.category} · {ex.difficulty}</div>
+                  <div className="font-serif italic text-white mb-2 group-hover:text-emerald-500 transition-colors">{ex.name}</div>
+                  <div className="text-[9px] font-mono text-gray-600 uppercase tracking-widest">{ex.category} // {ex.difficulty}</div>
                 </div>
               ))}
             </div>
-            <Button
-              variant="secondary"
-              className="w-full mt-4"
-              onClick={() => setShowExerciseSearch(false)}
-            >
-              Close
-            </Button>
+            <Button variant="secondary" fullWidth onClick={() => setShowExerciseSearch(false)}>Abort Search</Button>
           </div>
         </Modal>
-
-        {/* Save Button */}
-        <Button onClick={saveWorkout} className="w-full flex items-center justify-center gap-2">
-          <CheckCircle size={18} />
-          Save Workout
-        </Button>
       </div>
+
+      <style>{`
+        .text-gradient-emerald {
+          background: linear-gradient(to right, #10B981, #34D399);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+      `}</style>
     </div>
   );
 };

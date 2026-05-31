@@ -151,128 +151,117 @@ const FoodDiary = () => {
   const waterGoal = user?.waterGoal || 2000;
 
   return (
-    <div className="min-h-screen bg-voro-surface p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold text-white mb-6">Food Diary</h1>
-
-        {/* Date Navigation */}
-        <Card className="p-4 mb-6 flex items-center justify-between">
-          <Button variant="secondary" size="sm" onClick={() => handleDateChange(-1)}>
-            <ChevronLeft size={18} />
-          </Button>
-          <div className="text-center">
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="bg-voro-surface border border-voro-border rounded px-4 py-2 text-white"
-            />
+    <div className="min-h-screen bg-[#020408] text-[#F0F4FF] overflow-x-hidden p-8 lg:p-24">
+      <div className="max-w-[1400px] mx-auto">
+        <header className="mb-24 flex flex-col lg:flex-row lg:items-end justify-between gap-12">
+          <div className="space-y-4">
+            <div className="flex items-center gap-4 text-voro-primary">
+              <span className="text-[10px] font-mono uppercase tracking-[0.4em]">Fuel Manifest</span>
+              <div className="h-[1px] w-12 bg-voro-primary/30" />
+            </div>
+            <h1 className="text-7xl font-black font-serif italic text-white leading-[0.9] tracking-tighter">
+              Nutritional <span className="text-gradient not-italic">Entropy</span>
+            </h1>
           </div>
-          <Button variant="secondary" size="sm" onClick={() => handleDateChange(1)}>
-            <ChevronRight size={18} />
-          </Button>
-        </Card>
 
-        {/* Summary Rings */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <Card className="p-4 flex flex-col items-center justify-center">
-            <Ring
-              value={nutritionLog.totals.calories}
-              max={calorieGoal}
-              size={120}
-              unit="kcal"
-            />
-          </Card>
-          <Card className="p-6">
-            <div className="text-center">
-              <div className="text-sm text-gray-400 mb-2">Protein</div>
-              <div className="text-3xl font-bold text-voro-primary">{nutritionLog.totals.protein.toFixed(0)}g</div>
-              <div className="text-xs text-gray-500">{user?.proteinGoal || 160}g goal</div>
-            </div>
-          </Card>
-          <Card className="p-6">
-            <div className="text-center">
-              <div className="text-sm text-gray-400 mb-2">Carbs</div>
-              <div className="text-3xl font-bold text-voro-secondary">{nutritionLog.totals.carbs.toFixed(0)}g</div>
-              <div className="text-xs text-gray-500">{user?.carbGoal || 225}g goal</div>
-            </div>
-          </Card>
-          <Card className="p-6">
-            <div className="text-center">
-              <div className="text-sm text-gray-400 mb-2">Fat</div>
-              <div className="text-3xl font-bold text-voro-accent">{nutritionLog.totals.fat.toFixed(0)}g</div>
-              <div className="text-xs text-gray-500">{user?.fatGoal || 65}g goal</div>
-            </div>
-          </Card>
+          <div className="flex items-center gap-6 bg-white/5 p-4 border border-white/5 backdrop-blur-xl">
+            <button onClick={() => handleDateChange(-1)} className="text-gray-500 hover:text-white transition-colors">
+              <ChevronLeft size={20} />
+            </button>
+            <span className="text-xs font-mono font-bold tracking-[0.3em] uppercase">{new Date(date).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</span>
+            <button onClick={() => handleDateChange(1)} className="text-gray-500 hover:text-white transition-colors">
+              <ChevronRight size={20} />
+            </button>
+          </div>
+        </header>
+
+        {/* Metabolic Summation */}
+        <div className="grid grid-cols-12 gap-12 mb-24">
+          <div className="col-span-12 lg:col-span-4">
+            <Card className="h-full flex flex-col items-center justify-center relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-voro-primary to-transparent opacity-50" />
+              <Ring
+                value={nutritionLog.totals.calories}
+                max={calorieGoal}
+                size={160}
+                strokeWidth={4}
+                className="drop-shadow-[0_0_30px_rgba(124,58,237,0.2)]"
+              />
+              <p className="mt-8 text-[10px] font-mono font-bold text-gray-500 uppercase tracking-[0.3em]">Temporal Energy Density</p>
+            </Card>
+          </div>
+
+          <div className="col-span-12 lg:col-span-8 grid grid-cols-1 md:grid-cols-3 gap-8">
+             <Stat label="Structural Protein" value={nutritionLog.totals.protein.toFixed(0)} unit="G" change={Math.round((nutritionLog.totals.protein / (user?.proteinGoal || 160)) * 100)} color="voro-primary" />
+             <Stat label="Glycogen Flux" value={nutritionLog.totals.carbs.toFixed(0)} unit="G" change={Math.round((nutritionLog.totals.carbs / (user?.carbGoal || 225)) * 100)} color="voro-secondary" />
+             <Stat label="Lipid Integrity" value={nutritionLog.totals.fat.toFixed(0)} unit="G" change={Math.round((nutritionLog.totals.fat / (user?.fatGoal || 65)) * 100)} color="voro-accent" />
+          </div>
         </div>
 
-        {/* Meal Slots */}
-        <div className="space-y-4 mb-6">
+        {/* Integration Nodes (Meal Slots) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-24">
           {mealSlots.map((slot) => (
-            <Card key={slot} className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-white">{slot}</h3>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-400">
-                    {nutritionLog.meals[slot].reduce((sum, food) => sum + food.calories, 0)} kcal
-                  </span>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedSlot(slot);
-                      setShowFoodSearch(true);
-                    }}
-                  >
-                    <Plus size={16} />
-                  </Button>
+            <div key={slot} className="space-y-6">
+              <div className="flex items-center justify-between px-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-2 h-2 rounded-full bg-voro-primary" />
+                  <h3 className="text-xs font-mono font-bold text-gray-400 uppercase tracking-[0.3em]">{slot}</h3>
+                </div>
+                <div className="flex items-center gap-8">
+                   <span className="text-[10px] font-mono text-gray-600 tracking-widest">{nutritionLog.meals[slot].reduce((sum, food) => sum + food.calories, 0)} KCAL</span>
+                   <button
+                     onClick={() => { setSelectedSlot(slot); setShowFoodSearch(true); }}
+                     className="text-voro-primary hover:text-white transition-colors"
+                   >
+                     <Plus size={18} />
+                   </button>
                 </div>
               </div>
 
-              {nutritionLog.meals[slot].length > 0 ? (
-                <div className="space-y-2 mb-3">
-                  {nutritionLog.meals[slot].map((food, idx) => (
-                    <div key={food.id} className="flex items-center justify-between bg-voro-surface p-3 rounded-lg">
-                      <div className="flex-1">
-                        <div className="text-sm text-white">{food.name}</div>
-                        <div className="text-xs text-gray-500">{food.portion}g | {food.calories} kcal | P:{food.protein}g C:{food.carbs}g F:{food.fat}g</div>
+              <div className="space-y-1">
+                {nutritionLog.meals[slot].length > 0 ? (
+                  nutritionLog.meals[slot].map((food, idx) => (
+                    <div key={food.id} className="group flex items-center justify-between p-6 bg-white/5 border border-transparent hover:border-white/5 transition-all">
+                      <div>
+                        <p className="text-sm font-serif italic text-white mb-1">{food.name}</p>
+                        <p className="text-[9px] font-mono text-gray-600 uppercase tracking-widest">{food.portion}G // P:{food.protein}G C:{food.carbs}G F:{food.fat}G</p>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveFood(slot, idx)}
-                        className="text-danger hover:text-danger"
-                      >
-                        <Trash2 size={16} />
-                      </Button>
+                      <div className="flex items-center gap-6">
+                        <span className="text-xs font-mono font-bold text-white tracking-tighter">{food.calories}</span>
+                        <button onClick={() => handleRemoveFood(slot, idx)} className="text-gray-800 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-sm text-gray-500 py-2">No foods logged</div>
-              )}
-            </Card>
+                  ))
+                ) : (
+                  <div className="p-6 bg-white/[0.02] border border-dashed border-white/5 text-[10px] font-mono text-gray-800 uppercase tracking-[0.3em] text-center italic">
+                    Void State: Awaiting Fuel Integration
+                  </div>
+                )}
+              </div>
+            </div>
           ))}
         </div>
 
-        {/* Water Tracker */}
-        <Card className="p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-white">Water Intake</h3>
-            <span className="text-sm text-gray-400">{nutritionLog.water} / {waterGoal} ml</span>
+        {/* Saturation Matrix (Water) */}
+        <section className="mb-24">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-xs font-mono font-bold text-gray-400 uppercase tracking-[0.4em]">Intracellular Saturation</h3>
+            <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">{nutritionLog.water} / {waterGoal} ML</span>
           </div>
-          <div className="w-full bg-voro-border rounded-full h-2 mb-4">
-            <div
-              className="h-2 rounded-full bg-blue-500 transition-all"
-              style={{ width: `${Math.min((nutritionLog.water / waterGoal) * 100, 100)}%` }}
-            />
+          <div className="relative h-4 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 mb-12">
+             <div
+               className="h-full bg-blue-600 transition-all duration-1000 ease-out shadow-[0_0_20px_rgba(37,99,235,0.5)]"
+               style={{ width: `${Math.min((nutritionLog.water / waterGoal) * 100, 100)}%` }}
+             />
           </div>
-          <div className="flex gap-2">
-            <Button size="sm" onClick={() => handleWaterAdd(250)}>+250ml</Button>
-            <Button size="sm" onClick={() => handleWaterAdd(500)}>+500ml</Button>
-            <Button size="sm" onClick={() => handleWaterAdd(1000)}>+1L</Button>
+          <div className="grid grid-cols-3 gap-8">
+             <button onClick={() => handleWaterAdd(250)} className="py-6 border border-white/5 text-[10px] font-black uppercase tracking-[0.3em] hover:bg-white/5 transition-all">+250 ML Delta</button>
+             <button onClick={() => handleWaterAdd(500)} className="py-6 border border-white/5 text-[10px] font-black uppercase tracking-[0.3em] hover:bg-white/5 transition-all">+500 ML Delta</button>
+             <button onClick={() => handleWaterAdd(1000)} className="py-6 border border-white/5 text-[10px] font-black uppercase tracking-[0.3em] hover:bg-white/5 transition-all">+1.0 L Delta</button>
           </div>
-        </Card>
+        </section>
 
         {/* Food Search Modal */}
         {showFoodSearch && (
@@ -308,44 +297,62 @@ const FoodSearchModal = ({ isOpen, onClose, onSelectFood }) => {
   if (!isOpen) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
-      <div className="bg-voro-card p-6 rounded-lg border border-voro-border max-w-2xl w-full max-h-96 overflow-y-auto">
-        <h2 className="text-xl font-bold text-white mb-4">Add Food</h2>
-
+    <Modal isOpen={isOpen} onClose={onClose} title="Molecular Synthesis: Fuel Search" size="lg">
+      <div className="space-y-12">
         {!selectedFood ? (
-          <div className="space-y-4">
+          <div className="space-y-8">
             <Input
-              placeholder="Search foods..."
+              placeholder="Query molecular database..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               autoFocus
             />
-            <div className="space-y-2 max-h-64 overflow-y-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[50vh] overflow-y-auto px-1
+              [&::-webkit-scrollbar]:w-0.5
+              [&::-webkit-scrollbar-track]:bg-transparent
+              [&::-webkit-scrollbar-thumb]:bg-white/5">
               {results.map(food => (
                 <div
                   key={food.id}
                   onClick={() => setSelectedFood(food)}
-                  className="p-3 bg-voro-surface border border-voro-border rounded-lg cursor-pointer hover:border-voro-primary transition-all"
+                  className="p-6 bg-white/[0.02] border border-white/5 hover:border-voro-primary cursor-pointer transition-all group"
                 >
-                  <div className="font-medium text-white">{food.name}</div>
-                  <div className="text-xs text-gray-400">{food.calories} kcal | P:{food.protein}g C:{food.carbs}g F:{food.fat}g</div>
+                  <div className="font-serif italic text-white mb-2 group-hover:text-voro-primary transition-colors">{food.name}</div>
+                  <div className="text-[10px] font-mono text-gray-600 uppercase tracking-widest">{food.calories} KCAL // P:{food.protein}G</div>
                 </div>
               ))}
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
-            <div className="p-4 bg-voro-surface rounded-lg">
-              <div className="font-bold text-white mb-2">{selectedFood.name}</div>
-              <div className="text-sm text-gray-400">Per 100g:</div>
-              <div className="text-sm text-gray-300">
-                {selectedFood.calories} kcal | P:{selectedFood.protein}g | C:{selectedFood.carbs}g | F:{selectedFood.fat}g
+          <div className="space-y-12">
+            <div className="p-10 bg-white/5 border border-voro-primary/20 relative overflow-hidden">
+               <div className="absolute top-0 right-0 w-24 h-24 bg-voro-primary/10 blur-2xl" />
+              <div className="relative z-10">
+                <div className="text-4xl font-serif italic text-white mb-4">{selectedFood.name}</div>
+                <div className="grid grid-cols-4 gap-4">
+                   <div className="space-y-1">
+                     <p className="text-[9px] font-mono text-gray-500 uppercase tracking-widest">Energy</p>
+                     <p className="text-xl font-mono text-white">{selectedFood.calories}K</p>
+                   </div>
+                   <div className="space-y-1">
+                     <p className="text-[9px] font-mono text-gray-500 uppercase tracking-widest">Protein</p>
+                     <p className="text-xl font-mono text-voro-primary">{selectedFood.protein}G</p>
+                   </div>
+                   <div className="space-y-1">
+                     <p className="text-[9px] font-mono text-gray-500 uppercase tracking-widest">Carbs</p>
+                     <p className="text-xl font-mono text-voro-secondary">{selectedFood.carbs}G</p>
+                   </div>
+                   <div className="space-y-1">
+                     <p className="text-[9px] font-mono text-gray-500 uppercase tracking-widest">Lipids</p>
+                     <p className="text-xl font-mono text-voro-accent">{selectedFood.fat}G</p>
+                   </div>
+                </div>
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm text-gray-300 mb-2">Portion (g)</label>
+            <div className="space-y-4">
               <Input
+                label="Temporal Mass Integration (G)"
                 type="number"
                 value={portion}
                 onChange={(e) => setPortion(Number(e.target.value))}
@@ -353,13 +360,13 @@ const FoodSearchModal = ({ isOpen, onClose, onSelectFood }) => {
               />
             </div>
 
-            <div className="flex gap-2">
-              <Button variant="secondary" onClick={() => setSelectedFood(null)}>Back</Button>
+            <div className="flex gap-4">
+              <Button variant="secondary" fullWidth onClick={() => setSelectedFood(null)}>De-select</Button>
               <Button
                 onClick={() => onSelectFood(selectedFood, portion)}
-                className="flex-1"
+                fullWidth
               >
-                Add Food
+                Synthesize
               </Button>
             </div>
           </div>
