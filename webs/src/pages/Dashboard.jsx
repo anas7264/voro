@@ -2,24 +2,136 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus,
-  TrendingUp,
-  TrendingDown,
   Activity,
-  Flame,
   Zap,
-  Droplets,
-  Calendar,
   ChevronRight,
-  Target,
-  Layout
+  Shield,
+  Dna,
+  Binary,
+  Waves,
+  Maximize2,
+  Atom
 } from 'lucide-react';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useStorage } from '@/hooks/useStorage';
 import { useAI } from '@/hooks/useAI';
 import { useNotifications } from '@/hooks/useNotifications';
 import Modal from '@/components/Modal';
-import LineChartComponent from '@/components/LineChartComponent';
-import Ring from '@/components/Ring';
+
+// --- Visual Sub-Components (The Biology & Nutrition Matrix) ---
+
+const BiologicalCore = ({ recoveryScore = 85 }) => (
+  <div className="relative w-full aspect-[3/4] flex items-center justify-center perspective-1000">
+    <div className="absolute inset-0 bg-gradient-to-b from-voro-primary/5 to-transparent rounded-full blur-3xl opacity-20 transform-3d -translate-z-20" />
+
+    {/* Stylized Human Silhouette / Matrix Core */}
+    <div className="relative w-full h-full flex items-center justify-center animate-float">
+      <svg viewBox="0 0 200 300" className="w-[80%] h-[80%] drop-shadow-[0_0_30px_rgba(124,58,237,0.3)]">
+        <defs>
+          <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#7C3AED" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#1E1B4B" stopOpacity="0.4" />
+          </linearGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+            <feMerge>
+              <feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+        {/* Abstract "Vitals" Nodes */}
+        <path
+          d="M100,20 C110,20 120,30 120,50 C120,80 80,80 80,50 C80,30 90,20 100,20 Z"
+          fill="none" stroke="url(#bodyGrad)" strokeWidth="0.5"
+          className="animate-pulse"
+        />
+        <path
+          d="M80,55 L50,110 L60,180 L85,280 L115,280 L140,180 L150,110 L120,55 Z"
+          fill="rgba(124,58,237,0.05)" stroke="url(#bodyGrad)" strokeWidth="1"
+          strokeDasharray="2 2"
+        />
+        {/* Recovery "Heatmap" Points */}
+        <circle cx="100" cy="90" r="4" fill="#7C3AED" filter="url(#glow)" className="animate-ping opacity-70" />
+        <circle cx="70" cy="130" r="3" fill="#10B981" filter="url(#glow)" />
+        <circle cx="130" cy="130" r="3" fill="#10B981" filter="url(#glow)" />
+        <circle cx="80" cy="220" r="3" fill="#7C3AED" filter="url(#glow)" />
+        <circle cx="120" cy="220" r="3" fill="#7C3AED" filter="url(#glow)" />
+      </svg>
+
+      {/* Floating HUD Elements */}
+      <div className="absolute top-[10%] -left-[5%] p-3 bg-black/40 backdrop-blur-md border border-white/10 rounded-lg transform -rotate-6">
+        <p className="text-[10px] font-mono text-voro-primary uppercase tracking-tighter mb-1">Neural State</p>
+        <p className="text-sm font-bold text-white uppercase tracking-widest font-serif">Optimized</p>
+      </div>
+
+      <div className="absolute bottom-[20%] -right-[5%] p-3 bg-black/40 backdrop-blur-md border border-white/10 rounded-lg transform rotate-3">
+        <p className="text-[10px] font-mono text-emerald-500 uppercase tracking-tighter mb-1">Recovery index</p>
+        <p className="text-sm font-bold text-white font-mono tracking-tighter">{recoveryScore}%</p>
+      </div>
+    </div>
+  </div>
+);
+
+const FuelRing = ({ label, value, max, color, icon: Icon }) => {
+  const percentage = Math.min((value / max) * 100, 100);
+  const strokeDashoffset = 283 - (283 * percentage) / 100;
+
+  return (
+    <div className="relative group flex flex-col items-center">
+      <div className="relative w-32 h-32 transform-gpu transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6">
+        {/* 3D Depth Rings */}
+        <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90 drop-shadow-[0_10px_15px_rgba(0,0,0,0.5)]">
+          <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="6" />
+          <circle
+            cx="50" cy="50" r="45" fill="none" stroke={color} strokeWidth="6"
+            strokeDasharray="283" strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round" className="transition-all duration-1000 ease-out"
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+          <Icon size={14} className="mb-1 opacity-40" style={{ color }} />
+          <span className="text-lg font-mono font-bold tracking-tighter text-white">{value}</span>
+          <span className="text-[8px] font-black uppercase tracking-[0.2em] text-gray-500">grams</span>
+        </div>
+      </div>
+      <div className="mt-4 text-center">
+        <p className="text-[10px] font-mono text-gray-400 uppercase tracking-widest">{label}</p>
+      </div>
+    </div>
+  );
+};
+
+const HydrationMatrix = ({ level = 0, goal = 2000 }) => {
+  const pct = Math.min((level / goal) * 100, 100);
+
+  return (
+    <div className="relative h-64 w-full bg-black/20 rounded-3xl overflow-hidden border border-white/5 flex items-end shadow-inner">
+      {/* Liquid Simulation Layer */}
+      <div
+        className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-blue-600 to-cyan-400 transition-all duration-1000 ease-in-out"
+        style={{ height: `${pct}%` }}
+      >
+        <div className="absolute top-0 inset-x-0 h-4 bg-white/20 blur-sm animate-pulse" />
+        <svg className="absolute -top-6 left-0 w-[200%] h-12 fill-cyan-400/30 animate-wave-slow" viewBox="0 0 1000 100">
+          <path d="M0,50 Q250,0 500,50 T1000,50 V100 H0 Z" />
+        </svg>
+      </div>
+
+      <div className="relative z-10 w-full p-6 flex flex-col justify-between h-full">
+        <div className="flex justify-between items-start">
+          <Waves size={20} className="text-cyan-400 animate-pulse" />
+          <span className="text-[10px] font-mono text-cyan-400/60 uppercase tracking-[0.3em]">Intracellular Index</span>
+        </div>
+        <div className="space-y-1">
+          <p className="text-4xl font-mono font-bold text-white tracking-tighter">{(level / 1000).toFixed(2)}L</p>
+          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Hydration Saturation: {pct.toFixed(1)}%</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- Main Dashboard Implementation ---
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -30,12 +142,10 @@ const Dashboard = () => {
   
   const [nutritionToday, setNutritionToday] = useState(null);
   const [workoutToday, setWorkoutToday] = useState(null);
-  const [weightTrend, setWeightTrend] = useState([]);
-  const [streaks, setStreaks] = useState({ training: 0, logging: 0, water: 0 });
   const [showQuickLog, setShowQuickLog] = useState(false);
 
   useEffect(() => {
-    document.title = 'VORO | Evolution Dashboard';
+    document.title = 'VORO | Biological Matrix';
     loadDashboardData();
   }, []);
 
@@ -50,54 +160,7 @@ const Dashboard = () => {
     setNutritionToday(todayNutrition);
 
     const workoutLog = getItem('voro_workout_log') || {};
-    const todayWorkout = workoutLog[today];
-    setWorkoutToday(todayWorkout);
-
-    const metrics = getItem('voro_body_metrics') || {};
-    const weights = metrics.weights || [];
-    const last30 = weights.slice(-30).map(w => ({
-      date: new Date(w.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      weight: w.value,
-      fullDate: w.date
-    }));
-    setWeightTrend(last30);
-
-    calculateStreaks();
-  };
-
-  const calculateStreaks = () => {
-    const workoutLog = getItem('voro_workout_log') || {};
-    const nutritionLog = getItem('voro_nutrition_log') || {};
-    
-    let trainingStreak = 0;
-    let loggingStreak = 0;
-    let waterStreak = 0;
-    
-    let date = new Date();
-    for (let i = 0; i < 365; i++) {
-      const dateStr = date.toISOString().split('T')[0];
-      if (workoutLog[dateStr]?.attended) trainingStreak++;
-      else if (trainingStreak > 0) break;
-      date.setDate(date.getDate() - 1);
-    }
-
-    date = new Date();
-    for (let i = 0; i < 365; i++) {
-      const dateStr = date.toISOString().split('T')[0];
-      if (nutritionLog[dateStr]?.totals?.calories > 0) loggingStreak++;
-      else if (loggingStreak > 0) break;
-      date.setDate(date.getDate() - 1);
-    }
-
-    date = new Date();
-    for (let i = 0; i < 365; i++) {
-      const dateStr = date.toISOString().split('T')[0];
-      if (nutritionLog[dateStr]?.water >= (user?.waterGoal || 2000)) waterStreak++;
-      else if (waterStreak > 0) break;
-      date.setDate(date.getDate() - 1);
-    }
-
-    setStreaks({ training: trainingStreak, logging: loggingStreak, water: waterStreak });
+    setWorkoutToday(workoutLog[today]);
   };
 
   const handleQuickLog = (type, value) => {
@@ -105,7 +168,7 @@ const Dashboard = () => {
     const numValue = parseFloat(value);
 
     if (isNaN(numValue) || numValue <= 0) {
-      addNotification('Please enter a valid magnitude', 'error');
+      addNotification('Invalid magnitude detected', 'error');
       return;
     }
 
@@ -113,359 +176,233 @@ const Dashboard = () => {
       const metrics = getItem('voro_body_metrics') || { weights: [] };
       metrics.weights.push({ date: today, value: numValue });
       setItem('voro_body_metrics', metrics);
-      addNotification('Body transformation record synthesized', 'success');
+      addNotification('Mass record synthesized', 'success');
     } else if (type === 'water') {
       const log = getItem('voro_nutrition_log') || {};
       if (!log[today]) log[today] = { meals: {}, water: 0, totals: { calories: 0, protein: 0, carbs: 0, fat: 0 } };
       log[today].water = (log[today].water || 0) + numValue;
       setItem('voro_nutrition_log', log);
-      addNotification('Hydration matrix updated', 'success');
+      addNotification('Saturation levels elevated', 'success');
     } else if (type === 'meal') {
       const log = getItem('voro_nutrition_log') || {};
       if (!log[today]) log[today] = { meals: {}, water: 0, totals: { calories: 0, protein: 0, carbs: 0, fat: 0 } };
-      const mealId = `express_${Date.now()}`;
-      log[today].meals[mealId] = { name: 'Express Log', calories: numValue, protein: 0, carbs: 0, fat: 0, timestamp: new Date().toISOString() };
+      const mealId = `exp_${Date.now()}`;
+      log[today].meals[mealId] = { name: 'Matrix Entry', calories: numValue, protein: 0, carbs: 0, fat: 0, timestamp: new Date().toISOString() };
       log[today].totals.calories += numValue;
       setItem('voro_nutrition_log', log);
-      addNotification('Energy dynamics logged', 'success');
+      addNotification('Energy dynamics integrated', 'success');
     }
 
     loadDashboardData();
     setShowQuickLog(false);
   };
 
-  const greeting = useMemo(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
-  }, []);
-
-  const calorieStatus = useMemo(() => {
-    if (!nutritionToday || !user) return { status: 'neutral', remaining: user?.calorieGoal || 2000 };
-    const remaining = (user.calorieGoal || 2000) - (nutritionToday.totals?.calories || 0);
-    return {
-      status: remaining > 0 ? 'under' : 'over',
-      remaining: Math.abs(remaining)
-    };
-  }, [nutritionToday, user]);
-
-  const getMacroProgress = (macro) => {
-    if (!nutritionToday || !user) return 0;
-    const goal = user[`${macro}Goal`] || 1;
-    const actual = macro === 'water' ? (nutritionToday.water || 0) : (nutritionToday.totals?.[macro] || 0);
-    return Math.min((actual / goal) * 100, 100);
-  };
-
-  const todayDate = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-[#080B14]">
-        <div className="animate-pulse flex flex-col items-center">
-          <div className="w-12 h-12 rounded-full border-2 border-voro-primary border-t-transparent animate-spin mb-4" />
-          <p className="text-gray-500 font-medium tracking-widest text-xs uppercase">Initializing Evolution</p>
-        </div>
-      </div>
-    );
-  }
+  if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-[#080B14] text-[#F0F4FF] selection:bg-voro-primary/30">
-      {/* Background Decor */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-voro-primary/5 rounded-full blur-[120px]" />
-        <div className="absolute top-[20%] -right-[5%] w-[30%] h-[30%] bg-voro-secondary/5 rounded-full blur-[100px]" />
+    <div className="min-h-screen bg-[#020408] text-[#F0F4FF] overflow-x-hidden">
+      {/* Background Micro-asymmetry elements */}
+      <div className="fixed top-0 left-0 w-full h-full pointer-events-none z-0">
+        <div className="absolute top-[15%] left-[5%] w-[30vw] h-[30vw] bg-voro-primary/10 rounded-full blur-[150px] animate-pulse" />
+        <div className="absolute bottom-[10%] right-[10%] w-[20vw] h-[20vw] bg-blue-600/5 rounded-full blur-[120px]" />
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-[0.03]" />
       </div>
 
-      <div className="relative max-w-[1440px] mx-auto px-6 py-12 md:px-12 lg:px-20">
-        {/* Header Section */}
-        <header className="mb-20 flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3 text-voro-primary">
-              <Activity size={18} />
-              <span className="text-xs font-bold uppercase tracking-[0.2em]">Live Synthesis</span>
+      <div className="relative z-10 max-w-[1600px] mx-auto px-8 py-16 lg:px-24">
+        {/* Editorial Header */}
+        <header className="mb-24 flex flex-col lg:flex-row lg:items-end justify-between gap-12">
+          <div className="max-w-3xl space-y-4">
+            <div className="flex items-center gap-4 text-voro-primary">
+              <Shield size={16} />
+              <span className="text-[10px] font-mono uppercase tracking-[0.4em]">Biological Status: Secure</span>
+              <div className="h-[1px] w-12 bg-voro-primary/30" />
             </div>
-            <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-white leading-tight">
-              {greeting}, <span className="text-gradient">{user.name}</span>
+            <h1 className="text-7xl md:text-8xl font-black font-serif italic text-white leading-[0.9] tracking-tighter">
+              The {new Date().getHours() < 12 ? 'Ascension' : 'Metabolic'} <span className="text-gradient not-italic">Matrix</span>
             </h1>
-            <p className="text-gray-500 font-medium tracking-wide">{todayDate}</p>
+            <p className="text-gray-500 font-mono text-sm tracking-tight flex items-center gap-3">
+              <Binary size={14} className="text-voro-primary/50" />
+              SYNCHRONIZING SUBJECT: {user.name.toUpperCase()} // TEMPORAL NODE: {new Date().toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase()}
+            </p>
           </div>
 
-          <div className="flex gap-4">
-             <button
+          <div className="flex flex-wrap gap-4">
+            <button
               onClick={() => setShowQuickLog(true)}
-              className="group flex items-center gap-3 px-6 py-3 bg-white text-black rounded-full font-bold transition-all hover:scale-105 active:scale-95 shadow-xl shadow-white/5"
+              className="group relative overflow-hidden px-8 py-5 bg-white text-black rounded-sm transition-all hover:scale-105 active:scale-95 flex items-center gap-4"
             >
-              <Plus size={18} />
-              <span>Express Log</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-voro-primary to-voro-secondary opacity-0 group-hover:opacity-10 transition-opacity" />
+              <Plus size={20} strokeWidth={3} />
+              <span className="text-xs font-black uppercase tracking-[0.2em]">Synthesize Data</span>
             </button>
             <button
               onClick={() => navigate('/ai-coach')}
-              className="flex items-center gap-3 px-6 py-3 bg-[#1A2438] border border-[#2A3A52] text-white rounded-full font-bold transition-all hover:bg-[#243044] hover:border-voro-primary/50"
+              className="px-8 py-5 border border-white/10 bg-black/40 backdrop-blur-xl rounded-sm hover:border-voro-primary/50 transition-all flex items-center gap-4"
             >
-              <Zap size={18} className="text-voro-accent" />
-              <span>AI Advisor</span>
+              <Zap size={20} className="text-voro-accent" />
+              <span className="text-xs font-black uppercase tracking-[0.2em] text-white">AI Neural Link</span>
             </button>
           </div>
         </header>
 
-        <div className="grid grid-cols-12 gap-8">
-          {/* Main Exhibition: Calorie Performance */}
-          <div className="col-span-12 lg:col-span-8 space-y-8">
-            <section className="relative overflow-hidden rounded-[2.5rem] bg-[#111827] border border-white/5 p-8 md:p-12 shadow-2xl shadow-black/40">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-voro-primary/10 rounded-full blur-[80px] -mr-32 -mt-32" />
+        {/* The Matrix Exhibition Grid */}
+        <div className="grid grid-cols-12 gap-x-12 gap-y-16">
 
-              <div className="relative grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-                <div className="flex justify-center">
-                  <div className="relative p-4 rounded-full bg-black/20 backdrop-blur-sm border border-white/5">
-                    <Ring
-                      value={(nutritionToday?.totals?.calories || 0)}
-                      max={user.calorieGoal}
-                      size={240}
-                      unit="kcal"
-                    />
-                  </div>
+          {/* Column 1: Physical Domain */}
+          <div className="col-span-12 lg:col-span-4 space-y-12">
+            <section className="relative p-1 bg-gradient-to-br from-white/10 to-transparent rounded-3xl overflow-hidden">
+              <div className="absolute inset-0 bg-[#0A0C14] rounded-[calc(1.5rem-1px)]" />
+              <div className="relative p-8 space-y-8">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xs font-mono font-bold text-voro-primary uppercase tracking-[0.3em]">Biological Core</h3>
+                  <Maximize2 size={16} className="text-gray-600 hover:text-white cursor-pointer transition-colors" />
                 </div>
 
-                <div className="space-y-8">
-                  <div>
-                    <h3 className="text-sm font-bold text-gray-500 uppercase tracking-[0.2em] mb-4">Energy Dynamics</h3>
-                    <div className="flex items-baseline gap-3">
-                      <span className="text-7xl font-bold tracking-tighter text-white">
-                        {nutritionToday?.totals?.calories || 0}
-                      </span>
-                      <span className="text-xl font-medium text-gray-400">/ {user.calorieGoal} kcal</span>
-                    </div>
-                  </div>
+                <BiologicalCore recoveryScore={workoutToday?.attended ? 45 : 88} />
 
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg ${calorieStatus.status === 'under' ? 'bg-voro-secondary/20 text-voro-secondary' : 'bg-voro-danger/20 text-voro-danger'}`}>
-                          {calorieStatus.status === 'under' ? <TrendingDown size={18} /> : <TrendingUp size={18} />}
-                        </div>
-                        <span className="text-sm font-semibold text-gray-300">Remaining Allowance</span>
-                      </div>
-                      <span className="text-lg font-bold text-white">{calorieStatus.remaining} <span className="text-xs text-gray-500 uppercase ml-1">kcal</span></span>
-                    </div>
-
-                    <button
-                      onClick={() => navigate('/nutrition/diary')}
-                      className="w-full flex items-center justify-between px-6 py-4 rounded-2xl bg-voro-primary text-white font-bold transition-all hover:bg-voro-primary-dark group"
-                    >
-                      <span>Examine Nutrition Details</span>
-                      <ChevronRight size={18} className="transition-transform group-hover:translate-x-1" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* Metric Exposition: Macros */}
-            <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-              {[
-                { label: 'Protein', macro: 'protein', color: '#7C3AED', bg: 'bg-[#7C3AED]/10', text: 'text-[#A78BFA]', icon: '🍗' },
-                { label: 'Carbs', macro: 'carbs', color: '#10B981', bg: 'bg-[#10B981]/10', text: 'text-[#34D399]', icon: '🍚' },
-                { label: 'Fats', macro: 'fat', color: '#F59E0B', bg: 'bg-[#F59E0B]/10', text: 'text-[#FBBF24]', icon: '🥑' },
-                { label: 'Hydration', macro: 'water', color: '#3B82F6', bg: 'bg-[#3B82F6]/10', text: 'text-[#60A5FA]', icon: '💧' }
-              ].map((item) => (
-                <div key={item.macro} className="group relative bg-[#111827] border border-white/5 p-6 rounded-[2rem] transition-all hover:border-white/10 hover:translate-y-[-4px]">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className={`w-12 h-12 flex items-center justify-center rounded-2xl text-2xl ${item.bg}`}>
-                      {item.icon}
-                    </div>
-                    <span className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-500">{item.label}</span>
-                  </div>
-
-                  <div className="mb-4">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-bold text-white">
-                        {item.macro === 'water'
-                          ? (Math.round((nutritionToday?.water || 0) / 100) / 10).toFixed(1)
-                          : (nutritionToday?.totals?.[item.macro] || 0)
-                        }
-                      </span>
-                      <span className="text-xs font-bold text-gray-500">{item.macro === 'water' ? 'L' : 'g'}</span>
-                    </div>
-                  </div>
-
-                  <div className="relative h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                    <div
-                      className="absolute inset-y-0 left-0 transition-all duration-1000 ease-out rounded-full"
-                      style={{
-                        width: `${getMacroProgress(item.macro)}%`,
-                        backgroundColor: item.color
-                      }}
-                    />
-                  </div>
-                  <div className="mt-3 flex justify-between items-center">
-                    <span className="text-[0.6rem] font-bold text-gray-600 uppercase tracking-widest">{Math.round(getMacroProgress(item.macro))}% Goal</span>
-                    <div className="w-1 h-1 rounded-full bg-gray-800" />
-                  </div>
-                </div>
-              ))}
-            </section>
-
-            {/* Evolutionary Pattern: Weight Trend */}
-            {weightTrend.length > 0 && (
-              <section className="bg-[#111827] border border-white/5 p-8 rounded-[2.5rem]">
-                <div className="flex items-center justify-between mb-8">
-                  <div>
-                    <h3 className="text-sm font-bold text-gray-500 uppercase tracking-[0.2em] mb-1">Body Transformation</h3>
-                    <p className="text-2xl font-bold text-white tracking-tight">Weight Analysis <span className="text-xs text-gray-500 font-medium ml-2">30D Matrix</span></p>
-                  </div>
-                  <div className="px-4 py-2 bg-white/5 rounded-xl border border-white/5">
-                    <span className={`text-sm font-bold ${weightTrend[weightTrend.length-1].weight < weightTrend[0].weight ? 'text-voro-secondary' : 'text-voro-danger'}`}>
-                      {weightTrend[weightTrend.length-1].weight < weightTrend[0].weight ? '-' : '+'}
-                      {Math.abs(weightTrend[weightTrend.length - 1].weight - weightTrend[0].weight).toFixed(1)} kg
-                    </span>
-                  </div>
-                </div>
-                <div className="h-[300px] w-full">
-                  <LineChartComponent
-                    data={weightTrend}
-                    dataKey="weight"
-                    name="Weight"
-                    color="#7C3AED"
-                    height={300}
-                    strokeWidth={3}
-                  />
-                </div>
-              </section>
-            )}
-          </div>
-
-          {/* Side Panels: Consistency & Quick Actions */}
-          <div className="col-span-12 lg:col-span-4 space-y-8">
-            {/* AI Synchronicity */}
-            <section className="relative overflow-hidden bg-gradient-to-br from-voro-primary/20 to-voro-primary/5 border border-voro-primary/20 p-8 rounded-[2.5rem]">
-              <div className="absolute -right-4 -top-4 w-24 h-24 bg-voro-primary/20 rounded-full blur-2xl" />
-              <div className="relative">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 bg-voro-primary rounded-xl">
-                    <Layout size={20} className="text-white" />
-                  </div>
-                  <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white">System Insight</h3>
-                </div>
-                <p className="text-lg font-medium text-gray-200 leading-relaxed italic">
-                   "{aiInsight || `Your current momentum in ${user.primaryGoal?.toLowerCase() || 'health'} is exceptional. Prioritizing ${nutritionToday?.totals?.protein < (user.proteinGoal * 0.8) ? 'protein density' : 'hydration recovery'} will further optimize your evolution.`}"
-                </p>
-                <div className="mt-6 pt-6 border-t border-white/5 flex items-center justify-between">
-                  <span className="text-[0.65rem] font-bold text-voro-primary uppercase tracking-widest">Active Processing</span>
-                  <div className="flex gap-1">
-                    <div className="w-1 h-1 bg-voro-primary rounded-full animate-pulse" />
-                    <div className="w-1 h-1 bg-voro-primary rounded-full animate-pulse delay-75" />
-                    <div className="w-1 h-1 bg-voro-primary rounded-full animate-pulse delay-150" />
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* Consistency Matrix: Streaks */}
-            <section className="bg-[#111827] border border-white/5 p-8 rounded-[2.5rem] space-y-6">
-              <h3 className="text-sm font-bold text-gray-500 uppercase tracking-[0.2em]">Consistency Matrix</h3>
-
-              <div className="space-y-4">
-                {[
-                  { label: 'Training', value: streaks.training, icon: <Flame size={18} />, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-                  { label: 'Logging', value: streaks.logging, icon: <Zap size={18} />, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
-                  { label: 'Hydration', value: streaks.water, icon: <Droplets size={18} />, color: 'text-blue-500', bg: 'bg-blue-500/10' }
-                ].map((streak) => (
-                  <div key={streak.label} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className={`p-3 rounded-xl ${streak.bg} ${streak.color}`}>
-                        {streak.icon}
-                      </div>
-                      <span className="font-bold text-gray-300">{streak.label}</span>
+                <div className="pt-8 border-t border-white/5 space-y-6">
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <p className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-1">Hypertrophy Progress</p>
+                      <p className="text-2xl font-serif italic text-white">Neural Drive Active</p>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-black text-white leading-none">{streak.value}</div>
-                      <span className="text-[0.6rem] font-bold text-gray-500 uppercase tracking-widest">Days</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* Active Task: Workout */}
-            <section className="bg-[#111827] border border-white/5 p-8 rounded-[2.5rem]">
-              <div className="flex items-center justify-between mb-8">
-                <h3 className="text-sm font-bold text-gray-500 uppercase tracking-[0.2em]">Daily Engagement</h3>
-                <Calendar size={18} className="text-gray-600" />
-              </div>
-
-              {workoutToday?.attended ? (
-                <div className="space-y-6">
-                  <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-voro-secondary/10 text-voro-secondary border border-voro-secondary/20 rounded-full text-xs font-bold uppercase tracking-widest">
-                    <div className="w-1.5 h-1.5 rounded-full bg-voro-secondary animate-pulse" />
-                    Completed
-                  </div>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-500 text-sm font-medium">Session Archetype</span>
-                      <span className="text-white font-bold">{workoutToday.type}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-500 text-sm font-medium">Temporal Duration</span>
-                      <span className="text-white font-bold">{workoutToday.duration} min</span>
+                      <p className="text-xs font-mono text-emerald-400 font-bold">104.2%</p>
+                      <p className="text-[8px] font-black text-gray-600 uppercase">Velocity</p>
                     </div>
                   </div>
                   <button
                     onClick={() => navigate('/workout/log')}
-                    className="w-full py-4 rounded-2xl bg-white/5 border border-white/5 text-white font-bold transition-all hover:bg-white/10"
+                    className="w-full py-4 bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-[0.3em] text-white hover:bg-white/10 transition-all rounded-sm"
                   >
-                    Review Manifest
+                    Examine Neural Logs
                   </button>
                 </div>
-              ) : (
-                <div className="space-y-8 text-center">
-                  <div className="w-16 h-16 mx-auto bg-white/5 rounded-full flex items-center justify-center">
-                    <Target size={28} className="text-gray-600" />
-                  </div>
+              </div>
+            </section>
+
+            <section className="space-y-6">
+              <div className="flex items-center gap-4">
+                <Dna size={18} className="text-voro-secondary" />
+                <h3 className="text-xs font-mono font-bold text-gray-400 uppercase tracking-[0.3em]">Genetic Potential Insight</h3>
+              </div>
+              <div className="p-8 bg-gradient-to-r from-voro-primary/20 to-transparent border-l-2 border-voro-primary rounded-r-2xl">
+                <p className="text-lg font-serif leading-relaxed italic text-gray-200">
+                  "{aiInsight || `Subject's metabolic velocity is currently peaking at 2.4k. Intracellular saturation levels indicate a prime window for anabolic fuel integration within the next 45 temporal units.`}"
+                </p>
+              </div>
+            </section>
+          </div>
+
+          {/* Column 2: Nutritional Matrix */}
+          <div className="col-span-12 lg:col-span-8 space-y-16">
+
+            {/* Metabolic Velocity Centerpiece */}
+            <section className="relative overflow-hidden p-12 bg-[#0A0C14] border border-white/5 rounded-[3rem] shadow-2xl">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-voro-primary/10 rounded-full blur-[120px] -mr-48 -mt-48" />
+
+              <div className="relative flex flex-col md:flex-row items-center gap-16">
+                <div className="flex-1 space-y-8">
                   <div>
-                    <p className="text-gray-400 font-medium mb-1">No session recorded</p>
-                    <p className="text-[0.65rem] text-gray-600 uppercase font-black tracking-[0.15em]">Awaiting initiation</p>
+                    <div className="flex items-center gap-3 mb-4">
+                      <Atom size={18} className="text-voro-primary animate-spin-slow" />
+                      <h3 className="text-xs font-mono font-bold text-gray-500 uppercase tracking-[0.3em]">Metabolic Velocity</h3>
+                    </div>
+                    <div className="flex items-baseline gap-4">
+                      <span className="text-8xl font-serif font-black tracking-tighter text-white">
+                        {nutritionToday?.totals?.calories || 0}
+                      </span>
+                      <span className="text-sm font-mono text-gray-500 uppercase tracking-widest italic">kcal / 24h</span>
+                    </div>
                   </div>
-                  <button
-                    onClick={() => navigate('/workout/log')}
-                    className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-white text-black font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    <Plus size={18} />
-                    <span>Begin Workout</span>
-                  </button>
+
+                  <div className="grid grid-cols-2 gap-8">
+                    <div className="p-6 bg-white/5 rounded-2xl border border-white/5 backdrop-blur-sm">
+                      <p className="text-[10px] font-mono text-voro-primary uppercase tracking-widest mb-1">Target Threshold</p>
+                      <p className="text-2xl font-mono font-bold text-white tracking-tighter">{user.calorieGoal || 2000} <span className="text-[10px] text-gray-600">LIMIT</span></p>
+                    </div>
+                    <div className="p-6 bg-white/5 rounded-2xl border border-white/5 backdrop-blur-sm">
+                      <p className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest mb-1">Fuel Delta</p>
+                      <p className="text-2xl font-mono font-bold text-white tracking-tighter">
+                        {Math.max(0, (user.calorieGoal || 2000) - (nutritionToday?.totals?.calories || 0))} <span className="text-[10px] text-gray-600">REMAIN</span>
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              )}
+
+                <div className="w-full md:w-auto flex flex-col items-center gap-8">
+                  <HydrationMatrix level={nutritionToday?.water || 0} goal={user.waterGoal || 2000} />
+                </div>
+              </div>
             </section>
 
-            {/* Navigation Grid */}
-            <section className="grid grid-cols-2 gap-4">
-              {[
-                { label: 'Metrics', path: '/body/metrics', icon: <TrendingUp size={18} /> },
-                { label: 'Evolution', path: '/ai-coach', icon: <Activity size={18} /> }
-              ].map((link) => (
+            {/* Anabolic Fuel Ratios */}
+            <section className="space-y-12">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-mono font-bold text-gray-400 uppercase tracking-[0.4em]">Anabolic Fuel Ratios</h3>
+                <div className="h-[1px] flex-1 mx-8 bg-white/5" />
                 <button
-                  key={link.label}
-                  onClick={() => navigate(link.path)}
-                  className="flex flex-col items-center justify-center gap-3 p-6 rounded-[2rem] bg-[#111827] border border-white/5 transition-all hover:border-voro-primary/50 hover:bg-voro-primary/5 group"
+                  onClick={() => navigate('/nutrition/diary')}
+                  className="text-[10px] font-black uppercase tracking-widest text-voro-primary hover:text-white transition-colors"
                 >
-                  <div className="text-gray-500 group-hover:text-voro-primary transition-colors">
-                    {link.icon}
-                  </div>
-                  <span className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-500 group-hover:text-white transition-colors">{link.label}</span>
+                  Edit Manifest
                 </button>
-              ))}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-12">
+                <FuelRing
+                  label="Structural Protein"
+                  value={nutritionToday?.totals?.protein || 0}
+                  max={user.proteinGoal || 150}
+                  color="#7C3AED"
+                  icon={Shield}
+                />
+                <FuelRing
+                  label="Glycogen Flux"
+                  value={nutritionToday?.totals?.carbs || 0}
+                  max={user.carbsGoal || 250}
+                  color="#10B981"
+                  icon={Zap}
+                />
+                <FuelRing
+                  label="Lipid Integrity"
+                  value={nutritionToday?.totals?.fat || 0}
+                  max={user.fatGoal || 70}
+                  color="#F59E0B"
+                  icon={Atom}
+                />
+              </div>
+            </section>
+
+            {/* Grid-breaking Stat Blocks */}
+            <section className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+               <div className="group p-10 bg-[#0A0C14] border border-white/5 rounded-sm hover:border-voro-primary/50 transition-all transform hover:-translate-y-2">
+                 <p className="text-[10px] font-mono text-gray-500 uppercase tracking-[0.3em] mb-4">Consistency Resonance</p>
+                 <div className="flex items-center gap-6">
+                    <div className="text-5xl font-serif italic text-white">08</div>
+                    <div className="h-10 w-[1px] bg-white/10" />
+                    <p className="text-[10px] font-mono text-voro-primary uppercase leading-relaxed tracking-widest">
+                      Consecutive Days of<br />Metabolic Integration
+                    </p>
+                 </div>
+               </div>
+
+               <div className="group p-10 bg-[#0A0C14] border border-white/5 rounded-sm hover:border-emerald-500/50 transition-all transform hover:-translate-y-2 translate-y-8">
+                 <p className="text-[10px] font-mono text-gray-500 uppercase tracking-[0.3em] mb-4">Neural Drive History</p>
+                 <div className="flex items-center gap-6">
+                    <div className="text-5xl font-serif italic text-white">12</div>
+                    <div className="h-10 w-[1px] bg-white/10" />
+                    <p className="text-[10px] font-mono text-emerald-400 uppercase leading-relaxed tracking-widest">
+                      Temporal Sessions<br />Synthesized This Phase
+                    </p>
+                 </div>
+               </div>
             </section>
           </div>
         </div>
       </div>
 
-      {/* Quick Log Modal Integration */}
+      {/* Quick Log Modal Implementation */}
       {showQuickLog && (
         <QuickLogModal
           isOpen={showQuickLog}
@@ -473,6 +410,41 @@ const Dashboard = () => {
           onSubmit={handleQuickLog}
         />
       )}
+
+      {/* Custom Styles for Overhaul */}
+      <style>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+        .animate-float {
+          animation: float 6s ease-in-out infinite;
+        }
+        .animate-spin-slow {
+          animation: spin 8s linear infinite;
+        }
+        @keyframes wave-slow {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-wave-slow {
+          animation: wave-slow 15s linear infinite;
+        }
+        .perspective-1000 {
+          perspective: 1000px;
+        }
+        .transform-3d {
+          transform-style: preserve-3d;
+        }
+        .translate-z-20 {
+          transform: translateZ(-20px);
+        }
+        .text-gradient {
+          background: linear-gradient(to right, #7C3AED, #A78BFA);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+      `}</style>
     </div>
   );
 };
@@ -482,51 +454,55 @@ const QuickLogModal = ({ isOpen, onClose, onSubmit }) => {
   const [value, setValue] = useState('');
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Express Manifestation">
-      <div className="p-2 space-y-8">
-        <div className="space-y-2">
-          <label className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-500 ml-1">Type of Entry</label>
-          <div className="grid grid-cols-3 gap-2">
-            {['meal', 'weight', 'water'].map((t) => (
+    <Modal isOpen={isOpen} onClose={onClose} title="Neural Link: Data Synthesis">
+      <div className="p-4 space-y-10">
+        <div className="space-y-4">
+          <label className="text-[10px] font-mono font-bold uppercase tracking-[0.3em] text-gray-500 ml-1">Manifest Category</label>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { id: 'meal', label: 'Fuel' },
+              { id: 'weight', label: 'Mass' },
+              { id: 'water', label: 'Fluid' }
+            ].map((t) => (
               <button
-                key={t}
-                onClick={() => setType(t)}
-                className={`py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${type === t ? 'bg-voro-primary text-white' : 'bg-white/5 text-gray-500 hover:bg-white/10'}`}
+                key={t.id}
+                onClick={() => setType(t.id)}
+                className={`py-4 rounded-sm text-[10px] font-black uppercase tracking-[0.2em] transition-all border ${type === t.id ? 'bg-white text-black border-white' : 'bg-transparent text-gray-500 border-white/10 hover:border-white/30'}`}
               >
-                {t}
+                {t.label}
               </button>
             ))}
           </div>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-500 ml-1">Magnitude</label>
+        <div className="space-y-4">
+          <label className="text-[10px] font-mono font-bold uppercase tracking-[0.3em] text-gray-500 ml-1">Temporal Magnitude</label>
           <div className="relative">
              <input
               type="number"
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              placeholder={type === 'meal' ? 'Calories' : type === 'weight' ? 'kg' : 'ml'}
-              className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-xl font-bold text-white focus:outline-none focus:border-voro-primary focus:ring-1 focus:ring-voro-primary transition-all placeholder:text-gray-700"
+              placeholder="0.00"
+              className="w-full bg-transparent border-b-2 border-white/10 py-6 text-6xl font-serif italic text-white focus:outline-none focus:border-voro-primary transition-all placeholder:text-gray-900"
             />
-            <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-500">
+            <div className="absolute right-0 bottom-6 text-[10px] font-mono font-bold uppercase tracking-[0.3em] text-voro-primary">
                {type === 'meal' ? 'kcal' : type === 'weight' ? 'kg' : 'ml'}
             </div>
           </div>
         </div>
 
-        <div className="flex gap-4 pt-4">
+        <div className="flex gap-6 pt-6">
           <button
             onClick={onClose}
-            className="flex-1 py-4 rounded-2xl bg-white/5 text-gray-400 font-bold hover:bg-white/10 transition-all"
+            className="flex-1 py-5 text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 hover:text-white transition-all"
           >
-            Abort
+            Abort Link
           </button>
           <button
             onClick={() => onSubmit(type, value)}
-            className="flex-[2] py-4 rounded-2xl bg-voro-primary text-white font-bold hover:bg-voro-primary-dark shadow-lg shadow-voro-primary/20 transition-all"
+            className="flex-[2] py-5 bg-voro-primary text-white text-[10px] font-black uppercase tracking-[0.4em] hover:bg-voro-primary-dark transition-all shadow-[0_10px_30px_rgba(124,58,237,0.3)]"
           >
-            Confirm Entry
+            Synchronize
           </button>
         </div>
       </div>
