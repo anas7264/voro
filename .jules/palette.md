@@ -20,6 +20,10 @@
 **Learning:** Utilizing systemic components like 'Modal' instead of manual 'div' overlays ensures that accessibility features (Escape key handling, scroll management, focus trapping) are consistently applied throughout the application.
 **Action:** Prioritize refactoring manual overlays to use established UI components to maintain a high accessibility standard.
 
+## 2025-05-28 - Prioritizing Semantic Labels over Placeholders
+**Learning:** While placeholders provide a hint, they are not a substitute for semantic labels. Using the 'label' prop in base components ensures a permanent, screen-reader-accessible association between the description and the input, which remains visible even after the field is filled.
+**Action:** Always utilize the 'label' prop on 'Input', 'Select', and 'Textarea' components instead of relying solely on 'placeholder' text for form fields.
+
 ## 2025-05-20 - [Context-Aware Security Notifications]
 **UX Improvement:** While technically a security fix, the AI Privacy Shield includes a user-facing context note in AI messages: "(Note: PII has been redacted for privacy)".
 **Learning:** Security measures shouldn't be silent; informing the user that their privacy is actively protected builds trust and transparency in data-heavy applications.

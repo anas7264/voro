@@ -90,6 +90,7 @@ const HabitTracker = () => {
           <Card className="p-6 mb-6">
             <div className="space-y-4">
               <Input
+                label="Habit Name"
                 placeholder="Habit name"
                 value={newHabit.name}
                 onChange={(e) => setNewHabit(prev => ({ ...prev, name: e.target.value }))}
@@ -97,6 +98,7 @@ const HabitTracker = () => {
               />
               <div className="flex gap-2">
                 <Input
+                  label="Icon (emoji)"
                   placeholder="Icon (emoji)"
                   value={newHabit.icon}
                   onChange={(e) => setNewHabit(prev => ({ ...prev, icon: e.target.value }))}
@@ -104,6 +106,7 @@ const HabitTracker = () => {
                   className="w-20"
                 />
                 <Select
+                  label="Color"
                   value={newHabit.color}
                   onChange={(e) => setNewHabit(prev => ({ ...prev, color: e.target.value }))}
                   options={[
@@ -136,7 +139,8 @@ const HabitTracker = () => {
               <div className="flex items-center gap-3 flex-1">
                 <button
                   onClick={() => toggleHabit(habit.id)}
-                  className={`flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all ${
+                  aria-label={`Mark ${habit.name} as ${todayHabits[habit.id] ? 'not done' : 'done'}`}
+                  className={`flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-voro-surface outline-none ${
                     todayHabits[habit.id]
                       ? 'border-green-500 bg-green-500'
                       : 'border-gray-500'
@@ -159,6 +163,7 @@ const HabitTracker = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => removeHabit(habit.id)}
+                aria-label={`Delete ${habit.name} habit`}
                 className="text-gray-400 hover:text-danger"
               >
                 <Trash2 size={16} />
