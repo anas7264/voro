@@ -349,6 +349,30 @@ export const validateHabit = (habit) => {
   return { valid: Object.keys(errors).length === 0, errors };
 };
 
+// Form validation for recipe entry
+export const validateRecipe = (recipe) => {
+  const errors = {};
+
+  if (!recipe.name?.trim()) {
+    errors.name = "Recipe name is required";
+  } else if (recipe.name.length > 100) {
+    errors.name = "Recipe name must be less than 100 characters";
+  }
+
+  if (!Array.isArray(recipe.ingredients) || recipe.ingredients.length === 0) {
+    errors.ingredients = "At least one ingredient is required";
+  } else {
+    recipe.ingredients.forEach((ing, idx) => {
+      const portion = parseFloat(ing.portion);
+      if (isNaN(portion) || portion < 1 || portion > 5000) {
+        errors[`ingredient_${idx}_portion`] = `Portion for ${ing.name || 'ingredient'} must be between 1 and 5000 grams`;
+      }
+    });
+  }
+
+  return { valid: Object.keys(errors).length === 0, errors };
+};
+
 // Form validation for water entry
 export const validateWaterEntry = (entry) => {
   const errors = {};
@@ -403,5 +427,6 @@ export default {
   validateWaterEntry,
   validateFoodDiaryEntry,
   validateHabit,
+  validateRecipe,
   isValidWaterAmount
 };
