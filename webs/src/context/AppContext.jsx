@@ -12,33 +12,55 @@ export const AppProvider = ({ children }) => {
 
   // Initialize app state from storage
   useEffect(() => {
-    try {
-      const storedProfile = storage.get("profile");
-      const storedUser = storage.get("user");
+    const initApp = async () => {
+      try {
+        await storage.ensureInitialized();
+        const storedProfile = storage.get("profile");
+        const storedUser = storage.get("user");
 
-      if (storedProfile) {
-        setProfile(storedProfile);
-        setIsOnboarded(true);
+        if (storedProfile) {
+          setProfile(storedProfile);
+          setIsOnboarded(true);
+        }
+
+        if (storedUser) {
+          setUser(storedUser);
+        }
+
+        setLoading(false);
+      } catch (err) {
+        console.error("Failed to initialize app state:", err);
+        setError(err.message);
+        setLoading(false);
       }
+    };
+    initApp();
 
-      if (storedUser) {
+    // Subscribe to storage changes to keep state in sync
+    const unsubscribe = storage.subscribe((key, value) => {
+      if (key === 'profile') {
+        setProfile(value);
+        setIsOnboarded(!!value);
+      } else if (key === 'user') {
+        setUser(value);
+      } else if (key === '*') {
+        const storedProfile = storage.get("profile");
+        const storedUser = storage.get("user");
+        setProfile(storedProfile);
+        setIsOnboarded(!!storedProfile);
         setUser(storedUser);
       }
+    });
 
-      setLoading(false);
-    } catch (err) {
-      console.error("Failed to initialize app state:", err);
-      setError(err.message);
-      setLoading(false);
-    }
+    return unsubscribe;
   }, []);
 
   // Update user profile
-  const updateProfile = useCallback((updates) => {
+  const updateProfile = useCallback(async (updates) => {
     try {
       const updatedProfile = { ...profile, ...updates };
-      setProfile(updatedProfile);
-      storage.set("profile", updatedProfile);
+      // State is updated via subscription
+      await storage.set("profile", updatedProfile);
       return true;
     } catch (err) {
       console.error("Failed to update profile:", err);
@@ -48,11 +70,11 @@ export const AppProvider = ({ children }) => {
   }, [profile]);
 
   // Update user data
-  const updateUser = useCallback((updates) => {
+  const updateUser = useCallback(async (updates) => {
     try {
       const updatedUser = { ...user, ...updates };
-      setUser(updatedUser);
-      storage.set("user", updatedUser);
+      // State is updated via subscription
+      await storage.set("user", updatedUser);
       return true;
     } catch (err) {
       console.error("Failed to update user:", err);
@@ -62,7 +84,7 @@ export const AppProvider = ({ children }) => {
   }, [user]);
 
   // Complete onboarding
-  const completeOnboarding = useCallback((profileData) => {
+  const completeOnboarding = useCallback(async (profileData) => {
     try {
       const newProfile = {
         ...profileData,
@@ -70,9 +92,8 @@ export const AppProvider = ({ children }) => {
         completedOnboarding: true
       };
 
-      setProfile(newProfile);
-      setIsOnboarded(true);
-      storage.set("profile", newProfile);
+      // State is updated via subscription
+      await storage.set("profile", newProfile);
 
       return true;
     } catch (err) {

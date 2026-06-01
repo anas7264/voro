@@ -1,5 +1,6 @@
 // VORO Storage Manager
-// window.storage abstraction for data persistence
+// window.storage abstraction for data persistence with transparent encryption
+import crypto from './crypto';
 
 const STORAGE_PREFIX = "voro_";
 
@@ -34,6 +35,27 @@ const STORAGE_KEYS = {
 class StorageManager {
   constructor() {
     this.isAvailable = this.checkAvailability();
+    this.encryptedKeys = new Set(Object.values(STORAGE_KEYS));
+    this.listeners = new Set();
+    this.cache = new Map();
+    this.initialized = false;
+    this.initPromise = null;
+  }
+
+  async ensureInitialized() {
+    if (this.initialized) return;
+    if (this.initPromise) return this.initPromise;
+
+    this.initPromise = (async () => {
+      const keys = this.list();
+      for (const key of keys) {
+        const value = await this.getAsync(key);
+        this.cache.set(key, value);
+      }
+      this.initialized = true;
+    })();
+
+    return this.initPromise;
   }
 
   checkAvailability() {
@@ -53,43 +75,93 @@ class StorageManager {
     return `${STORAGE_PREFIX}${key}`;
   }
 
-  // Get item from storage
-  get(key) {
+  // Helper to determine if a key should be encrypted
+  shouldEncrypt(key) {
+    const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
+    return this.encryptedKeys.has(baseKey);
+  }
+
+  // Get item from storage asynchronously
+  async getAsync(key) {
     try {
-      if (!STORAGE_KEYS[key] && !key.startsWith(STORAGE_PREFIX)) {
-        console.warn(`Unknown storage key: ${key}`);
-        return null;
-      }
+      const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
 
       const fullKey = key.startsWith(STORAGE_PREFIX) ? key : this.getFullKey(key);
       const item = localStorage.getItem(fullKey);
 
       if (!item) return null;
 
-      try {
-        return JSON.parse(item);
-      } catch (e) {
-        console.error(`Failed to parse storage item ${fullKey}:`, e);
-        return item; // Return raw string if JSON parsing fails
+      // Migration/Compatibility: Check if the item is encrypted
+      let processedItem = item;
+      if (item.startsWith('v1:')) {
+        processedItem = await crypto.decrypt(item);
+      } else {
+        // Fallback for legacy plain-text data
+        try {
+          processedItem = JSON.parse(item);
+        } catch (e) {
+          // Return raw string if JSON parsing fails
+        }
       }
+
+      // Update cache
+      this.cache.set(baseKey, processedItem);
+      return processedItem;
     } catch (error) {
       console.error("Storage get error:", error);
       return null;
     }
   }
 
-  // Set item in storage
-  set(key, value) {
+  // Synchronous get (returns from cache)
+  get(key) {
+    const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
+
+    if (this.cache.has(baseKey)) {
+      return this.cache.get(baseKey);
+    }
+
+    // Fallback to synchronous localStorage read if not in cache (only works for non-encrypted)
+    const fullKey = key.startsWith(STORAGE_PREFIX) ? key : this.getFullKey(key);
+    const item = localStorage.getItem(fullKey);
+
+    if (!item) return null;
+
+    if (item.startsWith('v1:')) {
+      // Encrypted data cannot be read synchronously if not cached
+      return null;
+    }
+
     try {
-      if (!STORAGE_KEYS[key] && !key.startsWith(STORAGE_PREFIX)) {
-        console.warn(`Unknown storage key: ${key}`);
-        return false;
-      }
+      const parsed = JSON.parse(item);
+      this.cache.set(baseKey, parsed);
+      return parsed;
+    } catch (e) {
+      this.cache.set(baseKey, item);
+      return item;
+    }
+  }
+
+  // Set item in storage
+  async set(key, value) {
+    try {
+      const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
 
       const fullKey = key.startsWith(STORAGE_PREFIX) ? key : this.getFullKey(key);
-      const serialized = typeof value === "string" ? value : JSON.stringify(value);
+
+      let serialized;
+      if (this.shouldEncrypt(baseKey)) {
+        serialized = await crypto.encrypt(value);
+      } else {
+        serialized = typeof value === "string" ? value : JSON.stringify(value);
+      }
 
       localStorage.setItem(fullKey, serialized);
+
+      // Update cache and notify listeners
+      this.cache.set(baseKey, value);
+      this.notify(baseKey, value);
+
       return true;
     } catch (error) {
       console.error("Storage set error:", error);
@@ -100,8 +172,13 @@ class StorageManager {
   // Delete item from storage
   delete(key) {
     try {
+      const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
       const fullKey = key.startsWith(STORAGE_PREFIX) ? key : this.getFullKey(key);
       localStorage.removeItem(fullKey);
+
+      this.cache.delete(baseKey);
+      this.notify(baseKey, null);
+
       return true;
     } catch (error) {
       console.error("Storage delete error:", error);
@@ -129,6 +206,10 @@ class StorageManager {
           localStorage.removeItem(key);
         }
       });
+
+      this.cache.clear();
+      this.notify('*', null);
+
       return true;
     } catch (error) {
       console.error("Storage clear error:", error);
@@ -154,13 +235,13 @@ class StorageManager {
   }
 
   // Get all VORO storage data
-  getAll() {
+  async getAll() {
     try {
       const data = {};
       const keys = this.list();
-      keys.forEach(key => {
-        data[key] = this.get(key);
-      });
+      for (const key of keys) {
+        data[key] = await this.getAsync(key);
+      }
       return data;
     } catch (error) {
       console.error("Storage getAll error:", error);
@@ -168,9 +249,18 @@ class StorageManager {
     }
   }
 
+  // Get all data synchronously from cache
+  getAllSync() {
+    const data = {};
+    this.cache.forEach((value, key) => {
+      data[key] = value;
+    });
+    return data;
+  }
+
   // Export storage as JSON for backup
-  export() {
-    const data = this.getAll();
+  async export() {
+    const data = await this.getAll();
     const timestamp = new Date().toISOString();
     return {
       version: 1,
@@ -180,16 +270,16 @@ class StorageManager {
   }
 
   // Import storage from JSON
-  import(backup) {
+  async import(backup) {
     try {
       if (!backup.data || backup.version !== 1) {
         console.error("Invalid backup format");
         return false;
       }
 
-      Object.keys(backup.data).forEach(key => {
-        this.set(key, backup.data[key]);
-      });
+      for (const key of Object.keys(backup.data)) {
+        await this.set(key, backup.data[key]);
+      }
 
       return true;
     } catch (error) {
@@ -199,16 +289,16 @@ class StorageManager {
   }
 
   // Append to array in storage
-  append(key, value) {
+  async append(key, value) {
     try {
-      const existing = this.get(key) || [];
+      const existing = await this.getAsync(key) || [];
       if (!Array.isArray(existing)) {
         console.error(`Storage item ${key} is not an array`);
         return false;
       }
 
-      existing.push(value);
-      return this.set(key, existing);
+      const updated = [...existing, value];
+      return await this.set(key, updated);
     } catch (error) {
       console.error("Storage append error:", error);
       return false;
@@ -216,11 +306,11 @@ class StorageManager {
   }
 
   // Update object in storage (shallow merge)
-  update(key, updates) {
+  async update(key, updates) {
     try {
-      const existing = this.get(key) || {};
+      const existing = await this.getAsync(key) || {};
       const updated = { ...existing, ...updates };
-      return this.set(key, updated);
+      return await this.set(key, updated);
     } catch (error) {
       console.error("Storage update error:", error);
       return false;
@@ -228,14 +318,15 @@ class StorageManager {
   }
 
   // Get storage size in bytes
-  getSize() {
+  async getSize() {
     try {
       let total = 0;
       const keys = this.list();
-      keys.forEach(key => {
-        const value = this.get(key);
-        total += JSON.stringify(value).length;
-      });
+      for (const key of keys) {
+        const fullKey = this.getFullKey(key);
+        const item = localStorage.getItem(fullKey);
+        if (item) total += item.length;
+      }
       return total;
     } catch (error) {
       console.error("Storage size error:", error);
@@ -244,8 +335,8 @@ class StorageManager {
   }
 
   // Get storage size formatted
-  getSizeFormatted() {
-    const bytes = this.getSize();
+  async getSizeFormatted() {
+    const bytes = await this.getSize();
     if (bytes === 0) return "0 B";
     const k = 1024;
     const sizes = ["B", "KB", "MB", "GB"];
@@ -253,27 +344,14 @@ class StorageManager {
     return ((bytes / Math.pow(k, i)).toFixed(2) + " " + sizes[i]);
   }
 
-  // Clear old entries (for maintenance)
-  clearOldEntries(key, maxAge = 90) {
-    try {
-      const data = this.get(key);
-      if (!Array.isArray(data)) return false;
+  // Observer Pattern Implementation
+  subscribe(callback) {
+    this.listeners.add(callback);
+    return () => this.listeners.delete(callback);
+  }
 
-      const now = Date.now();
-      const filtered = data.filter(item => {
-        if (!item.timestamp) return true;
-        const age = (now - new Date(item.timestamp).getTime()) / (1000 * 60 * 60 * 24);
-        return age <= maxAge;
-      });
-
-      if (filtered.length < data.length) {
-        return this.set(key, filtered);
-      }
-      return true;
-    } catch (error) {
-      console.error("Clear old entries error:", error);
-      return false;
-    }
+  notify(key, value) {
+    this.listeners.forEach(callback => callback(key, value));
   }
 }
 

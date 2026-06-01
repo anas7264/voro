@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Plus, Trash2, Check } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
@@ -10,26 +10,35 @@ import { validateHabit } from '@/utils/validators';
 import { defaultHabits } from '@/data/defaultHabits';
 
 const HabitTracker = () => {
-  const { getStorage, setStorage } = useStorage();
+  const { getItemAsync, setItem, storageData } = useStorage();
   const { addNotification } = useNotifications();
   const [habits, setHabits] = useState([]);
   const [todayHabits, setTodayHabits] = useState({});
   const [showAddForm, setShowAddForm] = useState(false);
   const [newHabit, setNewHabit] = useState({ name: '', icon: '✓', color: 'voro-primary' });
 
+  const loadHabits = useCallback(async () => {
+    const data = await getItemAsync('habits') || { list: [], log: {} };
+    setHabits(data.list && data.list.length > 0 ? data.list : defaultHabits);
+    const today = new Date().toISOString().split('T')[0];
+    setTodayHabits(data.log?.[today] || {});
+  }, [getItemAsync]);
+
   useEffect(() => {
     document.title = 'VORO | Habit Tracker';
     loadHabits();
-  }, []);
+  }, [loadHabits]);
 
-  const loadHabits = () => {
-    const data = getStorage('voro_habits') || { list: [], log: {} };
-    setHabits(data.list || defaultHabits);
-    const today = new Date().toISOString().split('T')[0];
-    setTodayHabits(data.log?.[today] || {});
-  };
+  // Sync state when storageData changes (reactive updates)
+  useEffect(() => {
+    if (storageData.habits) {
+      setHabits(storageData.habits.list && storageData.habits.list.length > 0 ? storageData.habits.list : defaultHabits);
+      const today = new Date().toISOString().split('T')[0];
+      setTodayHabits(storageData.habits.log?.[today] || {});
+    }
+  }, [storageData.habits]);
 
-  const addHabit = () => {
+  const addHabit = async () => {
     // Security: Validate habit data before persisting to storage
     const { valid, errors } = validateHabit(newHabit);
     if (!valid) {
@@ -38,35 +47,54 @@ const HabitTracker = () => {
       return;
     }
 
-    const data = getStorage('voro_habits') || { list: [], log: {} };
+    const data = await getItemAsync('habits') || { list: [], log: {} };
     const habit = {
       id: Date.now().toString(),
       ...newHabit,
       createdAt: new Date().toISOString(),
     };
-    data.list.push(habit);
-    setStorage('voro_habits', data);
-    setHabits(data.list);
-    setNewHabit({ name: '', icon: '✓', color: 'voro-primary' });
-    setShowAddForm(false);
+
+    // Safety: Use immutable update pattern
+    const updatedData = {
+      ...data,
+      list: [...(data.list || []), habit]
+    };
+
+    const success = await setItem('habits', updatedData);
+    if (success) {
+      setNewHabit({ name: '', icon: '✓', color: 'voro-primary' });
+      setShowAddForm(false);
+      addNotification('Habit added successfully', 'success');
+    }
   };
 
-  const toggleHabit = (habitId) => {
-    const data = getStorage('voro_habits') || { list: [], log: {} };
+  const toggleHabit = async (habitId) => {
+    const data = await getItemAsync('habits') || { list: [], log: {} };
     const today = new Date().toISOString().split('T')[0];
-    if (!data.log) data.log = {};
-    if (!data.log[today]) data.log[today] = {};
 
-    data.log[today][habitId] = !data.log[today][habitId];
-    setStorage('voro_habits', data);
-    setTodayHabits(data.log[today]);
+    // Safety: Use immutable update pattern
+    const updatedLog = {
+      ...(data.log || {}),
+      [today]: {
+        ...(data.log?.[today] || {}),
+        [habitId]: !data.log?.[today]?.[habitId]
+      }
+    };
+
+    const updatedData = { ...data, log: updatedLog };
+    await setItem('habits', updatedData);
   };
 
-  const removeHabit = (habitId) => {
-    const data = getStorage('voro_habits') || { list: [], log: {} };
-    data.list = data.list.filter(h => h.id !== habitId);
-    setStorage('voro_habits', data);
-    setHabits(data.list);
+  const removeHabit = async (habitId) => {
+    const data = await getItemAsync('habits') || { list: [], log: {} };
+
+    // Safety: Use immutable update pattern
+    const updatedData = {
+      ...data,
+      list: (data.list || []).filter(h => h.id !== habitId)
+    };
+
+    await setItem('habits', updatedData);
   };
 
   return (
