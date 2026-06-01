@@ -17,19 +17,21 @@ export const Input = ({
   const errorId = `${inputId}-error`;
 
   const classes = [
-    "w-full px-3 py-2 border rounded-lg bg-surface text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200",
-    error && "border-red-500 focus:ring-red-500",
-    !error && "border-border",
-    disabled && "opacity-50 cursor-not-allowed bg-gray-600",
+    "w-full bg-transparent border-b border-white/10 px-0 py-4 text-white font-mono placeholder:font-serif placeholder:italic placeholder:text-gray-600 focus:outline-none focus:border-voro-primary transition-all duration-500",
+    error && "border-red-500 focus:border-red-500",
+    disabled && "opacity-30 cursor-not-allowed",
     className
   ]
     .filter(Boolean)
     .join(" ");
 
   return (
-    <div className="w-full">
+    <div className="w-full group">
       {label && (
-        <label htmlFor={inputId} className="block text-sm font-medium mb-1 text-gray-300">
+        <label
+          htmlFor={inputId}
+          className="block text-[0.6rem] font-black uppercase tracking-[0.3em] text-gray-500 group-focus-within:text-voro-primary transition-colors"
+        >
           {label}
         </label>
       )}
@@ -46,7 +48,7 @@ export const Input = ({
         {...props}
       />
       {error && (
-        <span id={errorId} className="text-xs text-red-500 mt-1">
+        <span id={errorId} className="text-[0.6rem] font-bold text-red-500 mt-2 block uppercase tracking-widest">
           {error}
         </span>
       )}

@@ -5,7 +5,7 @@ export const Checkbox = ({ checked = false, onChange, label, disabled = false, c
   const id = useId();
 
   return (
-    <div className={`flex items-center gap-2 ${className}`} {...props}>
+    <div className={`flex items-center gap-3 ${className}`} {...props}>
       <div className="relative flex items-center justify-center">
         <input
           type="checkbox"
@@ -13,23 +13,27 @@ export const Checkbox = ({ checked = false, onChange, label, disabled = false, c
           checked={checked}
           onChange={(e) => onChange(e.target.checked)}
           disabled={disabled}
-          className="peer absolute opacity-0 w-5 h-5 cursor-pointer z-10 disabled:cursor-not-allowed"
+          className="peer absolute opacity-0 w-6 h-6 cursor-pointer z-10 disabled:cursor-not-allowed"
         />
         <div
-          className={`w-5 h-5 rounded border-2 transition-all duration-200 flex items-center justify-center peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-surface ${
-            checked
-              ? "bg-primary border-primary"
-              : "border-border peer-hover:border-primary"
-          } ${disabled && "opacity-50"}`}
+          className={`
+            w-6 h-6 rounded-lg border-2 transition-all duration-500 flex items-center justify-center
+            peer-focus-visible:ring-2 peer-focus-visible:ring-voro-primary peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-[#080B14]
+            ${checked
+              ? "bg-voro-primary border-voro-primary shadow-lg shadow-voro-primary/30 rotate-[360deg]"
+              : "border-white/10 bg-white/5 peer-hover:border-voro-primary/50"
+            }
+            ${disabled && "opacity-30"}
+          `}
           aria-hidden="true"
         >
-          {checked && <Check size={16} className="text-white" />}
+          {checked && <Check size={14} strokeWidth={4} className="text-white animate-scale-in" />}
         </div>
       </div>
       {label && (
         <label
           htmlFor={id}
-          className={`text-white select-none ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+          className={`text-[0.65rem] font-black uppercase tracking-widest select-none transition-colors ${checked ? 'text-white' : 'text-gray-500'} ${disabled ? "opacity-30 cursor-not-allowed" : "cursor-pointer"}`}
         >
           {label}
         </label>

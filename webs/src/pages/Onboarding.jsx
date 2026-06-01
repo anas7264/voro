@@ -10,7 +10,7 @@ import Select from '@/components/Select';
 import Checkbox from '@/components/Checkbox';
 import VoroLogo from '@/components/VoroLogo';
 import Confetti from '@/components/Confetti';
-import { calculateBMI, calculateBMR, calculateTDEE } from '@/utils/calculators';
+import { calculateBMI, calculateBMR } from '@/utils/calculators';
 
 const Onboarding = () => {
   const navigate = useNavigate();
@@ -78,14 +78,14 @@ const Onboarding = () => {
   };
 
   const calculateProfileData = () => {
-    const bmi = calculateBMI(formData.weightKg, formData.heightCm / 100);
-    const bmr = calculateBMR({
-      weight: formData.weightKg,
-      height: formData.heightCm,
-      age: Number(formData.age),
-      gender: formData.gender
-    });
-    
+    const bmi = calculateBMI(Number(formData.weightKg), Number(formData.heightCm));
+    const bmr = calculateBMR(
+      Number(formData.weightKg),
+      Number(formData.heightCm),
+      Number(formData.age),
+      formData.gender
+    );
+
     const activityMultiplier = activityLevels.find(a => a.value === formData.activityLevel)?.multiplier || 1.55;
     const tdee = Math.round(bmr * activityMultiplier);
 
@@ -160,34 +160,25 @@ const Onboarding = () => {
     if (step > 1) setStep(step - 1);
   };
 
-  const stepTitles = [
-    'Welcome to VORO',
-    'Personal Information',
-    'Your Goal',
-    'Activity Level',
-    'Finalize Profile'
-  ];
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-voro-surface via-voro-card to-voro-surface flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#080B14] flex items-center justify-center p-4 sm:p-8">
       {showConfetti && <Confetti ref={confettiRef} />}
-      
+
       <div className="w-full max-w-2xl">
-        {/* Progress Bar */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+        <div className="mb-12 relative z-10 overflow-x-auto no-scrollbar">
+          <div className="flex items-center justify-between min-w-full sm:min-w-[400px] px-4">
             {[1, 2, 3, 4, 5].map((s) => (
               <div key={s} className="flex items-center flex-1">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all ${
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center font-black transition-all duration-500 ${
                   s <= step
-                    ? 'bg-voro-primary text-white'
-                    : 'bg-voro-border text-gray-400'
+                    ? 'bg-voro-primary text-white shadow-lg shadow-voro-primary/40'
+                    : 'bg-white/5 text-gray-600'
                 }`}>
-                  {s < step ? <Check size={20} /> : s}
+                  {s < step ? <Check size={24} /> : <span className="font-mono">{s}</span>}
                 </div>
                 {s < 5 && (
-                  <div className={`flex-1 h-1 mx-2 transition-all ${
-                    s < step ? 'bg-voro-primary' : 'bg-voro-border'
+                  <div className={`flex-1 h-1 mx-2 rounded-full transition-all duration-700 ${
+                    s < step ? "bg-voro-primary" : "bg-white/5"
                   }`} />
                 )}
               </div>
@@ -195,39 +186,37 @@ const Onboarding = () => {
           </div>
         </div>
 
-        <Card className="p-8">
-          {/* Step 1: Welcome */}
+        <Card className="p-6 sm:p-12 bg-[#0A0C14] border-white/5 rounded-[2rem] shadow-2xl relative overflow-hidden group">
           {step === 1 && (
-            <div className="text-center animate-fade-in">
-              <div className="mb-6 flex justify-center">
-                <VoroLogo size={120} />
+            <div className="text-center animate-fade-in relative z-10">
+              <div className="mb-10 flex justify-center transform hover:scale-105 transition-transform duration-500">
+                <VoroLogo size={140} />
               </div>
-              <h1 className="text-4xl font-bold mb-4 text-white">Welcome to VORO</h1>
-              <p className="text-lg text-gray-300 mb-6">Your Body. Your Data. Your Evolution.</p>
-              <p className="text-gray-400 mb-8">
-                VORO is your complete AI-powered fitness and nutrition operating system. 
+              <h1 className="text-4xl sm:text-5xl font-serif italic font-medium mb-6 text-white leading-tight">Welcome to <span className="text-voro-primary not-italic font-bold">VORO</span></h1>
+              <p className="text-lg text-gray-400 mb-10 font-medium tracking-wide">Your Body. Your Data. Your Evolution.</p>
+              <p className="text-gray-500 mb-12 leading-relaxed max-w-md mx-auto">
+                VORO is your complete AI-powered fitness and nutrition operating system.
                 Track every calorie, rep, measurement, and milestone beautifully.
               </p>
-              <div className="mb-8">
+              <div className="mb-12 relative z-10">
                 <Input
                   placeholder="What's your name?"
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   autoFocus
-                  className="text-center text-lg"
+                  className="text-center text-2xl font-serif italic font-bold text-voro-primary bg-white/[0.02] border-white/5"
                 />
               </div>
-              <p className="text-sm text-gray-500">Let's build your profile →</p>
+              <p className="text-[0.6rem] font-black text-voro-primary uppercase tracking-[0.3em]">Sequential Evolution Initiation</p>
             </div>
           )}
 
-          {/* Step 2: Personal Info */}
           {step === 2 && (
             <div className="animate-fade-in">
-              <h2 className="text-2xl font-bold mb-6 text-white">Personal Information</h2>
+              <h2 className="text-3xl font-serif italic font-medium mb-8 text-white">Personal Information</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Age</label>
+                  <label className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4">Age</label>
                   <Input
                     type="number"
                     name="age"
@@ -239,7 +228,7 @@ const Onboarding = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Gender</label>
+                  <label className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4">Gender</label>
                   <Select
                     name="gender"
                     value={formData.gender}
@@ -252,7 +241,7 @@ const Onboarding = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Height (cm)</label>
+                  <label className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4">Height (cm)</label>
                   <Input
                     type="number"
                     name="heightCm"
@@ -264,7 +253,7 @@ const Onboarding = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Current Weight (kg)</label>
+                  <label className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4">Current Weight (kg)</label>
                   <Input
                     type="number"
                     name="weightKg"
@@ -280,19 +269,18 @@ const Onboarding = () => {
             </div>
           )}
 
-          {/* Step 3: Goal Selection */}
           {step === 3 && (
             <div className="animate-fade-in">
-              <h2 className="text-2xl font-bold mb-6 text-white">What's Your Primary Goal?</h2>
-              <div className="grid grid-cols-2 gap-3">
+              <h2 className="text-3xl font-serif italic font-medium mb-8 text-white">What's Your Primary Goal?</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {goals.map((g) => (
                   <button
                     key={g.value}
                     onClick={() => setFormData(prev => ({ ...prev, goal: g.value }))}
-                    className={`p-4 rounded-lg border-2 transition-all ${
+                    className={`p-6 rounded-2xl border border-white/5 bg-white/[0.02] transition-all duration-700 ${
                       formData.goal === g.value
-                        ? 'border-voro-primary bg-voro-primary bg-opacity-10'
-                        : 'border-voro-border bg-voro-card hover:border-voro-primary'
+                        ? 'border-voro-primary bg-voro-primary/10 shadow-lg shadow-voro-primary/20'
+                        : 'border-white/5 bg-white/[0.02] hover:border-voro-primary/50'
                     }`}
                   >
                     <div className="text-3xl mb-2">{g.icon}</div>
@@ -303,19 +291,18 @@ const Onboarding = () => {
             </div>
           )}
 
-          {/* Step 4: Activity Level */}
           {step === 4 && (
             <div className="animate-fade-in">
-              <h2 className="text-2xl font-bold mb-6 text-white">Activity Level</h2>
+              <h2 className="text-3xl font-serif italic font-medium mb-8 text-white">Activity Level</h2>
               <div className="space-y-3">
                 {activityLevels.map((level) => (
                   <button
                     key={level.value}
                     onClick={() => setFormData(prev => ({ ...prev, activityLevel: level.value }))}
-                    className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
+                    className={`w-full p-6 rounded-2xl border border-white/5 bg-white/[0.02] text-left transition-all duration-700 ${
                       formData.activityLevel === level.value
-                        ? 'border-voro-primary bg-voro-primary bg-opacity-10'
-                        : 'border-voro-border bg-voro-card hover:border-voro-primary'
+                        ? 'border-voro-primary bg-voro-primary/10 shadow-lg shadow-voro-primary/20'
+                        : 'border-white/5 bg-white/[0.02] hover:border-voro-primary/50'
                     }`}
                   >
                     <div className="font-semibold text-white">{level.label}</div>
@@ -326,14 +313,13 @@ const Onboarding = () => {
             </div>
           )}
 
-          {/* Step 5: Finalize */}
           {step === 5 && (
             <div className="animate-fade-in">
-              <h2 className="text-2xl font-bold mb-6 text-white">Finalize Your Profile</h2>
+              <h2 className="text-3xl font-serif italic font-medium mb-8 text-white">Finalize Your Profile</h2>
               <div className="space-y-4 mb-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Dietary Preferences</label>
-                  <div className="space-y-2">
+                  <label className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4">Dietary Preferences</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {dietaryOptions.map((option) => (
                       <Checkbox
                         key={option}
@@ -356,7 +342,7 @@ const Onboarding = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4">
                     Allergies / Medical Conditions
                   </label>
                   <textarea
@@ -364,13 +350,13 @@ const Onboarding = () => {
                     value={formData.allergies}
                     onChange={handleInputChange}
                     placeholder="e.g., Nut allergy, Lactose intolerant..."
-                    className="w-full px-4 py-2 bg-voro-surface border border-voro-border rounded-lg text-white placeholder-gray-500"
-                    rows="3"
+                    className="w-full px-4 py-2 bg-white/[0.02] border border-white/5 rounded-2xl text-white placeholder-gray-500"
+                    rows="4"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Gym Name (Optional)</label>
+                  <label className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4">Gym Name (Optional)</label>
                   <Input
                     name="gymName"
                     value={formData.gymName}
@@ -380,7 +366,7 @@ const Onboarding = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Meals Per Day</label>
+                  <label className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4">Meals Per Day</label>
                   <input
                     type="range"
                     name="mealsPerDay"
@@ -390,37 +376,36 @@ const Onboarding = () => {
                     onChange={handleInputChange}
                     className="w-full"
                   />
-                  <div className="text-center mt-2 text-voro-primary font-bold">{formData.mealsPerDay} meals/day</div>
+                  <div className="text-center mt-2 text-2xl font-serif italic text-voro-primary font-bold">{formData.mealsPerDay} meals/day</div>
                 </div>
               </div>
 
-              <div className="bg-voro-surface border border-voro-border rounded-lg p-4 mb-6">
-                <p className="text-sm text-gray-300">
-                  ✓ Profile ready to create<br/>
-                  ✓ AI features enabled<br/>
-                  ✓ Your goals calculated
+              <div className="p-8 rounded-3xl bg-voro-primary/5 border border-voro-primary/10 mb-12 shadow-inner group-hover:bg-voro-primary/10 transition-colors duration-700">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-400 space-y-2">
+                  ⚡ Profile ready to create<br/>
+                  ⚡ AI features enabled<br/>
+                  ⚡ Your goals calculated
                 </p>
               </div>
             </div>
           )}
 
-          {/* Navigation */}
-          <div className="flex justify-between mt-8 gap-4">
+          <div className="flex justify-between mt-12 gap-4 relative z-10 flex flex-col sm:flex-row">
             <Button
-              variant="secondary"
+              variant="ghost"
               onClick={handleBack}
               disabled={step === 1}
-              className="flex items-center gap-2"
+              className={`flex items-center gap-3 px-8 py-4 ${step === 1 ? "opacity-0 pointer-events-none" : ""}`}
             >
-              <ChevronLeft size={18} />
+              <ChevronLeft size={20} />
               Back
             </Button>
             <Button
               onClick={handleNext}
-              className="flex items-center gap-2 flex-1 justify-center"
+              className="flex items-center gap-3 px-12 py-4 flex-1 sm:flex-none justify-center bg-white text-black hover:bg-white/90"
             >
-              {step === 5 ? 'Complete Profile' : 'Next'}
-              {step < 5 && <ChevronRight size={18} />}
+              {step === 5 ? 'Complete Profile' : 'Continue'}
+              {step < 5 && <ChevronRight size={20} />}
             </Button>
           </div>
         </Card>
