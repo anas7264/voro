@@ -100,8 +100,22 @@ const WaterTracker = () => {
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-white">Water Tracker</h1>
           <div className="flex gap-2">
-            <Button variant="secondary" size="sm" onClick={() => handleDateChange(-1)}><ChevronLeft size={16} /></Button>
-            <Button variant="secondary" size="sm" onClick={() => handleDateChange(1)}><ChevronRight size={16} /></Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handleDateChange(-1)}
+              aria-label="Go to previous day"
+            >
+              <ChevronLeft size={16} />
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handleDateChange(1)}
+              aria-label="Go to next day"
+            >
+              <ChevronRight size={16} />
+            </Button>
           </div>
         </div>
 
@@ -129,6 +143,7 @@ const WaterTracker = () => {
           <Button
             className="bg-blue-600 hover:bg-blue-700 text-white flex flex-col items-center justify-center h-24"
             onClick={() => addWater(200)}
+            aria-label="Add 200 ml of water"
           >
             <Plus size={24} className="mb-1" />
             <span className="text-sm">200 ml</span>
@@ -136,6 +151,7 @@ const WaterTracker = () => {
           <Button
             className="bg-blue-600 hover:bg-blue-700 text-white flex flex-col items-center justify-center h-24"
             onClick={() => addWater(250)}
+            aria-label="Add 250 ml of water"
           >
             <Plus size={24} className="mb-1" />
             <span className="text-sm">250 ml</span>
@@ -143,6 +159,7 @@ const WaterTracker = () => {
           <Button
             className="bg-blue-600 hover:bg-blue-700 text-white flex flex-col items-center justify-center h-24"
             onClick={() => addWater(500)}
+            aria-label="Add 500 ml of water"
           >
             <Plus size={24} className="mb-1" />
             <span className="text-sm">500 ml</span>
@@ -150,6 +167,7 @@ const WaterTracker = () => {
           <Button
             className="bg-blue-600 hover:bg-blue-700 text-white flex flex-col items-center justify-center h-24"
             onClick={() => addWater(750)}
+            aria-label="Add 750 ml of water"
           >
             <Plus size={24} className="mb-1" />
             <span className="text-sm">750 ml</span>
@@ -179,6 +197,7 @@ const WaterTracker = () => {
                     size="sm"
                     onClick={() => deleteLog(log.id)}
                     className="text-red-400 hover:text-red-300"
+                    aria-label={`Delete ${log.amount}ml entry logged at ${log.time}`}
                   >
                     <Trash2 size={16} />
                   </Button>
