@@ -126,8 +126,9 @@ export const isDateInPast = (dateString) => {
 // URL validation
 export const isValidURL = (url) => {
   try {
-    new URL(url);
-    return true;
+    const parsed = new URL(url);
+    // Security: Only allow http and https protocols to prevent javascript: or other malicious URI schemes
+    return ['http:', 'https:'].includes(parsed.protocol);
   } catch (e) {
     return false;
   }
