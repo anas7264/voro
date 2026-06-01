@@ -34,3 +34,10 @@
 1. Wrap all Recharts wrapper components in React.memo.
 2. Ensure displayName is set for memoized components.
 3. Keep chart data structures stable or memoized at the page level to maximize the benefit of React.memo.
+
+## 2026-06-01 - Streak Calculation Optimization
+**Learning:** Consolidating multiple O(N) loops into a single pass significantly reduces `Date` object churn and string conversions (by ~66%). However, early-exit logic must account for "pending" states (e.g., today's task not being done yet) to avoid resetting streaks prematurely. Skipping leading empty days before starting the break-condition is critical for parity with original behavior.
+
+**Action:**
+1. Use a single loop with multiple active flags for parallel streak processing.
+2. Implement specific 'active' transition logic: only break a streak once it has actually started and then encounters a gap.
