@@ -47,11 +47,13 @@ class VoroAIClient {
     // Handle Objects
     seen.add(data);
     const sanitizedObj = {};
-    const sensitiveKeys = ['name', 'gymName', 'email', 'phone', 'address', 'location', 'lat', 'lng', 'latitude', 'longitude'];
+    // Security: sensitiveKeys are all lowercase to allow case-insensitive matching
+    const sensitiveKeys = ['name', 'gymname', 'email', 'phone', 'address', 'location', 'lat', 'lng', 'latitude', 'longitude'];
 
     Object.keys(data).forEach(key => {
       const lowerKey = key.toLowerCase();
-      if (sensitiveKeys.includes(key) || lowerKey.includes('password') || lowerKey.includes('secret') || lowerKey.includes('token') || lowerKey.includes('key')) {
+      // Security: Use lowerKey for inclusion check to prevent case-based PII leakage (e.g., 'Name' or 'EMAIL')
+      if (sensitiveKeys.includes(lowerKey) || lowerKey.includes('password') || lowerKey.includes('secret') || lowerKey.includes('token') || lowerKey.includes('key')) {
         sanitizedObj[key] = '[REDACTED]';
       } else {
         sanitizedObj[key] = this.sanitizeData(data[key], seen);
