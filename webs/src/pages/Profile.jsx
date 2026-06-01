@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Edit2, Save, X } from 'lucide-react';
+import { Edit2, Save, X, User as UserIcon, Ruler, Weight, Target, Activity } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
-import Select from '@/components/Select';
-import { useAppContext, useApp } from '@/hooks/useAppContext';
+import { useApp } from '@/hooks/useAppContext';
 import { useStorage } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { calculateBMI, calculateBMR, calculateTDEE } from '@/utils/calculators';
@@ -12,13 +11,13 @@ import { validateFitnessProfile } from '@/utils/validators';
 
 const Profile = () => {
   const { user, updateUser: setUser } = useApp();
-  const { getStorage, setStorage } = useStorage();
+  const { setStorage } = useStorage();
   const { addNotification } = useNotifications();
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState(user || {});
 
   useEffect(() => {
-    document.title = 'VORO | Profile';
+    document.title = 'VORO | Profile Archetype';
   }, []);
 
   const handleInputChange = (e) => {
@@ -30,211 +29,210 @@ const Profile = () => {
   };
 
   const handleSave = () => {
-    // Security: Validate fitness profile before saving to storage
     const { valid, errors } = validateFitnessProfile({
       age: formData.age,
       height: formData.heightCm,
       weight: formData.currentWeight,
       gender: formData.gender,
-      goal: formData.primaryGoal, // Map primaryGoal to goal for validator
+      goal: formData.primaryGoal,
       activityLevel: formData.activityLevel || 'moderately_active'
     });
 
     if (!valid) {
-      const errorMsg = Object.values(errors).join('. ');
-      addNotification(`Validation failed: ${errorMsg}`, 'error');
+      addNotification(Object.values(errors)[0], 'error');
       return;
     }
 
     const bmi = calculateBMI(formData.currentWeight, formData.heightCm);
     const bmr = Number(calculateBMR(formData.currentWeight, formData.heightCm, formData.age, formData.gender || 'Male'));
-
-    // Security: Use the validated activity level from formData
-    const activityLevel = formData.activityLevel?.toLowerCase().replace(' ', '_') || 'moderately_active';
-    const tdee = calculateTDEE(bmr, activityLevel);
+    const tdee = calculateTDEE(bmr, formData.activityLevel || 'moderately_active');
 
     const updated = {
       ...formData,
-      bmi,
+      bmi: Number(bmi),
       bmr: Math.round(bmr),
       tdee,
     };
 
     setStorage('voro_profile', updated);
     setUser(updated);
-    addNotification('Profile updated successfully!', 'success');
+    addNotification('Neural identity synchronized', 'success');
     setEditing(false);
   };
 
-  if (!user) return <div className="p-8">Loading...</div>;
+  if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-voro-surface p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-white">Profile</h1>
+    <div className="min-h-screen bg-[#080B14] text-[#F0F4FF] pb-24">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+
+        {/* Header */}
+        <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-8">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3 text-voro-primary">
+              <UserIcon size={18} />
+              <span className="text-[0.6rem] font-black uppercase tracking-[0.3em]">Identity Matrix</span>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-serif italic font-medium text-white tracking-tight">
+              Subject <span className="text-voro-primary not-italic font-bold">{user.name}</span>
+            </h1>
+          </div>
+
           {!editing && (
             <Button
-              variant="secondary"
               onClick={() => setEditing(true)}
-              className="flex items-center gap-2"
+              className="px-8 shadow-xl shadow-voro-primary/20"
             >
-              <Edit2 size={18} />
-              Edit
+              <Edit2 size={18} className="mr-2" />
+              Modify Identity
             </Button>
           )}
-        </div>
+        </header>
 
         {editing ? (
-          <Card className="p-8">
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-300 mb-2">Name</label>
-                  <Input
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                  />
+          <div className="space-y-10 animate-slide-up">
+            <Card className="p-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <Input
+                  label="Display Name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                />
+                <Input
+                  label="Biological Age"
+                  type="number"
+                  name="age"
+                  value={formData.age}
+                  onChange={handleInputChange}
+                />
+                <div className="space-y-4">
+                  <label className="block text-[0.6rem] font-black uppercase tracking-[0.3em] text-gray-500 ml-1">Gender Identification</label>
+                  <div className="flex gap-2">
+                    {['Male', 'Female', 'Other'].map(g => (
+                      <button
+                        key={g}
+                        onClick={() => setFormData(p => ({ ...p, gender: g }))}
+                        className={`flex-1 py-3 rounded-xl text-[0.65rem] font-bold uppercase tracking-widest transition-all ${formData.gender === g ? 'bg-voro-primary text-white' : 'bg-white/5 text-gray-500 hover:bg-white/10 border border-white/5'}`}
+                      >
+                        {g}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm text-gray-300 mb-2">Age</label>
-                  <Input
-                    type="number"
-                    name="age"
-                    value={formData.age}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-300 mb-2">Gender</label>
-                  <Select
-                    name="gender"
-                    value={formData.gender}
-                    onChange={handleInputChange}
-                    options={[
-                      { value: 'Male', label: 'Male' },
-                      { value: 'Female', label: 'Female' },
-                      { value: 'Other', label: 'Other' },
-                    ]}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-300 mb-2">Height (cm)</label>
-                  <Input
-                    type="number"
-                    name="heightCm"
-                    value={formData.heightCm}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-300 mb-2">Current Weight (kg)</label>
-                  <Input
-                    type="number"
-                    name="currentWeight"
-                    value={formData.currentWeight}
-                    onChange={handleInputChange}
-                    step="0.1"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-300 mb-2">Target Weight (kg)</label>
-                  <Input
-                    type="number"
-                    name="targetWeight"
-                    value={formData.targetWeight}
-                    onChange={handleInputChange}
-                    step="0.1"
-                  />
-                </div>
+                <Input
+                  label="Height (cm)"
+                  type="number"
+                  name="heightCm"
+                  value={formData.heightCm}
+                  onChange={handleInputChange}
+                />
+                <Input
+                  label="Current Magnitude (kg)"
+                  type="number"
+                  name="currentWeight"
+                  value={formData.currentWeight}
+                  onChange={handleInputChange}
+                  step="0.1"
+                />
+                <Input
+                  label="Target Magnitude (kg)"
+                  type="number"
+                  name="targetWeight"
+                  value={formData.targetWeight}
+                  onChange={handleInputChange}
+                  step="0.1"
+                />
               </div>
 
-              <div className="flex gap-2">
-                <Button onClick={handleSave} className="flex items-center gap-2">
-                  <Save size={18} />
-                  Save
-                </Button>
+              <div className="flex gap-4 mt-12">
+                <Button onClick={handleSave} className="flex-1">Synchronize Profile</Button>
                 <Button
                   variant="secondary"
                   onClick={() => {
                     setFormData(user);
                     setEditing(false);
                   }}
-                  className="flex items-center gap-2"
+                  className="px-10"
                 >
-                  <X size={18} />
-                  Cancel
+                  Discard Changes
                 </Button>
               </div>
-            </div>
-          </Card>
+            </Card>
+          </div>
         ) : (
-          <div className="space-y-6">
-            {/* Basic Info */}
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Personal Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <span className="text-gray-400">Name</span>
-                  <div className="text-lg text-white">{user.name}</div>
-                </div>
-                <div>
-                  <span className="text-gray-400">Age</span>
-                  <div className="text-lg text-white">{user.age} years</div>
-                </div>
-                <div>
-                  <span className="text-gray-400">Gender</span>
-                  <div className="text-lg text-white">{user.gender}</div>
-                </div>
-                <div>
-                  <span className="text-gray-400">Height</span>
-                  <div className="text-lg text-white">{user.heightCm} cm</div>
-                </div>
-              </div>
-            </Card>
+          <div className="space-y-8 animate-fade-in">
+            {/* Biometric Nodes */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[
+                { label: 'Verticality', value: user.heightCm, unit: 'cm', icon: Ruler },
+                { label: 'Mass', value: user.currentWeight, unit: 'kg', icon: Weight },
+                { label: 'Biometric Index', value: user.bmi?.toFixed(1), unit: 'BMI', icon: Activity }
+              ].map((stat, i) => (
+                <Card key={i} className="p-8 group hover:-translate-y-1 transition-all duration-500">
+                  <div className="flex items-center justify-between mb-8">
+                    <span className="text-[0.6rem] font-black text-gray-500 uppercase tracking-[0.3em]">{stat.label}</span>
+                    <div className="p-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-gray-600 group-hover:text-voro-primary transition-colors">
+                      <stat.icon size={18} />
+                    </div>
+                  </div>
+                  <div className="flex items-baseline gap-3">
+                    <span className="text-5xl font-serif italic font-bold text-white tracking-tighter">{stat.value}</span>
+                    <span className="text-[0.65rem] font-black text-gray-600 uppercase tracking-widest">{stat.unit}</span>
+                  </div>
+                </Card>
+              ))}
+            </div>
 
-            {/* Physical Stats */}
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Physical Stats</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center">
-                  <span className="text-gray-400">Current Weight</span>
-                  <div className="text-3xl font-bold text-voro-primary">{user.currentWeight}kg</div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+               {/* Objectives */}
+               <Card className="p-10 space-y-10">
+                <div className="flex items-center gap-4">
+                  <div className="p-2.5 bg-voro-primary/10 text-voro-primary rounded-xl">
+                    <Target size={20} />
+                  </div>
+                  <h3 className="text-[0.7rem] font-black uppercase tracking-[0.3em] text-white">Objective Matrix</h3>
                 </div>
-                <div className="text-center">
-                  <span className="text-gray-400">Target Weight</span>
-                  <div className="text-3xl font-bold text-voro-secondary">{user.targetWeight}kg</div>
-                </div>
-                <div className="text-center">
-                  <span className="text-gray-400">BMI</span>
-                  <div className="text-3xl font-bold text-voro-accent">{user.bmi?.toFixed(1)}</div>
-                </div>
-              </div>
-            </Card>
 
-            {/* Goals */}
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Goals & Targets</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <span className="text-gray-400">Primary Goal</span>
-                  <div className="text-lg text-white">{user.primaryGoal}</div>
+                <div className="space-y-8">
+                  {[
+                    { label: 'Primary Directive', value: user.primaryGoal },
+                    { label: 'Target Mass', value: `${user.targetWeight} kg` },
+                    { label: 'Caloric Bound', value: `${user.calorieGoal} kcal` },
+                    { label: 'Metabolic Ceiling (TDEE)', value: `${user.tdee} kcal` }
+                  ].map((goal, i) => (
+                    <div key={i} className="flex items-center justify-between border-b border-white/5 pb-6 last:border-0 last:pb-0">
+                      <span className="text-[0.65rem] font-black text-gray-500 uppercase tracking-[0.2em]">{goal.label}</span>
+                      <span className="text-xl font-serif italic font-bold text-white">{goal.value}</span>
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <span className="text-gray-400">Daily Calorie Goal</span>
-                  <div className="text-lg text-white">{user.calorieGoal} kcal</div>
+              </Card>
+
+              {/* Identity Details */}
+              <Card className="p-10 space-y-10">
+                <div className="flex items-center gap-4">
+                  <div className="p-2.5 bg-voro-secondary/10 text-voro-secondary rounded-xl">
+                    <Activity size={20} />
+                  </div>
+                  <h3 className="text-[0.7rem] font-black uppercase tracking-[0.3em] text-white">Core Signatures</h3>
                 </div>
-                <div>
-                  <span className="text-gray-400">Protein Target</span>
-                  <div className="text-lg text-white">{user.proteinGoal}g</div>
+
+                <div className="space-y-8">
+                  {[
+                    { label: 'Subject Name', value: user.name },
+                    { label: 'Biological Age', value: `${user.age} Years` },
+                    { label: 'Gender Archetype', value: user.gender },
+                    { label: 'Initialization Date', value: new Date(user.createdAt || Date.now()).toLocaleDateString() }
+                  ].map((detail, i) => (
+                    <div key={i} className="flex items-center justify-between border-b border-white/5 pb-6 last:border-0 last:pb-0">
+                      <span className="text-[0.65rem] font-black text-gray-500 uppercase tracking-[0.2em]">{detail.label}</span>
+                      <span className="text-xl font-serif italic font-bold text-white uppercase tracking-tight">{detail.value}</span>
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <span className="text-gray-400">TDEE</span>
-                  <div className="text-lg text-white">{user.tdee} kcal</div>
-                </div>
-              </div>
-            </Card>
+              </Card>
+            </div>
           </div>
         )}
       </div>

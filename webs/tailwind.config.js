@@ -10,10 +10,10 @@ module.exports = {
         // Direct aliases for component compatibility
         primary: '#7C3AED',
         secondary: '#10B981',
-        surface: '#0F1629',
-        card: '#1A2438',
+        surface: '#080B14',
+        card: '#0A0C14',
         danger: '#EF4444',
-        border: '#2A3A52',
+        border: 'rgba(255, 255, 255, 0.05)',
         voro: {
           primary: '#7C3AED',
           'primary-light': '#A78BFA',
@@ -25,11 +25,10 @@ module.exports = {
           info: '#3B82F6',
           pink: '#EC4899',
           orange: '#F97316',
-          surface: '#0F1629',
-          card: '#1A2438',
-          danger: '#EF4444',
-        border: '#2A3A52',
-          elevated: '#243044',
+          surface: '#080B14',
+          card: '#0A0C14',
+          border: 'rgba(255, 255, 255, 0.05)',
+          elevated: '#111420',
         }
       },
       fontFamily: {

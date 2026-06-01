@@ -4,9 +4,9 @@ import {
   LayoutDashboard, Utensils, Dumbbell, Activity, BarChart3,
   Trophy, Bot, Calculator, BookOpen, User, Settings,
   ChevronLeft, ChevronRight, Flame, Droplets, Target,
-  Calendar, ClipboardList, ShoppingCart, FileText, Zap,
+  ClipboardList, ShoppingCart, FileText, Zap,
   TrendingUp, Camera, Heart, Star, Clock, BookMarked,
-  Layers, Coffee
+  Layers, Coffee, X, Calendar
 } from 'lucide-react';
 
 const navSections = [
@@ -80,121 +80,105 @@ const navSections = [
   },
 ];
 
-const Sidebar = ({ collapsed, setCollapsed }) => {
+const Sidebar = ({ collapsed, setCollapsed, isMobile }) => {
   const location = useLocation();
 
   return (
     <aside
       className={`
-        fixed left-0 top-0 h-full z-40 flex flex-col
-        bg-[#0D1424] border-r border-[#1E2D45]
-        transition-all duration-300 ease-in-out
-        ${collapsed ? 'w-16' : 'w-60'}
+        fixed left-0 top-0 h-full z-[60] flex flex-col
+        bg-[#0A0C14] border-r border-white/5 shadow-2xl
+        transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]
+        ${collapsed && !isMobile ? 'w-20' : 'w-72'}
+        ${isMobile && collapsed ? '-translate-x-full' : 'translate-x-0'}
       `}
     >
-      {/* Logo */}
-      <div className={`flex items-center h-16 px-3 border-b border-[#1E2D45] flex-shrink-0 ${collapsed ? 'justify-center' : 'justify-between'}`}>
-        {!collapsed && (
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-violet-900/50">
-              <span className="text-white font-black text-sm">V</span>
-            </div>
-            <span className="text-white font-black text-xl tracking-tight">VORO</span>
+      <div className={`flex items-center h-24 px-6 border-b border-white/5 flex-shrink-0 ${collapsed && !isMobile ? 'justify-center' : 'justify-between'}`}>
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-2xl bg-voro-primary flex items-center justify-center flex-shrink-0 shadow-lg shadow-voro-primary/30">
+            <span className="text-white font-black text-lg">V</span>
           </div>
-        )}
-        {collapsed && (
-          <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center shadow-lg shadow-violet-900/50">
-            <span className="text-white font-black text-sm">V</span>
-          </div>
-        )}
-        {!collapsed && (
+          {(!collapsed || isMobile) && (
+            <span className="text-white font-black text-2xl tracking-[0.2em]">VORO</span>
+          )}
+        </div>
+
+        {isMobile && !collapsed && (
           <button
             onClick={() => setCollapsed(true)}
-            className="text-gray-500 hover:text-white transition-colors p-1 rounded hover:bg-white/5 flex-shrink-0"
+            className="text-gray-500 hover:text-white transition-colors p-2 rounded-full hover:bg-white/5"
           >
-            <ChevronLeft size={16} />
+            <X size={20} />
           </button>
         )}
       </div>
 
-      {/* Expand toggle when collapsed */}
-      {collapsed && (
-        <button
-          onClick={() => setCollapsed(false)}
-          className="mt-3 mx-auto text-gray-500 hover:text-white transition-colors p-1.5 rounded hover:bg-white/5 flex-shrink-0"
-        >
-          <ChevronRight size={16} />
-        </button>
-      )}
-
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 
-        [&::-webkit-scrollbar]:w-1 
-        [&::-webkit-scrollbar-track]:bg-transparent 
-        [&::-webkit-scrollbar-thumb]:bg-white/10 
-        [&::-webkit-scrollbar-thumb]:rounded-full">
+      <nav className="flex-1 overflow-y-auto py-8 px-4 space-y-8 no-scrollbar">
         {navSections.map((section) => (
-          <div key={section.label} className="mb-3">
-            {!collapsed && (
-              <div className="px-2 mb-1 mt-1">
-                <span className="text-[9px] font-bold text-gray-600 tracking-widest uppercase">
+          <div key={section.label} className="space-y-4">
+            {(!collapsed || isMobile) && (
+              <div className="px-4">
+                <span className="text-[0.6rem] font-black text-gray-700 tracking-[0.3em] uppercase">
                   {section.label}
                 </span>
               </div>
             )}
-            {collapsed && <div className="my-2 mx-2 border-t border-[#1E2D45]" />}
-            {section.items.map((item) => {
-              const Icon = item.icon;
-              const isActive =
-                location.pathname === item.path ||
-                (item.path !== '/dashboard' && location.pathname.startsWith(item.path + '/'));
-              return (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  title={collapsed ? item.label : undefined}
-                  className={`
-                    flex items-center gap-3 px-2 py-2 rounded-lg text-sm font-medium
-                    transition-all duration-150 group relative mb-0.5
-                    ${collapsed ? 'justify-center' : ''}
-                    ${isActive
-                      ? 'bg-violet-600/20 text-violet-300 border border-violet-500/30'
-                      : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
-                    }
-                  `}
-                >
-                  <Icon
-                    size={16}
-                    className={`flex-shrink-0 transition-colors ${isActive ? 'text-violet-400' : 'group-hover:text-white'}`}
-                  />
-                  {!collapsed && (
-                    <span className="truncate leading-none">{item.label}</span>
-                  )}
-                  {/* Tooltip when collapsed */}
-                  {collapsed && (
-                    <div className="
-                      absolute left-full ml-3 px-2.5 py-1.5 
-                      bg-[#1A2438] text-white text-xs rounded-md shadow-xl 
-                      opacity-0 group-hover:opacity-100 pointer-events-none 
-                      whitespace-nowrap z-50 border border-[#2A3A52]
-                      transition-opacity duration-150
-                    ">
-                      {item.label}
-                    </div>
-                  )}
-                </NavLink>
-              );
-            })}
+
+            <div className="space-y-1">
+              {section.items.map((item) => {
+                const Icon = item.icon;
+                const isActive =
+                  location.pathname === item.path ||
+                  (item.path !== '/dashboard' && location.pathname.startsWith(item.path + '/'));
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => isMobile && setCollapsed(true)}
+                    className={`
+                      flex items-center gap-4 px-4 py-3.5 rounded-2xl text-sm font-medium
+                      transition-all duration-300 group relative
+                      ${collapsed && !isMobile ? 'justify-center' : ''}
+                      ${isActive
+                        ? 'bg-voro-primary text-white shadow-lg shadow-voro-primary/20'
+                        : 'text-gray-500 hover:text-white hover:bg-white/5'
+                      }
+                    `}
+                  >
+                    <Icon
+                      size={18}
+                      className={`flex-shrink-0 transition-transform duration-500 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`}
+                    />
+                    {(!collapsed || isMobile) && (
+                      <span className={`tracking-tight font-bold ${isActive ? 'opacity-100' : 'opacity-80'}`}>
+                        {item.label}
+                      </span>
+                    )}
+
+                    {collapsed && !isMobile && (
+                      <div className="
+                        absolute left-full ml-6 px-4 py-3
+                        bg-[#0A0C14] text-white text-[0.65rem] font-black uppercase tracking-widest rounded-xl shadow-2xl
+                        opacity-0 group-hover:opacity-100 pointer-events-none
+                        whitespace-nowrap z-[70] border border-white/10
+                        transition-all duration-300 translate-x-[-10px] group-hover:translate-x-0
+                      ">
+                        {item.label}
+                      </div>
+                    )}
+                  </NavLink>
+                );
+              })}
+            </div>
           </div>
         ))}
       </nav>
 
-      {/* Bottom info */}
-      {!collapsed && (
-        <div className="p-3 border-t border-[#1E2D45] flex-shrink-0">
-          <div className="text-[9px] text-gray-600 text-center tracking-widest uppercase">
-            VORO v1.0 · Your Fitness OS
-          </div>
+      {(!collapsed || isMobile) && (
+        <div className="p-8 border-t border-white/5 text-center">
+          <p className="text-[0.55rem] font-black text-gray-700 tracking-[0.4em] uppercase">
+             Matrix OS · 2026
+          </p>
         </div>
       )}
     </aside>

@@ -21,10 +21,6 @@ import Modal from '@/components/Modal';
 import LineChartComponent from '@/components/LineChartComponent';
 import Ring from '@/components/Ring';
 
-/**
- * ⚡ OPTIMIZATION: Hoisted static configurations outside the component to prevent
- * redundant allocations and garbage collection overhead on every render cycle.
- */
 const MACRO_CONFIG = [
   { label: 'Protein', macro: 'protein', color: '#7C3AED', bg: 'bg-[#7C3AED]/10', text: 'text-[#A78BFA]', icon: '🍗' },
   { label: 'Carbs', macro: 'carbs', color: '#10B981', bg: 'bg-[#10B981]/10', text: 'text-[#34D399]', icon: '🍚' },
@@ -87,11 +83,6 @@ const Dashboard = () => {
     calculateStreaks();
   };
 
-  /**
-   * ⚡ OPTIMIZATION: Refactored streak calculation into a single O(N) pass.
-   * This reduces Date object churn and string formatting by up to 66% compared
-   * to the original triple-loop implementation.
-   */
   const calculateStreaks = () => {
     const workoutLog = getItem('voro_workout_log') || {};
     const nutritionLog = getItem('voro_nutrition_log') || {};
@@ -107,7 +98,6 @@ const Dashboard = () => {
 
     const date = new Date();
     for (let i = 0; i < 365; i++) {
-      // Early exit if all streaks are broken
       if (!trainingActive && !loggingActive && !waterActive) break;
 
       const dateStr = date.toISOString().split('T')[0];
@@ -210,14 +200,12 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30">
-      {/* Background Decor */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-voro-primary/5 rounded-full blur-[120px]" />
         <div className="absolute top-[20%] -right-[5%] w-[30%] h-[30%] bg-voro-secondary/5 rounded-full blur-[100px]" />
       </div>
 
       <div className="relative max-w-[1440px] mx-auto px-6 py-12 md:px-12 lg:px-20">
-        {/* Header Section */}
         <header className="mb-20 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="space-y-2">
             <div className="flex items-center gap-3 text-voro-primary">
@@ -249,7 +237,6 @@ const Dashboard = () => {
         </header>
 
         <div className="grid grid-cols-12 gap-8">
-          {/* Main Exhibition: Calorie Performance */}
           <div className="col-span-12 lg:col-span-8 space-y-8">
             <section className="relative overflow-hidden rounded-[2.5rem] bg-[#0A0C14] border border-white/5 p-8 md:p-12 shadow-2xl shadow-black/40 transition-all hover:border-white/10 group/card">
               <div className="absolute top-0 right-0 w-64 h-64 bg-voro-primary/5 rounded-full blur-[100px] -mr-32 -mt-32 group-hover/card:bg-voro-primary/10 transition-colors duration-700" />
@@ -301,7 +288,6 @@ const Dashboard = () => {
               </div>
             </section>
 
-            {/* Metric Exposition: Macros */}
             <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
               {MACRO_CONFIG.map((item) => (
                 <div key={item.macro} className="group relative bg-[#0A0C14] border border-white/5 p-6 rounded-[2rem] transition-all hover:border-white/10 hover:translate-y-[-4px]">
@@ -341,7 +327,6 @@ const Dashboard = () => {
               ))}
             </section>
 
-            {/* Evolutionary Pattern: Weight Trend */}
             {weightTrend.length > 0 && (
               <section className="bg-[#0A0C14] border border-white/5 p-8 rounded-[2.5rem] shadow-xl">
                 <div className="flex items-center justify-between mb-10">
@@ -370,9 +355,7 @@ const Dashboard = () => {
             )}
           </div>
 
-          {/* Side Panels: Consistency & Quick Actions */}
           <div className="col-span-12 lg:col-span-4 space-y-8">
-            {/* AI Synchronicity */}
             <section className="relative overflow-hidden bg-gradient-to-br from-voro-primary/10 to-transparent border border-voro-primary/20 p-8 rounded-[2.5rem] shadow-[0_0_40px_rgba(124,58,237,0.1)] group/ai">
               <div className="absolute -right-4 -top-4 w-32 h-32 bg-voro-primary/10 rounded-full blur-3xl group-hover/ai:bg-voro-primary/20 transition-colors duration-1000" />
               <div className="relative">
@@ -380,7 +363,7 @@ const Dashboard = () => {
                   <div className="p-2.5 bg-voro-primary rounded-xl shadow-lg shadow-voro-primary/30">
                     <Layout size={20} className="text-white" />
                   </div>
-                  <h3 className="text-[0.65rem] font-black uppercase tracking-[0.3em] text-white">Neural Synthesis</h3>
+                  <h3 className="text-[0.7rem] font-black uppercase tracking-[0.3em] text-white">Neural Synthesis</h3>
                 </div>
                 <p className="text-xl font-serif italic font-medium text-gray-200 leading-relaxed">
                    "{aiInsight || `Your current momentum in ${user.primaryGoal?.toLowerCase() || 'health'} is exceptional. Prioritizing ${nutritionToday?.totals?.protein < (user.proteinGoal * 0.8) ? 'protein density' : 'hydration recovery'} will further optimize your evolution.`}"
@@ -396,7 +379,6 @@ const Dashboard = () => {
               </div>
             </section>
 
-            {/* Consistency Matrix: Streaks */}
             <section className="bg-[#0A0C14] border border-white/5 p-8 rounded-[2.5rem] space-y-8 shadow-xl">
               <h3 className="text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em]">Consistency Matrix</h3>
 
@@ -418,7 +400,6 @@ const Dashboard = () => {
               </div>
             </section>
 
-            {/* Active Task: Workout */}
             <section className="bg-[#0A0C14] border border-white/5 p-8 rounded-[2.5rem] shadow-xl">
               <div className="flex items-center justify-between mb-10">
                 <h3 className="text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em]">Daily Engagement</h3>
@@ -468,7 +449,6 @@ const Dashboard = () => {
               )}
             </section>
 
-            {/* Navigation Grid */}
             <section className="grid grid-cols-2 gap-5">
               {NAV_LINKS.map((link) => (
                 <button
@@ -487,7 +467,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Quick Log Modal Integration */}
       {showQuickLog && (
         <QuickLogModal
           isOpen={showQuickLog}

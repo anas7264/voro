@@ -1,10 +1,5 @@
 import React, { memo } from "react";
 
-/**
- * ⚡ OPTIMIZATION: Memoized Button component to prevent unnecessary re-renders.
- * As a high-frequency UI element, memoization ensures that buttons don't re-render
- * during parent state changes unless their specific props (like isLoading or children) change.
- */
 export const Button = memo(({
   children,
   variant = "primary",
@@ -16,21 +11,21 @@ export const Button = memo(({
   className = "",
   ...props
 }) => {
-  const baseClasses = "inline-flex items-center justify-center gap-2 font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2";
+  const baseClasses = "relative inline-flex items-center justify-center gap-2 font-black uppercase tracking-[0.3em] rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 overflow-hidden active:scale-95";
 
   const variants = {
-    primary: "bg-primary text-white hover:opacity-90 focus:ring-primary",
-    secondary: "bg-secondary text-white hover:opacity-90 focus:ring-secondary",
-    outline: "border-2 border-primary text-primary hover:bg-primary hover:text-white",
-    ghost: "text-primary hover:bg-primary hover:bg-opacity-10",
-    danger: "bg-red-500 text-white hover:opacity-90 focus:ring-red-500"
+    primary: "bg-voro-primary text-white hover:bg-opacity-90 shadow-lg shadow-voro-primary/20",
+    secondary: "bg-voro-secondary text-white hover:bg-opacity-90 shadow-lg shadow-voro-secondary/20",
+    outline: "border-2 border-voro-primary text-voro-primary hover:bg-voro-primary hover:text-white",
+    ghost: "text-voro-primary hover:bg-voro-primary hover:bg-opacity-10",
+    danger: "bg-red-500 text-white hover:bg-opacity-90 shadow-lg shadow-red-500/20"
   };
 
   const sizes = {
-    sm: "px-3 py-1.5 text-sm",
-    md: "px-4 py-2 text-base",
-    lg: "px-6 py-3 text-lg",
-    xl: "px-8 py-4 text-xl"
+    sm: "px-3 py-1.5 text-[0.65rem]",
+    md: "px-6 py-3 text-[0.7rem]",
+    lg: "px-8 py-4 text-[0.8rem]",
+    xl: "px-10 py-5 text-[0.9rem]"
   };
 
   const classes = [

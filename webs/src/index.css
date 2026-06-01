@@ -11,9 +11,9 @@
   --accent: #F59E0B;
   --danger: #EF4444;
   --info: #3B82F6;
-  --surface: #0F1629;
-  --card: #1A2438;
-  --border: #2A3A52;
+  --surface: #080B14;
+  --card: #0A0C14;
+  --border: rgba(255, 255, 255, 0.05);
 }
 
 * {
@@ -39,11 +39,11 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-[#0F1629];
+  @apply bg-[#080B14];
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-[#2A3A52] rounded-full hover:bg-[#3A4A62];
+  @apply bg-white/10 rounded-full hover:bg-white/20;
 }
 
 /* Global Animations */
@@ -166,7 +166,7 @@ body {
 }
 
 .voro-input {
-  @apply w-full px-4 py-2 bg-[#1A2438] border border-[#2A3A52] rounded-lg text-[#F0F4FF] placeholder-[#6B7C9C] focus:outline-none focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all;
+  @apply w-full px-4 py-2 bg-[#0A0C14] border border-white/5 rounded-lg text-[#F0F4FF] placeholder-gray-600 focus:outline-none focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all font-mono;
 }
 
 .voro-input-error {
@@ -199,7 +199,7 @@ body {
 
 /* Card Base */
 .voro-card {
-  @apply bg-[#1A2438] border border-[#2A3A52] rounded-xl p-6 card-shadow;
+  @apply bg-[#0A0C14] border border-white/5 rounded-xl p-6 card-shadow backdrop-blur-md;
 }
 
 /* Responsive Typography */

@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Trash2, CheckCircle } from 'lucide-react';
+import { Plus, Trash2, CheckCircle, Dumbbell, Calendar, Clock, Activity } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
-import Select from '@/components/Select';
 import Modal from '@/components/Modal';
 import Checkbox from '@/components/Checkbox';
 import { useStorage } from '@/hooks/useStorage';
@@ -60,6 +59,7 @@ const WorkoutLog = () => {
     };
     setSelectedExercises([...selectedExercises, newExercise]);
     setShowExerciseSearch(false);
+    addNotification(`${exercise.name} added to session`, 'success');
   };
 
   const removeExercise = (index) => {
@@ -73,21 +73,19 @@ const WorkoutLog = () => {
   };
 
   const saveWorkout = () => {
-    // Security: Validate workout session data before persisting to storage
     const { valid, errors } = validateWorkoutEntry({
       date,
       exercises: selectedExercises
     });
 
     if (!valid) {
-      const errorMsg = Object.values(errors)[0]; // Get the first error message
-      addNotification(`Validation failed: ${errorMsg}`, 'error');
+      addNotification(Object.values(errors)[0], 'error');
       return;
     }
 
     const allWorkouts = getStorage('voro_workout_log') || {};
     const volume = selectedExercises.reduce((sum, ex) => {
-      return sum + ex.sets.reduce((exSum, set) => exSum + (set.weight * set.reps), 0);
+      return sum + ex.sets.reduce((exSum, set) => exSum + (Number(set.weight) * Number(set.reps)), 0);
     }, 0);
 
     allWorkouts[date] = {
@@ -104,181 +102,230 @@ const WorkoutLog = () => {
 
     setStorage('voro_workout_log', allWorkouts);
     setWorkoutData(allWorkouts[date]);
-    addNotification('Workout saved successfully', 'success');
+    addNotification('Kinetic manifestation archived', 'success');
   };
 
-  if (!workoutData) return <div className="p-8">Loading...</div>;
-
-  /**
-   * ⚡ OPTIMIZATION: Memoize filtered exercises and skip calculation when modal is closed.
-   * This avoids O(N) filtering (N=150+) on every keystroke when user is updating
-   * reps or weights in the main workout log.
-   */
   const filteredExercises = useMemo(() => {
     if (!showExerciseSearch) return [];
-
     const query = searchQuery.toLowerCase();
     return exercises.filter(e =>
       e.name.toLowerCase().includes(query) ||
       e.category.toLowerCase().includes(query)
-    );
+    ).slice(0, 20);
   }, [showExerciseSearch, searchQuery]);
 
+  if (!workoutData) return null;
+
   return (
-    <div className="min-h-screen bg-voro-surface p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-white mb-6">Workout Log</h1>
+    <div className="min-h-screen bg-[#080B14] text-[#F0F4FF] pb-24">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
-        {/* Date & Session Info */}
-        <Card className="p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Input
-              type="date"
-              label="Date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
-            <Select
-              label="Session Type"
-              value={sessionType}
-              onChange={(e) => setSessionType(e.target.value)}
-              options={[
-                { value: 'Strength', label: 'Strength' },
-                { value: 'Cardio', label: 'Cardio' },
-                { value: 'HIIT', label: 'HIIT' },
-                { value: 'Yoga', label: 'Yoga' },
-              ]}
-            />
-            <Input
-              label="Duration (min)"
-              type="number"
-              value={sessionDuration}
-              onChange={(e) => setSessionDuration(Number(e.target.value))}
-              min="1"
-              max="300"
-            />
+        {/* Header */}
+        <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-8">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3 text-voro-primary">
+              <Dumbbell size={18} />
+              <span className="text-[0.6rem] font-black uppercase tracking-[0.3em]">Kinetic Manifestation Log</span>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-serif italic font-medium text-white tracking-tight">
+              Physical <span className="text-voro-primary not-italic font-bold">Evolution</span>
+            </h1>
           </div>
-        </Card>
 
-        {/* Exercises */}
-        <div className="space-y-4 mb-6">
-          {selectedExercises.map((exercise, idx) => (
-            <Card key={exercise.id} className="p-4">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-white">{exercise.name}</h3>
-                  <p className="text-xs text-gray-400">{exercise.category}</p>
+          <div className="flex gap-4">
+            <Button onClick={saveWorkout} className="px-8 shadow-xl shadow-voro-primary/20">
+              <CheckCircle size={18} className="mr-2" />
+              Archive Session
+            </Button>
+          </div>
+        </header>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+          {/* Controls & Metrics */}
+          <div className="lg:col-span-4 space-y-6">
+            <Card className="p-8 space-y-8">
+              <div className="space-y-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <Calendar size={16} className="text-voro-primary" />
+                  <span className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-500">Temporal Frame</span>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeExercise(idx)}
-                  className="text-danger"
-                  aria-label={`Remove ${exercise.name}`}
-                >
-                  <Trash2 size={16} />
-                </Button>
+                <Input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
               </div>
 
-              <div className="space-y-2">
-                {exercise.sets.map((set, setIdx) => (
-                  <div key={setIdx} className="flex gap-2 items-center">
-                    <span className="text-sm text-gray-400 w-8">Set {setIdx + 1}</span>
-                    <Input
-                      type="number"
-                      placeholder="Reps"
-                      value={set.reps}
-                      onChange={(e) => updateSet(idx, setIdx, 'reps', Number(e.target.value))}
-                      className="w-20"
-                      aria-label={`${exercise.name} set ${setIdx + 1} reps`}
-                    />
-                    <Input
-                      type="number"
-                      placeholder="Weight"
-                      value={set.weight}
-                      onChange={(e) => updateSet(idx, setIdx, 'weight', Number(e.target.value))}
-                      step="0.5"
-                      className="w-20"
-                      aria-label={`${exercise.name} set ${setIdx + 1} weight`}
-                    />
-                    <span className="text-sm text-gray-400">kg</span>
-                    <Checkbox
-                      checked={set.completed}
-                      onChange={(checked) => updateSet(idx, setIdx, 'completed', checked)}
-                      className="ml-auto"
-                      aria-label={`Mark ${exercise.name} set ${setIdx + 1} as completed`}
-                    />
-                  </div>
-                ))}
+              <div className="space-y-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <Activity size={16} className="text-voro-primary" />
+                  <span className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-500">Archetype</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {['Strength', 'Cardio', 'HIIT', 'Yoga'].map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setSessionType(t)}
+                      className={`py-3 rounded-xl text-[0.65rem] font-bold uppercase tracking-widest transition-all ${sessionType === t ? 'bg-voro-primary text-white' : 'bg-white/5 text-gray-500 hover:bg-white/10 border border-white/5'}`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <Button
-                variant="secondary"
-                size="sm"
-                className="mt-3 w-full"
-                onClick={() => {
-                  const updated = [...selectedExercises];
-                  updated[idx].sets.push({ reps: 8, weight: 0, completed: false });
-                  setSelectedExercises(updated);
-                }}
-              >
-                + Add Set
-              </Button>
+              <div className="space-y-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <Clock size={16} className="text-voro-primary" />
+                  <span className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-500">Temporal Depth</span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <Input
+                    type="number"
+                    value={sessionDuration}
+                    onChange={(e) => setSessionDuration(Number(e.target.value))}
+                    min="1"
+                  />
+                  <span className="text-[0.65rem] font-black text-gray-600 uppercase tracking-widest">Minutes</span>
+                </div>
+              </div>
             </Card>
-          ))}
+
+            <Card className="p-8 bg-gradient-to-br from-voro-primary/5 to-transparent border-voro-primary/10">
+              <p className="text-[0.65rem] font-black text-gray-500 uppercase tracking-[0.3em] mb-2">Aggregate Force</p>
+              <div className="flex items-baseline gap-3">
+                <span className="text-5xl font-serif italic font-bold text-white">
+                  {selectedExercises.reduce((sum, ex) => sum + ex.sets.reduce((s, set) => s + (Number(set.weight) * Number(set.reps)), 0), 0)}
+                </span>
+                <span className="text-[0.65rem] font-black text-gray-600 uppercase tracking-widest">kg Volume</span>
+              </div>
+            </Card>
+          </div>
+
+          {/* Exercise List */}
+          <div className="lg:col-span-8 space-y-6">
+            {selectedExercises.map((exercise, idx) => (
+              <Card key={exercise.id} className="p-0 overflow-hidden group/ex animate-slide-up">
+                <div className="p-8 flex items-center justify-between border-b border-white/5 bg-white/[0.01]">
+                  <div className="space-y-1">
+                    <p className="text-[0.6rem] font-black text-voro-primary uppercase tracking-[0.3em]">{exercise.category}</p>
+                    <h3 className="text-2xl font-serif italic font-medium text-white tracking-tight">{exercise.name}</h3>
+                  </div>
+                  <button
+                    onClick={() => removeExercise(idx)}
+                    className="p-3 rounded-full hover:bg-red-500/10 text-gray-600 hover:text-red-400 transition-all opacity-0 group-hover/ex:opacity-100"
+                  >
+                    <Trash2 size={20} />
+                  </button>
+                </div>
+
+                <div className="p-8 space-y-4">
+                  <div className="grid grid-cols-12 gap-4 text-[0.6rem] font-black text-gray-600 uppercase tracking-widest mb-2 px-4">
+                    <div className="col-span-2">Set</div>
+                    <div className="col-span-4">Magnitude (kg)</div>
+                    <div className="col-span-4">Reps</div>
+                    <div className="col-span-2 text-right">Status</div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {exercise.sets.map((set, setIdx) => (
+                      <div key={setIdx} className={`grid grid-cols-12 gap-4 items-center p-4 rounded-2xl border transition-all ${set.completed ? 'bg-voro-primary/5 border-voro-primary/20' : 'bg-white/[0.02] border-white/5'}`}>
+                        <div className="col-span-2 font-mono font-bold text-gray-500">#{setIdx + 1}</div>
+                        <div className="col-span-4">
+                          <input
+                            type="number"
+                            value={set.weight}
+                            onChange={(e) => updateSet(idx, setIdx, 'weight', e.target.value)}
+                            className="w-full bg-transparent border-b border-white/10 focus:border-voro-primary focus:outline-none py-1 text-lg font-mono font-bold text-white transition-all"
+                          />
+                        </div>
+                        <div className="col-span-4">
+                          <input
+                            type="number"
+                            value={set.reps}
+                            onChange={(e) => updateSet(idx, setIdx, 'reps', e.target.value)}
+                            className="w-full bg-transparent border-b border-white/10 focus:border-voro-primary focus:outline-none py-1 text-lg font-mono font-bold text-white transition-all"
+                          />
+                        </div>
+                        <div className="col-span-2 flex justify-end">
+                           <Checkbox
+                            checked={set.completed}
+                            onChange={(checked) => updateSet(idx, setIdx, 'completed', checked)}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      const updated = [...selectedExercises];
+                      const lastSet = exercise.sets[exercise.sets.length - 1] || { reps: 8, weight: 0 };
+                      updated[idx].sets.push({ reps: lastSet.reps, weight: lastSet.weight, completed: false });
+                      setSelectedExercises(updated);
+                    }}
+                    className="w-full py-4 mt-4 border border-dashed border-white/10 rounded-2xl text-[0.6rem] font-black uppercase tracking-[0.3em] text-gray-500 hover:text-white hover:border-voro-primary/30 hover:bg-voro-primary/5 transition-all"
+                  >
+                    + Supplement Set
+                  </button>
+                </div>
+              </Card>
+            ))}
+
+            <button
+              onClick={() => setShowExerciseSearch(true)}
+              className="w-full flex items-center justify-center gap-4 py-10 rounded-[2.5rem] border-2 border-dashed border-white/5 text-gray-500 hover:text-voro-primary hover:border-voro-primary/30 hover:bg-voro-primary/[0.02] transition-all group"
+            >
+              <div className="p-4 rounded-full bg-white/5 group-hover:bg-voro-primary group-hover:text-white transition-all shadow-xl">
+                <Plus size={24} />
+              </div>
+              <span className="text-[0.7rem] font-black uppercase tracking-[0.4em]">Integrate Movement</span>
+            </button>
+          </div>
         </div>
+      </div>
 
-        {/* Add Exercise Button */}
-        <Button
-          onClick={() => setShowExerciseSearch(true)}
-          className="w-full mb-6 flex items-center justify-center gap-2"
-        >
-          <Plus size={18} />
-          Add Exercise
-        </Button>
-
-        {/* Exercise Search Modal */}
-        <Modal
-          isOpen={showExerciseSearch}
-          onClose={() => setShowExerciseSearch(false)}
-          title="Add Exercise"
-          size="2xl"
-        >
+      {/* Exercise Search Modal */}
+      <Modal
+        isOpen={showExerciseSearch}
+        onClose={() => setShowExerciseSearch(false)}
+        title="Movement Synthesis"
+      >
+        <div className="space-y-10 min-h-[500px]">
           <div className="space-y-4">
+            <label className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-500 ml-1">Pattern Search</label>
             <Input
-              placeholder="Search exercises..."
+              placeholder="Search exercise database..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               autoFocus
             />
-            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-              {filteredExercises.slice(0, 20).map(ex => (
-                <div
-                  key={ex.id}
-                  onClick={() => addExercise(ex)}
-                  className="p-3 bg-voro-surface border border-voro-border rounded-lg cursor-pointer hover:border-voro-primary transition-all"
-                >
-                  <div className="font-medium text-white">{ex.name}</div>
-                  <div className="text-xs text-gray-400">{ex.category} · {ex.difficulty}</div>
-                </div>
-              ))}
-            </div>
-            <Button
-              variant="secondary"
-              className="w-full mt-4"
-              onClick={() => setShowExerciseSearch(false)}
-            >
-              Close
-            </Button>
           </div>
-        </Modal>
 
-        {/* Save Button */}
-        <Button onClick={saveWorkout} className="w-full flex items-center justify-center gap-2">
-          <CheckCircle size={18} />
-          Save Workout
-        </Button>
-      </div>
+          <div className="space-y-3 max-h-[450px] overflow-y-auto no-scrollbar pb-10">
+            {filteredExercises.map(ex => (
+              <button
+                key={ex.id}
+                onClick={() => addExercise(ex)}
+                className="w-full text-left p-6 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-voro-primary hover:bg-voro-primary/[0.02] transition-all group"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-bold text-white tracking-tight uppercase">{ex.name}</span>
+                  <span className="text-[0.6rem] font-black text-voro-primary uppercase tracking-widest">{ex.difficulty}</span>
+                </div>
+                <p className="text-[0.6rem] font-mono text-gray-600 tracking-widest uppercase">{ex.category} · {ex.equipment || 'Bodyweight'}</p>
+              </button>
+            ))}
+            {filteredExercises.length === 0 && (
+              <div className="text-center py-20 opacity-20">
+                <Dumbbell size={48} className="mx-auto mb-4" />
+                <p className="text-[0.65rem] font-black uppercase tracking-[0.3em]">No Pattern Found</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
