@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { BarChart3, TrendingUp, Calendar, Zap, Activity, Target } from 'lucide-react';
+import { BarChart3, TrendingUp, Calendar, Zap, Activity, Target, Weight } from 'lucide-react';
 import { Card, Button, Tabs, LineChartComponent, BarChartComponent, Stat } from '@/components';
 import { useStorage } from '@/hooks/useStorage';
 import { useApp } from '@/hooks/useAppContext';
@@ -85,14 +85,14 @@ const Statistics = () => {
         <div className="absolute bottom-[5%] left-[5%] w-[35%] h-[35%] bg-voro-secondary/5 rounded-full blur-[120px]" />
       </div>
 
-      <div className="relative max-w-[1440px] mx-auto px-12 py-20">
+      <div className="relative max-w-[1440px] mx-auto px-6 py-12 md:px-12 lg:px-20">
         <header className="mb-20 flex flex-col md:flex-row md:items-end justify-between gap-8">
            <div className="space-y-4">
               <div className="flex items-center gap-3 text-voro-primary">
                 <BarChart3 size={18} />
                 <span className="text-xs font-bold uppercase tracking-[0.2em]">Evolution Metrics</span>
               </div>
-              <h1 className="text-6xl font-serif italic font-medium tracking-tight text-white leading-tight">
+              <h1 className="text-5xl md:text-6xl font-serif italic font-medium tracking-tight text-white leading-tight">
                 Analytics <span className="text-gradient not-italic font-bold">Timeline</span>
               </h1>
               <p className="text-gray-500 font-medium tracking-widest text-xs uppercase opacity-60">High-fidelity biometric trajectory analysis</p>
@@ -110,35 +110,31 @@ const Statistics = () => {
         {/* Summary Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           <Stat
-            label="Workouts"
+            label="Kinetic Sessions"
             value={stats.workoutDays}
             icon={TrendingUp}
             color="voro-primary"
-            className="rounded-[2rem] p-8 border-white/5 bg-[#0A0C14] hover:border-voro-primary/30 transition-all"
           />
           <Stat
-            label="Avg Calories"
+            label="Metabolic Mean"
             value={stats.avgCalories}
             unit="kcal"
             icon={Zap}
             color="voro-secondary"
-            className="rounded-[2rem] p-8 border-white/5 bg-[#0A0C14] hover:border-voro-secondary/30 transition-all"
           />
           <Stat
-            label="Total Volume"
+            label="Absolute Volume"
             value={Math.round(stats.totalVolume / 1000)}
             unit="k kg"
-            icon={Activity}
+            icon={Weight}
             color="voro-accent"
-            className="rounded-[2rem] p-8 border-white/5 bg-[#0A0C14] hover:border-voro-accent/30 transition-all"
           />
           <Stat
-            label="Adherence"
+            label="Neural Adherence"
             value="92"
             unit="%"
             icon={Target}
             color="voro-secondary"
-            className="rounded-[2rem] p-8 border-white/5 bg-[#0A0C14] hover:border-green-500/30 transition-all"
           />
         </div>
 

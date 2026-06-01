@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, TrendingUp } from 'lucide-react';
+import { TrendingUp, Heart, Moon, Zap, Activity } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
+import { Stat } from '@/components/Stat';
 import { useStorage } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { validateVitals } from '@/utils/validators';
@@ -20,13 +21,12 @@ const VitalsTracker = () => {
   const [history, setHistory] = useState([]);
 
   useEffect(() => {
-    document.title = 'VORO | Vitals Tracker';
+    document.title = 'VORO | Biometric Vitals';
     const data = getStorage('voro_vitals') || [];
     setHistory(data);
   }, []);
 
   const handleSaveVitals = () => {
-    // Security: Validate vitals before persisting to storage
     const { valid, errors } = validateVitals(vitals);
 
     if (!valid) {
@@ -42,108 +42,161 @@ const VitalsTracker = () => {
     const updated = [...history, entry];
     setHistory(updated);
     setStorage('voro_vitals', updated);
-    addNotification('Vitals recorded successfully!', 'success');
+    addNotification('Biometric data synchronized', 'success');
   };
 
   return (
-    <div className="min-h-screen bg-voro-surface p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold text-white mb-6">Vitals Tracker</h1>
+    <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30">
+      {/* Background Decor */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[10%] left-[10%] w-[40%] h-[40%] bg-voro-primary/5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[10%] right-[10%] w-[35%] h-[35%] bg-voro-secondary/5 rounded-full blur-[120px]" />
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <div className="relative max-w-[1440px] mx-auto px-6 py-12 md:px-12 lg:px-20">
+        <header className="mb-20">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 text-voro-primary">
+              <Activity size={18} />
+              <span className="text-xs font-bold uppercase tracking-[0.2em]">Neural & Biological Status</span>
+            </div>
+            <h1 className="text-5xl md:text-6xl font-serif italic font-medium tracking-tight text-white leading-tight">
+              Biometric <span className="text-gradient not-italic font-bold">Vitals</span>
+            </h1>
+            <p className="text-gray-500 font-medium tracking-widest text-xs uppercase opacity-60">High-fidelity physiological manifestation tracking</p>
+          </div>
+        </header>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Input Form */}
-          <div className="lg:col-span-2">
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Log Today's Vitals</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm text-gray-400 block mb-2">Heart Rate (bpm)</label>
-                  <Input
-                    type="number"
-                    value={vitals.heartRate}
-                    onChange={(e) => setVitals({ ...vitals, heartRate: Number(e.target.value) })}
-                  />
+          <div className="lg:col-span-8">
+            <section className="bg-[#0A0C14] border border-white/5 p-8 md:p-12 rounded-[2.5rem] shadow-2xl">
+              <h3 className="text-[0.65rem] font-black text-gray-500 uppercase tracking-[0.3em] mb-12">Data Acquisition</h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div className="space-y-8">
+                  <div>
+                    <label className="text-[0.6rem] font-black text-gray-600 uppercase tracking-[0.2em] mb-4 block">Metabolic Pulse (bpm)</label>
+                    <Input
+                      type="number"
+                      value={vitals.heartRate}
+                      onChange={(e) => setVitals({ ...vitals, heartRate: Number(e.target.value) })}
+                      className="bg-white/[0.02] border-white/5 italic font-serif"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[0.6rem] font-black text-gray-600 uppercase tracking-[0.2em] mb-4 block">Pressure Gradient (mmHg)</label>
+                    <Input
+                      value={vitals.bloodPressure}
+                      onChange={(e) => setVitals({ ...vitals, bloodPressure: e.target.value })}
+                      placeholder="120/80"
+                      className="bg-white/[0.02] border-white/5 italic font-serif"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[0.6rem] font-black text-gray-600 uppercase tracking-[0.2em] mb-4 block">Recovery Duration (hours)</label>
+                    <Input
+                      type="number"
+                      value={vitals.sleep}
+                      onChange={(e) => setVitals({ ...vitals, sleep: Number(e.target.value) })}
+                      className="bg-white/[0.02] border-white/5 italic font-serif"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm text-gray-400 block mb-2">Blood Pressure (mmHg)</label>
-                  <Input
-                    value={vitals.bloodPressure}
-                    onChange={(e) => setVitals({ ...vitals, bloodPressure: e.target.value })}
-                    placeholder="120/80"
-                  />
+
+                <div className="space-y-12">
+                  <div>
+                    <div className="flex justify-between items-center mb-6">
+                      <label className="text-[0.6rem] font-black text-gray-600 uppercase tracking-[0.2em]">Neural Balance</label>
+                      <span className="text-2xl font-serif italic text-white">{vitals.mood}<span className="text-[0.6rem] not-italic font-sans text-gray-600 ml-1">/10</span></span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="10"
+                      value={vitals.mood}
+                      onChange={(e) => setVitals({ ...vitals, mood: Number(e.target.value) })}
+                      className="w-full accent-voro-primary h-1 bg-white/5 rounded-full appearance-none cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <div className="flex justify-between items-center mb-6">
+                      <label className="text-[0.6rem] font-black text-gray-600 uppercase tracking-[0.2em]">Kinetic Energy</label>
+                      <span className="text-2xl font-serif italic text-white">{vitals.energy}<span className="text-[0.6rem] not-italic font-sans text-gray-600 ml-1">/10</span></span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="10"
+                      value={vitals.energy}
+                      onChange={(e) => setVitals({ ...vitals, energy: Number(e.target.value) })}
+                      className="w-full accent-voro-secondary h-1 bg-white/5 rounded-full appearance-none cursor-pointer"
+                    />
+                  </div>
+                  <Button onClick={handleSaveVitals} className="w-full py-5 rounded-2xl bg-voro-primary text-white font-black uppercase tracking-[0.3em] text-[0.65rem] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-voro-primary/20">
+                    Synchronize Vitals
+                  </Button>
                 </div>
-                <div>
-                  <label className="text-sm text-gray-400 block mb-2">Sleep (hours)</label>
-                  <Input
-                    type="number"
-                    value={vitals.sleep}
-                    onChange={(e) => setVitals({ ...vitals, sleep: Number(e.target.value) })}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-gray-400 block mb-2">Mood (1-10)</label>
-                  <input
-                    type="range"
-                    min="1"
-                    max="10"
-                    value={vitals.mood}
-                    onChange={(e) => setVitals({ ...vitals, mood: Number(e.target.value) })}
-                    className="w-full"
-                  />
-                  <div className="text-center text-white font-bold">{vitals.mood}</div>
-                </div>
-                <div>
-                  <label className="text-sm text-gray-400 block mb-2">Energy (1-10)</label>
-                  <input
-                    type="range"
-                    min="1"
-                    max="10"
-                    value={vitals.energy}
-                    onChange={(e) => setVitals({ ...vitals, energy: Number(e.target.value) })}
-                    className="w-full"
-                  />
-                  <div className="text-center text-white font-bold">{vitals.energy}</div>
-                </div>
-                <Button onClick={handleSaveVitals} className="w-full">
-                  Record Vitals
-                </Button>
               </div>
-            </Card>
+            </section>
           </div>
 
           {/* Quick Stats */}
-          <div className="space-y-4">
-            <Card className="p-6 text-center">
-              <div className="text-3xl mb-2">❤️</div>
-              <div className="text-sm text-gray-400">Heart Rate</div>
-              <div className="text-3xl font-bold text-danger">{vitals.heartRate}</div>
-              <div className="text-xs text-gray-500 mt-1">bpm</div>
-            </Card>
-            <Card className="p-6 text-center">
-              <div className="text-3xl mb-2">😴</div>
-              <div className="text-sm text-gray-400">Sleep</div>
-              <div className="text-3xl font-bold text-blue-400">{vitals.sleep}h</div>
-              <div className="text-xs text-gray-500 mt-1">last night</div>
-            </Card>
+          <div className="lg:col-span-4 space-y-6">
+            <Stat
+              label="Metabolic Pulse"
+              value={vitals.heartRate}
+              unit="BPM"
+              icon={Heart}
+              color="voro-danger"
+            />
+            <Stat
+              label="Recovery State"
+              value={vitals.sleep}
+              unit="HOURS"
+              icon={Moon}
+              color="voro-primary"
+            />
+             <Stat
+              label="Energy Matrix"
+              value={`${vitals.energy}/10`}
+              icon={Zap}
+              color="voro-accent"
+            />
           </div>
         </div>
 
         {/* History */}
         {history.length > 0 && (
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <TrendingUp size={20} />
-              Recent History
-            </h3>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {history.slice(-10).reverse().map((entry, idx) => (
-                <div key={idx} className="p-3 bg-voro-surface rounded-lg text-sm">
-                  <div className="text-gray-400">{new Date(entry.date).toLocaleDateString()} at {new Date(entry.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                  <div className="text-white mt-1">❤️ {entry.heartRate} bpm • 😴 {entry.sleep}h • Mood: {entry.mood}/10 • Energy: {entry.energy}/10</div>
+          <section className="mt-16 bg-[#0A0C14] border border-white/5 p-8 md:p-12 rounded-[2.5rem] shadow-xl">
+            <div className="flex items-center justify-between mb-12">
+              <h3 className="text-[0.65rem] font-black text-gray-500 uppercase tracking-[0.3em]">Temporal Manifest</h3>
+              <TrendingUp size={18} className="text-gray-700" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {history.slice(-6).reverse().map((entry, idx) => (
+                <div key={idx} className="group p-6 bg-white/[0.02] border border-white/5 rounded-3xl hover:border-white/10 transition-all">
+                  <div className="text-[0.6rem] font-black text-gray-600 uppercase tracking-widest mb-4">
+                    {new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[0.65rem] font-bold text-gray-500 uppercase">Pulse</span>
+                      <span className="text-white font-serif italic">{entry.heartRate} <span className="text-[0.5rem] not-italic text-gray-600 font-sans">BPM</span></span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[0.65rem] font-bold text-gray-500 uppercase">Sleep</span>
+                      <span className="text-white font-serif italic">{entry.sleep} <span className="text-[0.5rem] not-italic text-gray-600 font-sans">HRS</span></span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[0.65rem] font-bold text-gray-500 uppercase">Mood / Energy</span>
+                      <span className="text-white font-serif italic">{entry.mood} / {entry.energy}</span>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
-          </Card>
+          </section>
         )}
       </div>
     </div>
