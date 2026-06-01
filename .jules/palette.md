@@ -24,7 +24,6 @@
 **Learning:** While placeholders provide a hint, they are not a substitute for semantic labels. Using the 'label' prop in base components ensures a permanent, screen-reader-accessible association between the description and the input, which remains visible even after the field is filled.
 **Action:** Always utilize the 'label' prop on 'Input', 'Select', and 'Textarea' components instead of relying solely on 'placeholder' text for form fields.
 
-## 2025-05-20 - [Context-Aware Security Notifications]
-**UX Improvement:** While technically a security fix, the AI Privacy Shield includes a user-facing context note in AI messages: "(Note: PII has been redacted for privacy)".
-**Learning:** Security measures shouldn't be silent; informing the user that their privacy is actively protected builds trust and transparency in data-heavy applications.
-**Prevention:** When implementing automated data protection layers, provide subtle UI or message-level feedback to confirm to the user that the action was taken on their behalf.
+## 2026-06-01 - Context-Aware ARIA Labels for Dynamic Logs
+**Learning:** For dynamic logs where items have similar actions (like 'Delete'), generic aria-labels are insufficient for screen reader users. Including the specific item values (e.g., amount and timestamp) in the label provides the necessary context to safely perform destructive actions.
+**Action:** When implementing list actions in logs, construct aria-labels that include unique identifiers or values from the specific log entry to aid non-visual navigation.
