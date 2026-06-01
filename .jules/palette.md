@@ -27,3 +27,7 @@
 ## 2026-06-01 - Context-Aware ARIA Labels for Dynamic Logs
 **Learning:** For dynamic logs where items have similar actions (like 'Delete'), generic aria-labels are insufficient for screen reader users. Including the specific item values (e.g., amount and timestamp) in the label provides the necessary context to safely perform destructive actions.
 **Action:** When implementing list actions in logs, construct aria-labels that include unique identifiers or values from the specific log entry to aid non-visual navigation.
+
+## 2026-06-01 - Luminous Biometric Nodes and High-Contrast Serif Typography
+**Learning:** Luxury UI isn't just about dark mode; it's about the interplay of mathematical whitespace, high-contrast serif typography (Playfair Display) for metrics, and kinetic feedback. Using italics for data strings creates a 'boutique gallery' feel that humanizes technical biometric data.
+**Action:** When designing data-heavy dashboards, use serif italics for primary metrics and monospaced fonts (JetBrains Mono) for units to create a sophisticated, high-end visual hierarchy.
