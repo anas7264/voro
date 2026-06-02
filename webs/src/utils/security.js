@@ -69,11 +69,18 @@ export const redactData = (data, seen = new WeakSet()) => {
     redacted = redacted.replace(/(\+\d{1,3}[- ]?)?\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}/g, '[REDACTED_PHONE]');
     // Addresses / Locations (Basic pattern)
     redacted = redacted.replace(/\d+\s+[a-zA-Z0-9\s,]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Square|Sq|Trail|Trl)\.?/gi, '[REDACTED_ADDRESS]');
+    // Credit Cards
+    redacted = redacted.replace(/\b(?:\d{4}[ -]?){3}\d{4}\b/g, '[REDACTED_FINANCIAL]');
+    // SSN
+    redacted = redacted.replace(/\b\d{3}-\d{2}-\d{4}\b/g, '[REDACTED_ID]');
+    // IP Addresses
+    redacted = redacted.replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '[REDACTED_IP]');
 
     // AI Boundary Marker Neutralization (Prevents indirect prompt injection)
     // Escapes markers like [USER_DATA], [MESSAGE_HISTORY], [SECURITY_PROTOCOL]
     // Uses balanced brackets (e.g., [[USER_DATA]]) to neutralize their special meaning
-    redacted = redacted.replace(/\[(\/?(?:USER_DATA|MESSAGE_HISTORY|SECURITY_PROTOCOL))\]/gi, '[[$1]]');
+    // Generalizes to any [TAG] or [/TAG] with 3+ uppercase alphanumeric characters
+    redacted = redacted.replace(/\[(\/?(?:[A-Z0-9_]{3,}))\]/gi, '[[$1]]');
 
     return redacted;
   }
