@@ -69,6 +69,12 @@ export const redactData = (data, seen = new WeakSet()) => {
     redacted = redacted.replace(/(\+\d{1,3}[- ]?)?\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}/g, '[REDACTED_PHONE]');
     // Addresses / Locations (Basic pattern)
     redacted = redacted.replace(/\d+\s+[a-zA-Z0-9\s,]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Square|Sq|Trail|Trl)\.?/gi, '[REDACTED_ADDRESS]');
+
+    // AI Boundary Marker Neutralization (Prevents indirect prompt injection)
+    // Escapes markers like [USER_DATA], [MESSAGE_HISTORY], [SECURITY_PROTOCOL]
+    // Uses balanced brackets (e.g., [[USER_DATA]]) to neutralize their special meaning
+    redacted = redacted.replace(/\[(\/?(?:USER_DATA|MESSAGE_HISTORY|SECURITY_PROTOCOL))\]/gi, '[[$1]]');
+
     return redacted;
   }
 
