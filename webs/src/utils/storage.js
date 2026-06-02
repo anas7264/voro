@@ -1,6 +1,7 @@
 // VORO Storage Manager
 // window.storage abstraction for data persistence with transparent encryption
 import crypto from './crypto';
+import { sanitizeObject } from './security';
 
 const STORAGE_PREFIX = "voro_";
 
@@ -149,11 +150,14 @@ class StorageManager {
 
       const fullKey = key.startsWith(STORAGE_PREFIX) ? key : this.getFullKey(key);
 
+      // Security: Sanitize all data before it touches storage or encryption
+      const sanitizedValue = sanitizeObject(value);
+
       let serialized;
       if (this.shouldEncrypt(baseKey)) {
-        serialized = await crypto.encrypt(value);
+        serialized = await crypto.encrypt(sanitizedValue);
       } else {
-        serialized = typeof value === "string" ? value : JSON.stringify(value);
+        serialized = typeof sanitizedValue === "string" ? sanitizedValue : JSON.stringify(sanitizedValue);
       }
 
       localStorage.setItem(fullKey, serialized);
