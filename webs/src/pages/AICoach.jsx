@@ -135,6 +135,7 @@ const AICoach = () => {
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
               disabled={loading}
+              maxLength={2000}
             />
             <Button
               onClick={() => handleSendMessage()}

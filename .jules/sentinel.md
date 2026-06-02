@@ -8,3 +8,13 @@ Implementing AES-GCM (256-bit) provides both confidentiality and integrity (auth
 
 **Prevention:**
 Always encrypt sensitive PII and health metrics before persisting to browser storage. Use the Web Crypto API for industry-standard authenticated encryption. Implement an observer pattern in the storage layer to ensure that asynchronous decryption doesn't lead to UI inconsistencies or stale data across multiple React contexts. Avoid using `String.fromCharCode.apply` for large binary-to-string conversions to prevent stack overflow crashes.
+
+## 2026-06-02 - Generalized AI Boundary Neutralization
+**Vulnerability:**
+Indirect prompt injection can occur if user-controlled data contains markers that the LLM interprets as system-defined boundaries (e.g., [USER_DATA], [SECURITY_PROTOCOL]). An attacker could craft data that appears to close a block and start a new one with malicious instructions.
+
+**Learning:**
+Neutralizing all bracketed markers with a minimum length and alphanumeric pattern provides a generic defense against this class of injection. By wrapping markers in balanced double brackets (e.g., [[MARKER]]), we strip them of their structural meaning to the LLM while maintaining readability for debugging.
+
+**Prevention:**
+Always run user-provided data through a neutralization pass before embedding it into system prompts. Exclude known UI-only tags using negative lookaheads to prevent interfering with legitimate application feedback loops.
