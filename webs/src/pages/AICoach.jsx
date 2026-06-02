@@ -1,10 +1,57 @@
-import React, { useEffect, useState } from 'react';
-import { Send, Loader } from 'lucide-react';
+import React, { useEffect, useState, memo } from 'react';
+import { Send, Loader, Bot, Sparkles } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
 import { useStorage } from '@/hooks/useStorage';
 import { useApp } from '@/hooks/useAppContext';
+
+const MessageItem = memo(({ msg }) => {
+  const isAssistant = msg.role === 'assistant';
+
+  return (
+    <div className={`flex ${isAssistant ? 'justify-start' : 'justify-end'} group/msg animate-fade-in`}>
+      <div
+        className={`
+          max-w-[85%] lg:max-w-xl px-8 py-6 rounded-[2rem] transition-all duration-500
+          ${isAssistant
+            ? 'bg-[#0A0C14] border border-white/5 backdrop-blur-md shadow-2xl group-hover/msg:border-voro-primary/20'
+            : 'bg-white/[0.03] border border-white/5 text-white shadow-xl group-hover/msg:bg-white/[0.05]'
+          }
+        `}
+      >
+        <div className="flex items-center gap-3 mb-4">
+          <div className={`w-2 h-2 rounded-full ${isAssistant ? 'bg-voro-primary shadow-[0_0_8px_#7C3AED]' : 'bg-gray-700'}`} />
+          <span className="text-[0.55rem] font-black uppercase tracking-[0.3em] text-gray-500">
+            {isAssistant ? 'Neural Insight' : 'Biometric Query'}
+          </span>
+          <span className="text-[0.5rem] font-mono text-gray-700 ml-auto tracking-widest">
+            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        </div>
+
+        <div className={`
+          leading-relaxed tracking-tight
+          ${isAssistant
+            ? 'font-serif italic text-xl text-gray-200'
+            : 'font-mono text-[0.85rem] text-gray-300'
+          }
+        `}>
+          {msg.content}
+        </div>
+
+        {isAssistant && (
+           <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between opacity-0 group-hover/msg:opacity-100 transition-opacity">
+              <span className="text-[0.55rem] font-black uppercase tracking-widest text-voro-primary">Accuracy Verified</span>
+              <Sparkles size={12} className="text-voro-primary/40" />
+           </div>
+        )}
+      </div>
+    </div>
+  );
+});
+
+MessageItem.displayName = 'MessageItem';
 
 const AICoach = () => {
   const { getStorage, setStorage } = useStorage();
@@ -71,56 +118,83 @@ const AICoach = () => {
   };
 
   return (
-    <div className="min-h-screen bg-voro-surface p-4 md:p-8 flex flex-col">
-      <div className="max-w-4xl mx-auto w-full flex flex-col h-screen">
-        <h1 className="text-3xl font-bold text-white mb-6">AI Coach</h1>
+    <div className="min-h-screen bg-voro-surface p-4 md:p-8 flex flex-col relative overflow-hidden">
+      {/* Ambient Background Depth */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-voro-primary/5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[10%] right-[-5%] w-[30%] h-[30%] bg-voro-secondary/5 rounded-full blur-[100px]" />
+      </div>
+
+      <div className="relative max-w-4xl mx-auto w-full flex flex-col h-screen">
+        <header className="mb-12">
+          <div className="flex items-center gap-3 text-voro-primary mb-2">
+            <Bot size={18} />
+            <span className="text-[0.6rem] font-black uppercase tracking-[0.3em]">Neural Synthesis Engine</span>
+          </div>
+          <h1 className="text-4xl md:text-6xl font-serif italic font-medium tracking-tight text-white mb-2 leading-tight">
+            Neural <span className="text-voro-primary not-italic font-bold">Oracle</span>
+          </h1>
+          <p className="text-gray-500 font-mono text-[0.65rem] uppercase tracking-[0.2em] opacity-60">
+            Real-time biometric data processing & biological optimization
+          </p>
+        </header>
 
         {/* Chat Area */}
-        <div className="flex-1 overflow-y-auto mb-6 space-y-4">
+        <div className="flex-1 overflow-y-auto mb-6 space-y-4 no-scrollbar">
           {messages.length === 0 && (
-            <Card className="p-8 text-center">
-              <div className="text-5xl mb-4">🤖</div>
-              <h2 className="text-2xl font-bold text-white mb-2">Welcome to VORO AI Coach</h2>
-              <p className="text-gray-400 mb-6">I'm your personal AI fitness and nutrition coach. Ask me anything about your goals, progress, and training.</p>
-              
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            <div className="py-20 flex flex-col items-center text-center max-w-2xl mx-auto space-y-12">
+              <div className="relative">
+                <div className="w-24 h-24 rounded-[2rem] bg-[#0A0C14] border border-white/5 flex items-center justify-center shadow-2xl">
+                  <Bot size={40} className="text-voro-primary" />
+                </div>
+                <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-voro-primary flex items-center justify-center animate-pulse shadow-[0_0_20px_rgba(124,58,237,0.5)]">
+                  <Sparkles size={16} className="text-white" />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h2 className="text-3xl md:text-4xl font-serif italic font-medium text-white tracking-tight">
+                  Initiate <span className="text-voro-primary not-italic font-bold">Neural Dialogue</span>
+                </h2>
+                <p className="text-gray-500 font-medium leading-relaxed">
+                  I am your biological optimization interface. I process your training, nutrition, and biometric data to synthesize precise evolutionary insights.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
                 {quickPrompts.map((prompt, idx) => (
-                  <Button
+                  <button
                     key={idx}
-                    variant="secondary"
-                    size="sm"
                     onClick={() => handleSendMessage(prompt)}
-                    className="text-xs text-left"
+                    className="group relative p-6 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-voro-primary/30 transition-all duration-500 text-left overflow-hidden"
                   >
-                    {prompt}
-                  </Button>
+                    <div className="absolute inset-0 bg-voro-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <span className="relative z-10 text-[0.6rem] font-mono font-black uppercase tracking-[0.25em] text-gray-500 group-hover:text-white transition-colors">
+                      {prompt}
+                    </span>
+                  </button>
                 ))}
               </div>
-            </Card>
+            </div>
           )}
 
           {messages.map((msg, idx) => (
-            <div
-              key={idx}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-xs lg:max-w-md px-4 py-3 rounded-lg ${
-                  msg.role === 'user'
-                    ? 'bg-voro-primary text-white'
-                    : 'bg-voro-card border border-voro-border text-gray-200'
-                }`}
-              >
-                {msg.content}
-              </div>
-            </div>
+            <MessageItem key={idx} msg={msg} />
           ))}
 
           {loading && (
-            <div className="flex justify-start">
-              <div className="bg-voro-card border border-voro-border px-4 py-3 rounded-lg text-gray-400 flex items-center gap-2">
-                <Loader size={16} className="animate-spin" />
-                Thinking...
+            <div className="flex justify-start animate-fade-in">
+              <div className="bg-[#0A0C14] border border-white/5 px-8 py-6 rounded-[2rem] text-gray-400 flex items-center gap-4 shadow-2xl relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-voro-primary/5 to-transparent animate-shimmer" style={{ backgroundSize: '200% 100%' }} />
+                <div className="relative w-5 h-5">
+                   <div className="absolute inset-0 bg-voro-primary/20 rounded-full animate-ping" />
+                   <div className="relative bg-voro-primary rounded-full w-5 h-5 flex items-center justify-center">
+                      <Loader size={12} className="animate-spin text-white" />
+                   </div>
+                </div>
+                <span className="text-[0.65rem] font-black uppercase tracking-[0.3em] animate-pulse">
+                  Synthesizing Biological Data...
+                </span>
               </div>
             </div>
           )}
