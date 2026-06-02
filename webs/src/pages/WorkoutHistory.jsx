@@ -7,14 +7,14 @@ import { useStorage } from '@/hooks/useStorage';
 import { useNavigate } from 'react-router-dom';
 
 const WorkoutHistory = () => {
-  const { getStorage } = useStorage();
+  const { getItem } = useStorage();
   const navigate = useNavigate();
   const [workouts, setWorkouts] = useState([]);
   const [expandedIdx, setExpandedIdx] = useState(null);
 
   useEffect(() => {
     document.title = 'VORO | Workout History';
-    const data = getStorage('voro_workout_log') || {};
+    const data = getItem('workout_log') || {};
     const sorted = Object.entries(data)
       .filter(([_, w]) => w.attended)
       .map(([date, w]) => ({ date, ...w }))

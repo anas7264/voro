@@ -12,7 +12,7 @@ import { calculateBMI, calculateFFMI } from '@/utils/calculators';
 import { isValidWeight, isValidBodyFat, isPositiveNumber } from '@/utils/validators';
 
 const BodyMetrics = () => {
-  const { getStorage, setStorage } = useStorage();
+  const { getItem, setItem } = useStorage();
   const { user } = useApp();
   const { addNotification } = useNotifications();
   const [metrics, setMetrics] = useState(null);
@@ -33,7 +33,7 @@ const BodyMetrics = () => {
   }, []);
 
   const loadMetrics = () => {
-    const data = getStorage('voro_body_metrics') || {
+    const data = getItem('body_metrics') || {
       weights: [],
       measurements: [],
       bodyFat: [],
@@ -50,7 +50,7 @@ const BodyMetrics = () => {
       return;
     }
 
-    const allMetrics = getStorage('voro_body_metrics') || {
+    const allMetrics = getItem('body_metrics') || {
       weights: [],
       measurements: [],
       bodyFat: [],
@@ -60,7 +60,7 @@ const BodyMetrics = () => {
       date: new Date().toISOString(),
       value: Number(weight),
     });
-    setStorage('voro_body_metrics', allMetrics);
+    setItem('body_metrics', allMetrics);
     setWeight('');
     loadMetrics();
     addNotification('Mass record synchronized', 'success');
@@ -78,7 +78,7 @@ const BodyMetrics = () => {
       return;
     }
 
-    const allMetrics = getStorage('voro_body_metrics') || {
+    const allMetrics = getItem('body_metrics') || {
       weights: [],
       measurements: [],
       bodyFat: [],
@@ -88,7 +88,7 @@ const BodyMetrics = () => {
       date: new Date().toISOString(),
       ...measurements,
     });
-    setStorage('voro_body_metrics', allMetrics);
+    setItem('body_metrics', allMetrics);
     setMeasurements({
       chest: '',
       waist: '',
@@ -109,7 +109,7 @@ const BodyMetrics = () => {
       return;
     }
 
-    const allMetrics = getStorage('voro_body_metrics') || {
+    const allMetrics = getItem('body_metrics') || {
       weights: [],
       measurements: [],
       bodyFat: [],
@@ -119,7 +119,7 @@ const BodyMetrics = () => {
       date: new Date().toISOString(),
       value: Number(bodyFat),
     });
-    setStorage('voro_body_metrics', allMetrics);
+    setItem('body_metrics', allMetrics);
     setBodyFat('');
     loadMetrics();
     addNotification('Adipose index updated', 'success');

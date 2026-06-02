@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { TrendingUp, TrendingDown, Scale, Activity } from 'lucide-react';
 import Card from '@/components/Card';
 import AreaChartComponent from '@/components/AreaChartComponent';
@@ -10,47 +10,50 @@ import { bodyFatStandards } from '@/data/bodyFatStandards';
 const BodyComposition = () => {
   const { getItem } = useStorage();
   const { user } = useApp();
-  const [compositionHistory, setCompositionHistory] = useState([]);
-  const [latest, setLatest] = useState(null);
 
   useEffect(() => {
-    document.title = 'VORO | Body Composition';
-    loadData();
+    document.title = 'VORO | Biometric Composition';
   }, []);
 
-  const loadData = () => {
-    const metrics = getItem('voro_body_metrics') || { weights: [], bodyFat: [] };
+  const metrics = getItem('body_metrics') || { weights: [], bodyFat: [] };
 
-    // Build composition history by aligning weight + body fat entries
-    const combined = metrics.weights
-      .map((w) => {
-        const closestBF = metrics.bodyFat.reduce((prev, curr) =>
-          Math.abs(new Date(curr.date) - new Date(w.date)) <
-          Math.abs(new Date(prev.date) - new Date(w.date)) ? curr : prev,
-          metrics.bodyFat[0]
-        );
+  const compositionHistory = useMemo(() => {
+    if (!metrics.weights.length || !metrics.bodyFat.length) return [];
 
-        if (!closestBF) return null;
-        const bfPct = closestBF.value;
-        const fatMass = parseFloat((w.value * bfPct / 100).toFixed(1));
-        const leanMass = parseFloat((w.value - fatMass).toFixed(1));
+    // Pre-calculate timestamps to avoid Date object churn
+    const weightsWithTs = metrics.weights
+      .map(w => ({ ...w, ts: new Date(w.date).getTime() }))
+      .sort((a, b) => a.ts - b.ts);
 
-        return {
-          date: new Date(w.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          leanMass,
-          fatMass,
-          bodyFat: bfPct,
-          weight: w.value,
-        };
-      })
-      .filter(Boolean);
+    const bfWithTs = metrics.bodyFat
+      .map(b => ({ ...b, ts: new Date(b.date).getTime() }))
+      .sort((a, b) => a.ts - b.ts);
 
-    setCompositionHistory(combined.slice(-20));
+    let bfIdx = 0;
 
-    if (combined.length > 0) {
-      setLatest(combined[combined.length - 1]);
-    }
-  };
+    return weightsWithTs.map(w => {
+      // Find closest body fat entry using two-pointer approach (O(N+M))
+      while (bfIdx < bfWithTs.length - 1 &&
+             Math.abs(bfWithTs[bfIdx + 1].ts - w.ts) <= Math.abs(bfWithTs[bfIdx].ts - w.ts)) {
+        bfIdx++;
+      }
+
+      const closestBF = bfWithTs[bfIdx];
+      const bfPct = closestBF.value;
+      const fatMass = parseFloat((w.value * bfPct / 100).toFixed(1));
+      const leanMass = parseFloat((w.value - fatMass).toFixed(1));
+
+      return {
+        date: new Date(w.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        leanMass,
+        fatMass,
+        bodyFat: bfPct,
+        weight: w.value,
+      };
+    }).slice(-20);
+  }, [metrics]);
+
+  const latest = compositionHistory.length > 0 ? compositionHistory[compositionHistory.length - 1] : null;
 
   // Determine body fat category
   const getBFCategory = (bfPct, gender = 'Male') => {

@@ -11,7 +11,7 @@ import { validateWorkoutEntry } from '@/utils/validators';
 import { exercises } from '@/data/exercises';
 
 const WorkoutLog = () => {
-  const { getStorage, setStorage } = useStorage();
+  const { getItem, setItem } = useStorage();
   const { addNotification } = useNotifications();
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [workoutData, setWorkoutData] = useState(null);
@@ -27,7 +27,7 @@ const WorkoutLog = () => {
   }, [date]);
 
   const loadWorkoutData = () => {
-    const allWorkouts = getStorage('voro_workout_log') || {};
+    const allWorkouts = getItem('workout_log') || {};
     const dayWorkout = allWorkouts[date] || {
       attended: false,
       type: 'Strength',
@@ -83,7 +83,7 @@ const WorkoutLog = () => {
       return;
     }
 
-    const allWorkouts = getStorage('voro_workout_log') || {};
+    const allWorkouts = getItem('workout_log') || {};
     const volume = selectedExercises.reduce((sum, ex) => {
       return sum + ex.sets.reduce((exSum, set) => exSum + (Number(set.weight) * Number(set.reps)), 0);
     }, 0);
@@ -100,7 +100,7 @@ const WorkoutLog = () => {
       timestamp: new Date().toISOString(),
     };
 
-    setStorage('voro_workout_log', allWorkouts);
+    setItem('workout_log', allWorkouts);
     setWorkoutData(allWorkouts[date]);
     addNotification('Kinetic manifestation archived', 'success');
   };
