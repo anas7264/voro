@@ -59,7 +59,7 @@ const Dashboard = () => {
 
   const loadDashboardData = () => {
     const today = new Date().toISOString().split('T')[0];
-    const nutritionLog = getItem('voro_nutrition_log') || {};
+    const nutritionLog = getItem('nutrition_log') || {};
     const todayNutrition = nutritionLog[today] || {
       meals: {},
       water: 0,
@@ -67,11 +67,11 @@ const Dashboard = () => {
     };
     setNutritionToday(todayNutrition);
 
-    const workoutLog = getItem('voro_workout_log') || {};
+    const workoutLog = getItem('workout_log') || {};
     const todayWorkout = workoutLog[today];
     setWorkoutToday(todayWorkout);
 
-    const metrics = getItem('voro_body_metrics') || {};
+    const metrics = getItem('body_metrics') || {};
     const weights = metrics.weights || [];
     const last30 = weights.slice(-30).map(w => ({
       date: new Date(w.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -84,8 +84,8 @@ const Dashboard = () => {
   };
 
   const calculateStreaks = () => {
-    const workoutLog = getItem('voro_workout_log') || {};
-    const nutritionLog = getItem('voro_nutrition_log') || {};
+    const workoutLog = getItem('workout_log') || {};
+    const nutritionLog = getItem('nutrition_log') || {};
     const waterGoal = user?.waterGoal || 2000;
     
     let trainingStreak = 0;
@@ -133,23 +133,23 @@ const Dashboard = () => {
     }
 
     if (type === 'weight') {
-      const metrics = getItem('voro_body_metrics') || { weights: [] };
+      const metrics = getItem('body_metrics') || { weights: [] };
       metrics.weights.push({ date: today, value: numValue });
-      setItem('voro_body_metrics', metrics);
+      setItem('body_metrics', metrics);
       addNotification('Body transformation record synthesized', 'success');
     } else if (type === 'water') {
-      const log = getItem('voro_nutrition_log') || {};
+      const log = getItem('nutrition_log') || {};
       if (!log[today]) log[today] = { meals: {}, water: 0, totals: { calories: 0, protein: 0, carbs: 0, fat: 0 } };
       log[today].water = (log[today].water || 0) + numValue;
-      setItem('voro_nutrition_log', log);
+      setItem('nutrition_log', log);
       addNotification('Hydration matrix updated', 'success');
     } else if (type === 'meal') {
-      const log = getItem('voro_nutrition_log') || {};
+      const log = getItem('nutrition_log') || {};
       if (!log[today]) log[today] = { meals: {}, water: 0, totals: { calories: 0, protein: 0, carbs: 0, fat: 0 } };
       const mealId = `express_${Date.now()}`;
       log[today].meals[mealId] = { name: 'Express Log', calories: numValue, protein: 0, carbs: 0, fat: 0, timestamp: new Date().toISOString() };
       log[today].totals.calories += numValue;
-      setItem('voro_nutrition_log', log);
+      setItem('nutrition_log', log);
       addNotification('Energy dynamics logged', 'success');
     }
 

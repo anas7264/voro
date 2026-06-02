@@ -12,30 +12,27 @@ import Ring from '@/components/Ring';
 import { foods } from '@/data/foods';
 
 const FoodDiary = () => {
-  const { getStorage, setStorage } = useStorage();
+  const { getItem, setItem } = useStorage();
   const { user } = useApp();
   const { addNotification } = useNotifications();
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [nutritionLog, setNutritionLog] = useState(null);
   const [showFoodSearch, setShowFoodSearch] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
 
-  const mealSlots = ['Breakfast', 'Morning Snack', 'Lunch', 'Afternoon Snack', 'Dinner', 'Late Snack'];
+  const mealSlots = useMemo(() => ['Breakfast', 'Morning Snack', 'Lunch', 'Afternoon Snack', 'Dinner', 'Late Snack'], []);
 
   useEffect(() => {
     document.title = 'VORO | Food Diary';
-    loadNutritionData();
-  }, [date]);
+  }, []);
 
-  const loadNutritionData = () => {
-    const allLogs = getStorage('voro_nutrition_log') || {};
-    const dayLog = allLogs[date] || {
+  const nutritionLog = useMemo(() => {
+    const allLogs = getItem('nutrition_log') || {};
+    return allLogs[date] || {
       meals: Object.fromEntries(mealSlots.map(slot => [slot, []])),
       water: 0,
       totals: { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }
     };
-    setNutritionLog(dayLog);
-  };
+  }, [getItem, date, mealSlots]);
 
   const handleDateChange = (days) => {
     const newDate = new Date(date);
@@ -43,7 +40,7 @@ const FoodDiary = () => {
     setDate(newDate.toISOString().split('T')[0]);
   };
 
-  const handleAddFood = (food, portion = 100) => {
+  const handleAddFood = async (food, portion = 100) => {
     if (!selectedSlot || !nutritionLog) return;
 
     const { valid, errors } = validateFoodDiaryEntry({ portion });
@@ -51,9 +48,6 @@ const FoodDiary = () => {
       addNotification(Object.values(errors)[0], 'error');
       return;
     }
-
-    const allLogs = getStorage('voro_nutrition_log') || {};
-    const dayLog = JSON.parse(JSON.stringify(nutritionLog));
 
     const multiplier = portion / 100;
     const foodEntry = {
@@ -68,61 +62,90 @@ const FoodDiary = () => {
       fiber: Math.round((food.fiber || 0) * multiplier * 10) / 10,
     };
 
-    dayLog.meals[selectedSlot].push(foodEntry);
+    const allLogs = getItem('nutrition_log') || {};
+    const currentDayLog = allLogs[date] || nutritionLog;
 
-    dayLog.totals = { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
-    Object.values(dayLog.meals).forEach(mealFoods => {
-      mealFoods.forEach(entry => {
-        dayLog.totals.calories += entry.calories;
-        dayLog.totals.protein += entry.protein;
-        dayLog.totals.carbs += entry.carbs;
-        dayLog.totals.fat += entry.fat;
-        dayLog.totals.fiber += (entry.fiber || 0);
-      });
+    // Efficient immutable update
+    const updatedMeals = {
+      ...currentDayLog.meals,
+      [selectedSlot]: [...(currentDayLog.meals[selectedSlot] || []), foodEntry]
+    };
+
+    // Incremental totals update (O(1) vs O(N))
+    const updatedTotals = {
+      calories: currentDayLog.totals.calories + foodEntry.calories,
+      protein: Math.round((currentDayLog.totals.protein + foodEntry.protein) * 10) / 10,
+      carbs: Math.round((currentDayLog.totals.carbs + foodEntry.carbs) * 10) / 10,
+      fat: Math.round((currentDayLog.totals.fat + foodEntry.fat) * 10) / 10,
+      fiber: Math.round((currentDayLog.totals.fiber + foodEntry.fiber) * 10) / 10,
+    };
+
+    const updatedDayLog = {
+      ...currentDayLog,
+      meals: updatedMeals,
+      totals: updatedTotals
+    };
+
+    await setItem('nutrition_log', {
+      ...allLogs,
+      [date]: updatedDayLog
     });
 
-    allLogs[date] = dayLog;
-    setStorage('voro_nutrition_log', allLogs);
-    setNutritionLog(dayLog);
     setShowFoodSearch(false);
     setSelectedSlot(null);
     addNotification(`${food.name} added to ${selectedSlot}`, 'success');
   };
 
-  const handleRemoveFood = (slot, index) => {
-    const allLogs = getStorage('voro_nutrition_log') || {};
-    const dayLog = JSON.parse(JSON.stringify(nutritionLog));
-    dayLog.meals[slot].splice(index, 1);
+  const handleRemoveFood = async (slot, index) => {
+    const allLogs = getItem('nutrition_log') || {};
+    const currentDayLog = allLogs[date];
+    if (!currentDayLog) return;
 
-    dayLog.totals = { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
-    Object.values(dayLog.meals).forEach(mealFoods => {
-      mealFoods.forEach(entry => {
-        dayLog.totals.calories += entry.calories;
-        dayLog.totals.protein += entry.protein;
-        dayLog.totals.carbs += entry.carbs;
-        dayLog.totals.fat += entry.fat;
-        dayLog.totals.fiber += (entry.fiber || 0);
-      });
+    const foodEntry = currentDayLog.meals[slot][index];
+    const updatedSlotMeals = [...currentDayLog.meals[slot]];
+    updatedSlotMeals.splice(index, 1);
+
+    const updatedMeals = {
+      ...currentDayLog.meals,
+      [slot]: updatedSlotMeals
+    };
+
+    // Incremental totals update
+    const updatedTotals = {
+      calories: Math.max(0, currentDayLog.totals.calories - foodEntry.calories),
+      protein: Math.max(0, Math.round((currentDayLog.totals.protein - foodEntry.protein) * 10) / 10),
+      carbs: Math.max(0, Math.round((currentDayLog.totals.carbs - foodEntry.carbs) * 10) / 10),
+      fat: Math.max(0, Math.round((currentDayLog.totals.fat - foodEntry.fat) * 10) / 10),
+      fiber: Math.max(0, Math.round((currentDayLog.totals.fiber - foodEntry.fiber) * 10) / 10),
+    };
+
+    await setItem('nutrition_log', {
+      ...allLogs,
+      [date]: {
+        ...currentDayLog,
+        meals: updatedMeals,
+        totals: updatedTotals
+      }
     });
-
-    allLogs[date] = dayLog;
-    setStorage('voro_nutrition_log', allLogs);
-    setNutritionLog(dayLog);
   };
 
-  const handleWaterAdd = (amount) => {
+  const handleWaterAdd = async (amount) => {
     const { valid, errors } = validateWaterEntry({ amount, date });
     if (!valid) {
       addNotification(Object.values(errors)[0], 'error');
       return;
     }
 
-    const allLogs = getStorage('voro_nutrition_log') || {};
-    const dayLog = JSON.parse(JSON.stringify(nutritionLog));
-    dayLog.water = (dayLog.water || 0) + amount;
-    allLogs[date] = dayLog;
-    setStorage('voro_nutrition_log', allLogs);
-    setNutritionLog(dayLog);
+    const allLogs = getItem('nutrition_log') || {};
+    const currentDayLog = allLogs[date] || nutritionLog;
+
+    await setItem('nutrition_log', {
+      ...allLogs,
+      [date]: {
+        ...currentDayLog,
+        water: (currentDayLog.water || 0) + amount
+      }
+    });
   };
 
   if (!nutritionLog) return null;
@@ -259,7 +282,9 @@ const FoodDiary = () => {
                   <div className="flex items-center gap-6">
                     <div className="text-right">
                       <p className="text-xl font-mono font-bold text-white">
-                        {nutritionLog.meals[slot].reduce((sum, food) => sum + food.calories, 0)}
+                        {Array.isArray(nutritionLog.meals[slot])
+                          ? nutritionLog.meals[slot].reduce((sum, food) => sum + food.calories, 0)
+                          : 0}
                       </p>
                       <p className="text-[0.55rem] font-black text-gray-600 uppercase tracking-[0.2em]">Energy kcal</p>
                     </div>
@@ -276,7 +301,7 @@ const FoodDiary = () => {
                 </div>
 
                 <div className="p-6">
-                  {nutritionLog.meals[slot].length > 0 ? (
+                  {Array.isArray(nutritionLog.meals[slot]) && nutritionLog.meals[slot].length > 0 ? (
                     <div className="space-y-4">
                       {nutritionLog.meals[slot].map((food, idx) => (
                         <div key={food.id} className="group relative flex items-center justify-between p-5 rounded-[1.5rem] bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all">
