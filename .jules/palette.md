@@ -31,3 +31,7 @@
 ## 2026-06-01 - Luminous Biometric Nodes and High-Contrast Serif Typography
 **Learning:** Luxury UI isn't just about dark mode; it's about the interplay of mathematical whitespace, high-contrast serif typography (Playfair Display) for metrics, and kinetic feedback. Using italics for data strings creates a 'boutique gallery' feel that humanizes technical biometric data.
 **Action:** When designing data-heavy dashboards, use serif italics for primary metrics and monospaced fonts (JetBrains Mono) for units to create a sophisticated, high-end visual hierarchy.
+
+## 2026-06-01 - Keyboard Visibility for Hover-Only Actions
+**Learning:** Destructive or secondary actions often use `opacity-0 group-hover:opacity-100` for a cleaner UI, but this makes them invisible and inaccessible to keyboard users. Using `focus-visible:opacity-100` ensures that these elements become visible when they receive focus via 'Tab', maintaining both aesthetic intent and accessibility.
+**Action:** When hiding interactive elements until hover, always include focus-visible states to ensure they are discoverable and usable via keyboard navigation.

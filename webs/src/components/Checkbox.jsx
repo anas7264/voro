@@ -5,7 +5,7 @@ export const Checkbox = ({ checked = false, onChange, label, disabled = false, c
   const id = useId();
 
   return (
-    <div className={`flex items-center gap-3 ${className}`} {...props}>
+    <div className={`flex items-center gap-3 ${className}`}>
       <div className="relative flex items-center justify-center">
         <input
           type="checkbox"
@@ -14,6 +14,7 @@ export const Checkbox = ({ checked = false, onChange, label, disabled = false, c
           onChange={(e) => onChange(e.target.checked)}
           disabled={disabled}
           className="peer absolute opacity-0 w-6 h-6 cursor-pointer z-10 disabled:cursor-not-allowed"
+          {...props}
         />
         <div
           className={`

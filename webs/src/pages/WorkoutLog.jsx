@@ -124,7 +124,7 @@ const WorkoutLog = () => {
         <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-8">
           <div className="space-y-2">
             <div className="flex items-center gap-3 text-voro-primary">
-              <Dumbbell size={18} />
+              <Dumbbell size={18} aria-hidden="true" />
               <span className="text-[0.6rem] font-black uppercase tracking-[0.3em]">Kinetic Manifestation Log</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-serif italic font-medium text-white tracking-tight">
@@ -134,7 +134,7 @@ const WorkoutLog = () => {
 
           <div className="flex gap-4">
             <Button onClick={saveWorkout} className="px-8 shadow-xl shadow-voro-primary/20">
-              <CheckCircle size={18} className="mr-2" />
+              <CheckCircle size={18} className="mr-2" aria-hidden="true" />
               Archive Session
             </Button>
           </div>
@@ -147,27 +147,29 @@ const WorkoutLog = () => {
             <Card className="p-8 space-y-8">
               <div className="space-y-6">
                 <div className="flex items-center gap-3 mb-2">
-                  <Calendar size={16} className="text-voro-primary" />
+                  <Calendar size={16} className="text-voro-primary" aria-hidden="true" />
                   <span className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-500">Temporal Frame</span>
                 </div>
                 <Input
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
+                  aria-label="Workout Date"
                 />
               </div>
 
               <div className="space-y-6">
                 <div className="flex items-center gap-3 mb-2">
-                  <Activity size={16} className="text-voro-primary" />
+                  <Activity size={16} className="text-voro-primary" aria-hidden="true" />
                   <span className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-500">Archetype</span>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2" role="group" aria-label="Select session archetype">
                   {['Strength', 'Cardio', 'HIIT', 'Yoga'].map(t => (
                     <button
                       key={t}
                       onClick={() => setSessionType(t)}
                       className={`py-3 rounded-xl text-[0.65rem] font-bold uppercase tracking-widest transition-all ${sessionType === t ? 'bg-voro-primary text-white' : 'bg-white/5 text-gray-500 hover:bg-white/10 border border-white/5'}`}
+                      aria-pressed={sessionType === t}
                     >
                       {t}
                     </button>
@@ -177,7 +179,7 @@ const WorkoutLog = () => {
 
               <div className="space-y-6">
                 <div className="flex items-center gap-3 mb-2">
-                  <Clock size={16} className="text-voro-primary" />
+                  <Clock size={16} className="text-voro-primary" aria-hidden="true" />
                   <span className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-500">Temporal Depth</span>
                 </div>
                 <div className="flex items-center gap-4">
@@ -186,8 +188,9 @@ const WorkoutLog = () => {
                     value={sessionDuration}
                     onChange={(e) => setSessionDuration(Number(e.target.value))}
                     min="1"
+                    aria-label="Session Duration in Minutes"
                   />
-                  <span className="text-[0.65rem] font-black text-gray-600 uppercase tracking-widest">Minutes</span>
+                  <span className="text-[0.65rem] font-black text-gray-600 uppercase tracking-widest" aria-hidden="true">Minutes</span>
                 </div>
               </div>
             </Card>
@@ -214,14 +217,15 @@ const WorkoutLog = () => {
                   </div>
                   <button
                     onClick={() => removeExercise(idx)}
-                    className="p-3 rounded-full hover:bg-red-500/10 text-gray-600 hover:text-red-400 transition-all opacity-0 group-hover/ex:opacity-100"
+                    className="p-3 rounded-full hover:bg-red-500/10 text-gray-600 hover:text-red-400 transition-all opacity-0 group-hover/ex:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-red-500 outline-none"
+                    aria-label={`Remove ${exercise.name} from session`}
                   >
-                    <Trash2 size={20} />
+                    <Trash2 size={20} aria-hidden="true" />
                   </button>
                 </div>
 
                 <div className="p-8 space-y-4">
-                  <div className="grid grid-cols-12 gap-4 text-[0.6rem] font-black text-gray-600 uppercase tracking-widest mb-2 px-4">
+                  <div className="grid grid-cols-12 gap-4 text-[0.6rem] font-black text-gray-600 uppercase tracking-widest mb-2 px-4" aria-hidden="true">
                     <div className="col-span-2">Set</div>
                     <div className="col-span-4">Magnitude (kg)</div>
                     <div className="col-span-4">Reps</div>
@@ -231,13 +235,14 @@ const WorkoutLog = () => {
                   <div className="space-y-3">
                     {exercise.sets.map((set, setIdx) => (
                       <div key={setIdx} className={`grid grid-cols-12 gap-4 items-center p-4 rounded-2xl border transition-all ${set.completed ? 'bg-voro-primary/5 border-voro-primary/20' : 'bg-white/[0.02] border-white/5'}`}>
-                        <div className="col-span-2 font-mono font-bold text-gray-500">#{setIdx + 1}</div>
+                        <div className="col-span-2 font-mono font-bold text-gray-500" aria-hidden="true">#{setIdx + 1}</div>
                         <div className="col-span-4">
                           <input
                             type="number"
                             value={set.weight}
                             onChange={(e) => updateSet(idx, setIdx, 'weight', e.target.value)}
                             className="w-full bg-transparent border-b border-white/10 focus:border-voro-primary focus:outline-none py-1 text-lg font-mono font-bold text-white transition-all"
+                            aria-label={`Weight for ${exercise.name}, Set ${setIdx + 1} in kilograms`}
                           />
                         </div>
                         <div className="col-span-4">
@@ -246,12 +251,14 @@ const WorkoutLog = () => {
                             value={set.reps}
                             onChange={(e) => updateSet(idx, setIdx, 'reps', e.target.value)}
                             className="w-full bg-transparent border-b border-white/10 focus:border-voro-primary focus:outline-none py-1 text-lg font-mono font-bold text-white transition-all"
+                            aria-label={`Repetitions for ${exercise.name}, Set ${setIdx + 1}`}
                           />
                         </div>
                         <div className="col-span-2 flex justify-end">
-                           <Checkbox
+                          <Checkbox
                             checked={set.completed}
                             onChange={(checked) => updateSet(idx, setIdx, 'completed', checked)}
+                            aria-label={`Mark Set ${setIdx + 1} of ${exercise.name} as completed`}
                           />
                         </div>
                       </div>
@@ -278,7 +285,7 @@ const WorkoutLog = () => {
               className="w-full flex items-center justify-center gap-4 py-10 rounded-[2.5rem] border-2 border-dashed border-white/5 text-gray-500 hover:text-voro-primary hover:border-voro-primary/30 hover:bg-voro-primary/[0.02] transition-all group"
             >
               <div className="p-4 rounded-full bg-white/5 group-hover:bg-voro-primary group-hover:text-white transition-all shadow-xl">
-                <Plus size={24} />
+                <Plus size={24} aria-hidden="true" />
               </div>
               <span className="text-[0.7rem] font-black uppercase tracking-[0.4em]">Integrate Movement</span>
             </button>
@@ -294,8 +301,8 @@ const WorkoutLog = () => {
       >
         <div className="space-y-10 min-h-[500px]">
           <div className="space-y-4">
-            <label className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-500 ml-1">Pattern Search</label>
             <Input
+              label="Pattern Search"
               placeholder="Search exercise database..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -319,7 +326,7 @@ const WorkoutLog = () => {
             ))}
             {filteredExercises.length === 0 && (
               <div className="text-center py-20 opacity-20">
-                <Dumbbell size={48} className="mx-auto mb-4" />
+                <Dumbbell size={48} className="mx-auto mb-4" aria-hidden="true" />
                 <p className="text-[0.65rem] font-black uppercase tracking-[0.3em]">No Pattern Found</p>
               </div>
             )}
