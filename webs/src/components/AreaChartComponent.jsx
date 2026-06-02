@@ -1,7 +1,12 @@
-import React from "react";
+import React, { memo } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
-export const AreaChartComponent = ({
+/**
+ * ⚡ OPTIMIZATION: Memoized AreaChartComponent to prevent unnecessary re-renders.
+ * Recharts components can be expensive to re-calculate and re-draw. Memoization
+ * ensures the chart only updates when data or core configuration changes.
+ */
+export const AreaChartComponent = memo(({
   data,
   dataKey,          // single key (legacy)
   dataKeys,         // array: [{ key, name, color }]
@@ -51,6 +56,8 @@ export const AreaChartComponent = ({
       </AreaChart>
     </ResponsiveContainer>
   );
-};
+});
+
+AreaChartComponent.displayName = "AreaChartComponent";
 
 export default AreaChartComponent;
