@@ -35,3 +35,7 @@
 ## 2026-06-01 - Keyboard Visibility for Hover-Only Actions
 **Learning:** Destructive or secondary actions often use `opacity-0 group-hover:opacity-100` for a cleaner UI, but this makes them invisible and inaccessible to keyboard users. Using `focus-visible:opacity-100` ensures that these elements become visible when they receive focus via 'Tab', maintaining both aesthetic intent and accessibility.
 **Action:** When hiding interactive elements until hover, always include focus-visible states to ensure they are discoverable and usable via keyboard navigation.
+
+## 2026-06-02 - Luxury Data Visualization and Floating Aesthetics
+**Learning:** High-end data visualization requires moving beyond standard grid-and-axis layouts. Removing distracting axis lines and tick marks while implementing glassmorphic tooltips with high-contrast typography (Serif/Mono) creates a "floating" data aesthetic that feels more premium and intentional.
+**Action:** When implementing charts, prioritize atmospheric depth (SVG glow/filters) and minimalist layouts (axis-free) to align with a luxury boutique aesthetic, ensuring that data is the primary focal point.
