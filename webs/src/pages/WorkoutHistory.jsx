@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Dumbbell, Clock, BarChart2, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
@@ -9,18 +9,24 @@ import { useNavigate } from 'react-router-dom';
 const WorkoutHistory = () => {
   const { getItem } = useStorage();
   const navigate = useNavigate();
-  const [workouts, setWorkouts] = useState([]);
   const [expandedIdx, setExpandedIdx] = useState(null);
 
   useEffect(() => {
     document.title = 'VORO | Workout History';
+  }, []);
+
+  /**
+   * ⚡ OPTIMIZATION: Derive workouts using useMemo instead of useEffect + useState.
+   * This eliminates the mount-time double-render cycle and ensures the data
+   * is reactive to storage changes without secondary state updates.
+   */
+  const workouts = useMemo(() => {
     const data = getItem('workout_log') || {};
-    const sorted = Object.entries(data)
+    return Object.entries(data)
       .filter(([_, w]) => w.attended)
       .map(([date, w]) => ({ date, ...w }))
       .sort((a, b) => new Date(b.date) - new Date(a.date));
-    setWorkouts(sorted);
-  }, []);
+  }, [getItem]);
 
   const typeColors = {
     Strength: 'text-violet-400',
