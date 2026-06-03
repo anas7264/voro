@@ -8,16 +8,14 @@ const Statistics = () => {
   const { getStorage } = useStorage();
   const { user } = useApp();
   const [period, setPeriod] = useState('30D');
-  const [stats, setStats] = useState(null);
 
   useEffect(() => {
     document.title = 'VORO | Evolution Analytics';
-    loadStats();
-  }, [period]);
+  }, []);
 
-  const loadStats = () => {
-    const nutritionLog = getStorage('voro_nutrition_log') || {};
-    const workoutLog = getStorage('voro_workout_log') || {};
+  const stats = useMemo(() => {
+    const nutritionLog = getStorage('nutrition_log') || {};
+    const workoutLog = getStorage('workout_log') || {};
 
     const getPeriodDays = () => {
       switch (period) {
@@ -30,20 +28,44 @@ const Statistics = () => {
     };
 
     const days = getPeriodDays();
-    let calorieTrend = [];
+    const calorieTrend = [];
     let workoutDays = 0;
     let totalVolume = 0;
+    let totalKcal = 0;
+    let loggedDays = 0;
+
+    // Weekly workout distribution
+    const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const weeklyWorkouts = [];
+    const today = new Date();
+
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      weeklyWorkouts.push({
+        day: daysOfWeek[date.getDay()],
+        workouts: workoutLog[dateStr]?.attended ? 1 : 0
+      });
+    }
 
     for (let i = days - 1; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
 
-      const kcal = nutritionLog[dateStr]?.totals?.calories || 0;
+      const dayData = nutritionLog[dateStr];
+      const kcal = dayData?.totals?.calories || 0;
+
       calorieTrend.push({
         date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         calories: kcal,
       });
+
+      if (kcal > 0) {
+        totalKcal += kcal;
+        loggedDays++;
+      }
 
       if (workoutLog[dateStr]?.attended) {
         workoutDays++;
@@ -51,13 +73,15 @@ const Statistics = () => {
       }
     }
 
-    setStats({
+    return {
       calorieTrend,
       workoutDays,
       totalVolume,
-      avgCalories: Math.round(calorieTrend.reduce((sum, day) => sum + day.calories, 0) / calorieTrend.length),
-    });
-  };
+      weeklyWorkouts,
+      avgCalories: loggedDays > 0 ? Math.round(totalKcal / loggedDays) : 0,
+      adherence: Math.round((loggedDays / days) * 100)
+    };
+  }, [period, getStorage]);
 
   const periodTabs = useMemo(() => [
     { id: '7D', label: '7D' },
@@ -131,7 +155,7 @@ const Statistics = () => {
           />
           <Stat
             label="Neural Adherence"
-            value="92"
+            value={stats.adherence}
             unit="%"
             icon={Target}
             color="voro-secondary"
@@ -170,16 +194,9 @@ const Statistics = () => {
               </div>
               <div className="h-[400px] w-full">
                 <BarChartComponent
-                  data={[
-                    { day: 'Mon', workouts: 1 },
-                    { day: 'Tue', workouts: 0 },
-                    { day: 'Wed', workouts: 1 },
-                    { day: 'Thu', workouts: 1 },
-                    { day: 'Fri', workouts: 1 },
-                    { day: 'Sat', workouts: 0 },
-                    { day: 'Sun', workouts: 1 },
-                  ]}
+                  data={stats.weeklyWorkouts}
                   dataKey="workouts"
+                  xDataKey="day"
                   name="Workouts"
                   color="#10B981"
                   height={400}
