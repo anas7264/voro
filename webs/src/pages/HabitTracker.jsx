@@ -1,14 +1,16 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useId } from 'react';
 import { Plus, Trash2, Check, Zap, Target, Star } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
+import Confetti from '@/components/Confetti';
 import { useStorage } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { validateHabit } from '@/utils/validators';
 import { defaultHabits } from '@/data/defaultHabits';
 
 const HabitTracker = () => {
+  const iconInputId = useId();
   const { getItemAsync, setItem, storageData } = useStorage();
   const { addNotification } = useNotifications();
   const [habits, setHabits] = useState([]);
@@ -127,8 +129,9 @@ const HabitTracker = () => {
               />
               <div className="flex gap-4">
                  <div className="flex-1">
-                    <label className="block text-[0.6rem] font-black uppercase tracking-[0.3em] text-gray-500 mb-4 ml-1">Icon Identifier</label>
+                    <label htmlFor={iconInputId} className="block text-[0.6rem] font-black uppercase tracking-[0.3em] text-gray-500 mb-4 ml-1">Icon Identifier</label>
                     <input
+                      id={iconInputId}
                       type="text"
                       value={newHabit.icon}
                       onChange={(e) => setNewHabit(prev => ({ ...prev, icon: e.target.value }))}
@@ -143,7 +146,8 @@ const HabitTracker = () => {
                         <button
                           key={c}
                           onClick={() => setNewHabit(prev => ({ ...prev, color: c }))}
-                          className={`flex-1 h-10 rounded-xl transition-all ${c === 'voro-primary' ? 'bg-voro-primary' : c === 'voro-secondary' ? 'bg-voro-secondary' : 'bg-voro-accent'} ${newHabit.color === c ? 'ring-2 ring-white ring-offset-2 ring-offset-black scale-90' : 'opacity-40 hover:opacity-100'}`}
+                          aria-label={`Select ${c.replace('voro-', '')} theme`}
+                          className={`flex-1 h-10 rounded-xl transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white ${c === 'voro-primary' ? 'bg-voro-primary' : c === 'voro-secondary' ? 'bg-voro-secondary' : 'bg-voro-accent'} ${newHabit.color === c ? 'ring-2 ring-white ring-offset-2 ring-offset-black scale-90' : 'opacity-40 hover:opacity-100'}`}
                         />
                       ))}
                     </div>
@@ -176,6 +180,7 @@ const HabitTracker = () => {
                     aria-label={`Mark ${habit.name} as ${isDone ? 'incomplete' : 'complete'}`}
                     className={`
                       flex items-center justify-center w-16 h-16 rounded-[1.5rem] border-2 transition-all duration-500 shadow-2xl
+                      focus:outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#080B14]
                       ${isDone
                         ? 'border-voro-secondary bg-voro-secondary text-white rotate-[360deg] shadow-voro-secondary/30'
                         : 'border-white/5 bg-white/[0.02] text-gray-500 hover:border-voro-primary/50'
@@ -204,7 +209,8 @@ const HabitTracker = () => {
 
                 <button
                   onClick={() => removeHabit(habit.id)}
-                  className="p-3 rounded-xl text-gray-800 hover:text-red-400 hover:bg-red-400/10 transition-all opacity-0 group-hover:opacity-100"
+                  aria-label={`Remove ${habit.name} pattern`}
+                  className="p-3 rounded-xl text-gray-800 hover:text-red-400 hover:bg-red-400/10 transition-all opacity-0 group-hover:opacity-100 focus:outline-none focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-red-500"
                 >
                   <Trash2 size={18} />
                 </button>
@@ -229,6 +235,7 @@ const HabitTracker = () => {
         {/* Milestone Celebration */}
         {habits.length > 0 && habits.every(h => todayHabits[h.id]) && (
           <div className="mt-16 p-10 rounded-[3rem] bg-voro-primary/10 border border-voro-primary/20 text-center animate-bounce-soft">
+            <Confetti />
             <Star className="w-12 h-12 text-voro-accent mx-auto mb-6 fill-voro-accent shadow-glow" />
             <h3 className="text-2xl font-serif italic font-bold text-white mb-2">Maximum Synchronicity Reached</h3>
             <p className="text-[0.6rem] font-black uppercase tracking-[0.3em] text-voro-primary">All daily patterns established</p>
