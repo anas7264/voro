@@ -80,6 +80,7 @@ export const redactData = (data, seen = new WeakSet()) => {
     // Escapes markers like [USER_DATA], [MESSAGE_HISTORY], [SECURITY_PROTOCOL]
     // Uses balanced brackets (e.g., [[USER_DATA]]) to neutralize their special meaning
     // Generalizes to any [TAG] or [/TAG] with 3+ uppercase alphanumeric characters
+    // Also captures polymorphic nonces if they follow the pattern [TAG_NONCE]
     redacted = redacted.replace(/\[(\/?(?:[A-Z0-9_]{3,}))\]/gi, '[[$1]]');
 
     return redacted;
@@ -127,8 +128,10 @@ export const redactData = (data, seen = new WeakSet()) => {
 
 /**
  * Validates AI response for security and privacy compliance.
+ * @param {string} response - The AI generated response
+ * @param {string} nonce - The polymorphic security nonce used for the request
  */
-export const validateAIResponse = (response) => {
+export const validateAIResponse = (response, nonce = null) => {
   if (typeof response !== 'string') return response;
 
   const dangerousIndicators = [
@@ -140,6 +143,13 @@ export const validateAIResponse = (response) => {
     'acting as a',
     'from now on you'
   ];
+
+  // Zero Trust: Check if the response contains the security nonce
+  // If it does, it means the AI is leaking its boundary markers, which is a sign of compromise
+  if (nonce && response.includes(nonce)) {
+    console.error("Security Sentinel: Polymorphic nonce leak detected. Neutralizing response.");
+    return "The AI generated a response that violates security protocols and has been neutralized.";
+  }
 
   const hasPII = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})|(\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4})/.test(response);
 
@@ -155,6 +165,19 @@ export const validateAIResponse = (response) => {
   }
 
   return response;
+};
+
+/**
+ * Generates a polymorphic security nonce to isolate untrusted data.
+ * Each request gets a unique, unpredictable marker.
+ */
+export const generateSecurityNonce = () => {
+  if (typeof window === 'undefined' || !window.crypto) {
+    return Math.random().toString(36).substring(2, 10).toUpperCase();
+  }
+  const array = new Uint32Array(1);
+  window.crypto.getRandomValues(array);
+  return array[0].toString(36).toUpperCase();
 };
 
 /**
@@ -183,5 +206,6 @@ export default {
   sanitizeInput,
   sanitizeObject,
   redactData,
-  validateAIResponse
+  validateAIResponse,
+  generateSecurityNonce
 };

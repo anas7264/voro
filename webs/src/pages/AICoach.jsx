@@ -5,13 +5,14 @@ import Card from '@/components/Card';
 import Input from '@/components/Input';
 import { useStorage } from '@/hooks/useStorage';
 import { useApp } from '@/hooks/useAppContext';
+import { useAI } from '@/hooks/useAI';
 
 const AICoach = () => {
   const { getStorage, setStorage } = useStorage();
   const { user } = useApp();
+  const { chat, loading: aiLoading } = useAI();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
 
   const quickPrompts = [
     'What should I eat today?',
@@ -29,45 +30,32 @@ const AICoach = () => {
   }, []);
 
   const handleSendMessage = async (text = input) => {
-    if (!text.trim()) return;
+    if (!text.trim() || aiLoading) return;
 
     const userMessage = { role: 'user', content: text, timestamp: new Date().toISOString() };
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     setInput('');
-    setLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse = {
-        role: 'assistant',
-        content: generateAIResponse(text),
-        timestamp: new Date().toISOString(),
-      };
-      const finalMessages = [...updatedMessages, aiResponse];
-      setMessages(finalMessages);
-      setStorage('voro_chat_history', finalMessages);
-      setLoading(false);
-    }, 1000);
-  };
+    try {
+      // Create conversation history for AI context
+      const history = messages.map(m => ({ role: m.role, content: m.content }));
 
-  const generateAIResponse = (userInput) => {
-    const responses = {
-      'what should i eat': `Based on your goals, I'd recommend a protein-rich meal. Try grilled chicken (150g) with brown rice and roasted vegetables. That's about 600 kcal with 45g protein.`,
-      'analyze my week': `Great week! You hit your calorie goal 5/7 days, averaged 165g protein, and trained 4 times. Keep up the consistency!`,
-      'motivate': `You're crushing it! Your training streak is 7 days 🔥 and you've logged every meal. This consistency compounds over time!`,
-      'on track': `Yes! You're tracking perfectly. At this rate, you'll hit your goal in approximately 12 weeks. Stay focused!`,
-      'macros': `Your current macros: Protein 1.8g/kg (excellent), Carbs 45% calories (good), Fat 30% calories (optimal). Well balanced!`,
-      'workout': `Tomorrow I'd suggest: Chest & Triceps - Bench Press 4×6, Incline DB 3×8, Cable Flies 3×10, Dips 3×8, plus 20min cardio. Rest 90s between sets.`,
-    };
+      const aiResponse = await chat(text, history);
 
-    for (const [key, value] of Object.entries(responses)) {
-      if (userInput.toLowerCase().includes(key)) {
-        return value;
+      if (aiResponse) {
+        const assistantMessage = {
+          role: 'assistant',
+          content: aiResponse.content,
+          timestamp: new Date().toISOString(),
+        };
+        const finalMessages = [...updatedMessages, assistantMessage];
+        setMessages(finalMessages);
+        setStorage('voro_chat_history', finalMessages);
       }
+    } catch (error) {
+      console.error("AI Coach Error:", error);
     }
-
-    return `I'm here to help! Ask me about your nutrition, training, goals, or progress, and I'll give you personalized advice based on your VORO data.`;
   };
 
   return (
@@ -82,7 +70,7 @@ const AICoach = () => {
               <div className="text-5xl mb-4">🤖</div>
               <h2 className="text-2xl font-bold text-white mb-2">Welcome to VORO AI Coach</h2>
               <p className="text-gray-400 mb-6">I'm your personal AI fitness and nutrition coach. Ask me anything about your goals, progress, and training.</p>
-              
+
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {quickPrompts.map((prompt, idx) => (
                   <Button
@@ -116,7 +104,7 @@ const AICoach = () => {
             </div>
           ))}
 
-          {loading && (
+          {aiLoading && (
             <div className="flex justify-start">
               <div className="bg-voro-card border border-voro-border px-4 py-3 rounded-lg text-gray-400 flex items-center gap-2">
                 <Loader size={16} className="animate-spin" />
@@ -134,12 +122,12 @@ const AICoach = () => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-              disabled={loading}
+              disabled={aiLoading}
               maxLength={2000}
             />
             <Button
               onClick={() => handleSendMessage()}
-              disabled={loading || !input.trim()}
+              disabled={aiLoading || !input.trim()}
               className="flex items-center gap-2"
             >
               <Send size={18} />
