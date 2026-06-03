@@ -22,7 +22,7 @@ export const useAI = () => {
     try {
       const result = await voroAIClient.generateMealPlan(
         userProfile,
-        buildVORO_SystemPrompt()
+        buildVORO_SystemPrompt
       );
       setResponse(result);
       return result;
@@ -50,7 +50,7 @@ export const useAI = () => {
     try {
       const result = await voroAIClient.generateTrainingPlan(
         userProfile,
-        buildVORO_SystemPrompt()
+        buildVORO_SystemPrompt
       );
       setResponse(result);
       return result;
@@ -78,7 +78,7 @@ export const useAI = () => {
     try {
       const result = await voroAIClient.generateCoachingAdvice(
         userProfile,
-        buildVORO_SystemPrompt()
+        buildVORO_SystemPrompt
       );
       setResponse(result);
       return result;
@@ -106,7 +106,7 @@ export const useAI = () => {
     try {
       const result = await voroAIClient.analyzeNutrition(
         nutritionData,
-        buildVORO_SystemPrompt()
+        buildVORO_SystemPrompt
       );
       setResponse(result);
       return result;
@@ -134,7 +134,7 @@ export const useAI = () => {
     try {
       const result = await voroAIClient.analyzeBodyComposition(
         metrics,
-        buildVORO_SystemPrompt()
+        buildVORO_SystemPrompt
       );
       setResponse(result);
       return result;
@@ -163,7 +163,7 @@ export const useAI = () => {
       const result = await voroAIClient.chat(
         message,
         conversationHistory,
-        buildVORO_SystemPrompt()
+        buildVORO_SystemPrompt
       );
       setResponse(result);
       return result;
