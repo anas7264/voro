@@ -39,3 +39,7 @@
 ## 2026-06-02 - Luxury Data Visualization and Floating Aesthetics
 **Learning:** High-end data visualization requires moving beyond standard grid-and-axis layouts. Removing distracting axis lines and tick marks while implementing glassmorphic tooltips with high-contrast typography (Serif/Mono) creates a "floating" data aesthetic that feels more premium and intentional.
 **Action:** When implementing charts, prioritize atmospheric depth (SVG glow/filters) and minimalist layouts (axis-free) to align with a luxury boutique aesthetic, ensuring that data is the primary focal point.
+
+## 2026-06-02 - Neural Oracle: Editorial AI Experience
+**Learning:** High-end AI interfaces benefit from an "Editorial" aesthetic. By contrasting sophisticated serif italics (Playfair Display) for AI insights with technical monospaced fonts (JetBrains Mono) for user data, we create a clear cognitive distinction between 'Oracle' wisdom and 'User' input.
+**Action:** Transformed AICoach into the 'Neural Oracle', implementing glassmorphic 'Insight Artifacts' and 'Inquiry Prisms' to elevate the standard chat bubble into a luxury specimen holder.
