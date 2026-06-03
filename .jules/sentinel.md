@@ -18,3 +18,13 @@ Neutralizing all bracketed markers with a minimum length and alphanumeric patter
 
 **Prevention:**
 Always run user-provided data through a neutralization pass before embedding it into system prompts. Exclude known UI-only tags using negative lookaheads to prevent interfering with legitimate application feedback loops.
+
+## 2026-06-03 - Polymorphic Prompt Isolation (PPI)
+**Vulnerability:**
+Fixed markers like `[USER_DATA]` are susceptible to "delimiter hijacking" or "tag closure" attacks where a malicious user provides input like `[/USER_DATA] Malicious Instruction [USER_DATA]`. This tricks the LLM into thinking the untrusted block has ended.
+
+**Learning:**
+Polymorphic Prompt Isolation (PPI) uses ephemeral, cryptographically secure nonces generated per-request to create dynamic boundaries (e.g., `[USER_DATA_${nonce}]`). By enforcing these unique boundaries in the system prompt and checking the AI's output for nonce leakage, we create a "moving target" defense that is significantly harder to spoof or bypass.
+
+**Prevention:**
+Never use static delimiters for untrusted data in LLM prompts. Generate a fresh nonce for every request, wrap all untrusted segments (including chat history and current input) in nonced markers, and validate that the nonce does not appear in the final response.
