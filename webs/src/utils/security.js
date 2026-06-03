@@ -54,6 +54,18 @@ export const sanitizeInput = (input) => {
 };
 
 /**
+ * Generates a cryptographically secure ephemeral nonce for request isolation.
+ */
+export const generateSecurityNonce = () => {
+  if (typeof window === 'undefined' || !window.crypto) {
+    return Math.random().toString(36).substring(2, 15);
+  }
+  const array = new Uint8Array(16);
+  window.crypto.getRandomValues(array);
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+};
+
+/**
  * Advanced PII Redaction Engine
  * Uses a multi-tier approach to protect user privacy.
  */
@@ -128,7 +140,7 @@ export const redactData = (data, seen = new WeakSet()) => {
 /**
  * Validates AI response for security and privacy compliance.
  */
-export const validateAIResponse = (response) => {
+export const validateAIResponse = (response, nonce = null) => {
   if (typeof response !== 'string') return response;
 
   const dangerousIndicators = [
@@ -141,7 +153,20 @@ export const validateAIResponse = (response) => {
     'from now on you'
   ];
 
-  const hasPII = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})|(\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4})/.test(response);
+  // If a nonce is provided, ensure it's not leaked in the response
+  if (nonce && response.includes(nonce)) {
+    console.error("Security Sentinel: Security nonce leaked in AI response. Potential instruction override.");
+    return "The AI generated a response that violates security protocols and has been neutralized.";
+  }
+
+  const piiPatterns = [
+    /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/, // Email
+    /(\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4})/, // Phone
+    /\b(?:\d{4}[ -]?){3}\d{4}\b/, // Credit Card
+    /\b\d{3}-\d{2}-\d{4}\b/ // SSN
+  ];
+
+  const hasPII = piiPatterns.some(pattern => pattern.test(response));
 
   if (hasPII) {
     console.warn("Security Sentinel: AI response contained potential PII. Redacting.");
@@ -183,5 +208,6 @@ export default {
   sanitizeInput,
   sanitizeObject,
   redactData,
-  validateAIResponse
+  validateAIResponse,
+  generateSecurityNonce
 };
