@@ -10,6 +10,10 @@
 export const sanitizeInput = (input) => {
   if (typeof input !== 'string') return input;
 
+  // Strip null bytes and dangerous control characters
+  // eslint-disable-next-line no-control-regex
+  input = input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+
   // If in a browser environment, use DOMParser for robust sanitization
   if (typeof window !== 'undefined' && window.DOMParser) {
     try {
@@ -141,12 +145,19 @@ export const redactData = (data, seen = new WeakSet()) => {
     redacted = redacted.replace(/(\+\d{1,3}[- ]?)?\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}/g, '[REDACTED_PHONE]');
     // Addresses / Locations (Basic pattern)
     redacted = redacted.replace(/\d+\s+[a-zA-Z0-9\s,]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Square|Sq|Trail|Trl)\.?/gi, '[REDACTED_ADDRESS]');
-    // Credit Cards
-    redacted = redacted.replace(/\b(?:\d{4}[ -]?){3}\d{4}\b/g, '[REDACTED_FINANCIAL]');
+    // Credit Cards (Harsher detection for 13-19 digits and various delimiters)
+    redacted = redacted.replace(/\b(?:\d[ -]*?){13,19}\b/g, '[REDACTED_FINANCIAL]');
     // SSN
     redacted = redacted.replace(/\b\d{3}-\d{2}-\d{4}\b/g, '[REDACTED_ID]');
     // IP Addresses
     redacted = redacted.replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '[REDACTED_IP]');
+    // Crypto Wallets (BTC & ETH)
+    redacted = redacted.replace(/\b(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,39}\b/g, '[REDACTED_CRYPTO]');
+    redacted = redacted.replace(/\b0x[a-fA-F0-9]{40}\b/g, '[REDACTED_CRYPTO]');
+    // Common API Keys (Anthropic, OpenAI, etc.)
+    redacted = redacted.replace(/\b(sk-ant-api03-[a-zA-Z0-9_-]{20,}|sk-[a-zA-Z0-9]{20,})\b/g, '[REDACTED_API_KEY]');
+    // Private Keys (RSA/EC/Generic)
+    redacted = redacted.replace(/-----BEGIN (?:RSA |EC )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC )?PRIVATE KEY-----/gi, '[REDACTED_PRIVATE_KEY]');
 
     // AI Boundary Marker Neutralization (Prevents indirect prompt injection)
     // Escapes markers like [USER_DATA], [MESSAGE_HISTORY], [SECURITY_PROTOCOL]
@@ -237,6 +248,23 @@ export const validateAIResponse = (response, nonce = null) => {
   if (dangerousIndicators.some(indicator => response.toLowerCase().includes(indicator))) {
     console.error("Security Sentinel: Potential prompt injection detected in AI response.");
     return "The AI generated a response that violates security protocols and has been neutralized.";
+  }
+
+  // Markdown Exfiltration Check
+  // Prevents the AI from tricking the user into clicking links or loading images
+  // that exfiltrate data via URL parameters.
+  const exfiltrationPattern = /\[.*?\]\((https?:\/\/.*?)\)/gi;
+  if (exfiltrationPattern.test(response)) {
+    return response.replace(exfiltrationPattern, (match, url) => {
+      const isSuspicious = (nonce && url.includes(nonce)) ||
+        /token|key|auth|credential|secret/i.test(url);
+
+      if (isSuspicious) {
+        console.error("Security Sentinel: Potential data exfiltration via markdown detected.");
+        return '[LINK_REMOVED_FOR_SECURITY]';
+      }
+      return match;
+    });
   }
 
   return response;
