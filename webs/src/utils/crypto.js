@@ -75,9 +75,10 @@ class CryptoManager {
   /**
    * Encrypt data
    * @param {any} data - Data to encrypt (string or object)
+   * @param {string} aad - Additional Authenticated Data (Cryptographic Binding)
    * @returns {Promise<string>} Base64 encoded encrypted string
    */
-  async encrypt(data) {
+  async encrypt(data, aad = null) {
     if (data === null || data === undefined) return data;
 
     await this.init();
@@ -88,8 +89,13 @@ class CryptoManager {
     // Generate 12-byte IV for AES-GCM
     const iv = window.crypto.getRandomValues(new Uint8Array(12));
 
+    const algorithm = { name: ALGO, iv };
+    if (aad) {
+      algorithm.additionalData = encoder.encode(aad);
+    }
+
     const ciphertext = await window.crypto.subtle.encrypt(
-      { name: ALGO, iv },
+      algorithm,
       this.key,
       encodedData
     );
@@ -106,19 +112,24 @@ class CryptoManager {
       binary += String.fromCharCode(bytes[i]);
     }
 
-    // Return base64 encoded string with 'v1:' prefix
-    return 'v1:' + btoa(binary);
+    // Use 'v2:' prefix if AAD (binding) is present, else 'v1:'
+    const prefix = aad ? 'v2:' : 'v1:';
+    return prefix + btoa(binary);
   }
 
   /**
    * Decrypt data
    * @param {string} encryptedData - Encrypted string from storage
+   * @param {string} aad - Additional Authenticated Data for verification
    * @returns {Promise<any>} Decrypted data
    */
-  async decrypt(encryptedData) {
-    if (typeof encryptedData !== 'string' || !encryptedData.startsWith('v1:')) {
-      return encryptedData; // Not encrypted or unknown version
-    }
+  async decrypt(encryptedData, aad = null) {
+    if (typeof encryptedData !== 'string') return encryptedData;
+
+    let version = 0;
+    if (encryptedData.startsWith('v2:')) version = 2;
+    else if (encryptedData.startsWith('v1:')) version = 1;
+    else return encryptedData; // Not encrypted
 
     await this.init();
 
@@ -132,8 +143,13 @@ class CryptoManager {
       const iv = bytes.slice(0, 12);
       const ciphertext = bytes.slice(12);
 
+      const algorithm = { name: ALGO, iv };
+      if (version === 2 && aad) {
+        algorithm.additionalData = new TextEncoder().encode(aad);
+      }
+
       const decrypted = await window.crypto.subtle.decrypt(
-        { name: ALGO, iv },
+        algorithm,
         this.key,
         ciphertext
       );
@@ -146,7 +162,7 @@ class CryptoManager {
         return decoded;
       }
     } catch (error) {
-      console.error('Decryption failed:', error);
+      console.error('Decryption failed. Potential data tampering or incorrect binding.', error);
       return null;
     }
   }

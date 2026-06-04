@@ -4,7 +4,7 @@ import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
 import { useStorage } from '@/hooks/useStorage';
-import { useApp } from '@/hooks/useAppContext';
+import { useAI } from '@/hooks/useAI';
 
 const MessageItem = memo(({ msg }) => {
   const isAssistant = msg.role === 'assistant';
@@ -31,7 +31,7 @@ const MessageItem = memo(({ msg }) => {
         </div>
 
         <div className={`
-          leading-relaxed tracking-tight
+          leading-relaxed tracking-tight whitespace-pre-wrap
           ${isAssistant
             ? 'font-serif italic text-xl text-gray-200'
             : 'font-mono text-[0.85rem] text-gray-300'
@@ -55,10 +55,12 @@ MessageItem.displayName = 'MessageItem';
 
 const AICoach = () => {
   const { getStorage, setStorage } = useStorage();
-  const { user } = useApp();
+  const { chat, loading: aiLoading } = useAI();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [localLoading, setLocalLoading] = useState(false);
+
+  const loading = aiLoading || localLoading;
 
   const quickPrompts = [
     'What should I eat today?',
@@ -76,29 +78,49 @@ const AICoach = () => {
   }, []);
 
   const handleSendMessage = async (text = input) => {
-    if (!text.trim()) return;
+    if (!text.trim() || loading) return;
 
     const userMessage = { role: 'user', content: text, timestamp: new Date().toISOString() };
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     setInput('');
-    setLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse = {
-        role: 'assistant',
-        content: generateAIResponse(text),
-        timestamp: new Date().toISOString(),
-      };
-      const finalMessages = [...updatedMessages, aiResponse];
-      setMessages(finalMessages);
-      setStorage('voro_chat_history', finalMessages);
-      setLoading(false);
-    }, 1000);
+    try {
+      // Transition from simulation to real AI flow
+      // We pass the last 10 messages as history for context awareness
+      const history = updatedMessages.slice(-10).map(m => ({ role: m.role, content: m.content }));
+
+      const aiResult = await chat(text, history.slice(0, -1));
+
+      if (aiResult) {
+        const aiResponse = {
+          role: 'assistant',
+          content: aiResult.content,
+          timestamp: new Date().toISOString(),
+        };
+        const finalMessages = [...updatedMessages, aiResponse];
+        setMessages(finalMessages);
+        setStorage('voro_chat_history', finalMessages);
+      }
+    } catch (error) {
+      console.error("AI Coach Error:", error);
+      // Fallback to local response if AI client fails (e.g. no API key)
+      setLocalLoading(true);
+      setTimeout(() => {
+        const aiResponse = {
+          role: 'assistant',
+          content: generateLocalFallback(text),
+          timestamp: new Date().toISOString(),
+        };
+        const finalMessages = [...updatedMessages, aiResponse];
+        setMessages(finalMessages);
+        setStorage('voro_chat_history', finalMessages);
+        setLocalLoading(false);
+      }, 800);
+    }
   };
 
-  const generateAIResponse = (userInput) => {
+  const generateLocalFallback = (userInput) => {
     const responses = {
       'what should i eat': `Based on your goals, I'd recommend a protein-rich meal. Try grilled chicken (150g) with brown rice and roasted vegetables. That's about 600 kcal with 45g protein.`,
       'analyze my week': `Great week! You hit your calorie goal 5/7 days, averaged 165g protein, and trained 4 times. Keep up the consistency!`,

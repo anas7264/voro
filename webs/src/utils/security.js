@@ -66,6 +66,66 @@ export const generateSecurityNonce = () => {
 };
 
 /**
+ * Privacy-Preserving Biometric Masking
+ * Applies "jitter" or "bucketing" to sensitive metrics to protect exact identity.
+ * Hardened with window.crypto for secure entropy.
+ */
+export const maskBiometrics = (data, seen = new WeakSet()) => {
+  if (data === null || data === undefined) return data;
+  if (typeof data !== 'object') return data;
+  if (seen.has(data)) return data;
+
+  seen.add(data);
+
+  if (Array.isArray(data)) {
+    return data.map(item => maskBiometrics(item, seen));
+  }
+
+  const result = {};
+  const biometricKeys = ['weight', 'height', 'bodyfat', 'body_fat', 'age', 'bmi', 'systolic', 'diastolic', 'heartrate', 'heart_rate'];
+
+  Object.keys(data).forEach(key => {
+    const lowerKey = key.toLowerCase();
+    const value = data[key];
+
+    if (biometricKeys.includes(lowerKey) && typeof value === 'number') {
+      // Apply deterministic bucketing/jittering
+      if (lowerKey === 'age') {
+        // Bucket age into 5-year increments (e.g., 27 -> "25-30")
+        const floor = Math.floor(value / 5) * 5;
+        result[key] = `${floor}-${floor + 5}`;
+      } else if (lowerKey.includes('weight')) {
+        // Round to nearest 0.5kg
+        result[key] = Math.round(value * 2) / 2;
+      } else if (lowerKey.includes('fat')) {
+        // Round to nearest 1%
+        result[key] = Math.round(value);
+      } else if (lowerKey.includes('systolic') || lowerKey.includes('diastolic')) {
+        // Round to nearest 5mmHg
+        result[key] = Math.round(value / 5) * 5;
+      } else {
+        // Hardened Jitter: Use CSPRNG for entropy
+        let entropy = 0.5;
+        if (typeof window !== 'undefined' && window.crypto) {
+          const array = new Uint32Array(1);
+          window.crypto.getRandomValues(array);
+          entropy = array[0] / 4294967295;
+        } else {
+          entropy = Math.random();
+        }
+
+        const jitter = 0.99 + (entropy * 0.02); // +/- 1% range
+        result[key] = parseFloat((value * jitter).toFixed(1));
+      }
+    } else {
+      result[key] = maskBiometrics(value, seen);
+    }
+  });
+
+  return result;
+};
+
+/**
  * Advanced PII Redaction Engine
  * Uses a multi-tier approach to protect user privacy.
  */
@@ -207,6 +267,7 @@ export const sanitizeObject = (obj, seen = new WeakSet()) => {
 export default {
   sanitizeInput,
   sanitizeObject,
+  maskBiometrics,
   redactData,
   validateAIResponse,
   generateSecurityNonce
