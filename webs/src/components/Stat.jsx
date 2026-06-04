@@ -30,22 +30,22 @@ export const Stat = memo(({
 
   return (
     <div className={`
-      group relative bg-[#0A0C14] border border-white/5 p-8 rounded-[2rem]
+      group relative bg-[#0A0C14] border border-white/5 p-10 rounded-[2.5rem]
       transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]
-      hover:border-white/10 hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/40
+      hover:border-white/20 hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/40
       ${className}
     `}>
       {/* Background Glow Detail */}
       <div className={`
-        absolute -right-4 -top-4 w-24 h-24 rounded-full blur-3xl opacity-0
-        group-hover:opacity-10 transition-opacity duration-700
+        absolute -right-4 -top-4 w-32 h-32 rounded-full blur-3xl opacity-0
+        group-hover:opacity-20 transition-opacity duration-700
         ${glowClass}
       `} />
 
       <div className="relative flex flex-col h-full">
         <div className="flex items-start justify-between mb-8">
           <div className="space-y-1">
-            <p className="text-[0.6rem] font-black text-gray-500 uppercase tracking-[0.3em] group-hover:text-gray-400 transition-colors">
+            <p className="text-[0.55rem] font-mono font-medium text-gray-600 uppercase tracking-[0.4em] group-hover:text-gray-400 transition-colors">
               {label}
             </p>
             {change !== undefined && (
@@ -68,7 +68,7 @@ export const Stat = memo(({
         </div>
 
         <div className="mt-auto flex items-baseline gap-2">
-          <p className="text-4xl font-serif italic font-medium text-white tracking-tight leading-none">
+          <p className="text-5xl font-serif italic font-medium text-white tracking-tight leading-none">
             {value}
           </p>
           {unit && (

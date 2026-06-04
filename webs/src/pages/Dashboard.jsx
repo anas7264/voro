@@ -238,14 +238,14 @@ const Dashboard = () => {
           <div className="flex gap-4">
              <button
               onClick={() => setShowQuickLog(true)}
-              className="group flex items-center gap-3 px-8 py-3.5 bg-white text-black rounded-full text-[0.65rem] font-black uppercase tracking-[0.3em] transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-white/10"
+              className="group flex items-center gap-3 px-8 py-3.5 bg-white text-black rounded-full text-[0.65rem] font-black uppercase tracking-[0.4em] transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-white/10"
             >
               <Plus size={16} />
               <span>Express Log</span>
             </button>
             <button
               onClick={() => navigate('/ai-coach')}
-              className="flex items-center gap-3 px-8 py-3.5 bg-[#0D1424] border border-white/5 text-white rounded-full text-[0.65rem] font-black uppercase tracking-[0.3em] transition-all hover:bg-white/[0.05] hover:border-voro-primary/30"
+              className="flex items-center gap-3 px-8 py-3.5 bg-[#0D1424] border border-white/5 text-white rounded-full text-[0.65rem] font-black uppercase tracking-[0.4em] transition-all hover:bg-white/[0.05] hover:border-voro-primary/30"
             >
               <Zap size={16} className="text-voro-accent" />
               <span>AI Advisor</span>
@@ -258,7 +258,7 @@ const Dashboard = () => {
             <section className="relative overflow-hidden rounded-[2.5rem] bg-[#0A0C14] border border-white/5 p-8 md:p-12 shadow-2xl shadow-black/40 transition-all hover:border-white/10 group/card">
               <div className="absolute top-0 right-0 w-64 h-64 bg-voro-primary/5 rounded-full blur-[100px] -mr-32 -mt-32 group-hover/card:bg-voro-primary/10 transition-colors duration-700" />
 
-              <div className="relative grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+              <div className="relative grid grid-cols-1 md:grid-cols-2 gap-20 items-center">
                 <div className="flex justify-center">
                   <div className="relative p-2 rounded-full bg-black/40 backdrop-blur-md border border-white/5 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
                     <Ring
@@ -273,7 +273,7 @@ const Dashboard = () => {
 
                 <div className="space-y-10">
                   <div>
-                    <h3 className="text-[0.65rem] font-black text-gray-500 uppercase tracking-[0.3em] mb-6">Metabolic Velocity</h3>
+                    <h3 className="text-[0.65rem] font-black text-gray-500 uppercase tracking-[0.4em] mb-6">Metabolic Velocity</h3>
                     <div className="flex items-baseline gap-4">
                       <span className="text-8xl font-serif italic font-medium tracking-tighter text-white">
                         {nutritionToday?.totals?.calories || 0}
@@ -370,24 +370,26 @@ const Dashboard = () => {
           </div>
 
           <div className="col-span-12 lg:col-span-4 space-y-8">
-            <section className="relative overflow-hidden bg-gradient-to-br from-voro-primary/10 to-transparent border border-voro-primary/20 p-8 rounded-[2.5rem] shadow-[0_0_40px_rgba(124,58,237,0.1)] group/ai">
-              <div className="absolute -right-4 -top-4 w-32 h-32 bg-voro-primary/10 rounded-full blur-3xl group-hover/ai:bg-voro-primary/20 transition-colors duration-1000" />
+            <section className="relative overflow-hidden bg-[#0A0C14] border border-voro-primary/20 p-10 rounded-[2.5rem] shadow-[0_0_50px_rgba(0,0,0,0.3)] group/ai backdrop-blur-3xl">
+              <div className="absolute -right-20 -top-20 w-64 h-64 bg-voro-primary/10 rounded-full blur-[100px] animate-pulse group-hover/ai:bg-voro-primary/20 transition-colors duration-1000" />
+              <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-voro-secondary/5 rounded-full blur-[100px] animate-pulse delay-700" />
+
               <div className="relative">
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="p-2.5 bg-voro-primary rounded-xl shadow-lg shadow-voro-primary/30">
+                <div className="flex items-center gap-4 mb-10">
+                  <div className="p-3 bg-voro-primary rounded-2xl shadow-lg shadow-voro-primary/30">
                     <Layout size={20} className="text-white" />
                   </div>
-                  <h3 className="text-[0.7rem] font-black uppercase tracking-[0.3em] text-white">Neural Synthesis</h3>
+                  <h3 className="text-[0.65rem] font-mono font-medium uppercase tracking-[0.4em] text-voro-primary">Neural Synthesis</h3>
                 </div>
-                <p className="text-xl font-serif italic font-medium text-gray-200 leading-relaxed">
+                <p className="text-2xl font-serif italic font-medium text-white leading-relaxed tracking-tight">
                    "{aiInsight || `Your current momentum in ${user.primaryGoal?.toLowerCase() || 'health'} is exceptional. Prioritizing ${nutritionToday?.totals?.protein < (user.proteinGoal * 0.8) ? 'protein density' : 'hydration recovery'} will further optimize your evolution.`}"
                 </p>
-                <div className="mt-6 pt-6 border-t border-white/5 flex items-center justify-between">
-                  <span className="text-[0.65rem] font-bold text-voro-primary uppercase tracking-widest">Active Processing</span>
-                  <div className="flex gap-1">
-                    <div className="w-1 h-1 bg-voro-primary rounded-full animate-pulse" />
-                    <div className="w-1 h-1 bg-voro-primary rounded-full animate-pulse delay-75" />
-                    <div className="w-1 h-1 bg-voro-primary rounded-full animate-pulse delay-150" />
+                <div className="mt-8 pt-8 border-t border-white/5 flex items-center justify-between">
+                  <span className="text-[0.55rem] font-mono font-medium text-gray-500 uppercase tracking-[0.3em]">Active Processing</span>
+                  <div className="flex gap-1.5">
+                    <div className="w-1.5 h-1.5 bg-voro-primary rounded-full animate-pulse shadow-[0_0_8px_rgba(124,58,237,0.5)]" />
+                    <div className="w-1.5 h-1.5 bg-voro-primary rounded-full animate-pulse delay-75 shadow-[0_0_8px_rgba(124,58,237,0.5)]" />
+                    <div className="w-1.5 h-1.5 bg-voro-primary rounded-full animate-pulse delay-150 shadow-[0_0_8px_rgba(124,58,237,0.5)]" />
                   </div>
                 </div>
               </div>
