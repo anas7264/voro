@@ -42,50 +42,50 @@ const NAV_LINKS = [
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAppContext();
-  const { getItem, setItem } = useStorage();
+  const { getItem, setItem, storageData } = useStorage();
   const { response: aiInsight } = useAI();
   const { addNotification } = useNotifications();
   
-  const [nutritionToday, setNutritionToday] = useState(null);
-  const [workoutToday, setWorkoutToday] = useState(null);
-  const [weightTrend, setWeightTrend] = useState([]);
-  const [streaks, setStreaks] = useState({ training: 0, logging: 0, water: 0 });
   const [showQuickLog, setShowQuickLog] = useState(false);
 
   useEffect(() => {
     document.title = 'VORO | Evolution Dashboard';
-    loadDashboardData();
   }, []);
 
-  const loadDashboardData = () => {
-    const today = new Date().toISOString().split('T')[0];
-    const nutritionLog = getItem('nutrition_log') || {};
-    const todayNutrition = nutritionLog[today] || {
+  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
+
+  /**
+   * ⚡ OPTIMIZATION: Synchronous data derivation using useMemo.
+   * Eliminates the initial mount-time double-render cycle and ensures
+   * reactivity to StorageContext updates without manual load calls.
+   */
+  const nutritionToday = useMemo(() => {
+    const nutritionLog = storageData['nutrition_log'] || {};
+    return nutritionLog[today] || {
       meals: {},
       water: 0,
       totals: { calories: 0, protein: 0, carbs: 0, fat: 0 }
     };
-    setNutritionToday(todayNutrition);
+  }, [storageData['nutrition_log'], today]);
 
-    const workoutLog = getItem('workout_log') || {};
-    const todayWorkout = workoutLog[today];
-    setWorkoutToday(todayWorkout);
+  const workoutToday = useMemo(() => {
+    const workoutLog = storageData['workout_log'] || {};
+    return workoutLog[today];
+  }, [storageData['workout_log'], today]);
 
-    const metrics = getItem('body_metrics') || {};
+  const weightTrend = useMemo(() => {
+    const metrics = storageData['body_metrics'] || {};
     const weights = metrics.weights || [];
-    const last30 = weights.slice(-30).map(w => ({
+    return weights.slice(-30).map(w => ({
       date: new Date(w.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       weight: w.value,
       fullDate: w.date
     }));
-    setWeightTrend(last30);
+  }, [storageData['body_metrics']]);
 
-    calculateStreaks();
-  };
-
-  const calculateStreaks = () => {
-    const workoutLog = getItem('workout_log') || {};
-    const nutritionLog = getItem('nutrition_log') || {};
+  const streaks = useMemo(() => {
+    const workoutLog = storageData['workout_log'] || {};
+    const nutritionLog = storageData['nutrition_log'] || {};
     const waterGoal = user?.waterGoal || 2000;
     
     let trainingStreak = 0;
@@ -96,11 +96,11 @@ const Dashboard = () => {
     let loggingActive = true;
     let waterActive = true;
 
-    const date = new Date();
+    const cursorDate = new Date();
     for (let i = 0; i < 365; i++) {
       if (!trainingActive && !loggingActive && !waterActive) break;
 
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = cursorDate.toISOString().split('T')[0];
 
       if (trainingActive) {
         if (workoutLog[dateStr]?.attended) trainingStreak++;
@@ -117,14 +117,14 @@ const Dashboard = () => {
         else if (waterStreak > 0 || i > 0) waterActive = false;
       }
 
-      date.setDate(date.getDate() - 1);
+      cursorDate.setDate(cursorDate.getDate() - 1);
     }
 
-    setStreaks({ training: trainingStreak, logging: loggingStreak, water: waterStreak });
-  };
+    return { training: trainingStreak, logging: loggingStreak, water: waterStreak };
+  }, [storageData['workout_log'], storageData['nutrition_log'], user?.waterGoal]);
 
   const handleQuickLog = (type, value) => {
-    const today = new Date().toISOString().split('T')[0];
+    const todayStr = new Date().toISOString().split('T')[0];
     const numValue = parseFloat(value);
 
     if (isNaN(numValue) || numValue <= 0) {
@@ -134,26 +134,25 @@ const Dashboard = () => {
 
     if (type === 'weight') {
       const metrics = getItem('body_metrics') || { weights: [] };
-      metrics.weights.push({ date: today, value: numValue });
+      metrics.weights.push({ date: todayStr, value: numValue });
       setItem('body_metrics', metrics);
       addNotification('Body transformation record synthesized', 'success');
     } else if (type === 'water') {
       const log = getItem('nutrition_log') || {};
-      if (!log[today]) log[today] = { meals: {}, water: 0, totals: { calories: 0, protein: 0, carbs: 0, fat: 0 } };
-      log[today].water = (log[today].water || 0) + numValue;
+      if (!log[todayStr]) log[todayStr] = { meals: {}, water: 0, totals: { calories: 0, protein: 0, carbs: 0, fat: 0 } };
+      log[todayStr].water = (log[todayStr].water || 0) + numValue;
       setItem('nutrition_log', log);
       addNotification('Hydration matrix updated', 'success');
     } else if (type === 'meal') {
       const log = getItem('nutrition_log') || {};
-      if (!log[today]) log[today] = { meals: {}, water: 0, totals: { calories: 0, protein: 0, carbs: 0, fat: 0 } };
+      if (!log[todayStr]) log[todayStr] = { meals: {}, water: 0, totals: { calories: 0, protein: 0, carbs: 0, fat: 0 } };
       const mealId = `express_${Date.now()}`;
-      log[today].meals[mealId] = { name: 'Express Log', calories: numValue, protein: 0, carbs: 0, fat: 0, timestamp: new Date().toISOString() };
-      log[today].totals.calories += numValue;
+      log[todayStr].meals[mealId] = { name: 'Express Log', calories: numValue, protein: 0, carbs: 0, fat: 0, timestamp: new Date().toISOString() };
+      log[todayStr].totals.calories += numValue;
       setItem('nutrition_log', log);
       addNotification('Energy dynamics logged', 'success');
     }
 
-    loadDashboardData();
     setShowQuickLog(false);
   };
 
@@ -165,20 +164,38 @@ const Dashboard = () => {
   }, []);
 
   const calorieStatus = useMemo(() => {
-    if (!nutritionToday || !user) return { status: 'neutral', remaining: user?.calorieGoal || 2000 };
-    const remaining = (user.calorieGoal || 2000) - (nutritionToday.totals?.calories || 0);
+    if (!user) return { status: 'neutral', remaining: 2000 };
+    const goal = user.calorieGoal || 2000;
+    const remaining = goal - (nutritionToday.totals?.calories || 0);
     return {
       status: remaining > 0 ? 'under' : 'over',
       remaining: Math.abs(remaining)
     };
-  }, [nutritionToday, user]);
+  }, [nutritionToday.totals?.calories, user]);
 
-  const getMacroProgress = (macro) => {
-    if (!nutritionToday || !user) return 0;
-    const goal = user[`${macro}Goal`] || 1;
-    const actual = macro === 'water' ? (nutritionToday.water || 0) : (nutritionToday.totals?.[macro] || 0);
-    return Math.min((actual / goal) * 100, 100);
-  };
+  /**
+   * ⚡ OPTIMIZATION: Consolidated macro stats derivation.
+   * Calculates all macro data in a single pass to reduce render-loop overhead.
+   */
+  const macroStats = useMemo(() => {
+    if (!user) return [];
+    return MACRO_CONFIG.map(config => {
+      const goal = user[`${config.macro}Goal`] || 1;
+      const actual = config.macro === 'water'
+        ? (nutritionToday.water || 0)
+        : (nutritionToday.totals?.[config.macro] || 0);
+      const progress = Math.min((actual / goal) * 100, 100);
+
+      return {
+        ...config,
+        actual,
+        progress,
+        displayValue: config.macro === 'water'
+          ? (Math.round(actual / 100) / 10).toFixed(1)
+          : actual
+      };
+    });
+  }, [nutritionToday, user]);
 
   const todayDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -289,7 +306,7 @@ const Dashboard = () => {
             </section>
 
             <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-              {MACRO_CONFIG.map((item) => (
+              {macroStats.map((item) => (
                 <div key={item.macro} className="group relative bg-[#0A0C14] border border-white/5 p-6 rounded-[2rem] transition-all hover:border-white/10 hover:translate-y-[-4px]">
                   <div className="flex items-center justify-between mb-6">
                     <div className={`w-12 h-12 flex items-center justify-center rounded-2xl text-2xl ${item.bg}`}>
@@ -301,10 +318,7 @@ const Dashboard = () => {
                   <div className="mb-4">
                     <div className="flex items-baseline gap-1">
                       <span className="text-4xl font-serif font-bold text-white tracking-tight">
-                        {item.macro === 'water'
-                          ? (Math.round((nutritionToday?.water || 0) / 100) / 10).toFixed(1)
-                          : (nutritionToday?.totals?.[item.macro] || 0)
-                        }
+                        {item.displayValue}
                       </span>
                       <span className="text-[0.65rem] font-black text-gray-600 uppercase tracking-widest ml-1">{item.macro === 'water' ? 'L' : 'g'}</span>
                     </div>
@@ -314,13 +328,13 @@ const Dashboard = () => {
                     <div
                       className="absolute inset-y-0 left-0 transition-all duration-1000 ease-out rounded-full"
                       style={{
-                        width: `${getMacroProgress(item.macro)}%`,
+                        width: `${item.progress}%`,
                         backgroundColor: item.color
                       }}
                     />
                   </div>
                   <div className="mt-3 flex justify-between items-center">
-                    <span className="text-[0.6rem] font-bold text-gray-600 uppercase tracking-widest">{Math.round(getMacroProgress(item.macro))}% Goal</span>
+                    <span className="text-[0.6rem] font-bold text-gray-600 uppercase tracking-widest">{Math.round(item.progress)}% Goal</span>
                     <div className="w-1 h-1 rounded-full bg-gray-800" />
                   </div>
                 </div>
