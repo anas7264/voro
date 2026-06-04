@@ -94,8 +94,9 @@ class StorageManager {
 
       // Migration/Compatibility: Check if the item is encrypted
       let processedItem = item;
-      if (item.startsWith('v1:')) {
-        processedItem = await crypto.decrypt(item);
+      if (item.startsWith('v2:') || item.startsWith('v1:')) {
+        // Pass fullKey as AAD for cryptographic binding verification
+        processedItem = await crypto.decrypt(item, fullKey);
       } else {
         // Fallback for legacy plain-text data
         try {
@@ -128,7 +129,7 @@ class StorageManager {
 
     if (!item) return null;
 
-    if (item.startsWith('v1:')) {
+    if (item.startsWith('v1:') || item.startsWith('v2:')) {
       // Encrypted data cannot be read synchronously if not cached
       return null;
     }
@@ -155,7 +156,8 @@ class StorageManager {
 
       let serialized;
       if (this.shouldEncrypt(baseKey)) {
-        serialized = await crypto.encrypt(sanitizedValue);
+        // Pass fullKey as AAD for cryptographic binding
+        serialized = await crypto.encrypt(sanitizedValue, fullKey);
       } else {
         serialized = typeof sanitizedValue === "string" ? sanitizedValue : JSON.stringify(sanitizedValue);
       }

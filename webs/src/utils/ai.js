@@ -1,7 +1,7 @@
 // VORO Claude AI Integration
 // API wrapper for Claude AI with streaming and error handling
 
-import { redactData, validateAIResponse, generateSecurityNonce } from './security';
+import { redactData, validateAIResponse, generateSecurityNonce, maskBiometrics } from './security';
 
 const CLAUDE_API_KEY = import.meta.env.VITE_CLAUDE_API_KEY;
 const CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
@@ -17,12 +17,13 @@ class VoroAIClient {
   }
 
   /**
-   * Redacts Personally Identifiable Information (PII) and sensitive data
-   * before sending it to external AI services.
+   * Redacts Personally Identifiable Information (PII) and applies
+   * privacy-preserving biometric masking before sending it to external AI services.
    * Leverages the centralized Security Sentinel.
    */
   sanitizeData(data) {
-    return redactData(data);
+    const masked = maskBiometrics(data);
+    return redactData(masked);
   }
 
   // Call Claude API with full parameters
