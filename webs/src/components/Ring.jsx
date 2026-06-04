@@ -73,7 +73,7 @@ const Ring = memo(({ value, max, size = 180, unit = 'kcal', color = '#7C3AED', l
       </svg>
 
       <div className="relative z-10 text-center flex flex-col items-center">
-        <div className="text-[0.65rem] font-black uppercase tracking-[0.25em] text-gray-500 mb-1">
+        <div className="text-[0.65rem] font-serif italic font-medium uppercase tracking-tighter text-gray-500 mb-1">
           {label || 'Metabolic'}
         </div>
         <div className="text-4xl font-serif font-bold text-white leading-none tracking-tight">
