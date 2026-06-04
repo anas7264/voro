@@ -1,7 +1,7 @@
 import React, { useState, createContext, useContext, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
-import { Menu } from 'lucide-react';
+import { Menu, Activity } from 'lucide-react';
 
 export const SidebarContext = createContext({ collapsed: false, setCollapsed: () => {} });
 
@@ -21,39 +21,52 @@ const AppLayout = ({ children }) => {
 
   return (
     <SidebarContext.Provider value={{ collapsed, setCollapsed }}>
-      <div className="flex h-full bg-[#080B14] relative">
+      <div className="flex h-full bg-[#080B14] relative selection:bg-voro-primary/30">
         <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} isMobile={isMobile} />
 
         {isMobile && !collapsed && (
           <div
-            className="fixed inset-0 bg-[#080B14]/80 backdrop-blur-xl z-[50] animate-fade-in"
+            className="fixed inset-0 bg-[#020408]/90 backdrop-blur-2xl z-[50] animate-fade-in"
             onClick={() => setCollapsed(true)}
           />
         )}
 
         <main
-          className="flex-1 min-h-screen overflow-y-auto overflow-x-hidden transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
-          style={{ marginLeft: isMobile ? '0' : (collapsed ? '80px' : '288px') }}
+          className="flex-1 min-h-screen overflow-y-auto overflow-x-hidden transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
+          style={{ marginLeft: isMobile ? '0' : (collapsed ? '96px' : '320px') }}
         >
           {isMobile && (
-            <div className="sticky top-0 z-[40] flex items-center justify-between h-20 px-6 bg-[#080B14]/80 backdrop-blur-xl border-b border-white/5">
-              <div className="flex items-center gap-4">
+            <div className="sticky top-0 z-[40] flex items-center justify-between h-24 px-8 bg-[#080B14]/80 backdrop-blur-2xl border-b border-white/[0.03]">
+              <div className="flex items-center gap-6">
                 <button
                   onClick={() => setCollapsed(false)}
-                  className="p-3 bg-white/5 rounded-2xl text-gray-400 hover:text-white transition-all active:scale-90"
+                  className="p-3.5 bg-white/[0.03] border border-white/5 rounded-2xl text-gray-400 hover:text-white transition-all active:scale-90"
                 >
-                  <Menu size={22} />
+                  <Menu size={20} />
                 </button>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-voro-primary flex items-center justify-center shadow-lg shadow-voro-primary/20">
-                    <span className="text-white font-black text-xs">V</span>
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <div className="w-10 h-10 rounded-xl bg-voro-primary flex items-center justify-center shadow-lg shadow-voro-primary/20">
+                      <span className="text-white font-serif italic font-bold text-xl">V</span>
+                    </div>
+                    <div className="absolute -inset-1 bg-voro-primary/20 blur-lg rounded-xl" />
                   </div>
-                  <span className="text-white font-black text-lg tracking-[0.2em] uppercase">Voro</span>
+                  <div className="flex flex-col">
+                    <span className="text-white font-serif italic font-medium text-xl tracking-tighter leading-none">Voro</span>
+                    <span className="text-[0.5rem] font-mono text-voro-primary uppercase tracking-[0.4em] mt-1">Matrix Active</span>
+                  </div>
                 </div>
+              </div>
+
+              <div className="w-10 h-10 rounded-full border border-white/5 flex items-center justify-center text-voro-primary">
+                <Activity size={16} className="animate-pulse" />
               </div>
             </div>
           )}
-          <div className="relative">
+
+          <div className="relative min-h-full">
+             {/* Architectural Background Detail */}
+             <div className="absolute top-0 right-0 w-full h-[600px] bg-gradient-to-b from-voro-primary/[0.02] to-transparent pointer-events-none" />
              {children}
           </div>
         </main>
