@@ -182,7 +182,8 @@ const FoodDiary = () => {
           <div className="flex items-center gap-4 bg-[#0A0C14] border border-white/5 rounded-2xl p-2 shadow-xl">
             <button
               onClick={() => handleDateChange(-1)}
-              className="p-3 hover:bg-white/5 rounded-xl text-gray-500 hover:text-white transition-all"
+              className="p-3 hover:bg-white/5 rounded-xl text-gray-500 hover:text-white transition-all focus-visible:ring-2 focus-visible:ring-voro-primary outline-none"
+              aria-label="Previous day"
             >
               <ChevronLeft size={20} />
             </button>
@@ -192,7 +193,8 @@ const FoodDiary = () => {
             </div>
             <button
               onClick={() => handleDateChange(1)}
-              className="p-3 hover:bg-white/5 rounded-xl text-gray-500 hover:text-white transition-all"
+              className="p-3 hover:bg-white/5 rounded-xl text-gray-500 hover:text-white transition-all focus-visible:ring-2 focus-visible:ring-voro-primary outline-none"
+              aria-label="Next day"
             >
               <ChevronRight size={20} />
             </button>
@@ -262,7 +264,8 @@ const FoodDiary = () => {
                   <button
                     key={amt}
                     onClick={() => handleWaterAdd(amt)}
-                    className="py-3 rounded-xl bg-white/[0.02] border border-white/5 text-[0.65rem] font-black uppercase tracking-widest text-gray-400 hover:bg-white/5 hover:text-white transition-all active:scale-95"
+                    className="py-3 rounded-xl bg-white/[0.02] border border-white/5 text-[0.65rem] font-black uppercase tracking-widest text-gray-400 hover:bg-white/5 hover:text-white transition-all active:scale-95 focus-visible:ring-2 focus-visible:ring-blue-500 outline-none"
+                    aria-label={`Add ${amt}ml of water`}
                   >
                     +{amt > 999 ? '1L' : amt}
                   </button>
@@ -293,7 +296,8 @@ const FoodDiary = () => {
                         setSelectedSlot(slot);
                         setShowFoodSearch(true);
                       }}
-                      className="p-3 bg-white text-black rounded-full hover:scale-110 active:scale-90 transition-all shadow-xl shadow-white/5"
+                      className="p-3 bg-white text-black rounded-full hover:scale-110 active:scale-90 transition-all shadow-xl shadow-white/5 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black outline-none"
+                      aria-label={`Add food to ${slot}`}
                     >
                       <Plus size={20} />
                     </button>
@@ -315,7 +319,8 @@ const FoodDiary = () => {
                             <span className="text-sm font-bold text-voro-primary font-mono">{food.calories} kcal</span>
                             <button
                               onClick={() => handleRemoveFood(slot, idx)}
-                              className="p-2.5 rounded-xl text-gray-700 hover:text-red-400 hover:bg-red-400/10 transition-all opacity-0 group-hover:opacity-100"
+                              className="p-2.5 rounded-xl text-gray-700 hover:text-red-400 hover:bg-red-400/10 transition-all opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-red-500 outline-none"
+                              aria-label={`Remove ${food.name} from ${slot}`}
                             >
                               <Trash2 size={16} />
                             </button>
