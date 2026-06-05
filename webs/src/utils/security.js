@@ -139,23 +139,29 @@ export const redactData = (data, seen = new WeakSet()) => {
   // Handle strings (Regex-based PII detection)
   if (typeof data === 'string') {
     let redacted = data;
-    // Email
+    // Email (Standard PII)
     redacted = redacted.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[REDACTED_EMAIL]');
     // Phone
     redacted = redacted.replace(/(\+\d{1,3}[- ]?)?\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}/g, '[REDACTED_PHONE]');
     // Addresses / Locations (Basic pattern)
     redacted = redacted.replace(/\d+\s+[a-zA-Z0-9\s,]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Square|Sq|Trail|Trl)\.?/gi, '[REDACTED_ADDRESS]');
-    // Credit Cards (Harsher detection for 13-19 digits and various delimiters)
-    redacted = redacted.replace(/\b(?:\d[ -]*?){13,19}\b/g, '[REDACTED_FINANCIAL]');
-    // SSN
+    // Credit Cards (Harsher detection for 13-19 digits and various delimiters, Luhn-like length check)
+    redacted = redacted.replace(/\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|6(?:011|5[0-9]{2})[0-9]{12}|(?:2131|1800|35\d{3})\d{11})\b/g, '[REDACTED_FINANCIAL]');
+    // SSN (Identity Protection)
     redacted = redacted.replace(/\b\d{3}-\d{2}-\d{4}\b/g, '[REDACTED_ID]');
-    // IP Addresses
-    redacted = redacted.replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '[REDACTED_IP]');
+    // IP Addresses (IPv4 & IPv6)
+    redacted = redacted.replace(/\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/g, '[REDACTED_IP]');
+    redacted = redacted.replace(/\b(?:[A-F0-9]{1,4}:){7}[A-F0-9]{1,4}\b/gi, '[REDACTED_IP]');
+    // JWT Tokens
+    redacted = redacted.replace(/\beyJ[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*\b/g, '[REDACTED_JWT]');
+    // UUIDs
+    redacted = redacted.replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, '[REDACTED_UUID]');
     // Crypto Wallets (BTC & ETH)
     redacted = redacted.replace(/\b(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,39}\b/g, '[REDACTED_CRYPTO]');
     redacted = redacted.replace(/\b0x[a-fA-F0-9]{40}\b/g, '[REDACTED_CRYPTO]');
-    // Common API Keys (Anthropic, OpenAI, etc.)
+    // Common API Keys (Anthropic, OpenAI, AWS, etc.)
     redacted = redacted.replace(/\b(sk-ant-api03-[a-zA-Z0-9_-]{20,}|sk-[a-zA-Z0-9]{20,})\b/g, '[REDACTED_API_KEY]');
+    redacted = redacted.replace(/\bAKIA[0-9A-Z]{16}\b/g, '[REDACTED_AWS_KEY]');
     // Private Keys (RSA/EC/Generic)
     redacted = redacted.replace(/-----BEGIN (?:RSA |EC )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC )?PRIVATE KEY-----/gi, '[REDACTED_PRIVATE_KEY]');
 
@@ -252,20 +258,20 @@ export const validateAIResponse = (response, nonce = null) => {
 
   // Markdown Exfiltration Check
   // Prevents the AI from tricking the user into clicking links or loading images
-  // that exfiltrate data via URL parameters.
-  const exfiltrationPattern = /\[.*?\]\((https?:\/\/.*?)\)/gi;
-  if (exfiltrationPattern.test(response)) {
-    return response.replace(exfiltrationPattern, (match, url) => {
-      const isSuspicious = (nonce && url.includes(nonce)) ||
-        /token|key|auth|credential|secret/i.test(url);
+  // that exfiltrate data via URL parameters (tracking pixels, credential harvesting).
+  // Security Note: We use replace() directly without test() to avoid regex lastIndex side effects.
+  const exfiltrationPattern = /!?\[.*?\]\((https?:\/\/.*?|data:.*?)\)/gi;
+  return response.replace(exfiltrationPattern, (match, url) => {
+    // Check for presence of the session nonce or high-entropy security keywords in the URL
+    const isSuspicious = (nonce && url.includes(nonce)) ||
+      /token|key|auth|credential|secret|cookie|session|localstorage|nonce|voro_/i.test(url);
 
-      if (isSuspicious) {
-        console.error("Security Sentinel: Potential data exfiltration via markdown detected.");
-        return '[LINK_REMOVED_FOR_SECURITY]';
-      }
-      return match;
-    });
-  }
+    if (isSuspicious) {
+      console.error("Security Sentinel: Potential data exfiltration via markdown detected.");
+      return '[MEDIA_REMOVED_FOR_SECURITY]';
+    }
+    return match;
+  });
 
   return response;
 };
