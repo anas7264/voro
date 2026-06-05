@@ -1,28 +1,30 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Trophy } from 'lucide-react';
 import { AchievementCard } from '@/components/AchievementCard';
 import { achievements } from '@/data/achievements';
 import { useStorage } from '@/hooks/useStorage';
 
 const Achievements = () => {
-  const { getStorage } = useStorage();
-  const [earned, setEarned] = useState([]);
-  const [level, setLevel] = useState(1);
-  const [xp, setXP] = useState(0);
+  const { storageData } = useStorage();
 
   useEffect(() => {
     document.title = 'VORO | Achievement Matrix';
-    const gamification = getStorage('voro_gamification') || {};
-    setEarned(gamification.achievements || []);
-    setLevel(gamification.level || 1);
-    setXP(gamification.xp || 0);
   }, []);
+
+  // Synchronous data derivation from StorageContext
+  const { earned, level, xp } = useMemo(() => {
+    const gamification = storageData['gamification'] || {};
+    return {
+      earned: gamification.achievements || [],
+      level: gamification.level || 1,
+      xp: gamification.totalXP || 0 // Corrected to use totalXP from useGamification hook
+    };
+  }, [storageData]);
 
   const earnedIds = useMemo(() => new Set(earned), [earned]);
 
   const categories = useMemo(() => {
-    const cats = [...new Set(achievements.map(a => a.category))];
-    return cats;
+    return [...new Set(achievements.map(a => a.category))];
   }, []);
 
   const xpToNextLevel = useMemo(() => {
@@ -121,7 +123,7 @@ const Achievements = () => {
         <div className="space-y-24">
           {categories.map(category => (
             <section key={category} className="space-y-10">
-              <div className="flex items-center gap-6">
+              <div className="items-center gap-6 hidden md:flex">
                 <h2 className="text-[0.7rem] font-black uppercase tracking-[0.5em] text-gray-500 whitespace-nowrap">
                   {category}
                 </h2>
