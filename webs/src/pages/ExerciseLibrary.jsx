@@ -6,13 +6,23 @@ import Input from '@/components/Input';
 import Badge from '@/components/Badge';
 import { exercises } from '@/data/exercises';
 
+const PAGE_SIZE = 20;
+
 const ExerciseLibrary = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
     document.title = 'VORO | Exercise Library';
   }, []);
+
+  /**
+   * ⚡ OPTIMIZATION: Reset visible count when filters change to maintain performance.
+   */
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [searchQuery, selectedCategory]);
 
   /**
    * ⚡ OPTIMIZATION: Memoize categories to avoid O(N) extraction on every render.
@@ -73,7 +83,7 @@ const ExerciseLibrary = () => {
 
         {/* Exercises Grid */}
         <div className="space-y-3">
-          {filteredExercises.map(exercise => (
+          {filteredExercises.slice(0, visibleCount).map(exercise => (
             <Card key={exercise.id} className="p-4 hover:border-voro-primary transition-all">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -107,6 +117,18 @@ const ExerciseLibrary = () => {
         {filteredExercises.length === 0 && (
           <div className="text-center py-12">
             <p className="text-gray-400">No exercises found</p>
+          </div>
+        )}
+
+        {visibleCount < filteredExercises.length && (
+          <div className="mt-12 flex justify-center">
+            <Button
+              variant="secondary"
+              onClick={() => setVisibleCount(prev => prev + PAGE_SIZE)}
+              className="px-12 py-4 rounded-full text-[0.65rem] font-black uppercase tracking-[0.4em] border-white/10 hover:bg-white/5"
+            >
+              Load More Exercises
+            </Button>
           </div>
         )}
       </div>
