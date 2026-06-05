@@ -5,6 +5,7 @@ import Card from '@/components/Card';
 import Input from '@/components/Input';
 import Modal from '@/components/Modal';
 import Checkbox from '@/components/Checkbox';
+import Confetti from '@/components/Confetti';
 import { useStorage } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { validateWorkoutEntry } from '@/utils/validators';
@@ -14,6 +15,7 @@ const WorkoutLog = () => {
   const { getItem, setItem } = useStorage();
   const { addNotification } = useNotifications();
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   // Use local state for drafting to avoid excessive writes to storage
   const [sessionType, setSessionType] = useState('Strength');
@@ -112,6 +114,8 @@ const WorkoutLog = () => {
 
     await setItem('workout_log', allWorkouts);
     addNotification('Kinetic manifestation archived.', 'success');
+    setShowConfetti(true);
+    setTimeout(() => setShowConfetti(false), 3000);
   };
 
   const filteredExercises = useMemo(() => {
@@ -219,7 +223,8 @@ const WorkoutLog = () => {
                   </div>
                   <button
                     onClick={() => removeExercise(idx)}
-                    className="p-3 rounded-xl hover:bg-red-500/10 text-gray-700 hover:text-red-400 transition-all opacity-0 group-hover/ex:opacity-100"
+                    aria-label={`Remove ${exercise.name} from session`}
+                    className="p-3 rounded-xl hover:bg-red-500/10 text-gray-700 hover:text-red-400 transition-all opacity-0 group-hover/ex:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-red-500 outline-none"
                   >
                     <Trash2 size={20} />
                   </button>
@@ -257,6 +262,7 @@ const WorkoutLog = () => {
                           <Checkbox
                             checked={set.completed}
                             onChange={(checked) => updateSet(idx, setIdx, 'completed', checked)}
+                            aria-label={`Mark set ${setIdx + 1} of ${exercise.name} as ${set.completed ? 'incomplete' : 'complete'}`}
                           />
                         </div>
                       </div>
@@ -285,6 +291,8 @@ const WorkoutLog = () => {
           </div>
         </div>
       </div>
+
+      {showConfetti && <Confetti />}
 
       <Modal
         isOpen={showExerciseSearch}
