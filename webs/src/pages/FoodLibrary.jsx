@@ -6,14 +6,24 @@ import Input from '@/components/Input';
 import Badge from '@/components/Badge';
 import { foods } from '@/data/foods';
 
+const PAGE_SIZE = 24;
+
 const FoodLibrary = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [favorites, setFavorites] = useState([]);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
     document.title = 'VORO | Food Library';
   }, []);
+
+  /**
+   * ⚡ OPTIMIZATION: Reset visible count when filters change to maintain performance.
+   */
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [searchQuery, selectedCategory]);
 
   /**
    * ⚡ OPTIMIZATION: Memoize categories to avoid O(N) extraction on every render.
@@ -82,7 +92,7 @@ const FoodLibrary = () => {
 
         {/* Foods Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredFoods.map(food => (
+          {filteredFoods.slice(0, visibleCount).map(food => (
             <Card key={food.id} className="p-4 hover:border-voro-primary transition-all">
               <div className="flex items-start justify-between mb-3">
                 <div>
@@ -139,6 +149,18 @@ const FoodLibrary = () => {
         {filteredFoods.length === 0 && (
           <div className="text-center py-12">
             <p className="text-gray-400">No foods found</p>
+          </div>
+        )}
+
+        {visibleCount < filteredFoods.length && (
+          <div className="mt-12 flex justify-center">
+            <Button
+              variant="secondary"
+              onClick={() => setVisibleCount(prev => prev + PAGE_SIZE)}
+              className="px-12 py-4 rounded-full text-[0.65rem] font-black uppercase tracking-[0.4em] border-white/10 hover:bg-white/5"
+            >
+              Load More Foods
+            </Button>
           </div>
         )}
       </div>

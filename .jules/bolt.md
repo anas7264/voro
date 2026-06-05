@@ -41,3 +41,11 @@
 **Action:**
 1. Use a single loop with multiple active flags for parallel streak processing.
 2. Implement specific 'active' transition logic: only break a streak once it has actually started and then encounters a gap.
+
+## 2026-06-05 - Incremental Loading for Large Datasets
+**Learning:** Rendering 2000+ complex React components (Cards) in a single pass causes severe "Time to Interactive" (TTI) lag and memory pressure, especially on mobile. Slicing the data array and using a "Load More" pattern reduces the initial DOM node count by ~99%, drastically improving mount performance.
+
+**Action:**
+1. Implement `visibleCount` state with a small `PAGE_SIZE` (e.g., 20-24) for any list exceeding 100 items.
+2. Ensure `visibleCount` resets when filters change via `useEffect` to keep the interface snappy and relevant.
+3. Use `.slice(0, visibleCount)` on the memoized filtered dataset for rendering.
