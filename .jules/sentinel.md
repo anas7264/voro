@@ -28,3 +28,13 @@ Polymorphic Prompt Isolation (PPI) uses ephemeral, cryptographically secure nonc
 
 **Prevention:**
 Never use static delimiters for untrusted data in LLM prompts. Generate a fresh nonce for every request, wrap all untrusted segments (including chat history and current input) in nonced markers, and validate that the nonce does not appear in the final response.
+
+## 2026-06-04 - Multi-Layered PII Redaction & AI Exfiltration Defense
+**Vulnerability:**
+AI responses and user-controlled data can leak sensitive identifiers (AWS keys, JWTs, UUIDs) or exfiltrate data via markdown media (images, data URIs) if the redaction engine and output validation are too narrow.
+
+**Learning:**
+Defense in depth requires expanding redaction patterns beyond standard PII (email, phone) to include infrastructure and session identifiers (AWS, JWT, UUID, IPv6). Furthermore, AI exfiltration detection must account for all markdown media types (not just links) and monitor for session-specific keywords (cookie, session, localstorage, voro_ prefix) in URLs.
+
+**Prevention:**
+Maintain a comprehensive and evolving library of redaction regexes that cover both identity and infrastructure. Validate all AI-generated markdown to ensure that links and media do not contain sensitive tokens or attempt to access browser storage via URL parameters.
