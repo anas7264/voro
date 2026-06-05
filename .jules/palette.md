@@ -43,3 +43,7 @@
 ## 2026-06-02 - Neural Oracle: Editorial AI Experience
 **Learning:** High-end AI interfaces benefit from an "Editorial" aesthetic. By contrasting sophisticated serif italics (Playfair Display) for AI insights with technical monospaced fonts (JetBrains Mono) for user data, we create a clear cognitive distinction between 'Oracle' wisdom and 'User' input.
 **Action:** Transformed AICoach into the 'Neural Oracle', implementing glassmorphic 'Insight Artifacts' and 'Inquiry Prisms' to elevate the standard chat bubble into a luxury specimen holder.
+
+## 2026-06-05 - Micro-Delight as Positive Reinforcement in High-Friction Logs
+**Learning:** For high-friction activities like manual workout logging, visual "micro-delights" (e.g., confetti on save) serve as immediate positive reinforcement. Combining these delightful moments with robust accessibility (like focus-visible states for destructive actions) ensures that the UI is both emotionally rewarding and inclusive.
+**Action:** When a user completes a significant data entry milestone, trigger a celebration component to reinforce the behavior, ensuring all interaction points remain fully accessible to keyboard and screen reader users.
