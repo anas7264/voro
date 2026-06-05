@@ -25,6 +25,7 @@ const STORAGE_KEYS = {
   shoppingList: "shopping_list",
   periodization: "periodization",
   prHistory: "pr_history",
+  mealPrep: "meal_prep",
   customFoods: "custom_foods",
   customExercises: "custom_exercises",
   fitnessTests: "fitness_tests",

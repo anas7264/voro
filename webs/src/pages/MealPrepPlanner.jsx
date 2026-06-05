@@ -1,18 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Calendar, Plus } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import { useStorage } from '@/hooks/useStorage';
 
 const MealPrepPlanner = () => {
-  const { getStorage, setStorage } = useStorage();
-  const [prepPlan, setPrepPlan] = useState([]);
+  const { storageData } = useStorage();
 
   useEffect(() => {
     document.title = 'VORO | Meal Prep Planner';
-    const data = getStorage('voro_meal_prep') || {};
-    setPrepPlan(data.plan || []);
   }, []);
+
+  // Synchronous derivation of prep plan from StorageContext
+  const prepPlan = useMemo(() => {
+    const data = storageData['meal_prep'] || {};
+    return data.plan || [];
+  }, [storageData]);
 
   return (
     <div className="min-h-screen bg-voro-surface p-4 md:p-8">

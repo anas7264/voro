@@ -2,15 +2,13 @@ import React, { useState } from 'react';
 import { Zap, Download, Save } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
-import Input from '@/components/Input';
 import Select from '@/components/Select';
 import Textarea from '@/components/Textarea';
-import Modal from '@/components/Modal';
 import { useStorage } from '@/hooks/useStorage';
 import { useApp } from '@/hooks/useAppContext';
 
 const MealPlanner = () => {
-  const { getStorage, setStorage } = useStorage();
+  const { getItem, setItem } = useStorage();
   const { user } = useApp();
   const [loading, setLoading] = useState(false);
   const [mealPlan, setMealPlan] = useState(null);
@@ -22,7 +20,7 @@ const MealPlanner = () => {
 
   const generatePlan = async () => {
     setLoading(true);
-    
+
     // Simulate API call - in production would call Claude API
     setTimeout(() => {
       const plan = {
@@ -58,14 +56,14 @@ const MealPlanner = () => {
     }));
   };
 
-  const savePlan = () => {
-    const plans = getStorage('voro_plans') || {};
+  const savePlan = async () => {
+    const plans = getItem('plans') || {};
     const allPlans = plans.savedMealPlans || [];
     allPlans.push({
       ...mealPlan,
       name: `Meal Plan ${new Date().toLocaleDateString()}`
     });
-    setStorage('voro_plans', { ...plans, savedMealPlans: allPlans });
+    await setItem('plans', { ...plans, savedMealPlans: allPlans });
   };
 
   return (

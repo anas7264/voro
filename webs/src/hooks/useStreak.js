@@ -1,42 +1,28 @@
-import { useState, useCallback, useEffect } from "react";
+import { useMemo, useCallback } from "react";
 import { useStorage } from "./useStorage";
-import * as gamification from "../utils/gamification";
 
 export const useStreak = () => {
-  const { getItem, setItem, appendItem } = useStorage();
-  const [currentStreak, setCurrentStreak] = useState(0);
-  const [bestStreak, setBestStreak] = useState(0);
-  const [completedDates, setCompletedDates] = useState([]);
-  const [streakStatus, setStreakStatus] = useState("active"); // "active", "broken", "resting"
+  const { setItem, storageData } = useStorage();
 
-  // Initialize streak data
-  const initializeStreak = useCallback(() => {
-    try {
-      let streakData = getItem("streak") || {
-        current: 0,
-        best: 0,
-        completedDates: [],
-        lastCompletedDate: null
-      };
+  // Reactive streak data derived from storage
+  const streakData = useMemo(() => {
+    return storageData["streak"] || {
+      current: 0,
+      best: 0,
+      completedDates: [],
+      lastCompletedDate: null
+    };
+  }, [storageData]);
 
-      setCurrentStreak(streakData.current);
-      setBestStreak(streakData.best);
-      setCompletedDates(streakData.completedDates || []);
+  // Derived metrics from streak data
+  const currentStreak = streakData.current;
+  const bestStreak = streakData.best;
+  const completedDates = streakData.completedDates || [];
 
-      checkStreakStatus(streakData);
-
-      return streakData;
-    } catch (err) {
-      console.error("Failed to initialize streak data:", err);
-      return null;
-    }
-  }, [getItem]);
-
-  // Check if streak should be broken
-  const checkStreakStatus = useCallback((streakData) => {
-    if (!streakData?.lastCompletedDate) {
-      setStreakStatus("resting");
-      return;
+  // Synchronous streak status derivation
+  const streakStatus = useMemo(() => {
+    if (!streakData.lastCompletedDate) {
+      return "resting";
     }
 
     const lastDate = new Date(streakData.lastCompletedDate);
@@ -47,27 +33,18 @@ export const useStreak = () => {
     const daysDifference = Math.floor((today - lastDate) / (1000 * 60 * 60 * 24));
 
     if (daysDifference === 0) {
-      setStreakStatus("completed_today");
+      return "completed_today";
     } else if (daysDifference === 1) {
-      setStreakStatus("active");
+      return "active";
     } else {
-      setStreakStatus("broken");
-      if (streakData.current > 0) {
-        setCurrentStreak(0);
-      }
+      return "broken";
     }
-  }, []);
+  }, [streakData.lastCompletedDate]);
 
   // Mark day as completed
   const markDayCompleted = useCallback(() => {
     try {
       const today = new Date().toISOString().split("T")[0];
-      let streakData = getItem("streak") || {
-        current: 0,
-        best: 0,
-        completedDates: [],
-        lastCompletedDate: null
-      };
 
       // Check if already completed today
       if (streakData.lastCompletedDate?.includes(today)) {
@@ -87,7 +64,8 @@ export const useStreak = () => {
           newStreak += 1;
         } else if (daysDifference > 1) {
           newStreak = 1; // Streak broken, restart
-        } else {
+        } else if (daysDifference < 0) {
+          // Future date or something weird
           return { message: "Already completed today", updated: false };
         }
       } else {
@@ -110,10 +88,6 @@ export const useStreak = () => {
       };
 
       setItem("streak", updatedStreakData);
-      setCurrentStreak(newStreak);
-      setBestStreak(newBestStreak);
-      setCompletedDates(updatedDates);
-      setStreakStatus("completed_today");
 
       return {
         message: "Day completed",
@@ -125,30 +99,15 @@ export const useStreak = () => {
       console.error("Failed to mark day as completed:", err);
       return { message: "Error marking day complete", updated: false, error: err };
     }
-  }, [getItem, setItem]);
+  }, [streakData, setItem]);
 
-  // Get streak info
+  // Get streak info (legacy support)
   const getStreakInfo = useCallback(() => {
-    try {
-      const streakData = getItem("streak") || {
-        current: 0,
-        best: 0,
-        completedDates: [],
-        lastCompletedDate: null
-      };
-
-      return {
-        current: streakData.current,
-        best: streakData.best,
-        completedDates: streakData.completedDates || [],
-        lastCompletedDate: streakData.lastCompletedDate,
-        status: streakStatus
-      };
-    } catch (err) {
-      console.error("Failed to get streak info:", err);
-      return null;
-    }
-  }, [getItem, streakStatus]);
+    return {
+      ...streakData,
+      status: streakStatus
+    };
+  }, [streakData, streakStatus]);
 
   // Get streak percentage for week
   const getWeeklyStreakPercentage = useCallback(() => {
@@ -204,10 +163,6 @@ export const useStreak = () => {
       };
 
       setItem("streak", resetData);
-      setCurrentStreak(0);
-      setCompletedDates([]);
-      setStreakStatus("resting");
-
       return true;
     } catch (err) {
       console.error("Failed to reset streak:", err);
@@ -215,10 +170,15 @@ export const useStreak = () => {
     }
   }, [bestStreak, setItem]);
 
-  // Auto-check streak on component mount
-  useEffect(() => {
-    initializeStreak();
-  }, []);
+  // Deprecated: initializeStreak is now handled by reactive useMemo
+  const initializeStreak = useCallback(() => {
+    return streakData;
+  }, [streakData]);
+
+  // Deprecated: checkStreakStatus is now handled by reactive useMemo
+  const checkStreakStatus = useCallback(() => {
+    return streakStatus;
+  }, [streakStatus]);
 
   return {
     currentStreak,
