@@ -1,11 +1,82 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Droplet, Trash2, TrendingUp, ChevronLeft, ChevronRight, Target, Zap } from 'lucide-react';
+import React, { useState, useEffect, useMemo, memo } from 'react';
+import { Plus, Droplet, Trash2, TrendingUp, ChevronLeft, ChevronRight, Target, Zap, Waves } from 'lucide-react';
 import { useStorage } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { validateWaterEntry } from '@/utils/validators';
 import Button from '@/components/Button';
-import Card from '@/components/Card';
 import LineChartComponent from '@/components/LineChartComponent';
+
+const HydroVessel = memo(({ percentage }) => {
+  return (
+    <div className="relative w-48 h-80 mx-auto group">
+      {/* Outer Glass Rim */}
+      <div className="absolute inset-[-4px] rounded-[3rem] border border-white/5 opacity-50" />
+
+      {/* The Vessel */}
+      <div className="relative w-full h-full rounded-[2.5rem] border-2 border-white/10 bg-[#0D121F]/40 backdrop-blur-xl overflow-hidden shadow-2xl shadow-blue-900/20">
+        {/* Dynamic Water Body */}
+        <div
+          className="absolute inset-0 transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)]"
+          style={{ transform: `translateY(${100 - percentage}%)` }}
+        >
+          {/* Surface Waves */}
+          <div className="absolute top-0 left-0 w-[200%] h-20 -translate-y-[15px] pointer-events-none">
+            <svg className="absolute inset-0 animate-wave-slow opacity-60" viewBox="0 0 1000 100" preserveAspectRatio="none">
+              <path d="M0,50 C150,100 350,0 500,50 C650,100 850,0 1000,50 L1000,100 L0,100 Z" fill="url(#water-grad)" />
+            </svg>
+            <svg className="absolute inset-0 animate-wave translate-x-[-100px]" viewBox="0 0 1000 100" preserveAspectRatio="none">
+              <path d="M0,50 C150,100 350,0 500,50 C650,100 850,0 1000,50 L1000,100 L0,100 Z" fill="url(#water-grad)" fillOpacity="0.4" />
+            </svg>
+          </div>
+
+          {/* Liquid Mass */}
+          <div className="absolute top-[20px] left-0 w-full h-[1000px] bg-gradient-to-b from-blue-600/40 via-blue-800/20 to-blue-950/40" />
+
+          <svg className="hidden">
+            <defs>
+              <linearGradient id="water-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#3B82F6" />
+                <stop offset="100%" stopColor="#2563EB" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+
+        {/* Internal Glow */}
+        <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/5 to-transparent pointer-events-none" />
+
+        {/* Glass Reflection */}
+        <div className="absolute top-8 left-6 w-1 h-3/4 bg-gradient-to-b from-white/20 to-transparent rounded-full blur-[1px] pointer-events-none" />
+        <div className="absolute top-10 left-10 w-4 h-4 bg-white/5 rounded-full blur-xl pointer-events-none" />
+      </div>
+
+      {/* Measurement Matrix */}
+      <div className="absolute left-[-40px] inset-y-10 flex flex-col justify-between items-end py-4">
+        {[2000, 1500, 1000, 500].map(val => (
+          <div key={val} className="flex items-center gap-3">
+             <span className="text-[0.5rem] font-mono font-medium text-gray-700 tracking-tighter">{val}ml</span>
+             <div className="w-2 h-[1px] bg-white/10" />
+          </div>
+        ))}
+      </div>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes wave {
+          0% { transform: translateX(0); }
+          50% { transform: translateX(-25%); }
+          100% { transform: translateX(-50%); }
+        }
+        @keyframes wave-slow {
+          0% { transform: translateX(-50%); }
+          50% { transform: translateX(-25%); }
+          100% { transform: translateX(0); }
+        }
+        .animate-wave { animation: wave 4s cubic-bezier(0.36, 0.45, 0.63, 0.53) infinite; }
+        .animate-wave-slow { animation: wave-slow 7s cubic-bezier(0.36, 0.45, 0.63, 0.53) infinite; }
+      `}} />
+    </div>
+  );
+});
 
 const WaterTracker = () => {
   const { getItem, setItem } = useStorage();
@@ -92,86 +163,81 @@ const WaterTracker = () => {
   });
 
   return (
-    <div className="min-h-screen bg-[#080B14] text-[#F0F4FF] pb-24">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="min-h-screen bg-[#020408] text-[#F0F4FF] pb-32 selection:bg-blue-500/30">
+      {/* Ambient Depth */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[10%] right-[-5%] w-[30%] h-[30%] bg-voro-primary/5 rounded-full blur-[100px]" />
+      </div>
 
-        <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-8">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3 text-voro-primary">
+      <div className="relative max-w-6xl mx-auto px-6 lg:px-12 py-16">
+        <header className="mb-24 flex flex-col md:flex-row md:items-end justify-between gap-12">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 text-blue-500">
               <Droplet size={18} />
-              <span className="text-[0.6rem] font-black uppercase tracking-[0.3em]">Hydration Dynamics</span>
+              <span className="text-xs font-bold uppercase tracking-[0.4em]">Molecular Resonance</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-serif italic font-medium text-white tracking-tight">
-              Molecular <span className="text-voro-primary not-italic font-bold">Flux</span>
+            <h1 className="text-5xl md:text-6xl font-serif italic font-medium text-white tracking-tight leading-tight">
+              Hydration <span className="text-blue-600 not-italic font-bold">Dynamics</span>
             </h1>
+            <p className="text-gray-500 font-medium tracking-widest text-xs uppercase opacity-60">Cellular homeostasis & fluid optimization matrix</p>
           </div>
 
-          <div className="flex items-center gap-4 bg-[#0A0C14] border border-white/5 rounded-2xl p-2 shadow-xl">
+          <div className="flex items-center gap-6 bg-[#0A0C14] border border-white/5 rounded-[2rem] p-3 shadow-2xl backdrop-blur-xl">
             <button
               onClick={() => handleDateChange(-1)}
-              className="p-3 hover:bg-white/5 rounded-xl text-gray-500 hover:text-white transition-all"
+              className="p-4 hover:bg-white/5 rounded-2xl text-gray-600 hover:text-white transition-all active:scale-90"
+              aria-label="Previous temporal frame"
             >
               <ChevronLeft size={20} />
             </button>
-            <div className="px-4 text-center">
-              <p className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-600 mb-1">Temporal Frame</p>
+            <div className="px-4 text-center min-w-[140px]">
+              <p className="text-[0.6rem] font-black uppercase tracking-[0.3em] text-gray-600 mb-1">Temporal Frame</p>
               <p className="text-sm font-mono font-bold text-white uppercase tracking-widest">{formattedDate}</p>
             </div>
             <button
               onClick={() => handleDateChange(1)}
-              className="p-3 hover:bg-white/5 rounded-xl text-gray-500 hover:text-white transition-all"
+              className="p-4 hover:bg-white/5 rounded-2xl text-gray-600 hover:text-white transition-all active:scale-90"
+              aria-label="Next temporal frame"
             >
               <ChevronRight size={20} />
             </button>
           </div>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           {/* Main Metrics */}
-          <div className="lg:col-span-5 space-y-6">
-            <Card className="p-10 bg-gradient-to-b from-[#0A0C14] to-black border-white/5 relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-8 opacity-5">
-                <Droplet size={120} />
-              </div>
+          <div className="lg:col-span-5 space-y-12">
+            <div className="relative pt-12">
+              <HydroVessel percentage={percentage} />
 
-              <div className="relative z-10 space-y-8">
-                <div>
-                  <p className="text-[0.65rem] font-black text-gray-500 uppercase tracking-[0.3em] mb-2">Current Intake</p>
-                  <div className="flex items-baseline gap-3">
-                    <span className="text-6xl font-serif italic font-bold text-white">{todayTotal}</span>
-                    <span className="text-lg font-mono font-bold text-voro-primary uppercase tracking-widest">ml</span>
-                  </div>
+              <div className="mt-16 text-center space-y-2">
+                <p className="text-[0.6rem] font-black text-gray-600 uppercase tracking-[0.4em]">Current Saturation</p>
+                <div className="flex items-baseline justify-center gap-2">
+                  <span className="text-7xl font-serif italic font-medium text-white tracking-tighter">{todayTotal}</span>
+                  <span className="text-xs font-mono font-medium text-blue-500 uppercase tracking-[0.2em]">/ {dailyGoal} ml</span>
                 </div>
-
-                <div className="space-y-3">
-                  <div className="flex justify-between text-[0.6rem] font-black uppercase tracking-widest text-gray-600">
-                    <span>Saturation</span>
-                    <span>{Math.round(percentage)}%</span>
-                  </div>
-                  <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden p-0.5 border border-white/5">
-                    <div
-                      className="h-full bg-blue-500 rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(59,130,246,0.5)]"
-                      style={{ width: `${percentage}%` }}
-                    />
-                  </div>
-                  <p className="text-[0.55rem] font-mono text-gray-700 tracking-[0.2em] uppercase text-right">Target: {dailyGoal}ml</p>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-[0.55rem] font-bold text-blue-400 uppercase tracking-widest">
+                  <Waves size={10} />
+                  {Math.round(percentage)}% Molecular Goal
                 </div>
               </div>
-            </Card>
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               {[250, 500, 750, 1000].map(amt => (
                 <button
                   key={amt}
                   onClick={() => addWater(amt)}
-                  className="group p-6 rounded-3xl bg-[#0A0C14] border border-white/5 hover:border-voro-primary transition-all active:scale-95 text-left"
+                  className="group relative p-8 rounded-[2rem] bg-[#0A0C14] border border-white/5 hover:border-blue-500/50 transition-all active:scale-95 text-center overflow-hidden"
                 >
-                  <Plus size={16} className="text-voro-primary mb-4 group-hover:scale-125 transition-transform" />
-                  <p className="text-2xl font-serif italic font-bold text-white mb-1">
-                    {amt >= 1000 ? '1.0' : amt}
+                  <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Droplet size={14} className="text-blue-500 mx-auto mb-4 group-hover:scale-125 transition-transform" />
+                  <p className="text-3xl font-serif italic font-medium text-white mb-1">
+                    {amt >= 1000 ? (amt / 1000).toFixed(1) : amt}
                   </p>
-                  <p className="text-[0.55rem] font-black text-gray-600 uppercase tracking-widest">
-                    {amt >= 1000 ? 'Liters' : 'Milliliters'}
+                  <p className="text-[0.6rem] font-mono font-medium text-gray-600 uppercase tracking-[0.2em]">
+                    {amt >= 1000 ? 'Liters' : 'ml'}
                   </p>
                 </button>
               ))}
@@ -179,29 +245,38 @@ const WaterTracker = () => {
           </div>
 
           {/* History & Trend */}
-          <div className="lg:col-span-7 space-y-6">
-            <Card className="p-8">
-              <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-3">
-                  <Target size={18} className="text-voro-primary" />
-                  <h3 className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-white">Temporal Intake Log</h3>
+          <div className="lg:col-span-7 space-y-12">
+            <section className="bg-[#0A0C14] border border-white/5 p-10 rounded-[2.5rem] shadow-2xl transition-all hover:border-white/10">
+              <div className="flex items-center justify-between mb-12">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-white/5 rounded-2xl">
+                    <Target size={18} className="text-blue-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-[0.65rem] font-black uppercase tracking-[0.4em] text-gray-500 mb-1">Temporal Intake Log</h3>
+                    <p className="text-sm font-mono text-gray-400 tracking-widest uppercase">Chronological Data Sequence</p>
+                  </div>
                 </div>
               </div>
 
               {dailyLogs.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {dailyLogs.map((log) => (
-                    <div key={log.id} className="group flex items-center justify-between p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all">
-                      <div className="flex items-center gap-5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                    <div key={log.id} className="group flex items-center justify-between p-6 rounded-[1.5rem] bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] hover:border-white/10 transition-all duration-500">
+                      <div className="flex items-center gap-6">
+                        <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.6)] animate-pulse" />
                         <div>
-                          <p className="text-sm font-bold text-white font-mono tracking-tight">{log.amount}ml</p>
-                          <p className="text-[0.6rem] font-black text-gray-600 uppercase tracking-widest">{log.time}</p>
+                          <div className="flex items-baseline gap-2 mb-1">
+                            <p className="text-2xl font-serif italic font-medium text-white tracking-tight">{log.amount}</p>
+                            <p className="text-[0.6rem] font-mono font-bold text-gray-600 uppercase tracking-widest">ml</p>
+                          </div>
+                          <p className="text-[0.6rem] font-black text-gray-500 uppercase tracking-[0.2em]">{log.time}</p>
                         </div>
                       </div>
                       <button
                         onClick={() => deleteLog(log.id)}
-                        className="p-2.5 rounded-xl text-gray-700 hover:text-red-400 hover:bg-red-400/10 transition-all opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                        className="p-3 rounded-xl text-gray-700 hover:text-red-400 hover:bg-red-400/10 transition-all opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-red-500"
+                        aria-label={`Remove entry of ${log.amount}ml at ${log.time}`}
                       >
                         <Trash2 size={16} />
                       </button>
@@ -209,28 +284,38 @@ const WaterTracker = () => {
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-16 text-center opacity-30">
-                  <Zap size={32} className="mb-4 text-gray-700" />
-                  <p className="text-[0.65rem] font-black uppercase tracking-[0.3em] text-gray-500">Hydration Void</p>
+                <div className="flex flex-col items-center justify-center py-20 text-center group/void">
+                  <div className="w-16 h-16 rounded-full bg-white/[0.02] border border-white/5 flex items-center justify-center mb-6 group-hover/void:border-blue-500/30 transition-colors duration-700">
+                    <Zap size={24} className="text-gray-800 group-hover/void:text-blue-500/50 transition-colors duration-700" />
+                  </div>
+                  <p className="text-[0.65rem] font-black uppercase tracking-[0.4em] text-gray-600">Hydration Void Detected</p>
+                  <p className="text-[0.55rem] font-mono text-gray-700 uppercase tracking-widest mt-2">Waiting for first molecular entry</p>
                 </div>
               )}
-            </Card>
+            </section>
 
             {waterHistory.length > 1 && (
-              <Card className="p-8">
-                <div className="flex items-center gap-3 mb-8">
-                  <TrendingUp size={18} className="text-voro-primary" />
-                  <h3 className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-white">Molecular Trend Matrix</h3>
+              <section className="bg-[#0A0C14] border border-white/5 p-10 rounded-[2.5rem] shadow-2xl">
+                <div className="flex items-center gap-4 mb-12">
+                  <div className="p-3 bg-white/5 rounded-2xl">
+                    <TrendingUp size={18} className="text-blue-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-[0.65rem] font-black uppercase tracking-[0.4em] text-gray-500 mb-1">Molecular Trend Matrix</h3>
+                    <p className="text-sm font-mono text-gray-400 tracking-widest uppercase">30D Kinetic Analysis</p>
+                  </div>
                 </div>
-                <div className="h-[250px] w-full">
+                <div className="h-[300px] w-full px-4">
                   <LineChartComponent
                     data={waterHistory}
                     dataKey="water"
                     name="Hydration"
                     color="#3B82F6"
+                    height={300}
+                    strokeWidth={3}
                   />
                 </div>
-              </Card>
+              </section>
             )}
           </div>
         </div>
