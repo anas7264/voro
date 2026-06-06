@@ -1,4 +1,4 @@
-import React, { useEffect, useState, memo } from 'react';
+import React, { useEffect, useState, useRef, memo } from 'react';
 import { Send, Loader, Bot, Sparkles } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
@@ -59,8 +59,17 @@ const AICoach = () => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [localLoading, setLocalLoading] = useState(false);
+  const messagesEndRef = useRef(null);
 
   const loading = aiLoading || localLoading;
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, loading]);
 
   const quickPrompts = [
     'What should I eat today?',
@@ -220,6 +229,7 @@ const AICoach = () => {
               </div>
             </div>
           )}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Input Area */}
@@ -232,11 +242,13 @@ const AICoach = () => {
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
               disabled={loading}
               maxLength={2000}
+              aria-label="Neural Query"
             />
             <Button
               onClick={() => handleSendMessage()}
               disabled={loading || !input.trim()}
               className="flex items-center gap-2"
+              aria-label="Send message"
             >
               <Send size={18} />
             </Button>
