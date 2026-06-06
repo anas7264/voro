@@ -5,7 +5,7 @@ import { useStorage } from '@/hooks/useStorage';
 import { useApp } from '@/hooks/useAppContext';
 
 const Statistics = () => {
-  const { getStorage } = useStorage();
+  const { storageData } = useStorage();
   const { user } = useApp();
   const [period, setPeriod] = useState('30D');
 
@@ -14,8 +14,8 @@ const Statistics = () => {
   }, []);
 
   const stats = useMemo(() => {
-    const nutritionLog = getStorage('nutrition_log') || {};
-    const workoutLog = getStorage('workout_log') || {};
+    const nutritionLog = storageData['nutrition_log'] || {};
+    const workoutLog = storageData['workout_log'] || {};
 
     const getPeriodDays = () => {
       switch (period) {
@@ -81,7 +81,7 @@ const Statistics = () => {
       avgCalories: loggedDays > 0 ? Math.round(totalKcal / loggedDays) : 0,
       adherence: Math.round((loggedDays / days) * 100)
     };
-  }, [period, getStorage]);
+  }, [period, storageData['nutrition_log'], storageData['workout_log']]);
 
   const periodTabs = useMemo(() => [
     { id: '7D', label: '7D' },

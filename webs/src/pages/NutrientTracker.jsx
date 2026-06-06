@@ -6,7 +6,7 @@ import Badge from '@/components/Badge';
 import { useStorage } from '@/hooks/useStorage';
 
 const NutrientTracker = () => {
-  const { getItem, setItem } = useStorage();
+  const { storageData, setItem } = useStorage();
   const [selectedNutrient, setSelectedNutrient] = useState('vitamin_d');
 
   useEffect(() => {

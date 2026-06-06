@@ -7,7 +7,7 @@ import { useStorage } from '@/hooks/useStorage';
 import { useNavigate } from 'react-router-dom';
 
 const WorkoutHistory = () => {
-  const { getItem } = useStorage();
+  const { storageData } = useStorage();
   const navigate = useNavigate();
   const [expandedIdx, setExpandedIdx] = useState(null);
 
@@ -21,12 +21,12 @@ const WorkoutHistory = () => {
    * is reactive to storage changes without secondary state updates.
    */
   const workouts = useMemo(() => {
-    const data = getItem('workout_log') || {};
+    const data = storageData['workout_log'] || {};
     return Object.entries(data)
       .filter(([_, w]) => w.attended)
       .map(([date, w]) => ({ date, ...w }))
       .sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [getItem]);
+  }, [storageData['workout_log']]);
 
   const typeColors = {
     Strength: 'text-violet-400',
