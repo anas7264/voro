@@ -7,7 +7,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { supplements } from '@/data/supplements';
 
 const SupplementTracker = () => {
-  const { getItem, setItem } = useStorage();
+  const { storageData, setItem } = useStorage();
   const { addNotification } = useNotifications();
   const [showForm, setShowForm] = useState(false);
 
@@ -16,8 +16,8 @@ const SupplementTracker = () => {
   }, []);
 
   const userSupplements = useMemo(() => {
-    return getItem('supplements') || [];
-  }, [getItem]);
+    return storageData['supplements'] || [];
+  }, [storageData['supplements']]);
 
   const handleAddSupplement = async (supplement) => {
     const updated = [...userSupplements, {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Activity, Target, Zap, Ruler } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
@@ -12,10 +12,9 @@ import { calculateBMI, calculateFFMI } from '@/utils/calculators';
 import { isValidWeight, isValidBodyFat, isPositiveNumber } from '@/utils/validators';
 
 const BodyMetrics = () => {
-  const { getItem, setItem } = useStorage();
+  const { setItem, storageData } = useStorage();
   const { user } = useApp();
   const { addNotification } = useNotifications();
-  const [metrics, setMetrics] = useState(null);
   const [weight, setWeight] = useState('');
   const [bodyFat, setBodyFat] = useState('');
   const [measurements, setMeasurements] = useState({
@@ -29,20 +28,23 @@ const BodyMetrics = () => {
 
   useEffect(() => {
     document.title = 'VORO | Biometric Composition';
-    loadMetrics();
   }, []);
 
-  const loadMetrics = () => {
-    const data = getItem('body_metrics') || {
+  /**
+   * ⚡ OPTIMIZATION: Synchronous data derivation using useMemo.
+   * Eliminates the mount-time double-render cycle and ensures
+   * reactivity to StorageContext updates without manual load calls.
+   */
+  const metrics = useMemo(() => {
+    return storageData['body_metrics'] || {
       weights: [],
       measurements: [],
       bodyFat: [],
       photos: [],
     };
-    setMetrics(data);
-  };
+  }, [storageData['body_metrics']]);
 
-  const addWeight = () => {
+  const addWeight = async () => {
     if (!weight) return;
 
     if (!isValidWeight(weight)) {
@@ -50,23 +52,17 @@ const BodyMetrics = () => {
       return;
     }
 
-    const allMetrics = getItem('body_metrics') || {
-      weights: [],
-      measurements: [],
-      bodyFat: [],
-      photos: [],
-    };
-    allMetrics.weights.push({
+    const allMetrics = { ...metrics };
+    allMetrics.weights = [...allMetrics.weights, {
       date: new Date().toISOString(),
       value: Number(weight),
-    });
-    setItem('body_metrics', allMetrics);
+    }];
+    await setItem('body_metrics', allMetrics);
     setWeight('');
-    loadMetrics();
     addNotification('Mass record synchronized', 'success');
   };
 
-  const addMeasurement = () => {
+  const addMeasurement = async () => {
     const invalidFields = Object.entries(measurements).filter(([_, val]) => val && !isPositiveNumber(val));
     if (invalidFields.length > 0) {
       addNotification('All measurements must be positive numbers', 'error');
@@ -78,17 +74,12 @@ const BodyMetrics = () => {
       return;
     }
 
-    const allMetrics = getItem('body_metrics') || {
-      weights: [],
-      measurements: [],
-      bodyFat: [],
-      photos: [],
-    };
-    allMetrics.measurements.push({
+    const allMetrics = { ...metrics };
+    allMetrics.measurements = [...allMetrics.measurements, {
       date: new Date().toISOString(),
       ...measurements,
-    });
-    setItem('body_metrics', allMetrics);
+    }];
+    await setItem('body_metrics', allMetrics);
     setMeasurements({
       chest: '',
       waist: '',
@@ -97,11 +88,10 @@ const BodyMetrics = () => {
       thigh: '',
       calf: '',
     });
-    loadMetrics();
     addNotification('Anatomical dimensions recorded', 'success');
   };
 
-  const addBodyFat = () => {
+  const addBodyFat = async () => {
     if (!bodyFat) return;
 
     if (!isValidBodyFat(bodyFat)) {
@@ -109,38 +99,37 @@ const BodyMetrics = () => {
       return;
     }
 
-    const allMetrics = getItem('body_metrics') || {
-      weights: [],
-      measurements: [],
-      bodyFat: [],
-      photos: [],
-    };
-    allMetrics.bodyFat.push({
+    const allMetrics = { ...metrics };
+    allMetrics.bodyFat = [...allMetrics.bodyFat, {
       date: new Date().toISOString(),
       value: Number(bodyFat),
-    });
-    setItem('body_metrics', allMetrics);
+    }];
+    await setItem('body_metrics', allMetrics);
     setBodyFat('');
-    loadMetrics();
     addNotification('Adipose index updated', 'success');
   };
 
-  if (!metrics) return <div className="p-8">Loading...</div>;
-
-  const weightData = metrics.weights.slice(-30).map(w => ({
+  /**
+   * ⚡ OPTIMIZATION: Memoized derived data.
+   * Ensures expensive transformations and calculations only run when metrics change.
+   */
+  const weightData = useMemo(() => metrics.weights.slice(-30).map(w => ({
     date: new Date(w.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     weight: w.value,
-  }));
+  })), [metrics.weights]);
 
-  const bodyFatData = metrics.bodyFat.slice(-30).map(b => ({
+  const bodyFatData = useMemo(() => metrics.bodyFat.slice(-30).map(b => ({
     date: new Date(b.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     bodyFat: b.value,
-  }));
+  })), [metrics.bodyFat]);
 
-  const latestWeight = metrics.weights[metrics.weights.length - 1]?.value;
-  const latestBodyFat = metrics.bodyFat[metrics.bodyFat.length - 1]?.value;
-  const bmi = latestWeight && user ? calculateBMI(latestWeight, user.heightCm) : null;
-  const ffmi = latestWeight && latestBodyFat && user ? calculateFFMI(latestWeight, latestBodyFat, user.heightCm) : null;
+  const { latestWeight, latestBodyFat, bmi, ffmi } = useMemo(() => {
+    const lw = metrics.weights[metrics.weights.length - 1]?.value;
+    const lbf = metrics.bodyFat[metrics.bodyFat.length - 1]?.value;
+    const b = lw && user ? calculateBMI(lw, user.heightCm) : null;
+    const f = lw && lbf && user ? calculateFFMI(lw, lbf, user.heightCm) : null;
+    return { latestWeight: lw, latestBodyFat: lbf, bmi: b, ffmi: f };
+  }, [metrics, user]);
 
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30">
@@ -168,27 +157,27 @@ const BodyMetrics = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           <Stat
             label="Current Mass"
-            value={latestWeight?.toFixed(1) || '-'}
+            value={latestWeight ? Number(latestWeight).toFixed(1) : '-'}
             unit="kg"
             icon={Zap}
             color="voro-primary"
           />
           <Stat
             label="Adipose Index"
-            value={latestBodyFat?.toFixed(1) || '-'}
+            value={latestBodyFat ? Number(latestBodyFat).toFixed(1) : '-'}
             unit="%"
             icon={Target}
             color="voro-accent"
           />
           <Stat
             label="Metabolic BMI"
-            value={bmi?.toFixed(1) || '-'}
+            value={bmi || '-'}
             icon={Zap}
             color="voro-secondary"
           />
           <Stat
             label="Lean FFMI"
-            value={ffmi?.toFixed(1) || '-'}
+            value={ffmi || '-'}
             icon={Activity}
             color="voro-primary"
           />
