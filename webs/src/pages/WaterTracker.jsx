@@ -59,21 +59,6 @@ const HydroVessel = memo(({ percentage }) => {
           </div>
         ))}
       </div>
-
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes wave {
-          0% { transform: translateX(0); }
-          50% { transform: translateX(-25%); }
-          100% { transform: translateX(-50%); }
-        }
-        @keyframes wave-slow {
-          0% { transform: translateX(-50%); }
-          50% { transform: translateX(-25%); }
-          100% { transform: translateX(0); }
-        }
-        .animate-wave { animation: wave 4s cubic-bezier(0.36, 0.45, 0.63, 0.53) infinite; }
-        .animate-wave-slow { animation: wave-slow 7s cubic-bezier(0.36, 0.45, 0.63, 0.53) infinite; }
-      `}} />
     </div>
   );
 });
