@@ -70,6 +70,70 @@ export const generateSecurityNonce = () => {
 };
 
 /**
+ * Trusted Types Policy
+ * Enforces security for dangerous sinks (HTML, Scripts).
+ */
+export const voroPolicy = (typeof window !== 'undefined' && window.trustedTypes)
+  ? window.trustedTypes.createPolicy('voroPolicy', {
+      createHTML: (input) => sanitizeInput(input),
+      createScript: (input) => {
+        // Scripts should not be dynamically created in this architecture
+        console.error("Security Sentinel: Dynamic script creation blocked by Trusted Types.");
+        return "";
+      },
+      createScriptURL: (input) => {
+        const allowedDomains = ['self', 'https://fonts.googleapis.com', 'https://fonts.gstatic.com'];
+        const url = new URL(input, window.location.origin);
+        if (allowedDomains.includes(url.origin) || url.origin === window.location.origin) {
+          return input;
+        }
+        console.error("Security Sentinel: External script URL blocked by Trusted Types.");
+        return "";
+      }
+    })
+  : {
+      createHTML: (input) => sanitizeInput(input),
+      createScript: (input) => input,
+      createScriptURL: (input) => input
+    };
+
+/**
+ * Runtime Integrity Attestation
+ * Detects monkey-patching of core browser APIs (fetch, SubtleCrypto, localStorage, etc.).
+ */
+export const performIntegrityCheck = () => {
+  if (typeof window === 'undefined') return true;
+
+  const coreAPIs = [
+    { obj: window, prop: 'fetch', name: 'fetch' },
+    { obj: window.crypto, prop: 'subtle', name: 'crypto.subtle' },
+    { obj: window, prop: 'localStorage', name: 'localStorage' },
+    { obj: JSON, prop: 'parse', name: 'JSON.parse' },
+    { obj: JSON, prop: 'stringify', name: 'JSON.stringify' }
+  ];
+
+  let compromised = false;
+
+  coreAPIs.forEach(({ obj, prop, name }) => {
+    if (obj && obj[prop]) {
+      const isNative = obj[prop].toString().includes('[native code]');
+      if (!isNative) {
+        console.error(`Security Sentinel: Integrity Violation! ${name} has been monkey-patched.`);
+        compromised = true;
+      }
+    }
+  });
+
+  if (compromised) {
+    // In a bank-grade app, we might halt execution or alert a SOC.
+    // For VORO, we log and could theoretically trigger a secure lockout.
+    window.VORO_COMPROMISED = true;
+  }
+
+  return !compromised;
+};
+
+/**
  * Privacy-Preserving Biometric Masking
  * Applies "jitter" or "bucketing" to sensitive metrics to protect exact identity.
  * Hardened with window.crypto for secure entropy.
