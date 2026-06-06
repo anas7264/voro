@@ -6,7 +6,7 @@ import Badge from '@/components/Badge';
 import { useStorage } from '@/hooks/useStorage';
 
 const NutrientTracker = () => {
-  const { getItem, setItem } = useStorage();
+  const { storageData, setItem } = useStorage();
   const [selectedNutrient, setSelectedNutrient] = useState('vitamin_d');
 
   useEffect(() => {
@@ -23,8 +23,8 @@ const NutrientTracker = () => {
   ], []);
 
   const tracker = useMemo(() => {
-    return getItem('nutrient_tracker') || {};
-  }, [getItem]);
+    return storageData['nutrient_tracker'] || {};
+  }, [storageData['nutrient_tracker']]);
 
   const currentNutrient = nutrients.find(n => n.id === selectedNutrient);
   const currentStatus = tracker[selectedNutrient] || { intake: 0, fromFood: 0 };

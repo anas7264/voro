@@ -12,7 +12,7 @@ import Ring from '@/components/Ring';
 import { foods } from '@/data/foods';
 
 const FoodDiary = () => {
-  const { getItem, setItem } = useStorage();
+  const { storageData, setItem } = useStorage();
   const { user } = useApp();
   const { addNotification } = useNotifications();
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -26,13 +26,13 @@ const FoodDiary = () => {
   }, []);
 
   const nutritionLog = useMemo(() => {
-    const allLogs = getItem('nutrition_log') || {};
+    const allLogs = storageData['nutrition_log'] || {};
     return allLogs[date] || {
       meals: Object.fromEntries(mealSlots.map(slot => [slot, []])),
       water: 0,
       totals: { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }
     };
-  }, [getItem, date, mealSlots]);
+  }, [storageData['nutrition_log'], date, mealSlots]);
 
   const handleDateChange = (days) => {
     const newDate = new Date(date);
