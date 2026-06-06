@@ -95,7 +95,7 @@ class StorageManager {
 
       // Migration/Compatibility: Check if the item is encrypted
       let processedItem = item;
-      if (item.startsWith('v2:') || item.startsWith('v1:')) {
+      if (item.startsWith('v3:') || item.startsWith('v2:') || item.startsWith('v1:')) {
         // Pass fullKey as AAD for cryptographic binding verification
         processedItem = await crypto.decrypt(item, fullKey);
       } else {
@@ -130,7 +130,7 @@ class StorageManager {
 
     if (!item) return null;
 
-    if (item.startsWith('v1:') || item.startsWith('v2:')) {
+    if (item.startsWith('v1:') || item.startsWith('v2:') || item.startsWith('v3:')) {
       // Encrypted data cannot be read synchronously if not cached
       return null;
     }

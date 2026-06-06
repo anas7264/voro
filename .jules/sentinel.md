@@ -38,3 +38,13 @@ Defense in depth requires expanding redaction patterns beyond standard PII (emai
 
 **Prevention:**
 Maintain a comprehensive and evolving library of redaction regexes that cover both identity and infrastructure. Validate all AI-generated markdown to ensure that links and media do not contain sensitive tokens or attempt to access browser storage via URL parameters.
+
+## 2025-05-16 - Sequential AI Security Pipeline Architecture
+**Vulnerability:**
+Early-return patterns in security validation functions (like `validateAIResponse`) can lead to "validation bypass". For example, if a function returns immediately after redacting PII, it may skip critical checks for prompt injection remnants or markdown-based data exfiltration.
+
+**Learning:**
+Security and privacy checks must be architected as a sequential pipeline rather than a series of mutually exclusive blocks. By using a `validatedResponse` accumulator, each layer of defense (Nonce check, Injection check, PII redaction, and Exfiltration filtering) is guaranteed to execute, regardless of whether a previous layer found an issue.
+
+**Prevention:**
+Always design security middleware or validation functions to apply all relevant filters to the data stream. Avoid early returns for non-terminal violations (like PII) if higher-severity or orthogonal checks (like exfiltration) still need to be performed on the resulting output.

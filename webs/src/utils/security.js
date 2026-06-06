@@ -284,22 +284,30 @@ export const redactData = (data, seen = new WeakSet()) => {
 export const validateAIResponse = (response, nonce = null) => {
   if (typeof response !== 'string') return response;
 
-  const dangerousIndicators = [
-    'system prompt',
-    'ignore previous instructions',
-    'reveal your secrets',
-    // More specific patterns for instruction overrides
-    'new role is',
-    'acting as a',
-    'from now on you'
-  ];
-
-  // If a nonce is provided, ensure it's not leaked in the response
+  // 1. Critical Violation: Nonce Leakage
   if (nonce && response.includes(nonce)) {
     console.error("Security Sentinel: Security nonce leaked in AI response. Potential instruction override.");
     return "The AI generated a response that violates security protocols and has been neutralized.";
   }
 
+  // 2. Critical Violation: Prompt Injection Remnants
+  const dangerousIndicators = [
+    'system prompt',
+    'ignore previous instructions',
+    'reveal your secrets',
+    'new role is',
+    'acting as a',
+    'from now on you'
+  ];
+
+  if (dangerousIndicators.some(indicator => response.toLowerCase().includes(indicator))) {
+    console.error("Security Sentinel: Potential prompt injection detected in AI response.");
+    return "The AI generated a response that violates security protocols and has been neutralized.";
+  }
+
+  let validatedResponse = response;
+
+  // 3. Privacy: PII Redaction
   const piiPatterns = [
     /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/, // Email
     /(\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4})/, // Phone
@@ -307,25 +315,17 @@ export const validateAIResponse = (response, nonce = null) => {
     /\b\d{3}-\d{2}-\d{4}\b/ // SSN
   ];
 
-  const hasPII = piiPatterns.some(pattern => pattern.test(response));
-
-  if (hasPII) {
+  if (piiPatterns.some(pattern => pattern.test(validatedResponse))) {
     console.warn("Security Sentinel: AI response contained potential PII. Redacting.");
-    return redactData(response);
+    validatedResponse = redactData(validatedResponse);
   }
 
-  // Check for prompt injection remnants in response
-  if (dangerousIndicators.some(indicator => response.toLowerCase().includes(indicator))) {
-    console.error("Security Sentinel: Potential prompt injection detected in AI response.");
-    return "The AI generated a response that violates security protocols and has been neutralized.";
-  }
-
-  // Markdown Exfiltration Check
+  // 4. Data Exfiltration: Markdown Check
   // Prevents the AI from tricking the user into clicking links or loading images
   // that exfiltrate data via URL parameters (tracking pixels, credential harvesting).
   // Security Note: We use replace() directly without test() to avoid regex lastIndex side effects.
   const exfiltrationPattern = /!?\[.*?\]\((https?:\/\/.*?|data:.*?)\)/gi;
-  return response.replace(exfiltrationPattern, (match, url) => {
+  validatedResponse = validatedResponse.replace(exfiltrationPattern, (match, url) => {
     // Check for presence of the session nonce or high-entropy security keywords in the URL
     const isSuspicious = (nonce && url.includes(nonce)) ||
       /token|key|auth|credential|secret|cookie|session|localstorage|nonce|voro_/i.test(url);
@@ -337,7 +337,7 @@ export const validateAIResponse = (response, nonce = null) => {
     return match;
   });
 
-  return response;
+  return validatedResponse;
 };
 
 /**
