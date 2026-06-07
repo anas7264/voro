@@ -16,13 +16,19 @@ const PRRecords = () => {
    * ⚡ OPTIMIZATION: Synchronous data synthesis using useMemo.
    * Eliminates the mount-time double-render cycle and ensures
    * reactivity to storage changes without secondary state management.
-   * Fixed key: Uses 'pr_history' (standardized) instead of 'voro_pr_history'.
    */
   const prs = useMemo(() => {
     const data = storageData['pr_history'] || {};
+
+    // ⚡ OPTIMIZATION: O(1) exercise lookup map to avoid O(N) searches inside the loop.
+    const exerciseMap = exercises.reduce((acc, e) => {
+      acc[e.id] = e.name;
+      return acc;
+    }, {});
+
     return Object.entries(data).map(([exerciseId, records]) => ({
       exerciseId,
-      exerciseName: exercises.find(e => e.id === exerciseId)?.name || 'Unknown',
+      exerciseName: exerciseMap[exerciseId] || 'Unknown',
       records: Array.isArray(records) ? [...records].sort((a, b) => new Date(b.date) - new Date(a.date)) : [],
     })).filter(pr => pr.records.length > 0);
   }, [storageData['pr_history']]);

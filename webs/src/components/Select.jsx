@@ -1,7 +1,10 @@
-import React, { useId } from "react";
+import React, { useId, memo } from "react";
 import { ChevronDown } from "lucide-react";
 
-export const Select = ({
+/**
+ * ⚡ OPTIMIZATION: Memoized Select component.
+ */
+export const Select = memo(({
   id,
   options = [],
   value,
@@ -59,6 +62,8 @@ export const Select = ({
       )}
     </div>
   );
-};
+});
+
+Select.displayName = "Select";
 
 export default Select;

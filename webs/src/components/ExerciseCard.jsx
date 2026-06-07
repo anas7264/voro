@@ -1,7 +1,10 @@
-import React from "react";
+import React, { memo } from "react";
 import { Card } from "./Card";
 
-export const ExerciseCard = ({ exercise, onSelect, onEdit, onDelete }) => {
+/**
+ * ⚡ OPTIMIZATION: Memoized ExerciseCard to prevent redundant re-renders.
+ */
+export const ExerciseCard = memo(({ exercise, onSelect, onEdit, onDelete }) => {
   return (
     <Card hover>
       <div className="space-y-2">
@@ -23,6 +26,8 @@ export const ExerciseCard = ({ exercise, onSelect, onEdit, onDelete }) => {
       </div>
     </Card>
   );
-};
+});
+
+ExerciseCard.displayName = "ExerciseCard";
 
 export default ExerciseCard;

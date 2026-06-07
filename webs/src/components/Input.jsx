@@ -1,6 +1,9 @@
-import React, { useId } from "react";
+import React, { useId, memo } from "react";
 
-export const Input = ({
+/**
+ * ⚡ OPTIMIZATION: Memoized Input component.
+ */
+export const Input = memo(({
   id,
   type = "text",
   placeholder = "",
@@ -54,6 +57,8 @@ export const Input = ({
       )}
     </div>
   );
-};
+});
+
+Input.displayName = "Input";
 
 export default Input;
