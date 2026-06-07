@@ -26,6 +26,10 @@ const WorkoutLog = () => {
 
   useEffect(() => {
     document.title = 'VORO | Workout Log';
+
+    // ⚡ OPTIMIZATION: Decouple initialization from getItem dependency.
+    // getItem from useStorage changes whenever ANY storage key updates.
+    // We only want to reset local draft state when the logical 'date' changes.
     const allWorkouts = getItem('workout_log') || {};
     const dayWorkout = allWorkouts[date] || {
       attended: false,
@@ -36,7 +40,8 @@ const WorkoutLog = () => {
     setSessionType(dayWorkout.type);
     setSessionDuration(dayWorkout.duration);
     setSelectedExercises(dayWorkout.exercises || []);
-  }, [date, getItem]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date]);
 
   const addExercise = useCallback((exercise) => {
     const newExercise = {

@@ -11,11 +11,11 @@ const MealPrepPlanner = () => {
     document.title = 'VORO | Meal Prep Planner';
   }, []);
 
-  // Synchronous derivation of prep plan from StorageContext
+  // ⚡ OPTIMIZATION: Narrow dependency to specific storage key for surgical reactivity.
   const prepPlan = useMemo(() => {
     const data = storageData['meal_prep'] || {};
     return data.plan || [];
-  }, [storageData]);
+  }, [storageData['meal_prep']]);
 
   return (
     <div className="min-h-screen bg-voro-surface p-4 md:p-8">

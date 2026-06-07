@@ -1,6 +1,9 @@
-import React, { useId } from "react";
+import React, { useId, memo } from "react";
 
-export const Toggle = ({ enabled = false, onChange, label, className = "", ...props }) => {
+/**
+ * ⚡ OPTIMIZATION: Memoized Toggle component.
+ */
+export const Toggle = memo(({ enabled = false, onChange, label, className = "", ...props }) => {
   const labelId = useId();
 
   return (
@@ -29,6 +32,8 @@ export const Toggle = ({ enabled = false, onChange, label, className = "", ...pr
       )}
     </div>
   );
-};
+});
+
+Toggle.displayName = "Toggle";
 
 export default Toggle;

@@ -37,28 +37,31 @@ const Statistics = () => {
     // Weekly workout distribution
     const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const weeklyWorkouts = [];
-    const today = new Date();
 
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
-      weeklyWorkouts.push({
-        day: daysOfWeek[date.getDay()],
+    // ⚡ OPTIMIZATION: Use a single cursor to avoid O(N) Date object instantiation and string churn.
+    const cursor = new Date();
+    cursor.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i < 7; i++) {
+      const dateStr = cursor.toISOString().split('T')[0];
+      weeklyWorkouts.unshift({
+        day: daysOfWeek[cursor.getDay()],
         workouts: workoutLog[dateStr]?.attended ? 1 : 0
       });
+      cursor.setDate(cursor.getDate() - 1);
     }
 
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
+    // Reset cursor for main trend
+    cursor.setTime(new Date().getTime());
+    cursor.setHours(0, 0, 0, 0);
 
+    for (let i = 0; i < days; i++) {
+      const dateStr = cursor.toISOString().split('T')[0];
       const dayData = nutritionLog[dateStr];
       const kcal = dayData?.totals?.calories || 0;
 
-      calorieTrend.push({
-        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      calorieTrend.unshift({
+        date: cursor.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         calories: kcal,
       });
 
@@ -71,6 +74,7 @@ const Statistics = () => {
         workoutDays++;
         totalVolume += workoutLog[dateStr]?.volume || 0;
       }
+      cursor.setDate(cursor.getDate() - 1);
     }
 
     return {

@@ -1,7 +1,10 @@
-import React from "react";
+import React, { memo } from "react";
 import { Card } from "./Card";
 
-export const NutritionCard = ({ meal, onEdit, onDelete }) => {
+/**
+ * ⚡ OPTIMIZATION: Memoized NutritionCard to prevent redundant re-renders.
+ */
+export const NutritionCard = memo(({ meal, onEdit, onDelete }) => {
   return (
     <Card hover>
       <div className="space-y-2">
@@ -33,6 +36,8 @@ export const NutritionCard = ({ meal, onEdit, onDelete }) => {
       </div>
     </Card>
   );
-};
+});
+
+NutritionCard.displayName = "NutritionCard";
 
 export default NutritionCard;
