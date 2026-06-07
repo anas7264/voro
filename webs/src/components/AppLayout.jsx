@@ -2,6 +2,7 @@ import React, { useState, createContext, useContext, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { Menu, Activity } from 'lucide-react';
+import SecurityLockdown from './SecurityLockdown';
 
 export const SidebarContext = createContext({ collapsed: false, setCollapsed: () => {} });
 
@@ -35,6 +36,7 @@ const AppLayout = ({ children }) => {
           className="flex-1 min-h-screen overflow-y-auto overflow-x-hidden transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
           style={{ marginLeft: isMobile ? '0' : (collapsed ? '96px' : '320px') }}
         >
+          <SecurityLockdown />
           {isMobile && (
             <div className="sticky top-0 z-[40] flex items-center justify-between h-24 px-8 bg-[#080B14]/80 backdrop-blur-2xl border-b border-white/[0.03]">
               <div className="flex items-center gap-6">

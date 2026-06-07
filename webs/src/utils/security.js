@@ -98,39 +98,103 @@ export const voroPolicy = (typeof window !== 'undefined' && window.trustedTypes)
     };
 
 /**
+ * Executes a system-wide security lockdown.
+ * Neutralizes the environment to protect data from further compromise.
+ */
+export const executeLockdown = () => {
+  if (typeof window === 'undefined') return;
+
+  console.error("CRITICAL: VORO Neural Shield has detected an integrity violation. Executing Lockdown.");
+
+  // Set global compromise flag
+  window.VORO_COMPROMISED = true;
+
+  // Dispatch system-wide lockdown event
+  const lockdownEvent = new CustomEvent('voro-security-lockdown', {
+    detail: { timestamp: new Date().toISOString(), reason: 'Integrity Violation' }
+  });
+  window.dispatchEvent(lockdownEvent);
+
+  // Clear sensitive global references if they exist
+  if (window.voroAIClient) {
+    window.voroAIClient.apiKey = null;
+  }
+
+  // Attempt to freeze the environment
+  try {
+    Object.freeze(window.localStorage);
+  } catch (e) {
+    // Ignore freeze errors
+  }
+};
+
+/**
  * Runtime Integrity Attestation
  * Detects monkey-patching of core browser APIs (fetch, SubtleCrypto, localStorage, etc.).
+ * Hardened with native-code verification and circuit-breaking logic.
  */
 export const performIntegrityCheck = () => {
   if (typeof window === 'undefined') return true;
 
+  // If already compromised, don't re-verify, just stay locked down
+  if (window.VORO_COMPROMISED) return false;
+
   const coreAPIs = [
     { obj: window, prop: 'fetch', name: 'fetch' },
-    { obj: window.crypto, prop: 'subtle', name: 'crypto.subtle' },
+    { obj: window.crypto.subtle, prop: 'encrypt', name: 'crypto.subtle.encrypt' },
+    { obj: window.crypto.subtle, prop: 'decrypt', name: 'crypto.subtle.decrypt' },
+    { obj: window.crypto.subtle, prop: 'deriveKey', name: 'crypto.subtle.deriveKey' },
     { obj: window, prop: 'localStorage', name: 'localStorage' },
     { obj: JSON, prop: 'parse', name: 'JSON.parse' },
-    { obj: JSON, prop: 'stringify', name: 'JSON.stringify' }
+    { obj: JSON, prop: 'stringify', name: 'JSON.stringify' },
+    { obj: Object, prop: 'defineProperty', name: 'Object.defineProperty' },
+    { obj: window, prop: 'eval', name: 'eval' }
   ];
 
   let compromised = false;
 
+  // Robust Native Code Check: Prevents simple toString() overrides
+  const isNative = (fn) => {
+    return typeof fn === 'function' &&
+           /\{\s*\[native code\]\s*\}/.test(Function.prototype.toString.call(fn));
+  };
+
   coreAPIs.forEach(({ obj, prop, name }) => {
-    if (obj && obj[prop]) {
-      const isNative = obj[prop].toString().includes('[native code]');
-      if (!isNative) {
-        console.error(`Security Sentinel: Integrity Violation! ${name} has been monkey-patched.`);
-        compromised = true;
+    try {
+      if (obj && obj[prop]) {
+        if (!isNative(obj[prop])) {
+          console.error(`Security Sentinel: Integrity Violation! ${name} has been monkey-patched.`);
+          compromised = true;
+        }
       }
+    } catch (e) {
+      // Access errors might indicate a hostile environment or sandboxing
+      compromised = true;
     }
   });
 
   if (compromised) {
-    // In a bank-grade app, we might halt execution or alert a SOC.
-    // For VORO, we log and could theoretically trigger a secure lockout.
-    window.VORO_COMPROMISED = true;
+    executeLockdown();
   }
 
   return !compromised;
+};
+
+/**
+ * Security Heartbeat
+ * Continuously monitors environment integrity in the background.
+ */
+let heartbeatInterval = null;
+export const startSecurityHeartbeat = (intervalMs = 30000) => {
+  if (heartbeatInterval) return;
+
+  heartbeatInterval = setInterval(() => {
+    performIntegrityCheck();
+    if (window.VORO_COMPROMISED) {
+      clearInterval(heartbeatInterval);
+      heartbeatInterval = null;
+    }
+  }, intervalMs);
 };
 
 /**
@@ -368,5 +432,8 @@ export default {
   maskBiometrics,
   redactData,
   validateAIResponse,
-  generateSecurityNonce
+  generateSecurityNonce,
+  performIntegrityCheck,
+  executeLockdown,
+  startSecurityHeartbeat
 };

@@ -6,17 +6,22 @@ export const StorageContext = createContext();
 export const StorageProvider = ({ children }) => {
   const [storageData, setStorageData] = useState({});
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [isCompromised, setIsCompromised] = useState(false);
 
   // Initialize and subscribe to storage changes
   useEffect(() => {
     const init = async () => {
       await storage.ensureInitialized();
-      setStorageData(storage.getAllSync());
+      if (!window.VORO_COMPROMISED) {
+        setStorageData(storage.getAllSync());
+      }
     };
 
     init();
 
     const unsubscribe = storage.subscribe((key, value) => {
+      if (window.VORO_COMPROMISED) return;
+
       if (key === '*') {
         setStorageData(storage.getAllSync());
       } else {
@@ -25,7 +30,18 @@ export const StorageProvider = ({ children }) => {
       setLastUpdated(new Date());
     });
 
-    return unsubscribe;
+    // Security Lockdown Listener
+    const handleLockdown = () => {
+      setIsCompromised(true);
+      setStorageData({}); // Purge state from memory
+    };
+
+    window.addEventListener('voro-security-lockdown', handleLockdown);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('voro-security-lockdown', handleLockdown);
+    };
   }, []);
 
   // Get item from storage
@@ -172,7 +188,8 @@ export const StorageProvider = ({ children }) => {
     clearAllData,
     getStorageSize,
     lastUpdated,
-    storageData
+    storageData,
+    isCompromised
   };
 
   return <StorageContext.Provider value={value}>{children}</StorageContext.Provider>;
