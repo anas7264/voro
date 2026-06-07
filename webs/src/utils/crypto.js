@@ -113,6 +113,12 @@ class CryptoManager {
    * This ensures cryptographic isolation between different storage buckets.
    */
   async deriveDomainKey(domain) {
+    if (window.VORO_COMPROMISED) {
+      this.key = null;
+      this.hkdfKey = null;
+      throw new Error("Security Sentinel: Cryptographic operations blocked due to environment compromise.");
+    }
+
     await this.init();
     const encoder = new TextEncoder();
     return await window.crypto.subtle.deriveKey(
@@ -137,6 +143,12 @@ class CryptoManager {
    */
   async encrypt(data, domain = null) {
     if (data === null || data === undefined) return data;
+
+    if (window.VORO_COMPROMISED) {
+      this.key = null;
+      this.hkdfKey = null;
+      throw new Error("Security Sentinel: Encryption blocked due to environment compromise.");
+    }
 
     await this.init();
 
@@ -185,6 +197,12 @@ class CryptoManager {
    */
   async decrypt(encryptedData, domain = null) {
     if (typeof encryptedData !== 'string') return encryptedData;
+
+    if (window.VORO_COMPROMISED) {
+      this.key = null;
+      this.hkdfKey = null;
+      throw new Error("Security Sentinel: Decryption blocked due to environment compromise.");
+    }
 
     let version = 0;
     if (encryptedData.startsWith('v3:')) version = 3;

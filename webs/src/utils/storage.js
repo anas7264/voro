@@ -85,6 +85,7 @@ class StorageManager {
 
   // Get item from storage asynchronously
   async getAsync(key) {
+    if (window.VORO_COMPROMISED) return null;
     try {
       const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
 
@@ -118,6 +119,7 @@ class StorageManager {
 
   // Synchronous get (returns from cache)
   get(key) {
+    if (window.VORO_COMPROMISED) return null;
     const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
 
     if (this.cache.has(baseKey)) {
@@ -147,6 +149,7 @@ class StorageManager {
 
   // Set item in storage
   async set(key, value) {
+    if (window.VORO_COMPROMISED) return false;
     try {
       const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
 
