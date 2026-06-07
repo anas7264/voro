@@ -144,11 +144,13 @@ export const performIntegrityCheck = () => {
     { obj: window.crypto.subtle, prop: 'encrypt', name: 'crypto.subtle.encrypt' },
     { obj: window.crypto.subtle, prop: 'decrypt', name: 'crypto.subtle.decrypt' },
     { obj: window.crypto.subtle, prop: 'deriveKey', name: 'crypto.subtle.deriveKey' },
-    { obj: window, prop: 'localStorage', name: 'localStorage' },
+    { obj: window.localStorage, prop: 'getItem', name: 'localStorage.getItem' },
+    { obj: window.indexedDB, prop: 'open', name: 'indexedDB.open' },
     { obj: JSON, prop: 'parse', name: 'JSON.parse' },
     { obj: JSON, prop: 'stringify', name: 'JSON.stringify' },
     { obj: Object, prop: 'defineProperty', name: 'Object.defineProperty' },
-    { obj: window, prop: 'eval', name: 'eval' }
+    { obj: window, prop: 'eval', name: 'eval' },
+    { obj: window, prop: 'Function', name: 'Function' }
   ];
 
   let compromised = false;
@@ -371,24 +373,15 @@ export const validateAIResponse = (response, nonce = null) => {
 
   let validatedResponse = response;
 
-  // 3. Privacy: PII Redaction
-  const piiPatterns = [
-    /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/, // Email
-    /(\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4})/, // Phone
-    /\b(?:\d{4}[ -]?){3}\d{4}\b/, // Credit Card
-    /\b\d{3}-\d{2}-\d{4}\b/ // SSN
-  ];
-
-  if (piiPatterns.some(pattern => pattern.test(validatedResponse))) {
-    console.warn("Security Sentinel: AI response contained potential PII. Redacting.");
-    validatedResponse = redactData(validatedResponse);
-  }
+  // 3. Privacy: Mandatory Data Redaction
+  // We run redactData unconditionally to ensure all sensitive patterns (JWT, UUID, Crypto, PII) are caught.
+  validatedResponse = redactData(validatedResponse);
 
   // 4. Data Exfiltration: Markdown Check
   // Prevents the AI from tricking the user into clicking links or loading images
   // that exfiltrate data via URL parameters (tracking pixels, credential harvesting).
   // Security Note: We use replace() directly without test() to avoid regex lastIndex side effects.
-  const exfiltrationPattern = /!?\[.*?\]\((https?:\/\/.*?|data:.*?)\)/gi;
+  const exfiltrationPattern = /!?\[.*?\]\(((?:https?:|javascript:|\/\/).*?|data:.*?)\)/gi;
   validatedResponse = validatedResponse.replace(exfiltrationPattern, (match, url) => {
     // Check for presence of the session nonce or high-entropy security keywords in the URL
     const isSuspicious = (nonce && url.includes(nonce)) ||
