@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useId } from 'react';
+import React, { useEffect, useState, useMemo, useId } from 'react';
 import { Plus, Trash2, Check, Zap, Target, Star } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
@@ -13,30 +13,25 @@ const HabitTracker = () => {
   const iconInputId = useId();
   const { getItemAsync, setItem, storageData } = useStorage();
   const { addNotification } = useNotifications();
-  const [habits, setHabits] = useState([]);
-  const [todayHabits, setTodayHabits] = useState({});
   const [showAddForm, setShowAddForm] = useState(false);
   const [newHabit, setNewHabit] = useState({ name: '', icon: '✓', color: 'voro-primary' });
 
-  const loadHabits = useCallback(async () => {
-    const data = await getItemAsync('habits') || { list: [], log: {} };
-    setHabits(data.list && data.list.length > 0 ? data.list : defaultHabits);
-    const today = new Date().toISOString().split('T')[0];
-    setTodayHabits(data.log?.[today] || {});
-  }, [getItemAsync]);
-
   useEffect(() => {
     document.title = 'VORO | Habit Tracker';
-    loadHabits();
-  }, [loadHabits]);
+  }, []);
 
-  useEffect(() => {
-    if (storageData.habits) {
-      setHabits(storageData.habits.list && storageData.habits.list.length > 0 ? storageData.habits.list : defaultHabits);
-      const today = new Date().toISOString().split('T')[0];
-      setTodayHabits(storageData.habits.log?.[today] || {});
-    }
-  }, [storageData.habits]);
+  /**
+   * ⚡ OPTIMIZATION: Synchronous data derivation using useMemo.
+   * Eliminates the initial mount-time double-render cycle and ensures
+   * reactivity to StorageContext updates without manual load calls.
+   */
+  const { habits, todayHabits } = useMemo(() => {
+    const data = storageData['habits'] || { list: [], log: {} };
+    const list = data.list && data.list.length > 0 ? data.list : defaultHabits;
+    const today = new Date().toISOString().split('T')[0];
+    const log = data.log?.[today] || {};
+    return { habits: list, todayHabits: log };
+  }, [storageData['habits']]);
 
   const addHabit = async () => {
     const { valid, errors } = validateHabit(newHabit);
