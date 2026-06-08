@@ -3,6 +3,11 @@
  * Centralized security and privacy orchestrator for Zero Trust data flows.
  */
 
+// Capture original primitives to prevent RASP evasion via monkey-patching
+const _toString = Function.prototype.toString;
+const _call = Function.prototype.call;
+const _apply = Function.prototype.apply;
+
 /**
  * Sanitizes a string to prevent XSS and injection attacks.
  * Strips dangerous HTML tags and attributes.
@@ -120,6 +125,11 @@ export const executeLockdown = () => {
     window.voroAIClient.apiKey = null;
   }
 
+  // Purge in-memory storage cache if available to prevent exfiltration of decrypted data
+  if (window.storage && typeof window.storage.clearCache === 'function') {
+    window.storage.clearCache();
+  }
+
   // Attempt to freeze the environment
   try {
     Object.freeze(window.localStorage);
@@ -150,15 +160,23 @@ export const performIntegrityCheck = () => {
     { obj: JSON, prop: 'stringify', name: 'JSON.stringify' },
     { obj: Object, prop: 'defineProperty', name: 'Object.defineProperty' },
     { obj: window, prop: 'eval', name: 'eval' },
-    { obj: window, prop: 'Function', name: 'Function' }
+    { obj: window, prop: 'Function', name: 'Function' },
+    { obj: window.localStorage, prop: 'clear', name: 'localStorage.clear' },
+    { obj: window.localStorage, prop: 'removeItem', name: 'localStorage.removeItem' },
+    { obj: document, prop: 'createElement', name: 'document.createElement' },
+    { obj: document, prop: 'write', name: 'document.write' }
   ];
 
   let compromised = false;
 
   // Robust Native Code Check: Prevents simple toString() overrides
   const isNative = (fn) => {
-    return typeof fn === 'function' &&
-           /\{\s*\[native code\]\s*\}/.test(Function.prototype.toString.call(fn));
+    try {
+      return typeof fn === 'function' &&
+             /\{\s*\[native code\]\s*\}/.test(_call.call(_toString, fn));
+    } catch (e) {
+      return false;
+    }
   };
 
   coreAPIs.forEach(({ obj, prop, name }) => {
@@ -345,6 +363,40 @@ export const redactData = (data, seen = new WeakSet()) => {
 };
 
 /**
+ * Deep URL decoding to uncover obfuscated exfiltration paths.
+ */
+const recursiveUrlDecode = (url) => {
+  let decoded = url;
+  let prev;
+  try {
+    do {
+      prev = decoded;
+      decoded = decodeURIComponent(decoded);
+    } while (decoded !== prev);
+  } catch (e) {
+    // Stop decoding if malformed
+  }
+  return decoded;
+};
+
+/**
+ * Anomaly detection for potential "Data Smuggling" via high-entropy strings.
+ */
+const calculateEntropy = (str) => {
+  if (!str || str.length < 20) return 0;
+  const len = str.length;
+  const frequencies = {};
+  for (let i = 0; i < len; i++) {
+    const char = str[i];
+    frequencies[char] = (frequencies[char] || 0) + 1;
+  }
+  return Object.values(frequencies).reduce((sum, freq) => {
+    const p = freq / len;
+    return sum - p * Math.log2(p);
+  }, 0);
+};
+
+/**
  * Validates AI response for security and privacy compliance.
  */
 export const validateAIResponse = (response, nonce = null) => {
@@ -377,20 +429,41 @@ export const validateAIResponse = (response, nonce = null) => {
   // We run redactData unconditionally to ensure all sensitive patterns (JWT, UUID, Crypto, PII) are caught.
   validatedResponse = redactData(validatedResponse);
 
-  // 4. Data Exfiltration: Markdown Check
-  // Prevents the AI from tricking the user into clicking links or loading images
-  // that exfiltrate data via URL parameters (tracking pixels, credential harvesting).
-  // Security Note: We use replace() directly without test() to avoid regex lastIndex side effects.
-  const exfiltrationPattern = /!?\[.*?\]\(((?:https?:|javascript:|\/\/).*?|data:.*?)\)/gi;
+  // 4. Data Exfiltration: AI Firewall (Recursive Markdown & Protocol Analysis)
+  // Prevents "Indirect Prompt Injection" or AI-driven exfiltration via tracking pixels,
+  // credential harvesting, or protocol-relative smuggling.
+  const exfiltrationPattern = /!?\[.*?\]\((.*?)\)/gi;
   validatedResponse = validatedResponse.replace(exfiltrationPattern, (match, url) => {
-    // Check for presence of the session nonce or high-entropy security keywords in the URL
-    const isSuspicious = (nonce && url.includes(nonce)) ||
-      /token|key|auth|credential|secret|cookie|session|localstorage|nonce|voro_/i.test(url);
+    const trimmedUrl = url.trim();
 
-    if (isSuspicious) {
-      console.error("Security Sentinel: Potential data exfiltration via markdown detected.");
-      return '[MEDIA_REMOVED_FOR_SECURITY]';
+    // Block protocol-relative and non-standard schemes
+    if (trimmedUrl.startsWith('//') ||
+        trimmedUrl.toLowerCase().startsWith('javascript:') ||
+        trimmedUrl.toLowerCase().startsWith('data:') ||
+        trimmedUrl.toLowerCase().startsWith('vbscript:')) {
+      console.error("Security Sentinel: Smuggled protocol detected in AI response.");
+      return '[LINK_REMOVED_FOR_SECURITY]';
     }
+
+    // Deep Analysis of the URL target
+    const decodedUrl = recursiveUrlDecode(trimmedUrl);
+
+    // Check for leaked nonces or sensitive system keys in parameters
+    const hasSensitiveParams = (nonce && decodedUrl.includes(nonce)) ||
+      /token|key|auth|credential|secret|cookie|session|localstorage|nonce|voro_|id_token|access_token/i.test(decodedUrl);
+
+    if (hasSensitiveParams) {
+      console.error("Security Sentinel: Sensitive data leakage detected in AI link.");
+      return '[LINK_REMOVED_FOR_SECURITY]';
+    }
+
+    // High-Entropy Detection: Identifies potential base64-encoded exfiltration
+    // Threshold 4.5 is high enough for typical text but flags high-entropy blobs
+    if (calculateEntropy(decodedUrl) > 4.5 && decodedUrl.length > 50) {
+      console.error("Security Sentinel: High-entropy data smuggling detected in AI response.");
+      return '[LINK_REMOVED_FOR_SECURITY]';
+    }
+
     return match;
   });
 
