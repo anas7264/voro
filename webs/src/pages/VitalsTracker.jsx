@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { TrendingUp, Heart, Moon, Zap, Activity } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
@@ -9,7 +9,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { validateVitals } from '@/utils/validators';
 
 const VitalsTracker = () => {
-  const { getStorage, setStorage } = useStorage();
+  const { setItem, storageData } = useStorage();
   const { addNotification } = useNotifications();
   const [vitals, setVitals] = useState({
     heartRate: 72,
@@ -18,15 +18,25 @@ const VitalsTracker = () => {
     mood: 8,
     energy: 8,
   });
-  const [history, setHistory] = useState([]);
 
   useEffect(() => {
     document.title = 'VORO | Biometric Vitals';
-    const data = getStorage('voro_vitals') || [];
-    setHistory(data);
   }, []);
 
-  const handleSaveVitals = () => {
+  /**
+   * ⚡ OPTIMIZATION: Synchronous data derivation using useMemo.
+   * Eliminates the fetch-on-mount double-render cycle and ensures
+   * the history remains reactive to storage updates without local state sync.
+   */
+  const history = useMemo(() => storageData['vitals'] || [], [storageData['vitals']]);
+
+  /**
+   * ⚡ OPTIMIZATION: Memoized recent history transformation.
+   * Prevents redundant slice/reverse operations on every render (e.g. slider moves).
+   */
+  const recentHistory = useMemo(() => history.slice(-6).reverse(), [history]);
+
+  const handleSaveVitals = async () => {
     const { valid, errors } = validateVitals(vitals);
 
     if (!valid) {
@@ -39,9 +49,10 @@ const VitalsTracker = () => {
       date: new Date().toISOString(),
       ...vitals,
     };
+
+    // ⚡ OPTIMIZATION: Use base storage keys and setItem directly.
     const updated = [...history, entry];
-    setHistory(updated);
-    setStorage('voro_vitals', updated);
+    await setItem('vitals', updated);
     addNotification('Biometric data synchronized', 'success');
   };
 
@@ -167,14 +178,14 @@ const VitalsTracker = () => {
         </div>
 
         {/* History */}
-        {history.length > 0 && (
+        {recentHistory.length > 0 && (
           <section className="mt-16 bg-[#0A0C14] border border-white/5 p-8 md:p-12 rounded-[2.5rem] shadow-xl">
             <div className="flex items-center justify-between mb-12">
               <h3 className="text-[0.65rem] font-black text-gray-500 uppercase tracking-[0.3em]">Temporal Manifest</h3>
               <TrendingUp size={18} className="text-gray-700" />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {history.slice(-6).reverse().map((entry, idx) => (
+              {recentHistory.map((entry, idx) => (
                 <div key={idx} className="group p-6 bg-white/[0.02] border border-white/5 rounded-3xl hover:border-white/10 transition-all">
                   <div className="text-[0.6rem] font-black text-gray-600 uppercase tracking-widest mb-4">
                     {new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
