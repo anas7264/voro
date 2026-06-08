@@ -12,7 +12,7 @@ import Ring from '@/components/Ring';
 import { foods } from '@/data/foods';
 
 const FoodDiary = () => {
-  const { storageData, setItem } = useStorage();
+  const { storageData, setItem, getItem } = useStorage();
   const { user } = useApp();
   const { addNotification } = useNotifications();
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);

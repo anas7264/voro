@@ -26,6 +26,7 @@ const STORAGE_KEYS = {
   periodization: "periodization",
   prHistory: "pr_history",
   mealPrep: "meal_prep",
+  quickLog: "quick_log",
   customFoods: "custom_foods",
   customExercises: "custom_exercises",
   fitnessTests: "fitness_tests",

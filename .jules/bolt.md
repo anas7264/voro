@@ -49,3 +49,11 @@
 1. Implement `visibleCount` state with a small `PAGE_SIZE` (e.g., 20-24) for any list exceeding 100 items.
 2. Ensure `visibleCount` resets when filters change via `useEffect` to keep the interface snappy and relevant.
 3. Use `.slice(0, visibleCount)` on the memoized filtered dataset for rendering.
+
+## 2025-05-14 - Reactive Express Log & Biometric Synchronicity
+**Learning:** Legacy pages often suffer from the "fetch-on-mount" anti-pattern (`useEffect` + `useState`), leading to visible layout shifts and redundant re-renders. Standardizing on synchronous `useMemo` for data derivation from the `StorageContext` creates a single-render lifecycle and ensures the UI is a pure function of the global state. Additionally, missing `getItem` destructuring in core trackers (`FoodDiary.jsx`) highlighted the need for strict linting or runtime verification during refactors.
+
+**Action:**
+1. Refactor `QuickLog.jsx`, `PerformanceMetrics.jsx`, and `DailyStreak.jsx` to synchronous `useMemo` derivation.
+2. Standardize all express-entry keys under the encrypted `quick_log` domain.
+3. Implement functional logging logic for express manifestations (Nutrition, Kinetic, Hydration) to ensure true data persistence across trackers.
