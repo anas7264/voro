@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useId } from 'react';
 import { TrendingUp, Heart, Moon, Zap, Activity } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
@@ -18,6 +18,10 @@ const VitalsTracker = () => {
     mood: 8,
     energy: 8,
   });
+  const [isSaving, setIsSaving] = useState(false);
+
+  const moodId = useId();
+  const energyId = useId();
 
   useEffect(() => {
     document.title = 'VORO | Biometric Vitals';
@@ -45,15 +49,20 @@ const VitalsTracker = () => {
       return;
     }
 
-    const entry = {
-      date: new Date().toISOString(),
-      ...vitals,
-    };
+    setIsSaving(true);
+    try {
+      const entry = {
+        date: new Date().toISOString(),
+        ...vitals,
+      };
 
-    // ⚡ OPTIMIZATION: Use base storage keys and setItem directly.
-    const updated = [...history, entry];
-    await setItem('vitals', updated);
-    addNotification('Biometric data synchronized', 'success');
+      // ⚡ OPTIMIZATION: Use base storage keys and setItem directly.
+      const updated = [...history, entry];
+      await setItem('vitals', updated);
+      addNotification('Biometric data synchronized', 'success');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -86,65 +95,67 @@ const VitalsTracker = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div className="space-y-8">
-                  <div>
-                    <label className="text-[0.6rem] font-black text-gray-600 uppercase tracking-[0.2em] mb-4 block">Metabolic Pulse (bpm)</label>
-                    <Input
-                      type="number"
-                      value={vitals.heartRate}
-                      onChange={(e) => setVitals({ ...vitals, heartRate: Number(e.target.value) })}
-                      className="bg-white/[0.02] border-white/5 italic font-serif"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[0.6rem] font-black text-gray-600 uppercase tracking-[0.2em] mb-4 block">Pressure Gradient (mmHg)</label>
-                    <Input
-                      value={vitals.bloodPressure}
-                      onChange={(e) => setVitals({ ...vitals, bloodPressure: e.target.value })}
-                      placeholder="120/80"
-                      className="bg-white/[0.02] border-white/5 italic font-serif"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[0.6rem] font-black text-gray-600 uppercase tracking-[0.2em] mb-4 block">Recovery Duration (hours)</label>
-                    <Input
-                      type="number"
-                      value={vitals.sleep}
-                      onChange={(e) => setVitals({ ...vitals, sleep: Number(e.target.value) })}
-                      className="bg-white/[0.02] border-white/5 italic font-serif"
-                    />
-                  </div>
+                  <Input
+                    label="Metabolic Pulse (bpm)"
+                    type="number"
+                    value={vitals.heartRate}
+                    onChange={(e) => setVitals({ ...vitals, heartRate: Number(e.target.value) })}
+                    className="bg-white/[0.02] border-white/5 italic font-serif"
+                  />
+                  <Input
+                    label="Pressure Gradient (mmHg)"
+                    value={vitals.bloodPressure}
+                    onChange={(e) => setVitals({ ...vitals, bloodPressure: e.target.value })}
+                    placeholder="120/80"
+                    className="bg-white/[0.02] border-white/5 italic font-serif"
+                  />
+                  <Input
+                    label="Recovery Duration (hours)"
+                    type="number"
+                    value={vitals.sleep}
+                    onChange={(e) => setVitals({ ...vitals, sleep: Number(e.target.value) })}
+                    className="bg-white/[0.02] border-white/5 italic font-serif"
+                  />
                 </div>
 
                 <div className="space-y-12">
                   <div>
                     <div className="flex justify-between items-center mb-6">
-                      <label className="text-[0.6rem] font-black text-gray-600 uppercase tracking-[0.2em]">Neural Balance</label>
+                      <label htmlFor={moodId} className="text-[0.6rem] font-black text-gray-600 uppercase tracking-[0.2em] cursor-pointer">Neural Balance</label>
                       <span className="text-2xl font-serif italic text-white">{vitals.mood}<span className="text-[0.6rem] not-italic font-sans text-gray-600 ml-1">/10</span></span>
                     </div>
                     <input
+                      id={moodId}
                       type="range"
                       min="1"
                       max="10"
                       value={vitals.mood}
                       onChange={(e) => setVitals({ ...vitals, mood: Number(e.target.value) })}
-                      className="w-full accent-voro-primary h-1 bg-white/5 rounded-full appearance-none cursor-pointer"
+                      className="w-full accent-voro-primary h-1 bg-white/5 rounded-full appearance-none cursor-pointer focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#0A0C14] outline-none transition-all"
+                      aria-label="Neural Balance (1-10)"
                     />
                   </div>
                   <div>
                     <div className="flex justify-between items-center mb-6">
-                      <label className="text-[0.6rem] font-black text-gray-600 uppercase tracking-[0.2em]">Kinetic Energy</label>
+                      <label htmlFor={energyId} className="text-[0.6rem] font-black text-gray-600 uppercase tracking-[0.2em] cursor-pointer">Kinetic Energy</label>
                       <span className="text-2xl font-serif italic text-white">{vitals.energy}<span className="text-[0.6rem] not-italic font-sans text-gray-600 ml-1">/10</span></span>
                     </div>
                     <input
+                      id={energyId}
                       type="range"
                       min="1"
                       max="10"
                       value={vitals.energy}
                       onChange={(e) => setVitals({ ...vitals, energy: Number(e.target.value) })}
-                      className="w-full accent-voro-secondary h-1 bg-white/5 rounded-full appearance-none cursor-pointer"
+                      className="w-full accent-voro-secondary h-1 bg-white/5 rounded-full appearance-none cursor-pointer focus-visible:ring-2 focus-visible:ring-voro-secondary focus-visible:ring-offset-4 focus-visible:ring-offset-[#0A0C14] outline-none transition-all"
+                      aria-label="Kinetic Energy (1-10)"
                     />
                   </div>
-                  <Button onClick={handleSaveVitals} className="w-full py-5 rounded-2xl bg-voro-primary text-white font-black uppercase tracking-[0.3em] text-[0.65rem] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-voro-primary/20">
+                  <Button
+                    onClick={handleSaveVitals}
+                    isLoading={isSaving}
+                    className="w-full py-5 rounded-2xl bg-voro-primary text-white font-black uppercase tracking-[0.3em] text-[0.65rem] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-voro-primary/20"
+                  >
                     Synchronize Vitals
                   </Button>
                 </div>
