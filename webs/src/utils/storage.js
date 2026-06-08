@@ -217,7 +217,7 @@ class StorageManager {
         }
       });
 
-      this.cache.clear();
+      this.clearCache();
       this.notify('*', null);
 
       return true;
@@ -225,6 +225,11 @@ class StorageManager {
       console.error("Storage clear error:", error);
       return false;
     }
+  }
+
+  // Clear in-memory cache
+  clearCache() {
+    this.cache.clear();
   }
 
   // List all VORO storage keys
