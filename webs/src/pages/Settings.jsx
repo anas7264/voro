@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Moon, Sun, Settings as SettingsIcon, RotateCcw, Download, Upload } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
@@ -8,27 +8,32 @@ import { useStorage } from '@/hooks/useStorage';
 import { useApp } from '@/hooks/useAppContext';
 
 const Settings = () => {
-  const { getStorage, setStorage, exportData, clearAllData } = useStorage();
+  const { storageData, setStorage, exportData, clearAllData } = useStorage();
   const { user } = useApp();
-  const [settings, setSettings] = useState(null);
-  const [theme, setTheme] = useState('dark');
 
   useEffect(() => {
     document.title = 'VORO | Settings';
-    const savedSettings = getStorage('voro_settings') || {};
-    setSettings(savedSettings);
-    setTheme(savedSettings.theme || 'dark');
   }, []);
+
+  /**
+   * ⚡ OPTIMIZATION: Synchronous data derivation for user settings.
+   * Eliminates mount-time double-render and ensures instant reactivity.
+   */
+  const settings = useMemo(() => {
+    return storageData['settings'] || {};
+  }, [storageData['settings']]);
+
+  const theme = useMemo(() => {
+    return settings.theme || 'dark';
+  }, [settings.theme]);
 
   const handleSettingChange = (key, value) => {
     const updated = { ...settings, [key]: value };
-    setStorage('voro_settings', updated);
-    setSettings(updated);
+    setStorage('settings', updated);
   };
 
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
     handleSettingChange('theme', newTheme);
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
   };
@@ -54,8 +59,6 @@ const Settings = () => {
       }
     }
   };
-
-  if (!settings) return <div className="p-8">Loading...</div>;
 
   return (
     <div className="min-h-screen bg-voro-surface p-4 md:p-8">

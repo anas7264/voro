@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Plus, Trash2, Calendar, Target, Zap, Activity, ChevronRight, Download, Share2 } from 'lucide-react';
 import { useStorage } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -13,10 +13,9 @@ const CONFIG = {
 };
 
 const TrainingPlan = () => {
-  const { getStorage, setStorage } = useStorage();
+  const { storageData, setStorage } = useStorage();
   const { addNotification } = useNotifications();
   const [isGenerating, setIsGenerating] = useState(false);
-  const [currentPlan, setCurrentPlan] = useState(null);
 
   const [selections, setSelections] = useState({
     duration: '12 Weeks',
@@ -27,9 +26,16 @@ const TrainingPlan = () => {
 
   useEffect(() => {
     document.title = 'VORO | Kinetic Blueprint';
-    const data = getStorage('voro_plans') || {};
-    if (data.currentPlan) setCurrentPlan(data.currentPlan);
   }, []);
+
+  /**
+   * ⚡ OPTIMIZATION: Synchronous data derivation for the active training plan.
+   * Eliminates mount-time double-render and ensures instant reactivity.
+   */
+  const currentPlan = useMemo(() => {
+    const data = storageData['plans'] || {};
+    return data.currentPlan || null;
+  }, [storageData['plans']]);
 
   const handleGeneratePlan = () => {
     setIsGenerating(true);
@@ -85,20 +91,18 @@ const TrainingPlan = () => {
         ]
       };
 
-      const data = getStorage('voro_plans') || {};
-      data.currentPlan = plan;
-      setStorage('voro_plans', data);
-      setCurrentPlan(plan);
+      const data = storageData['plans'] || {};
+      const updatedData = { ...data, currentPlan: plan };
+      setStorage('plans', updatedData);
       setIsGenerating(false);
       addNotification('Kinetic Blueprint synthesized successfully.', 'success');
     }, 1500);
   };
 
   const clearPlan = () => {
-    const data = getStorage('voro_plans') || {};
-    delete data.currentPlan;
-    setStorage('voro_plans', data);
-    setCurrentPlan(null);
+    const data = storageData['plans'] || {};
+    const { currentPlan, ...rest } = data;
+    setStorage('plans', rest);
     addNotification('Blueprint archived.', 'info');
   };
 
