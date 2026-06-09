@@ -48,3 +48,13 @@ Security and privacy checks must be architected as a sequential pipeline rather 
 
 **Prevention:**
 Always design security middleware or validation functions to apply all relevant filters to the data stream. Avoid early returns for non-terminal violations (like PII) if higher-severity or orthogonal checks (like exfiltration) still need to be performed on the resulting output.
+
+## 2026-06-09 - Exfiltration Sink Monitoring in RASP
+**Vulnerability:**
+Runtime Self-Protection (RASP) systems often focus only on core execution primitives (eval, Function) or storage access (localStorage). This leaves the application vulnerable to monkey-patched exfiltration sinks (XMLHttpRequest, WebSocket, sendBeacon) where a malicious script could intercept and redirect sensitive data without triggering execution-based alerts.
+
+**Learning:**
+Hardening RASP requires monitoring not just how code runs, but where data goes. By including exfiltration-capable APIs like `XMLHttpRequest`, `WebSocket`, and `navigator.sendBeacon` in the integrity attestation list, the Security Sentinel can detect environment-level tampering aimed at silent data theft. Additionally, monitoring the `Proxy` global detects more sophisticated shadowing techniques used to bypass standard property checks.
+
+**Prevention:**
+Always include network-bound and redirection APIs in runtime integrity checks. Use native-code verification to ensure these sinks haven't been replaced with wrapper functions that forward data to third-party origins.

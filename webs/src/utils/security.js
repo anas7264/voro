@@ -96,7 +96,7 @@ export const sanitizeInput = (input) => {
       const doc = parser.parseFromString(input, 'text/html');
 
       // Remove scripts, styles, iframes, and other dangerous elements
-      const dangerousTags = ['script', 'style', 'iframe', 'object', 'embed', 'link', 'base', 'form'];
+      const dangerousTags = ['script', 'style', 'iframe', 'object', 'embed', 'link', 'base', 'form', 'meta', 'svg', 'math'];
       dangerousTags.forEach(tag => {
         const elements = doc.getElementsByTagName(tag);
         while (elements.length > 0) {
@@ -240,6 +240,11 @@ export const performIntegrityCheck = () => {
     { obj: window, prop: 'DOMParser', name: 'DOMParser' },
     { obj: window.localStorage, prop: 'clear', name: 'localStorage.clear' },
     { obj: window.localStorage, prop: 'removeItem', name: 'localStorage.removeItem' },
+    { obj: window.sessionStorage, prop: 'setItem', name: 'sessionStorage.setItem' },
+    { obj: window, prop: 'XMLHttpRequest', name: 'XMLHttpRequest' },
+    { obj: window, prop: 'WebSocket', name: 'WebSocket' },
+    { obj: window.navigator, prop: 'sendBeacon', name: 'navigator.sendBeacon' },
+    { obj: window, prop: 'Proxy', name: 'Proxy' },
     { obj: document, prop: 'createElement', name: 'document.createElement' },
     { obj: document, prop: 'write', name: 'document.write' }
   ];
@@ -386,6 +391,7 @@ export const redactData = (data, seen = new WeakSet()) => {
     redacted = redacted.replace(/\b0x[a-fA-F0-9]{40}\b/g, '[REDACTED_CRYPTO]');
     // Common API Keys (Anthropic, OpenAI, AWS, etc.)
     redacted = redacted.replace(/\b(sk-ant-api03-[a-zA-Z0-9_-]{20,}|sk-[a-zA-Z0-9]{20,})\b/g, '[REDACTED_API_KEY]');
+    redacted = redacted.replace(/\b(sk_live_[0-9a-zA-Z]{24})\b/g, '[REDACTED_STRIPE_KEY]');
     redacted = redacted.replace(/\bAKIA[0-9A-Z]{16}\b/g, '[REDACTED_AWS_KEY]');
     // Private Keys (RSA/EC/Generic)
     redacted = redacted.replace(/-----BEGIN (?:RSA |EC )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC )?PRIVATE KEY-----/gi, '[REDACTED_PRIVATE_KEY]');
