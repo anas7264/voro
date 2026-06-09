@@ -1,5 +1,6 @@
 // VORO Crypto Utility
 // Authenticated Encryption at Rest (AES-GCM) using Web Crypto API
+import { validateCallStack } from './security';
 
 const DB_NAME = 'VORO_SECURE_STORAGE';
 const STORE_NAME = 'KEYS';
@@ -113,10 +114,10 @@ class CryptoManager {
    * This ensures cryptographic isolation between different storage buckets.
    */
   async deriveDomainKey(domain) {
-    if (window.VORO_COMPROMISED) {
+    if (window.VORO_COMPROMISED || !validateCallStack()) {
       this.key = null;
       this.hkdfKey = null;
-      throw new Error("Security Sentinel: Cryptographic operations blocked due to environment compromise.");
+      throw new Error("Security Sentinel: Cryptographic operations blocked due to environment compromise or unauthorized provenance.");
     }
 
     await this.init();
@@ -144,10 +145,10 @@ class CryptoManager {
   async encrypt(data, domain = null) {
     if (data === null || data === undefined) return data;
 
-    if (window.VORO_COMPROMISED) {
+    if (window.VORO_COMPROMISED || !validateCallStack()) {
       this.key = null;
       this.hkdfKey = null;
-      throw new Error("Security Sentinel: Encryption blocked due to environment compromise.");
+      throw new Error("Security Sentinel: Encryption blocked due to environment compromise or unauthorized provenance.");
     }
 
     await this.init();
@@ -198,10 +199,10 @@ class CryptoManager {
   async decrypt(encryptedData, domain = null) {
     if (typeof encryptedData !== 'string') return encryptedData;
 
-    if (window.VORO_COMPROMISED) {
+    if (window.VORO_COMPROMISED || !validateCallStack()) {
       this.key = null;
       this.hkdfKey = null;
-      throw new Error("Security Sentinel: Decryption blocked due to environment compromise.");
+      throw new Error("Security Sentinel: Decryption blocked due to environment compromise or unauthorized provenance.");
     }
 
     let version = 0;
