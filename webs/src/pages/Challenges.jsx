@@ -12,22 +12,28 @@ import { useNotifications } from '@/hooks/useNotifications';
  * and ambient background depth.
  */
 const Challenges = () => {
-  const { getStorage, setStorage } = useStorage();
+  const { storageData, setStorage } = useStorage();
   const { addNotification } = useNotifications();
-  const [completed, setCompleted] = useState({});
   const [activeTab, setActiveTab] = useState('daily');
 
   useEffect(() => {
     document.title = 'VORO | Strategic Objectives';
-    const gamification = getStorage('voro_gamification') || {};
-    setCompleted(gamification.completedChallenges || {});
   }, []);
 
+  /**
+   * ⚡ OPTIMIZATION: Synchronous data derivation for completed challenges.
+   * Eliminates mount-time double-render and ensures instant reactivity.
+   */
+  const completed = useMemo(() => {
+    const gamification = storageData['gamification'] || {};
+    return gamification.completedChallenges || {};
+  }, [storageData['gamification']]);
+
   const handleClaimReward = (challenge) => {
+    const gamification = storageData['gamification'] || {};
     const updated = { ...completed, [challenge.id]: true };
-    setCompleted(updated);
-    const gamification = getStorage('voro_gamification') || {};
-    setStorage('voro_gamification', {
+
+    setStorage('gamification', {
       ...gamification,
       completedChallenges: updated,
       xp: (gamification.xp || 0) + challenge.xpReward

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Plus, Check } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
@@ -6,8 +6,7 @@ import Checkbox from '@/components/Checkbox';
 import { useStorage } from '@/hooks/useStorage';
 
 const GymSetup = () => {
-  const { getStorage, setStorage } = useStorage();
-  const [equipment, setEquipment] = useState([]);
+  const { storageData, setStorage } = useStorage();
 
   const commonEquipment = [
     { id: 1, name: 'Dumbbells', category: 'Free Weights' },
@@ -22,9 +21,15 @@ const GymSetup = () => {
 
   useEffect(() => {
     document.title = 'VORO | Gym Setup';
-    const data = getStorage('voro_gym_setup') || [];
-    setEquipment(data);
   }, []);
+
+  /**
+   * ⚡ OPTIMIZATION: Synchronous data derivation for gym equipment.
+   * Eliminates mount-time double-render and ensures instant reactivity.
+   */
+  const equipment = useMemo(() => {
+    return storageData['gym_setup'] || [];
+  }, [storageData['gym_setup']]);
 
   const handleToggleEquipment = (item) => {
     const found = equipment.find(e => e.id === item.id);
@@ -34,8 +39,7 @@ const GymSetup = () => {
     } else {
       updated = [...equipment, item];
     }
-    setEquipment(updated);
-    setStorage('voro_gym_setup', updated);
+    setStorage('gym_setup', updated);
   };
 
   const categories = ['Free Weights', 'Equipment', 'Machines', 'Cardio'];

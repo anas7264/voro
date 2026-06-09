@@ -11,6 +11,7 @@ export const useStorage = () => {
   // Provide aliases for backwards-compatible API
   return {
     ...context,
+    storageData: context.storageData,
     getStorage: context.getItem,
     setStorage: context.setItem,
     removeStorage: context.deleteItem,

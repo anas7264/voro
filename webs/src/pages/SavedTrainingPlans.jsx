@@ -1,20 +1,24 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
-import Input from '@/components/Input';
 import { useStorage } from '@/hooks/useStorage';
-import { foods } from '@/data/foods';
 
 const SavedTrainingPlans = () => {
-  const { getStorage } = useStorage();
-  const [plans, setPlans] = useState([]);
+  const { storageData } = useStorage();
 
   useEffect(() => {
     document.title = 'VORO | Saved Training Plans';
-    const data = getStorage('voro_plans') || {};
-    setPlans(data.savedTrainingPlans || []);
   }, []);
+
+  /**
+   * ⚡ OPTIMIZATION: Synchronous data derivation for saved training plans.
+   * Eliminates mount-time double-render and ensures instant reactivity.
+   */
+  const plans = useMemo(() => {
+    const data = storageData['plans'] || {};
+    return data.savedTrainingPlans || [];
+  }, [storageData['plans']]);
 
   return (
     <div className="min-h-screen bg-voro-surface p-4 md:p-8">
