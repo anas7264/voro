@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useId } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, ChevronLeft, Check } from 'lucide-react';
 import { useApp } from '@/hooks/useAppContext';
@@ -19,6 +19,14 @@ const Onboarding = () => {
   const [step, setStep] = useState(1);
   const [showConfetti, setShowConfetti] = useState(false);
   const confettiRef = React.useRef(null);
+
+  const ageId = useId();
+  const genderId = useId();
+  const heightId = useId();
+  const weightId = useId();
+  const allergiesId = useId();
+  const gymNameId = useId();
+  const mealsPerDayId = useId();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -204,6 +212,7 @@ const Onboarding = () => {
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   autoFocus
+                  aria-label="Your name"
                   className="text-center text-2xl font-serif italic font-bold text-voro-primary bg-white/[0.02] border-white/5"
                 />
               </div>
@@ -214,10 +223,11 @@ const Onboarding = () => {
           {step === 2 && (
             <div className="animate-fade-in">
               <h2 className="text-3xl font-serif italic font-medium mb-8 text-white">Personal Information</h2>
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div>
-                  <label className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4">Age</label>
+                  <label htmlFor={ageId} className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4">Age</label>
                   <Input
+                    id={ageId}
                     type="number"
                     name="age"
                     value={formData.age}
@@ -228,8 +238,9 @@ const Onboarding = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4">Gender</label>
+                  <label htmlFor={genderId} className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4">Gender</label>
                   <Select
+                    id={genderId}
                     name="gender"
                     value={formData.gender}
                     onChange={handleInputChange}
@@ -241,8 +252,9 @@ const Onboarding = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4">Height (cm)</label>
+                  <label htmlFor={heightId} className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4">Height (cm)</label>
                   <Input
+                    id={heightId}
                     type="number"
                     name="heightCm"
                     value={formData.heightCm}
@@ -253,8 +265,9 @@ const Onboarding = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4">Current Weight (kg)</label>
+                  <label htmlFor={weightId} className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4">Current Weight (kg)</label>
                   <Input
+                    id={weightId}
                     type="number"
                     name="weightKg"
                     value={formData.weightKg}
@@ -342,22 +355,27 @@ const Onboarding = () => {
                 </div>
 
                 <div>
-                  <label className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4">
+                  <label
+                    htmlFor={allergiesId}
+                    className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4"
+                  >
                     Allergies / Medical Conditions
                   </label>
                   <textarea
+                    id={allergiesId}
                     name="allergies"
                     value={formData.allergies}
                     onChange={handleInputChange}
                     placeholder="e.g., Nut allergy, Lactose intolerant..."
-                    className="w-full px-4 py-2 bg-white/[0.02] border border-white/5 rounded-2xl text-white placeholder-gray-500"
+                    className="w-full px-4 py-4 bg-white/[0.02] border border-white/5 rounded-2xl text-white placeholder-gray-500 font-mono focus:outline-none focus:border-voro-primary transition-all duration-500"
                     rows="4"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4">Gym Name (Optional)</label>
+                  <label htmlFor={gymNameId} className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4">Gym Name (Optional)</label>
                   <Input
+                    id={gymNameId}
                     name="gymName"
                     value={formData.gymName}
                     onChange={handleInputChange}
@@ -366,17 +384,24 @@ const Onboarding = () => {
                 </div>
 
                 <div>
-                  <label className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4">Meals Per Day</label>
+                  <label
+                    htmlFor={mealsPerDayId}
+                    className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4"
+                  >
+                    Meals Per Day
+                  </label>
                   <input
+                    id={mealsPerDayId}
                     type="range"
                     name="mealsPerDay"
                     min="2"
                     max="6"
                     value={formData.mealsPerDay}
                     onChange={handleInputChange}
-                    className="w-full"
+                    aria-label="Meals per day (2-6)"
+                    className="w-full accent-voro-primary h-1 bg-white/5 rounded-full appearance-none cursor-pointer focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#0A0C14] outline-none transition-all"
                   />
-                  <div className="text-center mt-2 text-2xl font-serif italic text-voro-primary font-bold">{formData.mealsPerDay} meals/day</div>
+                  <div className="text-center mt-6 text-2xl font-serif italic text-voro-primary font-bold">{formData.mealsPerDay} meals/day</div>
                 </div>
               </div>
 

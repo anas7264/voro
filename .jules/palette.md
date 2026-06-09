@@ -5,3 +5,7 @@
 ## 2026-06-07 - [Tracker Accessibility & Feedback]
 **Learning:** Custom-styled range inputs (`type="range"`) are frequently overlooked in standard accessibility passes. They require explicit `htmlFor`/`id` linkage using `useId` and customized `focus-visible` ring offsets (e.g., `ring-offset-4`) to remain visible against dark, complex backgrounds.
 **Action:** When implementing sliders or non-standard form controls, prioritize `useId` for label association and ensure focus rings are high-contrast with sufficient offsets.
+
+## 2026-06-08 - [Boutique Styling vs. Component Props]
+**Learning:** In premium editorial layouts, standard component props (like `label` in an `Input` component) may not satisfy specific typographic or spatial requirements of the design system. Reverting to manual `<label>` elements linked via `useId` and `htmlFor` allows for more granular styling control while maintaining robust accessibility.
+**Action:** When working with high-end boutique layouts, prefer explicit label-input linkage with `useId` to ensure both accessibility compliance and precise aesthetic execution.
