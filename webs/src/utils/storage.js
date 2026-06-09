@@ -1,7 +1,7 @@
 // VORO Storage Manager
 // window.storage abstraction for data persistence with transparent encryption
 import crypto from './crypto';
-import { sanitizeObject } from './security';
+import { sanitizeObject, validateCallStack } from './security';
 
 const STORAGE_PREFIX = "voro_";
 
@@ -150,7 +150,7 @@ class StorageManager {
 
   // Set item in storage
   async set(key, value) {
-    if (window.VORO_COMPROMISED) return false;
+    if (window.VORO_COMPROMISED || !validateCallStack()) return false;
     try {
       const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
 
@@ -182,6 +182,7 @@ class StorageManager {
 
   // Delete item from storage
   delete(key) {
+    if (window.VORO_COMPROMISED || !validateCallStack()) return false;
     try {
       const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
       const fullKey = key.startsWith(STORAGE_PREFIX) ? key : this.getFullKey(key);
@@ -210,6 +211,7 @@ class StorageManager {
 
   // Clear all VORO storage
   clear() {
+    if (window.VORO_COMPROMISED || !validateCallStack()) return false;
     try {
       const keys = Object.keys(localStorage);
       keys.forEach(key => {

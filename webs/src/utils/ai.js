@@ -1,7 +1,7 @@
 // VORO Claude AI Integration
 // API wrapper for Claude AI with streaming and error handling
 
-import { redactData, validateAIResponse, generateSecurityNonce, maskBiometrics } from './security';
+import { redactData, validateAIResponse, generateSecurityNonce, maskBiometrics, validateCallStack } from './security';
 
 const CLAUDE_API_KEY = import.meta.env.VITE_CLAUDE_API_KEY;
 const CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
@@ -28,6 +28,11 @@ class VoroAIClient {
 
   // Call Claude API with full parameters
   async callAPI(messages, systemPrompt, options = {}) {
+    // Security: Validate call stack provenance to prevent unauthorized programmatic API usage
+    if (window.VORO_COMPROMISED || !validateCallStack()) {
+      throw new Error("Security Sentinel: AI API access blocked due to environment compromise or unauthorized provenance.");
+    }
+
     const {
       temperature = 0.7,
       maxTokens = 2000,

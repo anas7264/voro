@@ -7,6 +7,76 @@
 const _toString = Function.prototype.toString;
 const _call = Function.prototype.call;
 const _apply = Function.prototype.apply;
+const _Error = Error;
+
+/**
+ * Call Stack Attestation (CSA)
+ * Verifies the provenance of the execution stack to prevent unauthorized programmatic access
+ * to sensitive security sinks from non-application contexts (eval, third-party, etc.).
+ */
+export const validateCallStack = () => {
+  if (typeof window === 'undefined') return true;
+
+  // Circuit breaker: skip if already compromised
+  if (window.VORO_COMPROMISED) return false;
+
+  try {
+    const stack = new _Error().stack;
+    if (!stack) return true; // Some browsers might not provide stack, fail-open for UX but logs
+
+    const lines = stack.split('\n');
+    const trustedOrigin = window.location.origin;
+
+    // We skip the first 2-3 lines (validateCallStack itself and the immediate caller)
+    // and analyze the rest of the provenance.
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i];
+      if (!line || line.includes('validateCallStack')) continue;
+
+      // Detection 1: Anonymous / Evaluated Code
+      if (line.includes('<anonymous>') || line.includes('eval at') || line.includes('at eval')) {
+        console.error("Security Sentinel: Unauthorized execution context (eval/anonymous) detected in call stack.");
+        executeLockdown();
+        return false;
+      }
+
+      // Detection 2: Protocol Smuggling (blob, data)
+      if (line.includes('blob:') || line.includes('data:')) {
+        console.error("Security Sentinel: Unauthorized protocol detected in call stack.");
+        executeLockdown();
+        return false;
+      }
+
+      // Detection 3: Cross-Origin / Third-party script provenance
+      // Extract URL and verify it against the trusted application origin
+      const urlMatch = line.match(/(https?:\/\/[^\s)]+)/);
+      if (urlMatch) {
+        try {
+          // Strip line/column numbers (e.g. :14:2) before parsing
+          const cleanUrl = urlMatch[0].replace(/:\d+(?::\d+)?$/, '');
+          const urlObj = new URL(cleanUrl);
+          if (urlObj.origin !== trustedOrigin) {
+            console.error(`Security Sentinel: Cross-origin script provenance detected: ${urlObj.origin}`);
+            executeLockdown();
+            return false;
+          }
+        } catch (e) {
+          // If URL parsing fails but it has a protocol, it's a potential obfuscation attempt
+          console.error("Security Sentinel: Malformed or obfuscated provenance URL detected.");
+          executeLockdown();
+          return false;
+        }
+      }
+    }
+
+    return true;
+  } catch (e) {
+    // If stack parsing fails, we assume compromise in high-security mode
+    console.error("Security Sentinel: Call stack analysis failed.", e);
+    executeLockdown();
+    return false;
+  }
+};
 
 /**
  * Sanitizes a string to prevent XSS and injection attacks.
@@ -505,6 +575,7 @@ export default {
   maskBiometrics,
   redactData,
   validateAIResponse,
+  validateCallStack,
   generateSecurityNonce,
   performIntegrityCheck,
   executeLockdown,
