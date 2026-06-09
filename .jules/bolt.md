@@ -57,3 +57,11 @@
 1. Refactor `QuickLog.jsx`, `PerformanceMetrics.jsx`, and `DailyStreak.jsx` to synchronous `useMemo` derivation.
 2. Standardize all express-entry keys under the encrypted `quick_log` domain.
 3. Implement functional logging logic for express manifestations (Nutrition, Kinetic, Hydration) to ensure true data persistence across trackers.
+
+## 2026-06-12 - Media Query Hook Optimization
+**Learning:** Initializing 'useMediaQuery' state to 'false' and updating in 'useEffect' causes a mandatory double-render on mount for matched queries. Additionally, including 'matches' in the dependency array causes redundant effect re-runs whenever the breakpoint is crossed. Functional updates 'setMatches(prev => ...)' allow removing 'matches' from dependencies while maintaining logical correctness.
+
+**Action:**
+1. Use lazy state initialization with 'window.matchMedia(query).matches' for 'useMediaQuery'.
+2. Remove 'matches' from 'useEffect' dependency array to prevent redundant listener re-attachments.
+3. Use functional updates in 'setMatches' to keep the effect body lean and avoid unnecessary lint suppressions.
