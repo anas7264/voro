@@ -64,7 +64,7 @@ const HydroVessel = memo(({ percentage }) => {
 });
 
 const WaterTracker = () => {
-  const { getItem, setItem } = useStorage();
+  const { getItem, setItem, storageData } = useStorage();
   const { addNotification } = useNotifications();
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const dailyGoal = 2000;
@@ -73,20 +73,25 @@ const WaterTracker = () => {
     document.title = 'VORO | Water Tracker';
   }, []);
 
+  /**
+   * ⚡ OPTIMIZATION: Surgical Reactivity.
+   * Depend on specific storage keys instead of the 'getItem' accessor
+   * which is redefined on every global storage update.
+   */
   const dailyLogs = useMemo(() => {
-    const logs = getItem('water_log') || {};
+    const logs = storageData['water_log'] || {};
     return logs[date] || [];
-  }, [getItem, date]);
+  }, [storageData['water_log'], date]);
 
   const waterHistory = useMemo(() => {
-    const all = getItem('water_history') || {};
+    const all = storageData['water_history'] || {};
     return Object.entries(all)
       .slice(-30)
       .map(([d, amount]) => ({
         date: new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         water: amount,
       }));
-  }, [getItem]);
+  }, [storageData['water_history']]);
 
   const todayTotal = useMemo(() => {
     return dailyLogs.reduce((sum, log) => sum + (log.amount || 0), 0);

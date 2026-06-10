@@ -4,7 +4,11 @@ import { useStorage } from "./useStorage";
 export const useStreak = () => {
   const { setItem, storageData } = useStorage();
 
-  // Reactive streak data derived from storage
+  /**
+   * ⚡ OPTIMIZATION: Surgical Reactivity.
+   * Depend on the specific 'streak' key instead of the entire 'storageData' object
+   * to prevent redundant re-computations during unrelated storage updates.
+   */
   const streakData = useMemo(() => {
     return storageData["streak"] || {
       current: 0,
@@ -12,7 +16,7 @@ export const useStreak = () => {
       completedDates: [],
       lastCompletedDate: null
     };
-  }, [storageData]);
+  }, [storageData["streak"]]);
 
   // Derived metrics from streak data
   const currentStreak = streakData.current;

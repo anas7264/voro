@@ -65,3 +65,11 @@
 1. Use lazy state initialization with 'window.matchMedia(query).matches' for 'useMediaQuery'.
 2. Remove 'matches' from 'useEffect' dependency array to prevent redundant listener re-attachments.
 3. Use functional updates in 'setMatches' to keep the effect body lean and avoid unnecessary lint suppressions.
+
+## 2025-05-18 - Surgical Reactivity Pattern
+**Learning:** Using broad dependencies like `getItem` (a function redefined on every context update) or the entire `storageData` object in `useMemo` hooks causes redundant re-computations whenever ANY key in the global storage changes. Narrowing dependencies to the specific key (e.g., `storageData['water_log']`) ensures the hook only re-calculates when relevant data actually changes.
+
+**Action:**
+1. Avoid using `getItem` as a dependency in `useMemo` or `useEffect`.
+2. Destructure `storageData` from `useStorage` and use the specific data slice (e.g., `storageData['key']`) in dependency arrays.
+3. Apply this "Surgical Reactivity" pattern to all trackers and hooks derived from global state.
