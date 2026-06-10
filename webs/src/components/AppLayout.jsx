@@ -42,7 +42,8 @@ const AppLayout = ({ children }) => {
               <div className="flex items-center gap-6">
                 <button
                   onClick={() => setCollapsed(false)}
-                  className="p-3.5 bg-white/[0.03] border border-white/5 rounded-2xl text-gray-400 hover:text-white transition-all active:scale-90"
+                  className="p-3.5 bg-white/[0.03] border border-white/5 rounded-2xl text-gray-400 hover:text-white transition-all active:scale-90 focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#080B14] outline-none"
+                  aria-label="Open sidebar"
                 >
                   <Menu size={20} />
                 </button>

@@ -61,7 +61,7 @@ export const Modal = ({ isOpen, onClose, title, children, size = "md", ...props 
           </div>
           <button
             onClick={onClose}
-            className="p-3 rounded-full hover:bg-white/5 text-gray-500 hover:text-white transition-all duration-300 active:scale-90"
+            className="p-3 rounded-full hover:bg-white/5 text-gray-500 hover:text-white transition-all duration-300 active:scale-90 focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14] outline-none"
             aria-label="Close modal"
           >
             <X size={24} />

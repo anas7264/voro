@@ -111,7 +111,8 @@ const Sidebar = ({ collapsed, setCollapsed, isMobile }) => {
         {isMobile && !collapsed && (
           <button
             onClick={() => setCollapsed(true)}
-            className="text-gray-600 hover:text-white transition-colors p-2.5 rounded-2xl bg-white/[0.02] border border-white/5"
+            className="text-gray-600 hover:text-white transition-colors p-2.5 rounded-2xl bg-white/[0.02] border border-white/5 focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408] outline-none"
+            aria-label="Close sidebar"
           >
             <X size={18} />
           </button>
