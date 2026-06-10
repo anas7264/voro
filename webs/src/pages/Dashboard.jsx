@@ -223,16 +223,33 @@ const Dashboard = () => {
       </div>
 
       <div className="relative max-w-[1440px] mx-auto px-6 py-12 md:px-12 lg:px-20">
-        <header className="mb-20 flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3 text-voro-primary">
-              <Activity size={18} />
-              <span className="text-xs font-bold uppercase tracking-[0.2em]">Live Synthesis</span>
+        <header className="mb-24 flex flex-col md:flex-row md:items-end justify-between gap-10">
+          <div className="space-y-4">
+            <div className="flex items-center gap-4 text-voro-primary">
+              <div className="w-1.5 h-1.5 rounded-full bg-voro-primary animate-pulse shadow-[0_0_8px_#7C3AED]" />
+              <span className="text-[0.6rem] font-black uppercase tracking-[0.4em]">Evolutionary Status</span>
             </div>
-            <h1 className="text-5xl md:text-6xl font-serif italic font-medium tracking-tight text-white leading-tight">
-              {greeting}, <span className="text-gradient not-italic font-bold">{user.name}</span>
-            </h1>
-            <p className="text-gray-500 font-medium tracking-widest text-xs uppercase opacity-60">{todayDate}</p>
+            <div className="space-y-1">
+              <h1 className="text-6xl md:text-8xl font-serif italic font-medium tracking-tighter text-white leading-[0.85]">
+                {greeting},
+              </h1>
+              <div className="flex flex-col md:flex-row md:items-end gap-6">
+                <span className="text-gradient text-6xl md:text-8xl font-serif font-black tracking-tighter leading-none">
+                  {user.name}
+                </span>
+                <div className="flex gap-6 pb-2">
+                  <div className="flex flex-col">
+                    <span className="text-[0.5rem] font-mono text-gray-700 uppercase tracking-[0.3em]">System_Integrity</span>
+                    <span className="text-[0.6rem] font-mono text-voro-secondary font-bold tracking-widest">99.8%_NOMINAL</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[0.5rem] font-mono text-gray-700 uppercase tracking-[0.3em]">Live_Synthesis</span>
+                    <span className="text-[0.6rem] font-mono text-voro-primary font-bold tracking-widest">ACTIVE_NODE_01</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p className="text-gray-600 font-medium tracking-[0.3em] text-[0.6rem] uppercase opacity-60">{todayDate}</p>
           </div>
 
           <div className="flex gap-4">
@@ -255,8 +272,9 @@ const Dashboard = () => {
 
         <div className="grid grid-cols-12 gap-8">
           <div className="col-span-12 lg:col-span-8 space-y-8">
-            <section className="relative overflow-hidden rounded-[2.5rem] bg-[#0A0C14] border border-white/5 p-8 md:p-12 shadow-2xl shadow-black/40 transition-all hover:border-white/10 group/card">
+            <section className="relative overflow-hidden rounded-[2.5rem] bg-[#0A0C14] border border-white/5 p-12 md:p-16 shadow-2xl shadow-black/40 transition-all hover:border-white/10 group/card bg-boutique-grain">
               <div className="absolute top-0 right-0 w-64 h-64 bg-voro-primary/5 rounded-full blur-[100px] -mr-32 -mt-32 group-hover/card:bg-voro-primary/10 transition-colors duration-700" />
+              <div className="kinetic-sweep opacity-20 group-hover/card:opacity-40 transition-opacity duration-1000" />
 
               <div className="relative grid grid-cols-1 md:grid-cols-2 gap-20 items-center">
                 <div className="flex justify-center">
@@ -273,9 +291,9 @@ const Dashboard = () => {
 
                 <div className="space-y-10">
                   <div>
-                    <h3 className="text-[0.65rem] font-black text-gray-500 uppercase tracking-[0.4em] mb-6">Metabolic Velocity</h3>
+                    <h3 className="text-[0.65rem] font-black text-voro-primary uppercase tracking-[0.4em] mb-6">Metabolic Velocity</h3>
                     <div className="flex items-baseline gap-4">
-                      <span className="text-8xl font-serif italic font-medium tracking-tighter text-white">
+                      <span className="text-8xl font-serif italic font-black tracking-tighter text-white">
                         {nutritionToday?.totals?.calories || 0}
                       </span>
                       <span className="text-lg font-medium text-gray-500 tracking-tight">/ {user.calorieGoal} kcal</span>
