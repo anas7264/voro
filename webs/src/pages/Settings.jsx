@@ -79,7 +79,8 @@ const Settings = () => {
               </div>
               <button
                 onClick={toggleTheme}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14] outline-none transition-all active:scale-90 rounded-lg p-1"
+                aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               >
                 {theme === 'dark' ? (
                   <Moon size={20} className="text-voro-primary" />
