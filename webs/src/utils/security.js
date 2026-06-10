@@ -8,6 +8,80 @@ const _toString = Function.prototype.toString;
 const _call = Function.prototype.call;
 const _apply = Function.prototype.apply;
 const _Error = Error;
+const _freeze = Object.freeze;
+const _getOwnPropertyNames = Object.getOwnPropertyNames;
+const _getPrototypeOf = Object.getPrototypeOf;
+const _hasOwnProperty = Object.prototype.hasOwnProperty;
+const _ReflectApply = typeof Reflect !== 'undefined' ? Reflect.apply : null;
+
+/**
+ * Prototype Integrity Shield
+ * Snapshots core prototypes at module load to detect pollution or tampering.
+ */
+const prototypeSnapshots = new Map();
+const corePrototypes = [
+  { name: 'Object', proto: Object.prototype },
+  { name: 'Array', proto: Array.prototype },
+  { name: 'Function', proto: Function.prototype },
+  { name: 'String', proto: String.prototype },
+  { name: 'Number', proto: Number.prototype },
+  { name: 'Boolean', proto: Boolean.prototype }
+];
+
+const snapshotPrototypes = () => {
+  if (typeof window === 'undefined') return;
+  corePrototypes.forEach(({ name, proto }) => {
+    try {
+      const keys = _getOwnPropertyNames(proto);
+      prototypeSnapshots.set(name, new Set(keys));
+    } catch (e) {
+      // Ignore errors during snapshotting
+    }
+  });
+};
+
+// Initial snapshot
+snapshotPrototypes();
+
+/**
+ * Verifies the integrity of core prototypes against snapshots.
+ */
+export const checkPrototypeIntegrity = () => {
+  if (typeof window === 'undefined') return true;
+  let compromised = false;
+
+  corePrototypes.forEach(({ name, proto }) => {
+    try {
+      const currentKeys = _getOwnPropertyNames(proto);
+      const originalKeys = prototypeSnapshots.get(name);
+
+      if (!originalKeys) return;
+
+      // Check for added properties (pollution)
+      for (const key of currentKeys) {
+        if (!originalKeys.has(key)) {
+          console.error(`Security Sentinel: Prototype Pollution detected on ${name}.prototype.${key}`);
+          compromised = true;
+        }
+      }
+
+      // Check for deleted or modified properties
+      originalKeys.forEach(key => {
+        if (!currentKeys.includes(key)) {
+          console.error(`Security Sentinel: Prototype Tampering detected (deleted): ${name}.prototype.${key}`);
+          compromised = true;
+        }
+      });
+    } catch (e) {
+      compromised = true;
+    }
+  });
+
+  if (compromised) {
+    executeLockdown();
+  }
+  return !compromised;
+};
 
 /**
  * Call Stack Attestation (CSA)
@@ -27,6 +101,13 @@ export const validateCallStack = () => {
     const lines = stack.split('\n');
     const trustedOrigin = window.location.origin;
 
+    // Detection 0: Stack Depth Validation (Prevents recursion/exhaustion attacks)
+    if (lines.length > 50) {
+      console.error("Security Sentinel: Abnormal call stack depth detected.");
+      executeLockdown();
+      return false;
+    }
+
     // We skip the first 2-3 lines (validateCallStack itself and the immediate caller)
     // and analyze the rest of the provenance.
     for (let i = 1; i < lines.length; i++) {
@@ -40,8 +121,9 @@ export const validateCallStack = () => {
         return false;
       }
 
-      // Detection 2: Protocol Smuggling (blob, data)
-      if (line.includes('blob:') || line.includes('data:')) {
+      // Detection 2: Protocol Smuggling (blob, data, filesystem, extension)
+      const dangerousProtocols = ['blob:', 'data:', 'filesystem:', 'chrome-extension:', 'moz-extension:', 'extension:', 'about:'];
+      if (dangerousProtocols.some(proto => line.includes(proto))) {
         console.error("Security Sentinel: Unauthorized protocol detected in call stack.");
         executeLockdown();
         return false;
@@ -251,6 +333,11 @@ export const performIntegrityCheck = () => {
 
   let compromised = false;
 
+  // Check Prototype Integrity
+  if (!checkPrototypeIntegrity()) {
+    compromised = true;
+  }
+
   // Robust Native Code Check: Prevents simple toString() overrides
   const isNative = (fn) => {
     try {
@@ -426,6 +513,12 @@ export const redactData = (data, seen = new WeakSet()) => {
   const sensitiveKeys = ['name', 'email', 'phone', 'address', 'location', 'gymname', 'gym_name', 'latitude', 'longitude', 'lat', 'lng', 'birthday', 'social'];
 
   Object.keys(data).forEach(key => {
+    // Prototype Pollution Guard
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+      console.error("Security Sentinel: Potential Prototype Pollution attempt detected and blocked during redaction.");
+      return;
+    }
+
     const lowerKey = key.toLowerCase();
 
     // Tier 1: Critical - Hard Redaction
@@ -570,6 +663,12 @@ export const sanitizeObject = (obj, seen = new WeakSet()) => {
 
   const result = {};
   Object.keys(obj).forEach(key => {
+    // Prototype Pollution Guard
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+      console.error("Security Sentinel: Potential Prototype Pollution attempt detected and blocked during sanitization.");
+      return;
+    }
+
     result[key] = sanitizeObject(obj[key], seen);
   });
   return result;

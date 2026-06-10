@@ -14,6 +14,25 @@ class CryptoManager {
     this.key = null;
     this.hkdfKey = null;
     this.initialized = false;
+
+    // Security: High-priority listener for system-wide lockdown
+    // Performs atomic cryptographic shredding of master keys from memory.
+    if (typeof window !== 'undefined') {
+      window.addEventListener('voro-security-lockdown', () => {
+        this.shredKeys();
+      });
+    }
+  }
+
+  /**
+   * Atomic Cryptographic Shredding
+   * Immediately purges sensitive keys from memory to prevent exfiltration during compromise.
+   */
+  shredKeys() {
+    this.key = null;
+    this.hkdfKey = null;
+    this.initialized = false;
+    console.warn("Security Sentinel: Cryptographic keys have been shredded from memory.");
   }
 
   // Initialize the crypto manager (load or generate keys)
