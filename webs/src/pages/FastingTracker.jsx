@@ -106,7 +106,7 @@ const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive
 });
 
 const FastingTracker = () => {
-  const { getItem, setItem } = useStorage();
+  const { getItem, setItem, storageData } = useStorage();
   const { addNotification } = useNotifications();
   const [elapsed, setElapsed] = useState(0);
   const [isPaused, setIsPaused] = useState(true);
@@ -116,9 +116,14 @@ const FastingTracker = () => {
     document.title = 'VORO | Fasting Tracker';
   }, []);
 
+  /**
+   * ⚡ OPTIMIZATION: Surgical Reactivity.
+   * Depend on specific storage keys instead of the 'getItem' accessor
+   * which is redefined on every global storage update.
+   */
   const fastingData = useMemo(() => {
-    return getItem('fasting') || { window: '16:8', started: null, status: 'idle' };
-  }, [getItem]);
+    return storageData['fasting'] || { window: '16:8', started: null, status: 'idle' };
+  }, [storageData['fasting']]);
 
   const [fastHours, breakHours] = fastingData.window.split(':').map(Number);
   const totalSeconds = fastHours * 3600;

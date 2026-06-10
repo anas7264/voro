@@ -5,7 +5,11 @@ import * as gamification from "../utils/gamification";
 export const useGamification = () => {
   const { getItem, setItem, storageData } = useStorage();
 
-  // Reactive game state derived directly from storage context
+  /**
+   * ⚡ OPTIMIZATION: Surgical Reactivity.
+   * Depend on the specific 'gamification' key instead of the entire 'storageData' object
+   * to prevent redundant re-computations during unrelated storage updates.
+   */
   const gameState = useMemo(() => {
     return storageData["gamification"] || {
       totalXP: 0,
@@ -19,7 +23,7 @@ export const useGamification = () => {
       totalNutritionDays: 0,
       milestones: []
     };
-  }, [storageData]);
+  }, [storageData["gamification"]]);
 
   // Award XP for action
   const awardXP = useCallback((action, metadata = {}) => {
