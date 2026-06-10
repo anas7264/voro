@@ -462,8 +462,8 @@ export const redactData = (data, seen = new WeakSet()) => {
     redacted = redacted.replace(/(\+\d{1,3}[- ]?)?\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}/g, '[REDACTED_PHONE]');
     // Addresses / Locations (Basic pattern)
     redacted = redacted.replace(/\d+\s+[a-zA-Z0-9\s,]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Square|Sq|Trail|Trl)\.?/gi, '[REDACTED_ADDRESS]');
-    // Credit Cards (Harsher detection for 13-19 digits and various delimiters, Luhn-like length check)
-    redacted = redacted.replace(/\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|6(?:011|5[0-9]{2})[0-9]{12}|(?:2131|1800|35\d{3})\d{11})\b/g, '[REDACTED_FINANCIAL]');
+    // Credit Cards (Harsher detection for 13-19 digits with optional spaces/dashes)
+    redacted = redacted.replace(/\b(?:4[0-9]{3}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{1,4}|5[1-5][0-9]{2}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}|3[47][0-9]{2}[\s-]?\d{6}[\s-]?\d{5}|6(?:011|5[0-9]{2})[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4})\b/g, '[REDACTED_FINANCIAL]');
     // SSN (Identity Protection)
     redacted = redacted.replace(/\b\d{3}-\d{2}-\d{4}\b/g, '[REDACTED_ID]');
     // IP Addresses (IPv4 & IPv6)
@@ -476,10 +476,12 @@ export const redactData = (data, seen = new WeakSet()) => {
     // Crypto Wallets (BTC & ETH)
     redacted = redacted.replace(/\b(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,39}\b/g, '[REDACTED_CRYPTO]');
     redacted = redacted.replace(/\b0x[a-fA-F0-9]{40}\b/g, '[REDACTED_CRYPTO]');
-    // Common API Keys (Anthropic, OpenAI, AWS, etc.)
+    // Common API Keys (Anthropic, OpenAI, AWS, Google, GitHub, etc.)
     redacted = redacted.replace(/\b(sk-ant-api03-[a-zA-Z0-9_-]{20,}|sk-[a-zA-Z0-9]{20,})\b/g, '[REDACTED_API_KEY]');
-    redacted = redacted.replace(/\b(sk_live_[0-9a-zA-Z]{24})\b/g, '[REDACTED_STRIPE_KEY]');
-    redacted = redacted.replace(/\bAKIA[0-9A-Z]{16}\b/g, '[REDACTED_AWS_KEY]');
+    redacted = redacted.replace(/\b(sk_(?:live|test)_[0-9a-zA-Z]{24})\b/g, '[REDACTED_STRIPE_KEY]');
+    redacted = redacted.replace(/\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/g, '[REDACTED_AWS_KEY]');
+    redacted = redacted.replace(/\bAIza[0-9A-Za-z-_]{35}\b/g, '[REDACTED_GOOGLE_KEY]');
+    redacted = redacted.replace(/\bgh[pousr]_[a-zA-Z0-9]{36,251}\b/g, '[REDACTED_GITHUB_TOKEN]');
     // Private Keys (RSA/EC/Generic)
     redacted = redacted.replace(/-----BEGIN (?:RSA |EC )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC )?PRIVATE KEY-----/gi, '[REDACTED_PRIVATE_KEY]');
 
@@ -510,7 +512,7 @@ export const redactData = (data, seen = new WeakSet()) => {
 
   // Sensitivity Tiers
   const criticalKeys = ['password', 'secret', 'token', 'key', 'apiKey', 'masterKey', 'auth'];
-  const sensitiveKeys = ['name', 'email', 'phone', 'address', 'location', 'gymname', 'gym_name', 'latitude', 'longitude', 'lat', 'lng', 'birthday', 'social'];
+  const sensitiveKeys = ['name', 'email', 'phone', 'address', 'location', 'gymname', 'gym_name', 'latitude', 'longitude', 'lat', 'lng', 'birthday', 'social', 'voro_'];
 
   Object.keys(data).forEach(key => {
     // Prototype Pollution Guard
@@ -616,6 +618,9 @@ export const validateAIResponse = (response, nonce = null) => {
     if (trimmedUrl.startsWith('//') ||
         trimmedUrl.toLowerCase().startsWith('javascript:') ||
         trimmedUrl.toLowerCase().startsWith('data:') ||
+        trimmedUrl.toLowerCase().startsWith('blob:') ||
+        trimmedUrl.toLowerCase().startsWith('file:') ||
+        trimmedUrl.toLowerCase().startsWith('php:') ||
         trimmedUrl.toLowerCase().startsWith('vbscript:')) {
       console.error("Security Sentinel: Smuggled protocol detected in AI response.");
       return '[LINK_REMOVED_FOR_SECURITY]';
