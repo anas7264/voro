@@ -47,8 +47,18 @@ module.exports = {
         'count-up': 'countUp 1s ease-out',
         'glow': 'glow 2s ease-in-out infinite',
         'shimmer': 'shimmer 1.5s infinite',
+        'kinetic-sweep': 'kineticSweep 2s ease-in-out infinite',
+        'pulse-soft': 'pulseSoft 2s ease-in-out infinite',
       },
       keyframes: {
+        kineticSweep: {
+          '0%': { transform: 'translateX(-100%)' },
+          '50%, 100%': { transform: 'translateX(100%)' }
+        },
+        pulseSoft: {
+          '0%, 100%': { opacity: 1 },
+          '50%': { opacity: 0.5 }
+        },
         fadeIn: { '0%': { opacity: 0 }, '100%': { opacity: 1 } },
         slideUp: { '0%': { opacity: 0, transform: 'translateY(12px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } },
         slideRight: { '0%': { opacity: 0, transform: 'translateX(-12px)' }, '100%': { opacity: 1, transform: 'translateX(0)' } },
