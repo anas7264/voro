@@ -58,3 +58,13 @@ Hardening RASP requires monitoring not just how code runs, but where data goes. 
 
 **Prevention:**
 Always include network-bound and redirection APIs in runtime integrity checks. Use native-code verification to ensure these sinks haven't been replaced with wrapper functions that forward data to third-party origins.
+
+## 2026-06-10 - Distributed Lockdown Inconsistency
+**Vulnerability:**
+Single-tab lockdown mechanisms are vulnerable to "session-pivoting" where an attacker, after triggering a security sink in one tab (e.g., via a blocked CSP violation or RASP check), can continue their activities in other open tabs of the same application that haven't yet reached the same execution branch.
+
+**Learning:**
+Security state must be treated as a global, cross-tab primitive. Relying on local event listeners or shared state that requires a page reload is insufficient for active defense. Implementing a dedicated 'Security Nexus' via `BroadcastChannel` allows for near-instantaneous synchronization of the `VORO_COMPROMISED` state, ensuring that a detection in one context atomically neutralizes the entire origin's session across all open tabs.
+
+**Prevention:**
+Always implement a cross-tab synchronization layer for critical security states (lockdown, session termination, key shredding). Use `BroadcastChannel` for low-latency, same-origin signaling to ensure that the application's defensive posture is unified and leaves no un-neutralized execution contexts for an attacker to pivot into.

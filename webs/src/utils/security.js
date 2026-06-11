@@ -255,16 +255,42 @@ export const voroPolicy = (typeof window !== 'undefined' && window.trustedTypes)
     };
 
 /**
+ * Active Defense Orchestrator
+ * Cross-tab security synchronization via BroadcastChannel.
+ */
+const securityNexus = (typeof window !== 'undefined' && window.BroadcastChannel)
+  ? new BroadcastChannel('voro-security-nexus')
+  : null;
+
+if (securityNexus) {
+  securityNexus.onmessage = (event) => {
+    if (event.data === 'VORO_LOCKDOWN' && !window.VORO_COMPROMISED) {
+      console.warn("Security Sentinel: Received lockdown signal from peer tab.");
+      executeLockdown(false);
+    }
+  };
+}
+
+/**
  * Executes a system-wide security lockdown.
  * Neutralizes the environment to protect data from further compromise.
+ * @param {boolean} broadcast - Whether to broadcast the lockdown to other tabs.
  */
-export const executeLockdown = () => {
+export const executeLockdown = (broadcast = true) => {
   if (typeof window === 'undefined') return;
+
+  // If already compromised, only proceed if we need to broadcast (sanity check)
+  if (window.VORO_COMPROMISED && !broadcast) return;
 
   console.error("CRITICAL: VORO Neural Shield has detected an integrity violation. Executing Lockdown.");
 
   // Set global compromise flag
   window.VORO_COMPROMISED = true;
+
+  // Broadcast to other tabs via the security nexus
+  if (broadcast && securityNexus) {
+    securityNexus.postMessage('VORO_LOCKDOWN');
+  }
 
   // Dispatch system-wide lockdown event
   const lockdownEvent = new CustomEvent('voro-security-lockdown', {
