@@ -14,6 +14,27 @@ const _getPrototypeOf = Object.getPrototypeOf;
 const _hasOwnProperty = Object.prototype.hasOwnProperty;
 const _ReflectApply = typeof Reflect !== 'undefined' ? Reflect.apply : null;
 
+// Security Nexus: Distributed state synchronization across all browser contexts
+const securityNexus = typeof BroadcastChannel !== 'undefined'
+  ? new BroadcastChannel('voro-security-nexus')
+  : null;
+
+if (securityNexus) {
+  securityNexus.onmessage = (event) => {
+    if (event.data?.type === 'LOCKDOWN_SIGNAL' && !window.VORO_COMPROMISED) {
+      executeLockdown(true); // Remote-triggered lockdown
+    }
+  };
+}
+
+// Active Defense: CSP Violation Sink
+if (typeof window !== 'undefined') {
+  window.addEventListener('securitypolicyviolation', (e) => {
+    console.error('Security Sentinel: CSP Violation detected!', e.blockedURI);
+    executeLockdown();
+  });
+}
+
 /**
  * Prototype Integrity Shield
  * Snapshots core prototypes at module load to detect pollution or tampering.
@@ -257,36 +278,65 @@ export const voroPolicy = (typeof window !== 'undefined' && window.trustedTypes)
 /**
  * Executes a system-wide security lockdown.
  * Neutralizes the environment to protect data from further compromise.
+ * @param {boolean} remoteTriggered - Whether the lockdown was triggered from another tab.
  */
-export const executeLockdown = () => {
+export const executeLockdown = (remoteTriggered = false) => {
   if (typeof window === 'undefined') return;
 
-  console.error("CRITICAL: VORO Neural Shield has detected an integrity violation. Executing Lockdown.");
+  const reason = remoteTriggered ? "Cross-Tab Security Signal" : "Integrity Violation";
+  console.error(`CRITICAL: VORO Neural Shield has detected an ${reason}. Executing Lockdown.`);
 
   // Set global compromise flag
   window.VORO_COMPROMISED = true;
 
+  // Propagate to other contexts via Security Nexus
+  if (securityNexus && !remoteTriggered) {
+    securityNexus.postMessage({ type: 'LOCKDOWN_SIGNAL', timestamp: Date.now() });
+  }
+
   // Dispatch system-wide lockdown event
   const lockdownEvent = new CustomEvent('voro-security-lockdown', {
-    detail: { timestamp: new Date().toISOString(), reason: 'Integrity Violation' }
+    detail: { timestamp: new Date().toISOString(), reason }
   });
   window.dispatchEvent(lockdownEvent);
 
-  // Clear sensitive global references if they exist
+  // Secure Memory Shredding
+  const shred = (obj, key) => {
+    if (obj && obj[key]) {
+      try {
+        // Overwrite with random data before nullifying to prevent post-clear retrieval
+        if (typeof obj[key] === 'string') {
+          obj[key] = window.crypto.getRandomValues(new Uint8Array(obj[key].length)).join('');
+        }
+        obj[key] = null;
+        delete obj[key];
+      } catch (e) {
+        obj[key] = null;
+      }
+    }
+  };
+
+  // Purge sensitive AI context
   if (window.voroAIClient) {
-    window.voroAIClient.apiKey = null;
+    shred(window.voroAIClient, 'apiKey');
   }
 
-  // Purge in-memory storage cache if available to prevent exfiltration of decrypted data
+  // Purge in-memory storage cache
   if (window.storage && typeof window.storage.clearCache === 'function') {
     window.storage.clearCache();
   }
 
-  // Attempt to freeze the environment
+  // Freeze storage to prevent further writes
   try {
-    Object.freeze(window.localStorage);
+    _freeze(window.localStorage);
+    _freeze(window.sessionStorage);
   } catch (e) {
-    // Ignore freeze errors
+    // Fail silent
+  }
+
+  // Shutdown the nexus to prevent further communication
+  if (securityNexus && !remoteTriggered) {
+    securityNexus.close();
   }
 };
 
