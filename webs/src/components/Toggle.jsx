@@ -14,7 +14,7 @@ export const Toggle = memo(({ enabled = false, onChange, label, className = "", 
         aria-checked={enabled}
         aria-labelledby={label ? labelId : undefined}
         onClick={() => onChange(!enabled)}
-        className={`relative w-12 h-7 rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
+        className={`relative w-12 h-7 rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:scale-95 ${
           enabled ? "bg-primary" : "bg-gray-600"
         }`}
         {...props}

@@ -61,12 +61,17 @@ export const Tabs = ({ tabs = [], activeTab, onTabChange, className = "" }) => {
               aria-selected={isActive}
               tabIndex={isActive ? 0 : -1}
               onClick={() => onTabChange(tab.id)}
-              className={`relative z-10 px-8 py-3.5 rounded-xl transition-all duration-500 whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-voro-primary ${
+              className={`relative z-10 px-8 py-3.5 rounded-xl transition-all duration-500 whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:scale-95 flex items-center justify-center gap-3 group ${
                 isActive
                   ? "text-white font-serif italic text-lg font-medium tracking-tight"
                   : "text-gray-500 hover:text-gray-300 font-mono text-[0.65rem] font-black uppercase tracking-[0.25em]"
               }`}
             >
+              {tab.icon && (
+                <span className={`${isActive ? "text-white" : "text-gray-600 group-hover:text-gray-400"} transition-colors duration-500`}>
+                  {tab.icon}
+                </span>
+              )}
               {tab.label}
             </button>
           );
