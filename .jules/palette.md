@@ -13,3 +13,7 @@
 ## 2026-06-09 - [Icon-only Button Accessibility]
 **Learning:** Icon-only buttons in dark-themed boutique layouts are frequently inaccessible to screen readers and invisible to keyboard users. To maintain visual polish without sacrificing accessibility, they require explicit `aria-label` attributes and high-contrast focus rings with `focus-visible:ring-offset-2`. The offset color must precisely match the container's background to preserve the "floating" gap aesthetic.
 **Action:** Always audit icon-only interactive elements for `aria-label` and implement surgical `focus-visible` rings with container-matched offsets and `active:scale-90` tactile feedback.
+
+## 2026-06-10 - [Luxury Editorial Dashboards]
+**Learning:** Luxury 'Boutique Gallery' interfaces require more than just clean layout; they need atmospheric depth and sophisticated typographic hierarchy. Staggered spatial architecture (e.g., `mb-24`) and the use of 'Chronographic Complications' (monospace status nodes) create a premium expert-system feel. Subtle SVG noise filters (`bg-boutique-grain`) provide a physical texture that makes digital surfaces feel more expensive.
+**Action:** Implement atmospheric textures and detailed monospace metadata nodes in high-priority dashboards to elevate the perceived value and sophistication of the interface.
