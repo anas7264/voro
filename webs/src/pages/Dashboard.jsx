@@ -48,6 +48,15 @@ const Dashboard = () => {
   const { addNotification } = useNotifications();
   
   const [showQuickLog, setShowQuickLog] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMousePos({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+  };
 
   useEffect(() => {
     document.title = 'VORO | Evolution Dashboard';
@@ -159,9 +168,11 @@ const Dashboard = () => {
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
+    if (hour < 5) return 'Night Synthesis';
+    if (hour < 12) return 'Morning Synthesis';
+    if (hour < 17) return 'Midday Momentum';
+    if (hour < 21) return 'Evening Recovery';
+    return 'Nocturnal Audit';
   }, []);
 
   const calorieStatus = useMemo(() => {
@@ -224,33 +235,39 @@ const Dashboard = () => {
       </div>
 
       <div className="relative max-w-[1440px] mx-auto px-6 py-12 md:px-12 lg:px-20">
-        <header className="mb-24 flex flex-col md:flex-row md:items-end justify-between gap-10">
-          <div className="space-y-4">
+        <header className="mb-24 flex flex-col md:flex-row md:items-end justify-between gap-12">
+          <div className="space-y-6">
             <div className="flex items-center gap-4 text-voro-primary">
-              <div className="w-1.5 h-1.5 rounded-full bg-voro-primary animate-pulse shadow-[0_0_8px_#7C3AED]" />
-              <span className="text-[0.6rem] font-black uppercase tracking-[0.4em]">Evolutionary Status</span>
+              <div className="w-2 h-2 rounded-full bg-voro-primary animate-pulse shadow-[0_0_12px_#7C3AED]" />
+              <span className="text-[0.65rem] font-black uppercase tracking-[0.5em] opacity-80">Evolutionary Status // {user.name.toUpperCase()}</span>
             </div>
-            <div className="space-y-1">
-              <h1 className="text-6xl md:text-8xl font-serif italic font-medium tracking-tighter text-white leading-[0.85]">
+            <div className="space-y-0">
+              <h1 className="text-7xl md:text-9xl font-serif italic font-medium tracking-tighter text-white leading-[0.8] mb-2">
                 {greeting},
               </h1>
-              <div className="flex flex-col md:flex-row md:items-end gap-6">
-                <span className="text-gradient text-6xl md:text-8xl font-serif font-black tracking-tighter leading-none">
-                  {user.name}
+              <div className="flex flex-col md:flex-row md:items-end gap-10">
+                <span className="text-gradient text-7xl md:text-9xl font-serif font-black tracking-tighter leading-[0.8]">
+                  In Motion.
                 </span>
-                <div className="flex gap-6 pb-2">
+                <div className="flex gap-8 pb-4">
                   <div className="flex flex-col">
-                    <span className="text-[0.5rem] font-mono text-gray-700 uppercase tracking-[0.3em]">System_Integrity</span>
-                    <span className="text-[0.6rem] font-mono text-voro-secondary font-bold tracking-widest">99.8%_NOMINAL</span>
+                    <span className="text-[0.55rem] font-mono text-gray-700 uppercase tracking-[0.4em]">Integrity</span>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="w-1 h-1 rounded-full bg-voro-secondary" />
+                      <span className="text-[0.65rem] font-mono text-voro-secondary font-bold tracking-widest">NOMINAL_99.8%</span>
+                    </div>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[0.5rem] font-mono text-gray-700 uppercase tracking-[0.3em]">Live_Synthesis</span>
-                    <span className="text-[0.6rem] font-mono text-voro-primary font-bold tracking-widest">ACTIVE_NODE_01</span>
+                    <span className="text-[0.55rem] font-mono text-gray-700 uppercase tracking-[0.4em]">Node</span>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="w-1 h-1 rounded-full bg-voro-primary animate-ping" />
+                      <span className="text-[0.65rem] font-mono text-voro-primary font-bold tracking-widest">ACTIVE_A1</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-            <p className="text-gray-600 font-medium tracking-[0.3em] text-[0.6rem] uppercase opacity-60">{todayDate}</p>
+            <p className="text-gray-600 font-medium tracking-[0.4em] text-[0.65rem] uppercase opacity-40">{todayDate}</p>
           </div>
 
           <div className="flex gap-4">
@@ -273,11 +290,23 @@ const Dashboard = () => {
 
         <div className="grid grid-cols-12 gap-8">
           <div className="col-span-12 lg:col-span-8 space-y-8">
-            <section className="relative overflow-hidden rounded-[2.5rem] bg-[#0A0C14] border border-white/5 p-12 md:p-16 shadow-2xl shadow-black/40 transition-all hover:border-white/10 group/card bg-boutique-grain">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-voro-primary/5 rounded-full blur-[100px] -mr-32 -mt-32 group-hover/card:bg-voro-primary/10 transition-colors duration-700" />
+            <section
+              onMouseMove={handleMouseMove}
+              className="relative overflow-hidden rounded-[3rem] bg-[#0A0C14] border border-white/5 p-16 md:p-20 shadow-2xl shadow-black/40 transition-all hover:border-white/10 group/card bg-boutique-grain"
+            >
+              <div className="absolute top-0 right-0 w-96 h-96 bg-voro-primary/5 rounded-full blur-[120px] -mr-48 -mt-48 group-hover/card:bg-voro-primary/10 transition-colors duration-1000" />
+
+              {/* Dynamic Light Lens */}
+              <div
+                className="absolute inset-0 pointer-events-none opacity-0 group-hover/card:opacity-100 transition-opacity duration-700"
+                style={{
+                  background: `radial-gradient(1000px circle at ${mousePos.x}px ${mousePos.y}px, rgba(124, 58, 237, 0.05), transparent 40%)`,
+                }}
+              />
+
               <div className="kinetic-sweep opacity-20 group-hover/card:opacity-40 transition-opacity duration-1000" />
 
-              <div className="relative grid grid-cols-1 md:grid-cols-2 gap-20 items-center">
+              <div className="relative grid grid-cols-1 md:grid-cols-2 gap-24 items-center">
                 <div className="flex justify-center">
                   <div className="relative p-2 rounded-full bg-black/40 backdrop-blur-md border border-white/5 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
                     <Ring
@@ -325,7 +354,7 @@ const Dashboard = () => {
             </section>
 
             <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8">
-              {macroStats.map((item) => (
+              {macroStats.map((item, idx) => (
                 <Stat
                   key={item.macro}
                   label={item.label}
@@ -334,6 +363,7 @@ const Dashboard = () => {
                   progress={item.progress}
                   color={item.macro === 'protein' ? 'voro-primary' : item.macro === 'carbs' ? 'voro-secondary' : item.macro === 'fat' ? 'voro-accent' : 'primary'}
                   className="p-8"
+                  nodeId={`METRIC_0${idx + 1}`}
                 />
               ))}
             </section>

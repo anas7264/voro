@@ -1,10 +1,10 @@
-import React, { memo } from "react";
+import React, { memo, useState, useMemo } from "react";
 
 /**
  * ⚡ OPTIMIZATION: Refined luxury Stat component.
- * Architected as a 'Luminous Biometric Node' featuring ultra-dark surfaces,
- * Playfair Display typography for metrics, and kinetic hover interactions.
- * Re-engineered for the Boutique Masterclass with precision grid systems and light sweeps.
+ * Architected as a 'Kinetic Biometric Lens' featuring ultra-dark surfaces,
+ * mouse-tracked radial illumination, and monospaced system markers.
+ * Re-engineered for the Boutique Masterclass with precision coordinate architecture.
  */
 export const Stat = memo(({
   label,
@@ -14,8 +14,23 @@ export const Stat = memo(({
   progress,
   icon: Icon,
   color = "voro-primary",
-  className = ""
+  className = "",
+  nodeId = "NODE_01"
 }) => {
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMousePos({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+  };
+
+  // Memoize random marker to prevent flickering on mouse move re-renders
+  const attestedId = useMemo(() => Math.floor(Math.random() * 0x1000000).toString(16).toUpperCase().padStart(6, '0'), []);
+
   const isPositive = change !== undefined && parseFloat(change) >= 0;
 
   const colorMap = {
@@ -30,18 +45,34 @@ export const Stat = memo(({
   const activeColor = colorMap[color] || '#7C3AED';
 
   return (
-    <div className={`
-      Stat group relative bg-[#0A0C14] border border-white/5 p-10 rounded-[2.5rem]
-      transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
-      hover:border-white/20 hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/60
-      overflow-hidden ${className}
-    `}>
+    <div
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className={`
+        Stat group relative bg-[#0A0C14] border border-white/5 p-10 rounded-[3rem]
+        transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
+        hover:border-white/20 hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/60
+        overflow-hidden ${className}
+      `}
+    >
       {/* Precision Grid Background - Emerges on Hover */}
       <div className="absolute inset-0 bg-grid-white opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
 
-      {/* Kinetic Light Sweep */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-kinetic-sweep" />
+      {/* Dynamic Light Lens (Mouse Tracking) */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+        style={{
+          background: `radial-gradient(800px circle at ${mousePos.x}px ${mousePos.y}px, ${activeColor}08, transparent 40%)`,
+        }}
+      />
+
+      {/* Corner System Markers */}
+      <div className="absolute top-4 right-6 text-[0.45rem] font-mono font-bold text-white/5 group-hover:text-voro-primary/40 transition-colors duration-700 tracking-[0.2em] pointer-events-none">
+        [{nodeId}]
+      </div>
+      <div className="absolute bottom-4 left-10 text-[0.45rem] font-mono font-bold text-white/5 group-hover:text-white/20 transition-colors duration-700 tracking-[0.2em] pointer-events-none">
+        0x{attestedId}_ATTESTED
       </div>
 
       {/* Ambient Glow Detail */}
@@ -83,11 +114,11 @@ export const Stat = memo(({
 
         <div className="flex items-end justify-between gap-4 mt-auto">
           <div className="flex items-baseline gap-2">
-            <p className="text-5xl md:text-6xl font-serif italic font-medium text-white tracking-tight leading-none">
+            <p className="text-5xl md:text-6xl font-serif italic font-medium text-white tracking-tighter leading-none">
               {value}
             </p>
             {unit && (
-              <p className="text-[0.65rem] font-mono font-bold text-gray-600 uppercase tracking-[0.2em]">
+              <p className="text-[0.65rem] font-mono font-bold text-gray-500 uppercase tracking-[0.3em] group-hover:text-gray-300 transition-colors duration-700">
                 {unit}
               </p>
             )}
@@ -115,10 +146,10 @@ export const Stat = memo(({
                   strokeDasharray={125.6}
                   strokeDashoffset={125.6 - (progress / 100) * 125.6}
                   strokeLinecap="round"
-                  className="transition-all duration-1000 ease-out"
+                  className="transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)]"
                 />
               </svg>
-              <span className="absolute text-[0.5rem] font-mono font-bold text-gray-500">{Math.round(progress)}%</span>
+              <span className="absolute text-[0.5rem] font-mono font-bold text-gray-500 group-hover:text-white transition-colors duration-700">{Math.round(progress)}%</span>
             </div>
           )}
         </div>
