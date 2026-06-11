@@ -20,6 +20,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import Modal from '@/components/Modal';
 import LineChartComponent from '@/components/LineChartComponent';
 import Ring from '@/components/Ring';
+import Stat from '@/components/Stat';
 
 const MACRO_CONFIG = [
   { label: 'Protein', macro: 'protein', color: '#7C3AED', bg: 'bg-[#7C3AED]/10', text: 'text-[#A78BFA]', icon: '🍗' },
@@ -305,39 +306,17 @@ const Dashboard = () => {
               </div>
             </section>
 
-            <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+            <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8">
               {macroStats.map((item) => (
-                <div key={item.macro} className="group relative bg-[#0A0C14] border border-white/5 p-6 rounded-[2rem] transition-all hover:border-white/10 hover:translate-y-[-4px]">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className={`w-12 h-12 flex items-center justify-center rounded-2xl text-2xl ${item.bg}`}>
-                      {item.icon}
-                    </div>
-                    <span className="text-[0.65rem] font-black uppercase tracking-[0.25em] text-gray-600 group-hover:text-gray-400 transition-colors">{item.label}</span>
-                  </div>
-
-                  <div className="mb-4">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-serif font-bold text-white tracking-tight">
-                        {item.displayValue}
-                      </span>
-                      <span className="text-[0.65rem] font-black text-gray-600 uppercase tracking-widest ml-1">{item.macro === 'water' ? 'L' : 'g'}</span>
-                    </div>
-                  </div>
-
-                  <div className="relative h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                    <div
-                      className="absolute inset-y-0 left-0 transition-all duration-1000 ease-out rounded-full"
-                      style={{
-                        width: `${item.progress}%`,
-                        backgroundColor: item.color
-                      }}
-                    />
-                  </div>
-                  <div className="mt-3 flex justify-between items-center">
-                    <span className="text-[0.6rem] font-bold text-gray-600 uppercase tracking-widest">{Math.round(item.progress)}% Goal</span>
-                    <div className="w-1 h-1 rounded-full bg-gray-800" />
-                  </div>
-                </div>
+                <Stat
+                  key={item.macro}
+                  label={item.label}
+                  value={item.displayValue}
+                  unit={item.macro === 'water' ? 'L' : 'g'}
+                  progress={item.progress}
+                  color={item.macro === 'protein' ? 'voro-primary' : item.macro === 'carbs' ? 'voro-secondary' : item.macro === 'fat' ? 'voro-accent' : 'primary'}
+                  className="p-8"
+                />
               ))}
             </section>
 
