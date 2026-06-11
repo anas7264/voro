@@ -8,16 +8,17 @@ export const SidebarContext = createContext({ collapsed: false, setCollapsed: ()
 
 export const useSidebar = () => useContext(SidebarContext);
 
+/**
+ * ⚡ OPTIMIZATION: Refined layout state initialization.
+ * Initializing 'collapsed' directly from the source of truth (isMobile)
+ * eliminates the mount-time double-render cycle and layout flicker.
+ */
 const AppLayout = ({ children }) => {
   const isMobile = useMediaQuery('(max-width: 1024px)');
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(isMobile);
 
   useEffect(() => {
-    if (isMobile) {
-      setCollapsed(true);
-    } else {
-      setCollapsed(false);
-    }
+    setCollapsed(isMobile);
   }, [isMobile]);
 
   return (
