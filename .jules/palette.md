@@ -17,3 +17,7 @@
 ## 2026-06-10 - [Luxury Editorial Dashboards]
 **Learning:** Luxury 'Boutique Gallery' interfaces require more than just clean layout; they need atmospheric depth and sophisticated typographic hierarchy. Staggered spatial architecture (e.g., `mb-24`) and the use of 'Chronographic Complications' (monospace status nodes) create a premium expert-system feel. Subtle SVG noise filters (`bg-boutique-grain`) provide a physical texture that makes digital surfaces feel more expensive.
 **Action:** Implement atmospheric textures and detailed monospace metadata nodes in high-priority dashboards to elevate the perceived value and sophistication of the interface.
+
+## 2026-06-11 - [Tactile Component Interactivity]
+**Learning:** Adding subtle `active:scale-95` (for larger elements like Tabs/Toggles) or `active:scale-90` (for smaller elements like Checkboxes) transitions creates a "physical" tactile response that enhances the premium feel of the UI. This kinetic feedback, combined with surgical `focus-visible:ring-offset-2` adjustments, bridges the gap between high-end aesthetics and intuitive usability.
+**Action:** Incorporate kinetic scaling transitions on all interactive primitive components (Buttons, Toggles, Tabs, Checkboxes) to provide immediate, perceptible feedback for user actions.
