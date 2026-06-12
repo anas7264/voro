@@ -181,8 +181,8 @@ const ProgressPhotos = () => {
                       <Trash2 size={14} />
                     </button>
                   )}
-                  {(idx === 0) && <Badge color="primary" className="absolute top-2 left-2 text-xs">START</Badge>}
-                  {(idx === sortedPhotos.length - 1 && idx > 0) && <Badge color="success" className="absolute top-2 left-2 text-xs">LATEST</Badge>}
+                  {(idx === 0) && <Badge variant="voro-primary" className="absolute top-4 left-4 text-[0.55rem]">START</Badge>}
+                  {(idx === sortedPhotos.length - 1 && idx > 0) && <Badge variant="voro-secondary" dot className="absolute top-4 left-4 text-[0.55rem]">LATEST</Badge>}
                 </div>
               ))}
             </div>
