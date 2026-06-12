@@ -4,6 +4,13 @@ import { Card, Button, Tabs, LineChartComponent, BarChartComponent, Stat } from 
 import { useStorage } from '@/hooks/useStorage';
 import { useApp } from '@/hooks/useAppContext';
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters and key generators.
+ * Prevents redundant object instantiation in high-frequency loops.
+ */
+const labelFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+const getISODate = (date) => date.toISOString().slice(0, 10);
+
 const Statistics = () => {
   const { storageData } = useStorage();
   const { user } = useApp();
@@ -43,25 +50,26 @@ const Statistics = () => {
     cursor.setHours(0, 0, 0, 0);
 
     for (let i = 0; i < 7; i++) {
-      const dateStr = cursor.toISOString().split('T')[0];
-      weeklyWorkouts.unshift({
+      const dateStr = getISODate(cursor);
+      weeklyWorkouts.push({
         day: daysOfWeek[cursor.getDay()],
         workouts: workoutLog[dateStr]?.attended ? 1 : 0
       });
       cursor.setDate(cursor.getDate() - 1);
     }
+    weeklyWorkouts.reverse();
 
     // Reset cursor for main trend
     cursor.setTime(new Date().getTime());
     cursor.setHours(0, 0, 0, 0);
 
     for (let i = 0; i < days; i++) {
-      const dateStr = cursor.toISOString().split('T')[0];
+      const dateStr = getISODate(cursor);
       const dayData = nutritionLog[dateStr];
       const kcal = dayData?.totals?.calories || 0;
 
-      calorieTrend.unshift({
-        date: cursor.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      calorieTrend.push({
+        date: labelFormatter.format(cursor),
         calories: kcal,
       });
 
@@ -76,6 +84,7 @@ const Statistics = () => {
       }
       cursor.setDate(cursor.getDate() - 1);
     }
+    calorieTrend.reverse();
 
     return {
       calorieTrend,
