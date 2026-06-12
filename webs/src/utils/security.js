@@ -272,6 +272,18 @@ if (securityNexus) {
 }
 
 /**
+ * Active CSP Enforcement
+ * Transforms the Content Security Policy from a passive blocker into an active security sink.
+ * Initiates a 'Burn-on-Detection' sequence upon any injection attempt.
+ */
+if (typeof window !== 'undefined') {
+  window.addEventListener('securitypolicyviolation', (event) => {
+    console.error(`Security Sentinel: CSP Violation detected! Source: ${event.violatedDirective}, URI: ${event.blockedURI}`);
+    executeLockdown();
+  });
+}
+
+/**
  * Executes a system-wide security lockdown.
  * Neutralizes the environment to protect data from further compromise.
  * @param {boolean} broadcast - Whether to broadcast the lockdown to other tabs.

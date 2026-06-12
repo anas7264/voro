@@ -68,3 +68,13 @@ Security state must be treated as a global, cross-tab primitive. Relying on loca
 
 **Prevention:**
 Always implement a cross-tab synchronization layer for critical security states (lockdown, session termination, key shredding). Use `BroadcastChannel` for low-latency, same-origin signaling to ensure that the application's defensive posture is unified and leaves no un-neutralized execution contexts for an attacker to pivot into.
+
+## 2026-06-11 - Active CSP Enforcement & Burn-on-Detection
+**Vulnerability:**
+Content Security Policy (CSP) is traditionally a passive defense mechanism that blocks unauthorized resources but allows the application to continue running. This leaves a window for an attacker to attempt different injection vectors until one succeeds, or to use the blocked attempt as a side-channel.
+
+**Learning:**
+By implementing a global 'securitypolicyviolation' listener, the CSP is transformed into an active security sink. Any violation—even if blocked by the browser—is treated as a high-fidelity signal of an active attack. This triggers an immediate 'Burn-on-Detection' sequence (system-wide lockdown, key shredding, and session purging), neutralizing the environment before the attacker can iterate on their payload.
+
+**Prevention:**
+Always link passive security headers (CSP, Trusted Types) to active client-side defense orchestrators. Treat every policy violation in a production environment as a critical integrity breach rather than a mere console warning.
