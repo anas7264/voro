@@ -79,11 +79,11 @@ const NutrientTracker = () => {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-5 bg-white/[0.02] border border-white/5 rounded-2xl">
                     <span className="text-xs font-bold text-white uppercase tracking-tight">Supplements</span>
-                    <Badge color="success" className="font-mono">✓ 100%</Badge>
+                    <Badge variant="voro-secondary" dot>100%</Badge>
                   </div>
                   <div className="flex items-center justify-between p-5 bg-white/[0.02] border border-white/5 rounded-2xl">
                     <span className="text-xs font-bold text-white uppercase tracking-tight">Dietary Sources</span>
-                    <Badge color="warning" className="font-mono">⚠ 60%</Badge>
+                    <Badge variant="voro-accent">60%</Badge>
                   </div>
                 </div>
               </Card>

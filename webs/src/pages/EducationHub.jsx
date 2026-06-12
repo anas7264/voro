@@ -164,7 +164,7 @@ const EducationHub = () => {
 
               <div className="absolute bottom-0 left-0 p-10 md:p-16 max-w-4xl space-y-8">
                 <div className="flex items-center gap-6">
-                  <Badge color="voro-primary" className="px-4 py-1.5 font-black uppercase tracking-widest text-[0.6rem]">
+                  <Badge variant="voro-primary" dot className="px-4 py-1.5 font-black tracking-widest">
                     Featured Insight
                   </Badge>
                   <div className="flex items-center gap-2 text-gray-400 font-mono text-[0.6rem] uppercase tracking-widest">

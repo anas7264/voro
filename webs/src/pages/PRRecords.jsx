@@ -75,7 +75,7 @@ const PRRecords = () => {
                           {new Date(record.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </div>
                       </div>
-                      {idx === 0 && <Badge color="accent" className="font-mono">APEX</Badge>}
+                      {idx === 0 && <Badge variant="voro-accent" dot>APEX</Badge>}
                     </div>
                   ))}
                 </div>
