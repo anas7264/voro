@@ -96,7 +96,7 @@ const WorkoutLog = () => {
     }, 0);
   }, [selectedExercises]);
 
-  const saveWorkout = async () => {
+  const saveWorkout = useCallback(async () => {
     const { valid, errors } = validateWorkoutEntry({
       date,
       exercises: selectedExercises
@@ -107,8 +107,15 @@ const WorkoutLog = () => {
       return;
     }
 
-    const allWorkouts = getItem('workout_log') || {};
-    allWorkouts[date] = {
+    /**
+     * ⚡ OPTIMISTIC UI: Provide immediate feedback while storage persists.
+     * Use storageData from hook for surgical immutable updates.
+     */
+    addNotification('Kinetic manifestation archived.', 'success');
+    setShowConfetti(true);
+    setTimeout(() => setShowConfetti(false), 3000);
+
+    const workoutData = {
       attended: true,
       type: sessionType,
       duration: sessionDuration,
@@ -117,11 +124,13 @@ const WorkoutLog = () => {
       timestamp: new Date().toISOString(),
     };
 
+    // Use updateItem for atomic key-level persistence if available,
+    // or immutable spread for StorageContext reactivity.
+    const allWorkouts = { ...(getItem('workout_log') || {}) };
+    allWorkouts[date] = workoutData;
+
     await setItem('workout_log', allWorkouts);
-    addNotification('Kinetic manifestation archived.', 'success');
-    setShowConfetti(true);
-    setTimeout(() => setShowConfetti(false), 3000);
-  };
+  }, [date, selectedExercises, sessionType, sessionDuration, totalVolume, getItem, setItem, addNotification]);
 
   const filteredExercises = useMemo(() => {
     if (!showExerciseSearch) return [];

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus,
@@ -124,7 +124,7 @@ const Dashboard = () => {
     return { training: trainingStreak, logging: loggingStreak, water: waterStreak };
   }, [storageData['workout_log'], storageData['nutrition_log'], user?.waterGoal]);
 
-  const handleQuickLog = (type, value) => {
+  const handleQuickLog = useCallback(async (type, value) => {
     const todayStr = new Date().toISOString().split('T')[0];
     const numValue = parseFloat(value);
 
@@ -133,29 +133,52 @@ const Dashboard = () => {
       return;
     }
 
+    /**
+     * ⚡ OPTIMISTIC UI: Close modal and notify immediately.
+     * The background storage write is non-blocking for user flow.
+     */
+    setShowQuickLog(false);
+
     if (type === 'weight') {
-      const metrics = getItem('body_metrics') || { weights: [] };
-      metrics.weights.push({ date: todayStr, value: numValue });
-      setItem('body_metrics', metrics);
+      const metrics = storageData['body_metrics'] || { weights: [] };
+      const updated = {
+        ...metrics,
+        weights: [...(metrics.weights || []), { date: todayStr, value: numValue }]
+      };
+      setItem('body_metrics', updated);
       addNotification('Body transformation record synthesized', 'success');
     } else if (type === 'water') {
-      const log = getItem('nutrition_log') || {};
-      if (!log[todayStr]) log[todayStr] = { meals: {}, water: 0, totals: { calories: 0, protein: 0, carbs: 0, fat: 0 } };
-      log[todayStr].water = (log[todayStr].water || 0) + numValue;
+      const log = { ...(storageData['nutrition_log'] || {}) };
+      const dayData = log[todayStr] || { meals: {}, water: 0, totals: { calories: 0, protein: 0, carbs: 0, fat: 0 } };
+
+      log[todayStr] = {
+        ...dayData,
+        water: (dayData.water || 0) + numValue
+      };
+
       setItem('nutrition_log', log);
       addNotification('Hydration matrix updated', 'success');
     } else if (type === 'meal') {
-      const log = getItem('nutrition_log') || {};
-      if (!log[todayStr]) log[todayStr] = { meals: {}, water: 0, totals: { calories: 0, protein: 0, carbs: 0, fat: 0 } };
+      const log = { ...(storageData['nutrition_log'] || {}) };
+      const dayData = log[todayStr] || { meals: {}, water: 0, totals: { calories: 0, protein: 0, carbs: 0, fat: 0 } };
       const mealId = `express_${Date.now()}`;
-      log[todayStr].meals[mealId] = { name: 'Express Log', calories: numValue, protein: 0, carbs: 0, fat: 0, timestamp: new Date().toISOString() };
-      log[todayStr].totals.calories += numValue;
+
+      log[todayStr] = {
+        ...dayData,
+        meals: {
+          ...dayData.meals,
+          [mealId]: { name: 'Express Log', calories: numValue, protein: 0, carbs: 0, fat: 0, timestamp: new Date().toISOString() }
+        },
+        totals: {
+          ...dayData.totals,
+          calories: (dayData.totals?.calories || 0) + numValue
+        }
+      };
+
       setItem('nutrition_log', log);
       addNotification('Energy dynamics logged', 'success');
     }
-
-    setShowQuickLog(false);
-  };
+  }, [storageData, setItem, addNotification]);
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
