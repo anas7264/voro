@@ -1,9 +1,19 @@
 // VORO Storage Manager
 // window.storage abstraction for data persistence with transparent encryption
 import crypto from './crypto';
-import { sanitizeObject, validateCallStack } from './security';
+import { sanitizeObject, validateCallStack, executeLockdown } from './security';
 
 const STORAGE_PREFIX = "voro_";
+
+// Honey-token Entrapment: Canary keys that are never used by the application.
+// Any interaction with these keys triggers a system-wide security lockdown.
+const CANARY_KEYS = new Set([
+  'admin_session',
+  'system_vault',
+  'voro_internal_bypass',
+  'root_config',
+  'debug_override'
+]);
 
 // All storage keys
 const STORAGE_KEYS = {
@@ -38,6 +48,7 @@ const STORAGE_KEYS = {
 class StorageManager {
   constructor() {
     this.isAvailable = this.checkAvailability();
+    this.canaryKeys = CANARY_KEYS;
     this.encryptedKeys = new Set(Object.values(STORAGE_KEYS));
     this.listeners = new Set();
     this.cache = new Map();
@@ -78,6 +89,17 @@ class StorageManager {
     return `${STORAGE_PREFIX}${key}`;
   }
 
+  // Detects interaction with honey-token canary keys
+  _checkCanary(key) {
+    const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
+    if (this.canaryKeys.has(baseKey)) {
+      console.error(`Security Sentinel: Honey-token interaction detected! Key: ${baseKey}`);
+      executeLockdown();
+      return true;
+    }
+    return false;
+  }
+
   // Helper to determine if a key should be encrypted
   shouldEncrypt(key) {
     const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
@@ -86,7 +108,7 @@ class StorageManager {
 
   // Get item from storage asynchronously
   async getAsync(key) {
-    if (window.VORO_COMPROMISED) return null;
+    if (window.VORO_COMPROMISED || this._checkCanary(key)) return null;
     try {
       const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
 
@@ -120,7 +142,7 @@ class StorageManager {
 
   // Synchronous get (returns from cache)
   get(key) {
-    if (window.VORO_COMPROMISED) return null;
+    if (window.VORO_COMPROMISED || this._checkCanary(key)) return null;
     const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
 
     if (this.cache.has(baseKey)) {
@@ -150,7 +172,7 @@ class StorageManager {
 
   // Set item in storage
   async set(key, value) {
-    if (window.VORO_COMPROMISED || !validateCallStack()) return false;
+    if (window.VORO_COMPROMISED || !validateCallStack() || this._checkCanary(key)) return false;
     try {
       const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
 
@@ -182,7 +204,7 @@ class StorageManager {
 
   // Delete item from storage
   delete(key) {
-    if (window.VORO_COMPROMISED || !validateCallStack()) return false;
+    if (window.VORO_COMPROMISED || !validateCallStack() || this._checkCanary(key)) return false;
     try {
       const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
       const fullKey = key.startsWith(STORAGE_PREFIX) ? key : this.getFullKey(key);
@@ -200,6 +222,7 @@ class StorageManager {
 
   // Check if key exists
   exists(key) {
+    if (this._checkCanary(key)) return false;
     try {
       const fullKey = key.startsWith(STORAGE_PREFIX) ? key : this.getFullKey(key);
       return localStorage.getItem(fullKey) !== null;

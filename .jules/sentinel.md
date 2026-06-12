@@ -68,3 +68,8 @@ Security state must be treated as a global, cross-tab primitive. Relying on loca
 
 **Prevention:**
 Always implement a cross-tab synchronization layer for critical security states (lockdown, session termination, key shredding). Use `BroadcastChannel` for low-latency, same-origin signaling to ensure that the application's defensive posture is unified and leaves no un-neutralized execution contexts for an attacker to pivot into.
+
+## 2025-05-14 - Active Defense Suite (Honey-tokens & Active CSP)
+**Learning**: Implementing deception-based security (Honey-tokens) and transforming passive browser protections (CSP) into active security sinks significantly hardens applications against automated probing and XSS-based exfiltration. By shifting from passive blocking to active environment neutralization, the cost for an attacker to maintain persistence or exfiltrate data increases exponentially.
+
+**Action**: Added `CANARY_KEYS` to `StorageManager` and a `securitypolicyviolation` listener to `security.js` to trigger an immediate, system-wide lockdown (shredding keys, purging cache, wiping session storage) upon detection of unauthorized exploration or injection attempts.

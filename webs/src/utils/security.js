@@ -271,6 +271,19 @@ if (securityNexus) {
   };
 }
 
+// Active CSP Enforcement: Transforms CSP from a passive blocker into an active security sink.
+if (typeof window !== 'undefined') {
+  window.addEventListener('securitypolicyviolation', (e) => {
+    console.error("Security Sentinel: Active CSP Violation detected!", {
+      blockedURI: e.blockedURI,
+      violatedDirective: e.violatedDirective,
+      sourceFile: e.sourceFile,
+      lineNumber: e.lineNumber
+    });
+    executeLockdown();
+  });
+}
+
 /**
  * Executes a system-wide security lockdown.
  * Neutralizes the environment to protect data from further compromise.
@@ -306,6 +319,13 @@ export const executeLockdown = (broadcast = true) => {
   // Purge in-memory storage cache if available to prevent exfiltration of decrypted data
   if (window.storage && typeof window.storage.clearCache === 'function') {
     window.storage.clearCache();
+  }
+
+  // Aggressive Memory Hygiene: Purge session storage and other transient sinks
+  try {
+    sessionStorage.clear();
+  } catch (e) {
+    // Ignore errors
   }
 
   // Attempt to freeze the environment
