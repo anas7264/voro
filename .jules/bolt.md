@@ -58,6 +58,13 @@
 2. Standardize all express-entry keys under the encrypted `quick_log` domain.
 3. Implement functional logging logic for express manifestations (Nutrition, Kinetic, Hydration) to ensure true data persistence across trackers.
 
+## 2026-06-12 - Layout State Initialization & Context Reactivity
+**Learning:** Initializing layout states (like `collapsed`) to a static default and then correcting them via `useEffect` based on environment (e.g., `isMobile`) causes a mandatory double-render on mount and visible flickering. Directly initializing state from its source of truth (the media query match) eliminates this transition. Furthermore, providing un-memoized values to a Context Provider causes all consumers to re-render whenever the provider component re-renders, even if the value hasn't logically changed.
+
+**Action:**
+1. Initialize layout states directly from their source of truth (e.g., `useMediaQuery`) in the `useState` initializer.
+2. Always memoize Context Provider values using `useMemo` to protect the consumer tree from redundant re-renders.
+
 ## 2026-06-12 - Media Query Hook Optimization
 **Learning:** Initializing 'useMediaQuery' state to 'false' and updating in 'useEffect' causes a mandatory double-render on mount for matched queries. Additionally, including 'matches' in the dependency array causes redundant effect re-runs whenever the breakpoint is crossed. Functional updates 'setMatches(prev => ...)' allow removing 'matches' from dependencies while maintaining logical correctness.
 
