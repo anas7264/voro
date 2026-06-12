@@ -1,4 +1,4 @@
-import React, { useState, createContext, useContext, useEffect } from 'react';
+import React, { useState, createContext, useContext, useEffect, useMemo } from 'react';
 import Sidebar from './Sidebar';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { Menu, Activity } from 'lucide-react';
@@ -10,18 +10,31 @@ export const useSidebar = () => useContext(SidebarContext);
 
 const AppLayout = ({ children }) => {
   const isMobile = useMediaQuery('(max-width: 1024px)');
-  const [collapsed, setCollapsed] = useState(false);
 
+  /**
+   * ⚡ OPTIMIZATION: Initialize state from source of truth.
+   * Direct initialization from isMobile eliminates the mount-time
+   * double-render cycle and visual flickering during layout hydration.
+   */
+  const [collapsed, setCollapsed] = useState(isMobile);
+
+  // Sync collapsed state with isMobile changes (e.g. window resize)
   useEffect(() => {
-    if (isMobile) {
-      setCollapsed(true);
-    } else {
-      setCollapsed(false);
-    }
+    setCollapsed(isMobile);
   }, [isMobile]);
 
+  /**
+   * ⚡ OPTIMIZATION: Memoize context value.
+   * Prevents redundant re-renders of all SidebarContext consumers
+   * (like the Sidebar itself) when AppLayout re-renders for unrelated reasons.
+   */
+  const contextValue = useMemo(() => ({
+    collapsed,
+    setCollapsed
+  }), [collapsed, setCollapsed]);
+
   return (
-    <SidebarContext.Provider value={{ collapsed, setCollapsed }}>
+    <SidebarContext.Provider value={contextValue}>
       <div className="flex h-full bg-[#080B14] relative selection:bg-voro-primary/30">
         <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} isMobile={isMobile} />
 
