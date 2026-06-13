@@ -45,9 +45,12 @@ const Statistics = () => {
     const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const weeklyWorkouts = [];
 
-    // ⚡ OPTIMIZATION: Use a single cursor to avoid O(N) Date object instantiation and string churn.
+    // ⚡ PERFORMANCE OPTIMIZATION: Object & Instance Hygiene.
+    // Use a single persistent cursor and reset its time via .setTime()
+    // instead of creating multiple new Date() instances in rendering loops.
     const cursor = new Date();
     cursor.setHours(0, 0, 0, 0);
+    const initialTime = cursor.getTime();
 
     for (let i = 0; i < 7; i++) {
       const dateStr = getISODate(cursor);
@@ -60,8 +63,7 @@ const Statistics = () => {
     weeklyWorkouts.reverse();
 
     // Reset cursor for main trend
-    cursor.setTime(new Date().getTime());
-    cursor.setHours(0, 0, 0, 0);
+    cursor.setTime(initialTime);
 
     for (let i = 0; i < days; i++) {
       const dateStr = getISODate(cursor);

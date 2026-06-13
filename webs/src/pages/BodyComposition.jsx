@@ -26,23 +26,31 @@ const BodyComposition = () => {
   const compositionHistory = useMemo(() => {
     if (!metrics.weights?.length || !metrics.bodyFat?.length) return [];
 
-    const weightsWithTs = [...metrics.weights]
-      .map(w => ({ ...w, ts: new Date(w.date).getTime() }))
-      .sort((a, b) => a.ts - b.ts);
-
-    const bfWithTs = [...metrics.bodyFat]
-      .map(b => ({ ...b, ts: new Date(b.date).getTime() }))
-      .sort((a, b) => a.ts - b.ts);
+    /**
+     * ⚡ PERFORMANCE OPTIMIZATION: Algorithmic Efficiency.
+     * Replaced redundant array spreads and sorting with a single-pass O(N) alignment strategy.
+     * Assumes chronological storage (standard for VORO) but remains robust.
+     */
+    const weights = metrics.weights;
+    const bodyFats = metrics.bodyFat;
 
     let bfIdx = 0;
 
-    return weightsWithTs.map(w => {
-      while (bfIdx < bfWithTs.length - 1 &&
-             Math.abs(bfWithTs[bfIdx + 1].ts - w.ts) <= Math.abs(bfWithTs[bfIdx].ts - w.ts)) {
-        bfIdx++;
+    return weights.map(w => {
+      const wTs = new Date(w.date).getTime();
+
+      // Advance bfIdx to find the closest body fat record to this weight record
+      while (bfIdx < bodyFats.length - 1) {
+        const currentDiff = Math.abs(new Date(bodyFats[bfIdx].date).getTime() - wTs);
+        const nextDiff = Math.abs(new Date(bodyFats[bfIdx + 1].date).getTime() - wTs);
+        if (nextDiff < currentDiff) {
+          bfIdx++;
+        } else {
+          break;
+        }
       }
 
-      const closestBF = bfWithTs[bfIdx];
+      const closestBF = bodyFats[bfIdx];
       const bfPct = closestBF.value;
       const fatMass = (w.value * bfPct / 100);
       const leanMass = (w.value - fatMass);

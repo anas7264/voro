@@ -1,4 +1,4 @@
-import React, { memo, useState, useMemo } from "react";
+import React, { memo, useState, useMemo, useRef } from "react";
 
 /**
  * ⚡ OPTIMIZATION: Refined luxury Stat component.
@@ -17,15 +17,19 @@ export const Stat = memo(({
   className = "",
   nodeId = "NODE_01"
 }) => {
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const containerRef = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
 
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: High-frequency interaction bypass.
+   * Instead of React state, we manipulate CSS variables directly on the DOM node.
+   * This ensures 60fps lens effects without triggering React's reconciliation cycle.
+   */
   const handleMouseMove = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    setMousePos({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    });
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    containerRef.current.style.setProperty("--x", `${e.clientX - rect.left}px`);
+    containerRef.current.style.setProperty("--y", `${e.clientY - rect.top}px`);
   };
 
   // Memoize random marker to prevent flickering on mouse move re-renders
@@ -46,6 +50,7 @@ export const Stat = memo(({
 
   return (
     <div
+      ref={containerRef}
       onMouseMove={handleMouseMove}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -59,11 +64,11 @@ export const Stat = memo(({
       {/* Precision Grid Background - Emerges on Hover */}
       <div className="absolute inset-0 bg-grid-white opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
 
-      {/* Dynamic Light Lens (Mouse Tracking) */}
+      {/* Dynamic Light Lens (Mouse Tracking via CSS Variables) */}
       <div
         className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-700"
         style={{
-          background: `radial-gradient(800px circle at ${mousePos.x}px ${mousePos.y}px, ${activeColor}08, transparent 40%)`,
+          background: `radial-gradient(800px circle at var(--x, 0px) var(--y, 0px), ${activeColor}08, transparent 40%)`,
         }}
       />
 
