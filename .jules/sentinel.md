@@ -73,3 +73,14 @@ Always implement a cross-tab synchronization layer for critical security states 
 **Learning**: Implementing deception-based security (Honey-tokens) and transforming passive browser protections (CSP) into active security sinks significantly hardens applications against automated probing and XSS-based exfiltration. By shifting from passive blocking to active environment neutralization, the cost for an attacker to maintain persistence or exfiltrate data increases exponentially.
 
 **Action**: Added `CANARY_KEYS` to `StorageManager` and a `securitypolicyviolation` listener to `security.js` to trigger an immediate, system-wide lockdown (shredding keys, purging cache, wiping session storage) upon detection of unauthorized exploration or injection attempts.
+
+## 2025-05-17 - Precision in Secret Redaction Patterns
+
+**Vulnerability:**
+Broad regex patterns intended to catch secrets can lead to significant functional degradation and developer confusion if they collide with non-sensitive identifiers.
+
+**Learning:**
+A generic 40-character alphanumeric regex (`\b[A-Za-z0-9/+=]{40}\b`) intended to catch AWS Secret Access Keys will trigger high false-positives against Git commit hashes, SHA-1 checksums, and other common 40-character blobs ubiquitous in development environments. Redaction must favor high-precision patterns with unique prefixes (like `github_pat_` or `sk_live_`) or use proximity-based heuristics to ensure data integrity is maintained for non-sensitive technical identifiers.
+
+**Prevention:**
+Always validate new redaction patterns against common non-sensitive identifiers (Git hashes, UUIDs, Base64 padding). Avoid length-only detection for secrets without a known, constant prefix.
