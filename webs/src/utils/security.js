@@ -255,6 +255,40 @@ export const voroPolicy = (typeof window !== 'undefined' && window.trustedTypes)
     };
 
 /**
+ * Synthetic Deception Engine
+ * Provides high-fidelity, plausible decoy data for honey-routing when the system
+ * is under compromise or unauthorized access is detected.
+ */
+const DECOY_DATA = {
+  user: { id: 'voro_anon_7721', name: 'Elite User', level: 42, status: 'Active' },
+  profile: {
+    name: 'Elite User',
+    goal: 'Maintenance',
+    activity: 'Highly Active',
+    preferences: { theme: 'dark', units: 'metric' }
+  },
+  nutrition_log: [
+    { date: new Date().toISOString().split('T')[0], meal: 'Breakfast', calories: 650, protein: 45 },
+    { date: new Date().toISOString().split('T')[0], meal: 'Lunch', calories: 800, protein: 55 }
+  ],
+  workout_log: [
+    { date: new Date().toISOString().split('T')[0], exercise: 'Bench Press', sets: 5, reps: 5, weight: 100 }
+  ],
+  vitals: { heart_rate: 62, systolic: 118, diastolic: 78, oxygen: 99 },
+  settings: { notifications: true, privacy_mode: 'maximum', biometric_auth: true }
+};
+
+export const getDecoyData = (key) => {
+  // Normalize key
+  const baseKey = key.replace(/^voro_/, '');
+  return DECOY_DATA[baseKey] || DECOY_DATA[key] || { status: 'secure', integrity: 'verified' };
+};
+
+export const isDeceptionActive = () => {
+  return typeof window !== 'undefined' && window.VORO_DECEPTION_ACTIVE === true;
+};
+
+/**
  * Active Defense Orchestrator
  * Cross-tab security synchronization via BroadcastChannel.
  */
@@ -299,6 +333,9 @@ export const executeLockdown = (broadcast = true) => {
 
   // Set global compromise flag
   window.VORO_COMPROMISED = true;
+
+  // Activate deception mode
+  window.VORO_DECEPTION_ACTIVE = true;
 
   // Broadcast to other tabs via the security nexus
   if (broadcast && securityNexus) {
@@ -735,5 +772,7 @@ export default {
   generateSecurityNonce,
   performIntegrityCheck,
   executeLockdown,
-  startSecurityHeartbeat
+  startSecurityHeartbeat,
+  getDecoyData,
+  isDeceptionActive
 };
