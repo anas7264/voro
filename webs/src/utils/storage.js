@@ -1,7 +1,7 @@
 // VORO Storage Manager
 // window.storage abstraction for data persistence with transparent encryption
 import crypto from './crypto';
-import { sanitizeObject, validateCallStack, executeLockdown } from './security';
+import { sanitizeObject, validateCallStack, executeLockdown, getDecoyData, isDeceptionActive } from './security';
 
 const STORAGE_PREFIX = "voro_";
 
@@ -108,9 +108,16 @@ class StorageManager {
 
   // Get item from storage asynchronously
   async getAsync(key) {
-    if (window.VORO_COMPROMISED || this._checkCanary(key)) return null;
+    if (this._checkCanary(key)) return null;
+
+    const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
+
+    // Honey-Routing: Serve synthetic decoys if compromised or provenance is unauthorized
+    if (window.VORO_COMPROMISED || !validateCallStack()) {
+      return getDecoyData(baseKey);
+    }
+
     try {
-      const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
 
       const fullKey = key.startsWith(STORAGE_PREFIX) ? key : this.getFullKey(key);
       const item = localStorage.getItem(fullKey);
@@ -142,8 +149,14 @@ class StorageManager {
 
   // Synchronous get (returns from cache)
   get(key) {
-    if (window.VORO_COMPROMISED || this._checkCanary(key)) return null;
+    if (this._checkCanary(key)) return null;
+
     const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
+
+    // Honey-Routing: Serve synthetic decoys if compromised or provenance is unauthorized
+    if (window.VORO_COMPROMISED || !validateCallStack()) {
+      return getDecoyData(baseKey);
+    }
 
     if (this.cache.has(baseKey)) {
       return this.cache.get(baseKey);
@@ -260,6 +273,11 @@ class StorageManager {
 
   // List all VORO storage keys
   list() {
+    // Zero-Trust Provenance: Mask real keys if unauthorized
+    if (window.VORO_COMPROMISED || !validateCallStack()) {
+      return ['user', 'profile', 'nutrition_log', 'workout_log', 'settings'];
+    }
+
     try {
       const keys = [];
       const storageKeys = Object.keys(localStorage);
@@ -277,6 +295,16 @@ class StorageManager {
 
   // Get all VORO storage data
   async getAll() {
+    // Honey-Routing for bulk data
+    if (window.VORO_COMPROMISED || !validateCallStack()) {
+      const data = {};
+      const keys = this.list();
+      keys.forEach(key => {
+        data[key] = getDecoyData(key);
+      });
+      return data;
+    }
+
     try {
       const data = {};
       const keys = this.list();
@@ -292,6 +320,16 @@ class StorageManager {
 
   // Get all data synchronously from cache
   getAllSync() {
+    // Honey-Routing for bulk data
+    if (window.VORO_COMPROMISED || !validateCallStack()) {
+      const data = {};
+      const keys = this.list();
+      keys.forEach(key => {
+        data[key] = getDecoyData(key);
+      });
+      return data;
+    }
+
     const data = {};
     this.cache.forEach((value, key) => {
       data[key] = value;
