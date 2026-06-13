@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus,
@@ -48,14 +48,15 @@ const Dashboard = () => {
   const { addNotification } = useNotifications();
   
   const [showQuickLog, setShowQuickLog] = useState(false);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const metricCardRef = useRef(null);
 
   const handleMouseMove = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    setMousePos({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    });
+    if (!metricCardRef.current) return;
+    const rect = metricCardRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    metricCardRef.current.style.setProperty('--mouse-x', `${x}px`);
+    metricCardRef.current.style.setProperty('--mouse-y', `${y}px`);
   };
 
   useEffect(() => {
@@ -314,16 +315,17 @@ const Dashboard = () => {
         <div className="grid grid-cols-12 gap-8">
           <div className="col-span-12 lg:col-span-8 space-y-8">
             <section
+              ref={metricCardRef}
               onMouseMove={handleMouseMove}
               className="relative overflow-hidden rounded-[3rem] bg-[#0A0C14] border border-white/5 p-16 md:p-20 shadow-2xl shadow-black/40 transition-all hover:border-white/10 group/card bg-boutique-grain"
             >
               <div className="absolute top-0 right-0 w-96 h-96 bg-voro-primary/5 rounded-full blur-[120px] -mr-48 -mt-48 group-hover/card:bg-voro-primary/10 transition-colors duration-1000" />
 
-              {/* Dynamic Light Lens */}
+              {/* Dynamic Light Lens (Mouse Tracking via CSS Variables) */}
               <div
                 className="absolute inset-0 pointer-events-none opacity-0 group-hover/card:opacity-100 transition-opacity duration-700"
                 style={{
-                  background: `radial-gradient(1000px circle at ${mousePos.x}px ${mousePos.y}px, rgba(124, 58, 237, 0.05), transparent 40%)`,
+                  background: `radial-gradient(1000px circle at var(--mouse-x, 0) var(--mouse-y, 0), rgba(124, 58, 237, 0.05), transparent 40%)`,
                 }}
               />
 

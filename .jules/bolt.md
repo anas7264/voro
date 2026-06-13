@@ -80,3 +80,11 @@
 1. Avoid using `getItem` as a dependency in `useMemo` or `useEffect`.
 2. Destructure `storageData` from `useStorage` and use the specific data slice (e.g., `storageData['key']`) in dependency arrays.
 3. Apply this "Surgical Reactivity" pattern to all trackers and hooks derived from global state.
+
+## 2025-05-19 - Bypass React for High-Frequency Interaction
+**Learning:** High-frequency visual effects (like mouse-tracking lens effects) should never be powered by React `useState`. Even when optimized, React reconciliation at 60fps creates significant main-thread pressure. Bypassing the VDOM via `useRef` and direct CSS variable updates (`element.style.setProperty`) keeps the React lifecycle idle during interaction, delegating the heavy lifting to the browser's style/composite layers.
+
+**Action:**
+1. Use `useRef` + direct DOM style updates for mouse/scroll-driven visual effects.
+2. Hoist static configuration objects (maps, configs) out of component bodies to avoid allocation churn.
+3. Combine direct DOM updates with `React.memo` to ensure components stay static during parent re-renders.

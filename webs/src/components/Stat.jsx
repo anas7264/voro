@@ -1,10 +1,24 @@
-import React, { memo, useState, useMemo } from "react";
+import React, { memo, useMemo, useRef } from "react";
+
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted color mapping to prevent redundant allocations.
+ */
+const COLOR_MAP = {
+  'voro-primary': '#7C3AED',
+  'voro-secondary': '#10B981',
+  'voro-accent': '#F59E0B',
+  'voro-danger': '#EF4444',
+  'primary': '#7C3AED',
+  'secondary': '#10B981'
+};
 
 /**
  * ⚡ OPTIMIZATION: Refined luxury Stat component.
  * Architected as a 'Kinetic Biometric Lens' featuring ultra-dark surfaces,
  * mouse-tracked radial illumination, and monospaced system markers.
- * Re-engineered for the Boutique Masterclass with precision coordinate architecture.
+ *
+ * Performance: Refactored mouse-tracking to use CSS variables and direct DOM
+ * updates via refs, eliminating ~60 React re-renders per second during interaction.
  */
 export const Stat = memo(({
   label,
@@ -17,38 +31,27 @@ export const Stat = memo(({
   className = "",
   nodeId = "NODE_01"
 }) => {
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [isHovered, setIsHovered] = useState(false);
+  const containerRef = useRef(null);
 
   const handleMouseMove = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    setMousePos({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    });
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
+    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
   };
 
   // Memoize random marker to prevent flickering on mouse move re-renders
   const attestedId = useMemo(() => Math.floor(Math.random() * 0x1000000).toString(16).toUpperCase().padStart(6, '0'), []);
 
   const isPositive = change !== undefined && parseFloat(change) >= 0;
-
-  const colorMap = {
-    'voro-primary': '#7C3AED',
-    'voro-secondary': '#10B981',
-    'voro-accent': '#F59E0B',
-    'voro-danger': '#EF4444',
-    'primary': '#7C3AED',
-    'secondary': '#10B981'
-  };
-
-  const activeColor = colorMap[color] || '#7C3AED';
+  const activeColor = COLOR_MAP[color] || '#7C3AED';
 
   return (
     <div
+      ref={containerRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       className={`
         Stat group relative bg-[#0A0C14] border border-white/5 p-10 rounded-[3rem]
         transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
@@ -59,11 +62,11 @@ export const Stat = memo(({
       {/* Precision Grid Background - Emerges on Hover */}
       <div className="absolute inset-0 bg-grid-white opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
 
-      {/* Dynamic Light Lens (Mouse Tracking) */}
+      {/* Dynamic Light Lens (Mouse Tracking via CSS Variables) */}
       <div
         className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-700"
         style={{
-          background: `radial-gradient(800px circle at ${mousePos.x}px ${mousePos.y}px, ${activeColor}08, transparent 40%)`,
+          background: `radial-gradient(800px circle at var(--mouse-x, 0) var(--mouse-y, 0), ${activeColor}08, transparent 40%)`,
         }}
       />
 
