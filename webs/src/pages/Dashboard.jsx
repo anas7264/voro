@@ -332,6 +332,7 @@ const Dashboard = () => {
               <div className="relative grid grid-cols-1 md:grid-cols-2 gap-24 items-center">
                 <div className="flex justify-center">
                   <div className="relative p-2 rounded-full bg-black/40 backdrop-blur-md border border-white/5 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+                    <div className="absolute inset-0 rounded-full bg-voro-primary/5 animate-pulse-slow blur-2xl" />
                     <Ring
                       value={(nutritionToday?.totals?.calories || 0)}
                       max={user.calorieGoal}
