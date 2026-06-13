@@ -80,3 +80,11 @@
 1. Avoid using `getItem` as a dependency in `useMemo` or `useEffect`.
 2. Destructure `storageData` from `useStorage` and use the specific data slice (e.g., `storageData['key']`) in dependency arrays.
 3. Apply this "Surgical Reactivity" pattern to all trackers and hooks derived from global state.
+
+## 2026-06-13 - High-Frequency Interaction & Instance Hygiene
+**Learning:** High-frequency interactions (e.g., mouse-tracking "lens" effects) shouldn't live in React state, as every update triggers a full reconciliation cycle. Offloading these coordinates to CSS variables on the DOM node shifts the work to the compositor and reduces React's load to zero. Additionally, $O(N \log N)$ sorting and repeated `Date` object instantiation inside render loops create significant memory churn and CPU overhead for large datasets. Reusing a single `Date` cursor via `.setTime()` and using single-pass linear alignment for time-series data drastically improves responsiveness.
+
+**Action:**
+1. Bypass React for high-frequency visual updates by using `useRef` and direct CSS variable injection (`element.style.setProperty`).
+2. Reuse `Date` object instances via `.setTime()` in loops to minimize garbage collection pressure.
+3. Implement $O(N)$ linear alignment for merging or merging biometric records instead of sorting/spread-based approaches.
