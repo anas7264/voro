@@ -565,6 +565,8 @@ export const redactData = (data, seen = new WeakSet()) => {
     redacted = redacted.replace(/\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/g, '[REDACTED_AWS_KEY]');
     redacted = redacted.replace(/\bAIza[0-9A-Za-z-_]{35}\b/g, '[REDACTED_GOOGLE_KEY]');
     redacted = redacted.replace(/\bgh[pousr]_[a-zA-Z0-9]{36,251}\b/g, '[REDACTED_GITHUB_TOKEN]');
+    // GitHub Fine-grained Personal Access Token
+    redacted = redacted.replace(/\bgithub_pat_[a-zA-Z0-9]{82}\b/g, '[REDACTED_GITHUB_TOKEN]');
     // Private Keys (RSA/EC/Generic)
     redacted = redacted.replace(/-----BEGIN (?:RSA |EC )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC )?PRIVATE KEY-----/gi, '[REDACTED_PRIVATE_KEY]');
 
