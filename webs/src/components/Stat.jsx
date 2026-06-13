@@ -17,15 +17,19 @@ export const Stat = memo(({
   className = "",
   nodeId = "NODE_01"
 }) => {
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0, tiltX: 0, tiltY: 0 });
   const [isHovered, setIsHovered] = useState(false);
 
   const handleMouseMove = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    setMousePos({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    });
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Calculate volumetric tilt (max 12 degrees)
+    const tiltY = ((x / rect.width) - 0.5) * 24;
+    const tiltX = (0.5 - (y / rect.height)) * 24;
+
+    setMousePos({ x, y, tiltX, tiltY });
   };
 
   // Memoize random marker to prevent flickering on mouse move re-renders
@@ -49,29 +53,59 @@ export const Stat = memo(({
       onMouseMove={handleMouseMove}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className={`
-        Stat group relative bg-[#0A0C14] border border-white/5 p-10 rounded-[3rem]
-        transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
-        hover:border-white/20 hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/60
-        overflow-hidden ${className}
-      `}
+      style={{
+        transform: isHovered
+          ? `perspective(1000px) rotateX(${mousePos.tiltX}deg) rotateY(${mousePos.tiltY}deg) translateY(-8px)`
+          : `perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)`,
+        transition: isHovered ? 'none' : 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)',
+        transformStyle: 'preserve-3d'
+      }}
+      className={`Stat group relative bg-[#0A0C14] border border-white/5 p-10 rounded-[3rem] hover:border-white/20 hover:shadow-[0_40px_80px_rgba(0,0,0,0.8)] ${className}`}
     >
-      {/* Precision Grid Background - Emerges on Hover */}
-      <div className="absolute inset-0 bg-grid-white opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+      {/* Container clipping mask (individually applied to internal layers to preserve 3D) */}
+      <div className="absolute inset-0 rounded-[3rem] overflow-hidden pointer-events-none">
+        {/* Precision Grid Background - Emerges on Hover */}
+        <div
+          className="absolute inset-0 bg-grid-white opacity-0 group-hover:opacity-100 transition-opacity duration-1000"
+          style={{ transform: 'translateZ(10px)' }}
+        />
 
-      {/* Dynamic Light Lens (Mouse Tracking) */}
+        {/* Volumetric Gloss Reflection Layer */}
+        <div
+          className="absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity duration-700"
+          style={{
+            background: `linear-gradient(${135 + mousePos.tiltY * 2}deg, transparent 0%, rgba(255,255,255,0.05) 45%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 55%, transparent 100%)`,
+            transform: `translateX(${mousePos.tiltY * 5}px) translateY(${mousePos.tiltX * 5}px) translateZ(50px)`,
+          }}
+        />
+
+        {/* Dynamic Light Lens (Mouse Tracking) */}
+        <div
+          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+          style={{
+            background: `radial-gradient(800px circle at ${mousePos.x}px ${mousePos.y}px, ${activeColor.startsWith('#') ? activeColor + '15' : 'rgba(124, 58, 237, 0.08)'}, transparent 40%)`,
+            transform: 'translateZ(20px)'
+          }}
+        />
+      </div>
+
+      {/* Precision Coordinate Terminal Overlay */}
       <div
-        className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-700"
-        style={{
-          background: `radial-gradient(800px circle at ${mousePos.x}px ${mousePos.y}px, ${activeColor}08, transparent 40%)`,
-        }}
-      />
+        className="absolute top-6 right-8 pointer-events-none transition-all duration-700 opacity-0 group-hover:opacity-100"
+        style={{ transform: 'translateZ(60px)' }}
+      >
+        <div className="flex flex-col items-end font-mono text-[0.4rem] font-bold text-voro-primary/60 tracking-[0.2em] space-y-1">
+          <span>TX_{mousePos.tiltX.toFixed(1)}°</span>
+          <span>TY_{mousePos.tiltY.toFixed(1)}°</span>
+          <span className="text-white/20">[{nodeId}]</span>
+        </div>
+      </div>
 
       {/* Corner System Markers */}
-      <div className="absolute top-4 right-6 text-[0.45rem] font-mono font-bold text-white/5 group-hover:text-voro-primary/40 transition-colors duration-700 tracking-[0.2em] pointer-events-none">
-        [{nodeId}]
-      </div>
-      <div className="absolute bottom-4 left-10 text-[0.45rem] font-mono font-bold text-white/5 group-hover:text-white/20 transition-colors duration-700 tracking-[0.2em] pointer-events-none">
+      <div
+        className="absolute bottom-6 left-10 text-[0.45rem] font-mono font-bold text-white/5 group-hover:text-white/20 transition-colors duration-700 tracking-[0.2em] pointer-events-none"
+        style={{ transform: 'translateZ(40px)' }}
+      >
         0x{attestedId}_ATTESTED
       </div>
 
@@ -81,7 +115,7 @@ export const Stat = memo(({
         style={{ backgroundColor: activeColor }}
       />
 
-      <div className="relative flex flex-col h-full z-10">
+      <div className="relative flex flex-col h-full z-10" style={{ transform: 'translateZ(30px)' }}>
         <div className="flex items-start justify-between mb-8">
           <div className="space-y-1.5">
             <p className="text-[0.55rem] font-mono font-bold text-gray-600 uppercase tracking-[0.4em] group-hover:text-gray-400 transition-colors duration-500">
