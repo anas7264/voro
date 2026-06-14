@@ -84,3 +84,14 @@ A generic 40-character alphanumeric regex (`\b[A-Za-z0-9/+=]{40}\b`) intended to
 
 **Prevention:**
 Always validate new redaction patterns against common non-sensitive identifiers (Git hashes, UUIDs, Base64 padding). Avoid length-only detection for secrets without a known, constant prefix.
+
+## 2025-05-18 - Storage-Level Prototype Pollution Defense
+
+**Vulnerability:**
+Dynamic storage operations that accept user-controlled keys are susceptible to prototype pollution. If an attacker can inject keys like `__proto__` or `constructor` into the storage persistence layer, they may be able to overwrite native object properties, leading to remote code execution or application-wide denial of service.
+
+**Learning:**
+Defensive programming at the storage boundary provides a critical safety net. By explicitly blocking prototype-polluting keys in the `StorageManager.set` method, we ensure that even if a calling component fails to sanitize a key, the core persistence layer remains resilient. This pattern is particularly important for applications that support data import/export features.
+
+**Prevention:**
+Always implement explicit key validation in persistence and state management utilities. Reject any key that matches `__proto__`, `constructor`, or `prototype` before performing any property assignment or serialization.
