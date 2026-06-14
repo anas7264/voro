@@ -80,3 +80,8 @@
 1. Avoid using `getItem` as a dependency in `useMemo` or `useEffect`.
 2. Destructure `storageData` from `useStorage` and use the specific data slice (e.g., `storageData['key']`) in dependency arrays.
 3. Apply this "Surgical Reactivity" pattern to all trackers and hooks derived from global state.
+
+## 2026-06-14 - Surgical Reactivity for Interaction Nodes
+**Learning:** Tracking mouse coordinates in React state (`useState`) at the page or high-level component level causes the entire component tree to re-render at 60fps. For purely visual interactions like 3D tilts and light lenses, this is a massive waste of CPU. Direct DOM manipulation via `useRef` and `style.setProperty` with CSS variables allows the browser's style engine to handle the updates without involving React's reconciliation, resulting in zero re-renders and perfectly fluid interaction.
+
+**Action:** Replace high-frequency event state tracking (mouse, scroll) with CSS variables and refs to bypass React's render loop for visual effects. Use `innerText` on refs for real-time numeric display if needed.

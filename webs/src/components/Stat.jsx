@@ -1,10 +1,11 @@
-import React, { memo, useState, useMemo } from "react";
+import React, { memo, useState, useMemo, useRef } from "react";
 
 /**
  * ⚡ OPTIMIZATION: Refined luxury Stat component.
  * Architected as a 'Kinetic Biometric Lens' featuring ultra-dark surfaces,
  * mouse-tracked radial illumination, and monospaced system markers.
- * Re-engineered for the Boutique Masterclass with precision coordinate architecture.
+ * Re-engineered with 'Surgical Reactivity': mouse tracking is handled via
+ * direct DOM manipulation of CSS variables to bypass React re-renders.
  */
 export const Stat = memo(({
   label,
@@ -17,11 +18,14 @@ export const Stat = memo(({
   className = "",
   nodeId = "NODE_01"
 }) => {
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0, tiltX: 0, tiltY: 0 });
+  const containerRef = useRef(null);
+  const tiltXRef = useRef(null);
+  const tiltYRef = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
 
   const handleMouseMove = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
@@ -29,7 +33,15 @@ export const Stat = memo(({
     const tiltY = ((x / rect.width) - 0.5) * 24;
     const tiltX = (0.5 - (y / rect.height)) * 24;
 
-    setMousePos({ x, y, tiltX, tiltY });
+    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
+    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
+    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    containerRef.current.style.setProperty('--tilt-x-num', tiltX);
+    containerRef.current.style.setProperty('--tilt-y-num', tiltY);
+
+    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
   };
 
   // Memoize random marker to prevent flickering on mouse move re-renders
@@ -50,12 +62,13 @@ export const Stat = memo(({
 
   return (
     <div
+      ref={containerRef}
       onMouseMove={handleMouseMove}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
         transform: isHovered
-          ? `perspective(1000px) rotateX(${mousePos.tiltX}deg) rotateY(${mousePos.tiltY}deg) translateY(-8px)`
+          ? `perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-8px)`
           : `perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)`,
         transition: isHovered ? 'none' : 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
@@ -74,8 +87,8 @@ export const Stat = memo(({
         <div
           className="absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity duration-700"
           style={{
-            background: `linear-gradient(${135 + mousePos.tiltY * 2}deg, transparent 0%, rgba(255,255,255,0.05) 45%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 55%, transparent 100%)`,
-            transform: `translateX(${mousePos.tiltY * 5}px) translateY(${mousePos.tiltX * 5}px) translateZ(50px)`,
+            background: `linear-gradient(calc(135deg + (var(--tilt-y-num, 0) * 2deg)), transparent 0%, rgba(255,255,255,0.05) 45%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 55%, transparent 100%)`,
+            transform: `translateX(calc(var(--tilt-y-num, 0) * 5px)) translateY(calc(var(--tilt-x-num, 0) * 5px)) translateZ(50px)`,
           }}
         />
 
@@ -83,7 +96,7 @@ export const Stat = memo(({
         <div
           className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"
           style={{
-            background: `radial-gradient(800px circle at ${mousePos.x}px ${mousePos.y}px, ${activeColor.startsWith('#') ? activeColor + '15' : 'rgba(124, 58, 237, 0.08)'}, transparent 40%)`,
+            background: `radial-gradient(800px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), ${activeColor.startsWith('#') ? activeColor + '15' : 'rgba(124, 58, 237, 0.08)'}, transparent 40%)`,
             transform: 'translateZ(20px)'
           }}
         />
@@ -95,8 +108,8 @@ export const Stat = memo(({
         style={{ transform: 'translateZ(60px)' }}
       >
         <div className="flex flex-col items-end font-mono text-[0.4rem] font-bold text-voro-primary/60 tracking-[0.2em] space-y-1">
-          <span>TX_{mousePos.tiltX.toFixed(1)}°</span>
-          <span>TY_{mousePos.tiltY.toFixed(1)}°</span>
+          <span>TX_<span ref={tiltXRef}>0.0</span>°</span>
+          <span>TY_<span ref={tiltYRef}>0.0</span>°</span>
           <span className="text-white/20">[{nodeId}]</span>
         </div>
       </div>
