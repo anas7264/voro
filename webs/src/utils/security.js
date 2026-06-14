@@ -205,7 +205,7 @@ export const sanitizeInput = (input) => {
       const doc = parser.parseFromString(input, 'text/html');
 
       // Remove scripts, styles, iframes, and other dangerous elements
-      const dangerousTags = ['script', 'style', 'iframe', 'object', 'embed', 'link', 'base', 'form', 'meta', 'svg', 'math'];
+      const dangerousTags = ['script', 'style', 'iframe', 'object', 'embed', 'link', 'base', 'form', 'meta', 'svg', 'math', 'applet', 'frame', 'frameset', 'video', 'audio', 'canvas', 'details'];
       dangerousTags.forEach(tag => {
         const elements = doc.getElementsByTagName(tag);
         while (elements.length > 0) {
@@ -590,7 +590,7 @@ export const redactData = (data, seen = new WeakSet()) => {
     redacted = redacted.replace(/\b0x[a-fA-F0-9]{40}\b/g, '[REDACTED_CRYPTO]');
     // Common API Keys (Anthropic, OpenAI, AWS, Google, GitHub, etc.)
     redacted = redacted.replace(/\b(sk-ant-api03-[a-zA-Z0-9_-]{20,}|sk-[a-zA-Z0-9]{20,})\b/g, '[REDACTED_API_KEY]');
-    redacted = redacted.replace(/\b(sk_(?:live|test)_[0-9a-zA-Z]{24})\b/g, '[REDACTED_STRIPE_KEY]');
+    redacted = redacted.replace(/\b(sk_(?:live|test)_[0-9a-zA-Z]{24,34})\b/g, '[REDACTED_STRIPE_KEY]');
     redacted = redacted.replace(/\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/g, '[REDACTED_AWS_KEY]');
     redacted = redacted.replace(/\bAIza[0-9A-Za-z-_]{35}\b/g, '[REDACTED_GOOGLE_KEY]');
     redacted = redacted.replace(/\bgh[pousr]_[a-zA-Z0-9]{36,251}\b/g, '[REDACTED_GITHUB_TOKEN]');

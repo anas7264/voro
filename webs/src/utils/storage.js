@@ -186,6 +186,13 @@ class StorageManager {
   // Set item in storage
   async set(key, value) {
     if (window.VORO_COMPROMISED || !validateCallStack() || this._checkCanary(key)) return false;
+
+    // Prototype Pollution Guard
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+      console.error(`Security Sentinel: Potential Prototype Pollution attempt blocked on storage key: ${key}`);
+      return false;
+    }
+
     try {
       const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
 
