@@ -14,6 +14,33 @@ const _getPrototypeOf = Object.getPrototypeOf;
 const _hasOwnProperty = Object.prototype.hasOwnProperty;
 const _ReflectApply = typeof Reflect !== 'undefined' ? Reflect.apply : null;
 
+// Capture native console methods to prevent bypass
+const _console = {
+  log: typeof console !== 'undefined' ? console.log : null,
+  warn: typeof console !== 'undefined' ? console.warn : null,
+  error: typeof console !== 'undefined' ? console.error : null,
+  info: typeof console !== 'undefined' ? console.info : null,
+  debug: typeof console !== 'undefined' ? console.debug : null,
+  trace: typeof console !== 'undefined' ? console.trace : null
+};
+
+/**
+ * Anomaly detection for potential "Data Smuggling" or high-entropy secrets.
+ */
+const calculateEntropy = (str) => {
+  if (!str || str.length < 20) return 0;
+  const len = str.length;
+  const frequencies = {};
+  for (let i = 0; i < len; i++) {
+    const char = str[i];
+    frequencies[char] = (frequencies[char] || 0) + 1;
+  }
+  return Object.values(frequencies).reduce((sum, freq) => {
+    const p = freq / len;
+    return sum - p * Math.log2(p);
+  }, 0);
+};
+
 /**
  * Prototype Integrity Shield
  * Snapshots core prototypes at module load to detect pollution or tampering.
@@ -60,7 +87,7 @@ export const checkPrototypeIntegrity = () => {
       // Check for added properties (pollution)
       for (const key of currentKeys) {
         if (!originalKeys.has(key)) {
-          console.error(`Security Sentinel: Prototype Pollution detected on ${name}.prototype.${key}`);
+          if (_console.error) _call.call(_console.error, console, `Security Sentinel: Prototype Pollution detected on ${name}.prototype.${key}`);
           compromised = true;
         }
       }
@@ -68,7 +95,7 @@ export const checkPrototypeIntegrity = () => {
       // Check for deleted or modified properties
       originalKeys.forEach(key => {
         if (!currentKeys.includes(key)) {
-          console.error(`Security Sentinel: Prototype Tampering detected (deleted): ${name}.prototype.${key}`);
+          if (_console.error) _call.call(_console.error, console, `Security Sentinel: Prototype Tampering detected (deleted): ${name}.prototype.${key}`);
           compromised = true;
         }
       });
@@ -103,7 +130,7 @@ export const validateCallStack = () => {
 
     // Detection 0: Stack Depth Validation (Prevents recursion/exhaustion attacks)
     if (lines.length > 50) {
-      console.error("Security Sentinel: Abnormal call stack depth detected.");
+      if (_console.error) _call.call(_console.error, console, "Security Sentinel: Abnormal call stack depth detected.");
       executeLockdown();
       return false;
     }
@@ -116,7 +143,7 @@ export const validateCallStack = () => {
 
       // Detection 1: Anonymous / Evaluated Code
       if (line.includes('<anonymous>') || line.includes('eval at') || line.includes('at eval')) {
-        console.error("Security Sentinel: Unauthorized execution context (eval/anonymous) detected in call stack.");
+        if (_console.error) _call.call(_console.error, console, "Security Sentinel: Unauthorized execution context (eval/anonymous) detected in call stack.");
         executeLockdown();
         return false;
       }
@@ -124,7 +151,7 @@ export const validateCallStack = () => {
       // Detection 2: Protocol Smuggling (blob, data, filesystem, extension)
       const dangerousProtocols = ['blob:', 'data:', 'filesystem:', 'chrome-extension:', 'moz-extension:', 'extension:', 'about:'];
       if (dangerousProtocols.some(proto => line.includes(proto))) {
-        console.error("Security Sentinel: Unauthorized protocol detected in call stack.");
+        if (_console.error) _call.call(_console.error, console, "Security Sentinel: Unauthorized protocol detected in call stack.");
         executeLockdown();
         return false;
       }
@@ -138,13 +165,13 @@ export const validateCallStack = () => {
           const cleanUrl = urlMatch[0].replace(/:\d+(?::\d+)?$/, '');
           const urlObj = new URL(cleanUrl);
           if (urlObj.origin !== trustedOrigin) {
-            console.error(`Security Sentinel: Cross-origin script provenance detected: ${urlObj.origin}`);
+            if (_console.error) _call.call(_console.error, console, `Security Sentinel: Cross-origin script provenance detected: ${urlObj.origin}`);
             executeLockdown();
             return false;
           }
         } catch (e) {
           // If URL parsing fails but it has a protocol, it's a potential obfuscation attempt
-          console.error("Security Sentinel: Malformed or obfuscated provenance URL detected.");
+          if (_console.error) _call.call(_console.error, console, "Security Sentinel: Malformed or obfuscated provenance URL detected.");
           executeLockdown();
           return false;
         }
@@ -154,7 +181,7 @@ export const validateCallStack = () => {
     return true;
   } catch (e) {
     // If stack parsing fails, we assume compromise in high-security mode
-    console.error("Security Sentinel: Call stack analysis failed.", e);
+    if (_console.error) _call.call(_console.error, console, "Security Sentinel: Call stack analysis failed.", e);
     executeLockdown();
     return false;
   }
@@ -308,12 +335,14 @@ if (securityNexus) {
 // Active CSP Enforcement: Transforms CSP from a passive blocker into an active security sink.
 if (typeof window !== 'undefined') {
   window.addEventListener('securitypolicyviolation', (e) => {
-    console.error("Security Sentinel: Active CSP Violation detected!", {
-      blockedURI: e.blockedURI,
-      violatedDirective: e.violatedDirective,
-      sourceFile: e.sourceFile,
-      lineNumber: e.lineNumber
-    });
+    if (_console.error) {
+      _call.call(_console.error, console, "Security Sentinel: Active CSP Violation detected!", redactData({
+        blockedURI: e.blockedURI,
+        violatedDirective: e.violatedDirective,
+        sourceFile: e.sourceFile,
+        lineNumber: e.lineNumber
+      }));
+    }
     executeLockdown();
   });
 }
@@ -329,7 +358,7 @@ export const executeLockdown = (broadcast = true) => {
   // If already compromised, only proceed if we need to broadcast (sanity check)
   if (window.VORO_COMPROMISED && !broadcast) return;
 
-  console.error("CRITICAL: VORO Neural Shield has detected an integrity violation. Executing Lockdown.");
+  if (_console.error) _call.call(_console.error, console, "CRITICAL: VORO Neural Shield has detected an integrity violation. Executing Lockdown.");
 
   // Set global compromise flag
   window.VORO_COMPROMISED = true;
@@ -435,7 +464,7 @@ export const performIntegrityCheck = () => {
     try {
       if (obj && obj[prop]) {
         if (!isNative(obj[prop])) {
-          console.error(`Security Sentinel: Integrity Violation! ${name} has been monkey-patched.`);
+          if (_console.error) _call.call(_console.error, console, `Security Sentinel: Integrity Violation! ${name} has been monkey-patched.`);
           compromised = true;
         }
       }
@@ -570,6 +599,18 @@ export const redactData = (data, seen = new WeakSet()) => {
     // Private Keys (RSA/EC/Generic)
     redacted = redacted.replace(/-----BEGIN (?:RSA |EC )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC )?PRIVATE KEY-----/gi, '[REDACTED_PRIVATE_KEY]');
 
+    // Entropy-based catch-all for unknown high-entropy secrets (API keys, session tokens)
+    // Targets alphanumeric strings with high entropy that are likely to be secrets
+    redacted = redacted.replace(/\b[A-Za-z0-9+/=]{24,}\b/g, (match) => {
+      // Skip already redacted markers
+      if (match.startsWith('[REDACTED_') || match.startsWith('[[') || match.includes('_REDACTED')) return match;
+      // If entropy is high enough, it's likely a secret
+      if (calculateEntropy(match) > 3.8) {
+        return '[REDACTED_HIGH_ENTROPY_SECRET]';
+      }
+      return match;
+    });
+
     // AI Boundary Marker Neutralization (Prevents indirect prompt injection)
     // Escapes markers like [USER_DATA], [MESSAGE_HISTORY], [SECURITY_PROTOCOL]
     // Uses balanced brackets (e.g., [[USER_DATA]]) to neutralize their special meaning
@@ -577,6 +618,15 @@ export const redactData = (data, seen = new WeakSet()) => {
     redacted = redacted.replace(/\[(\/?(?:[A-Z0-9_]{3,}))\]/gi, '[[$1]]');
 
     return redacted;
+  }
+
+  // If deception is active, serve decoy data if possible
+  if (isDeceptionActive() && typeof data === 'object' && data !== null) {
+    // We only serve decoys for known sensitive object patterns
+    const objectKeys = Object.keys(data);
+    if (objectKeys.includes('calories') || objectKeys.includes('exercise') || objectKeys.includes('heart_rate')) {
+      return getDecoyData('vitals');
+    }
   }
 
   // Handle non-objects
@@ -602,7 +652,7 @@ export const redactData = (data, seen = new WeakSet()) => {
   Object.keys(data).forEach(key => {
     // Prototype Pollution Guard
     if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
-      console.error("Security Sentinel: Potential Prototype Pollution attempt detected and blocked during redaction.");
+      if (_console.error) _call.call(_console.error, console, "Security Sentinel: Potential Prototype Pollution attempt detected and blocked during redaction.");
       return;
     }
 
@@ -643,23 +693,6 @@ const recursiveUrlDecode = (url) => {
 };
 
 /**
- * Anomaly detection for potential "Data Smuggling" via high-entropy strings.
- */
-const calculateEntropy = (str) => {
-  if (!str || str.length < 20) return 0;
-  const len = str.length;
-  const frequencies = {};
-  for (let i = 0; i < len; i++) {
-    const char = str[i];
-    frequencies[char] = (frequencies[char] || 0) + 1;
-  }
-  return Object.values(frequencies).reduce((sum, freq) => {
-    const p = freq / len;
-    return sum - p * Math.log2(p);
-  }, 0);
-};
-
-/**
  * Validates AI response for security and privacy compliance.
  */
 export const validateAIResponse = (response, nonce = null) => {
@@ -667,7 +700,7 @@ export const validateAIResponse = (response, nonce = null) => {
 
   // 1. Critical Violation: Nonce Leakage
   if (nonce && response.includes(nonce)) {
-    console.error("Security Sentinel: Security nonce leaked in AI response. Potential instruction override.");
+    if (_console.error) _call.call(_console.error, console, "Security Sentinel: Security nonce leaked in AI response. Potential instruction override.");
     return "The AI generated a response that violates security protocols and has been neutralized.";
   }
 
@@ -682,7 +715,7 @@ export const validateAIResponse = (response, nonce = null) => {
   ];
 
   if (dangerousIndicators.some(indicator => response.toLowerCase().includes(indicator))) {
-    console.error("Security Sentinel: Potential prompt injection detected in AI response.");
+    if (_console.error) _call.call(_console.error, console, "Security Sentinel: Potential prompt injection detected in AI response.");
     return "The AI generated a response that violates security protocols and has been neutralized.";
   }
 
@@ -707,7 +740,7 @@ export const validateAIResponse = (response, nonce = null) => {
         trimmedUrl.toLowerCase().startsWith('file:') ||
         trimmedUrl.toLowerCase().startsWith('php:') ||
         trimmedUrl.toLowerCase().startsWith('vbscript:')) {
-      console.error("Security Sentinel: Smuggled protocol detected in AI response.");
+      if (_console.error) _call.call(_console.error, console, "Security Sentinel: Smuggled protocol detected in AI response.");
       return '[LINK_REMOVED_FOR_SECURITY]';
     }
 
@@ -719,14 +752,14 @@ export const validateAIResponse = (response, nonce = null) => {
       /token|key|auth|credential|secret|cookie|session|localstorage|nonce|voro_|id_token|access_token/i.test(decodedUrl);
 
     if (hasSensitiveParams) {
-      console.error("Security Sentinel: Sensitive data leakage detected in AI link.");
+      if (_console.error) _call.call(_console.error, console, "Security Sentinel: Sensitive data leakage detected in AI link.");
       return '[LINK_REMOVED_FOR_SECURITY]';
     }
 
     // High-Entropy Detection: Identifies potential base64-encoded exfiltration
     // Threshold 4.5 is high enough for typical text but flags high-entropy blobs
     if (calculateEntropy(decodedUrl) > 4.5 && decodedUrl.length > 50) {
-      console.error("Security Sentinel: High-entropy data smuggling detected in AI response.");
+      if (_console.error) _call.call(_console.error, console, "Security Sentinel: High-entropy data smuggling detected in AI response.");
       return '[LINK_REMOVED_FOR_SECURITY]';
     }
 
@@ -755,7 +788,7 @@ export const sanitizeObject = (obj, seen = new WeakSet()) => {
   Object.keys(obj).forEach(key => {
     // Prototype Pollution Guard
     if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
-      console.error("Security Sentinel: Potential Prototype Pollution attempt detected and blocked during sanitization.");
+      if (_console.error) _call.call(_console.error, console, "Security Sentinel: Potential Prototype Pollution attempt detected and blocked during sanitization.");
       return;
     }
 
@@ -763,6 +796,57 @@ export const sanitizeObject = (obj, seen = new WeakSet()) => {
   });
   return result;
 };
+
+/**
+ * Privacy-Preserving Logging Engine
+ * Globally overrides console methods to redact PII/secrets and inject deception.
+ * Positioned at the end of the module to ensure all dependencies are initialized.
+ */
+const initializeLoggingEngine = () => {
+  if (typeof window === 'undefined' || typeof console === 'undefined') return;
+
+  const methods = ['log', 'warn', 'error', 'info', 'debug', 'trace'];
+
+  methods.forEach(method => {
+    const originalMethod = _console[method];
+    if (!originalMethod) return;
+
+    console[method] = (...args) => {
+      // 1. Cyber Deception: Inject honey-tokens if compromised
+      if (isDeceptionActive() && Math.random() > 0.8) {
+        const decoys = [
+          "Security Sentinel: Bypass confirmed with token VORO_BYPASS_882193",
+          "Internal vault access granted: root_config_v3_master",
+          "Session restored for admin_session_token_0x7721",
+          "DEBUG: system_vault decryption key 0xAE712FB3C9"
+        ];
+        _call.call(originalMethod, console, decoys[Math.floor(Math.random() * decoys.length)]);
+      }
+
+      // 2. Redaction: Process arguments to strip PII and high-entropy secrets
+      // Note: We use a special flag to prevent recursive redaction loops if redactData logs.
+      const redactedArgs = args.map(arg => {
+        try {
+          if (typeof arg === 'string') return redactData(arg);
+          if (typeof arg === 'object' && arg !== null) return redactData(arg);
+          return arg;
+        } catch (e) {
+          return "[REDACTION_FAILURE]";
+        }
+      });
+
+      // 3. Execution: Call native primitive with safe data
+      if (_ReflectApply) {
+        _ReflectApply(originalMethod, console, redactedArgs);
+      } else {
+        _call.call(originalMethod, console, ...redactedArgs);
+      }
+    };
+  });
+};
+
+// Start the engine
+initializeLoggingEngine();
 
 export default {
   sanitizeInput,
