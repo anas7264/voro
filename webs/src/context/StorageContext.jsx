@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useState, useEffect } from "react";
+import React, { createContext, useCallback, useState, useEffect, useMemo } from "react";
 import storage from "../utils/storage";
 
 export const StorageContext = createContext();
@@ -173,7 +173,13 @@ export const StorageProvider = ({ children }) => {
     }
   }, []);
 
-  const value = {
+  /**
+   * ⚡ OPTIMIZATION: Memoize context provider value.
+   * Prevents redundant re-renders of all consumer components (like trackers)
+   * when StorageProvider re-renders for unrelated reasons (e.g. parent updates).
+   * Stable functions and state dependencies are correctly tracked.
+   */
+  const value = useMemo(() => ({
     getItem,
     getItemAsync,
     setItem,
@@ -190,7 +196,24 @@ export const StorageProvider = ({ children }) => {
     lastUpdated,
     storageData,
     isCompromised
-  };
+  }), [
+    getItem,
+    getItemAsync,
+    setItem,
+    deleteItem,
+    hasItem,
+    appendItem,
+    updateItem,
+    listKeys,
+    getAllData,
+    exportData,
+    importData,
+    clearAllData,
+    getStorageSize,
+    lastUpdated,
+    storageData,
+    isCompromised
+  ]);
 
   return <StorageContext.Provider value={value}>{children}</StorageContext.Provider>;
 };
