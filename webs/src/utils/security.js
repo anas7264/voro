@@ -205,7 +205,7 @@ export const sanitizeInput = (input) => {
       const doc = parser.parseFromString(input, 'text/html');
 
       // Remove scripts, styles, iframes, and other dangerous elements
-      const dangerousTags = ['script', 'style', 'iframe', 'object', 'embed', 'link', 'base', 'form', 'meta', 'svg', 'math', 'applet', 'frame', 'frameset', 'video', 'audio', 'canvas', 'details'];
+      const dangerousTags = ['script', 'style', 'iframe', 'object', 'embed', 'link', 'base', 'form', 'meta', 'svg', 'math', 'applet', 'frame', 'frameset', 'video', 'audio', 'canvas', 'details', 'template'];
       dangerousTags.forEach(tag => {
         const elements = doc.getElementsByTagName(tag);
         while (elements.length > 0) {
@@ -213,13 +213,17 @@ export const sanitizeInput = (input) => {
         }
       });
 
-      // Remove event handlers from all remaining elements
+      // Remove event handlers and dangerous attributes from all remaining elements
       const allElements = doc.querySelectorAll('*');
       allElements.forEach(el => {
         for (let i = 0; i < el.attributes.length; i++) {
           const attr = el.attributes[i].name.toLowerCase();
-          if (attr.startsWith('on') || attr === 'action' || attr === 'href' && el.attributes[i].value.toLowerCase().startsWith('javascript:')) {
-            el.removeAttribute(attr);
+          const value = el.attributes[i].value.toLowerCase();
+          if (attr.startsWith('on') ||
+              attr === 'action' ||
+              attr === 'formaction' ||
+              (attr === 'href' || attr === 'src') && value.startsWith('javascript:')) {
+            el.removeAttribute(el.attributes[i].name);
             i--; // Adjust index after removal
           }
         }
@@ -235,8 +239,8 @@ export const sanitizeInput = (input) => {
   return input
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
     .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
-    .replace(/on\w+="[^"]*"/gi, '')
-    .replace(/on\w+='[^']*'/gi, '')
+    .replace(/\bon\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    .replace(/\b(?:form)?action\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
     .replace(/javascript:[^"']*/gi, '')
     .replace(/<[^>]*>/g, ''); // Strip all remaining HTML tags
 };
@@ -558,7 +562,10 @@ export const performIntegrityCheck = () => {
     { obj: window.navigator, prop: 'geolocation', name: 'navigator.geolocation' },
     { obj: window.navigator, prop: 'credentials', name: 'navigator.credentials' },
     { obj: window, prop: 'Permissions', name: 'Permissions' },
-    { obj: window, prop: 'DeviceMotionEvent', name: 'DeviceMotionEvent' }
+    { obj: window, prop: 'DeviceMotionEvent', name: 'DeviceMotionEvent' },
+    { obj: window, prop: 'Worker', name: 'Worker' },
+    { obj: window, prop: 'SharedWorker', name: 'SharedWorker' },
+    { obj: window.navigator?.serviceWorker, prop: 'register', name: 'navigator.serviceWorker.register' }
   ];
 
   let compromised = false;
@@ -728,6 +735,9 @@ export const redactData = (data, seen = new WeakSet()) => {
     redacted = redacted.replace(/\bgithub_pat_[a-zA-Z0-9]{82}\b/g, '[REDACTED_GITHUB_TOKEN]');
     // Private Keys (RSA/EC/Generic)
     redacted = redacted.replace(/-----BEGIN (?:RSA |EC )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC )?PRIVATE KEY-----/gi, '[REDACTED_PRIVATE_KEY]');
+    // Slack & Discord Webhooks
+    redacted = redacted.replace(/https:\/\/hooks\.slack\.com\/services\/[A-Z0-9]+\/[A-Z0-9]+\/[A-Za-z0-9]+/g, '[REDACTED_WEBHOOK]');
+    redacted = redacted.replace(/https:\/\/discord\.com\/api\/webhooks\/\d+\/[A-Za-z0-9_-]+/g, '[REDACTED_WEBHOOK]');
 
     // Entropy-based catch-all for unknown high-entropy secrets (API keys, session tokens)
     // Targets alphanumeric strings with high entropy that are likely to be secrets
@@ -776,7 +786,7 @@ export const redactData = (data, seen = new WeakSet()) => {
   const result = {};
 
   // Sensitivity Tiers
-  const criticalKeys = ['password', 'secret', 'token', 'key', 'apiKey', 'masterKey', 'auth'];
+  const criticalKeys = ['password', 'secret', 'token', 'key', 'apiKey', 'masterKey', 'auth', 'credential', 'session', 'cookie', 'canary'];
   const sensitiveKeys = ['name', 'email', 'phone', 'address', 'location', 'gymname', 'gym_name', 'latitude', 'longitude', 'lat', 'lng', 'birthday', 'social', 'voro_'];
 
   Object.keys(data).forEach(key => {
