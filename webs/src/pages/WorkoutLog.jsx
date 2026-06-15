@@ -12,7 +12,7 @@ import { validateWorkoutEntry } from '@/utils/validators';
 import { exercises } from '@/data/exercises';
 
 const WorkoutLog = () => {
-  const { getItem, setItem } = useStorage();
+  const { getItem, updateItem } = useStorage();
   const { addNotification } = useNotifications();
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -124,13 +124,9 @@ const WorkoutLog = () => {
       timestamp: new Date().toISOString(),
     };
 
-    // Use updateItem for atomic key-level persistence if available,
-    // or immutable spread for StorageContext reactivity.
-    const allWorkouts = { ...(getItem('workout_log') || {}) };
-    allWorkouts[date] = workoutData;
-
-    await setItem('workout_log', allWorkouts);
-  }, [date, selectedExercises, sessionType, sessionDuration, totalVolume, getItem, setItem, addNotification]);
+    // Use updateItem for atomic key-level persistence.
+    await updateItem('workout_log', { [date]: workoutData });
+  }, [date, selectedExercises, sessionType, sessionDuration, totalVolume, updateItem, addNotification]);
 
   const filteredExercises = useMemo(() => {
     if (!showExerciseSearch) return [];
