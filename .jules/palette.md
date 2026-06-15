@@ -21,3 +21,7 @@
 ## 2026-06-11 - [Tactile Component Interactivity]
 **Learning:** Adding subtle `active:scale-95` (for larger elements like Tabs/Toggles) or `active:scale-90` (for smaller elements like Checkboxes) transitions creates a "physical" tactile response that enhances the premium feel of the UI. This kinetic feedback, combined with surgical `focus-visible:ring-offset-2` adjustments, bridges the gap between high-end aesthetics and intuitive usability.
 **Action:** Incorporate kinetic scaling transitions on all interactive primitive components (Buttons, Toggles, Tabs, Checkboxes) to provide immediate, perceptible feedback for user actions.
+
+## 2026-06-12 - [Express Log Accessibility & Flow]
+**Learning:** For high-velocity "Quick Log" interactions, minimizing the distance between the trigger and data entry is critical. Implementing `autoFocus` on the primary modal input, associating labels with `useId`, and providing clear `disabled` validation states on action buttons transforms a simple form into a fluid, expert-grade interface. Semantically marking decorative icons with `aria-hidden` and selection states with `aria-pressed` ensures this speed is accessible to all users.
+**Action:** Implement `autoFocus` and robust ARIA state management (hidden/pressed) in all quick-entry modalities to prioritize user momentum and inclusive efficiency.

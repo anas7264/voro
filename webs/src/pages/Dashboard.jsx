@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, useId } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus,
@@ -300,14 +300,14 @@ const Dashboard = () => {
               onClick={() => setShowQuickLog(true)}
               className="group flex items-center gap-3 px-8 py-3.5 bg-white text-black rounded-full text-[0.65rem] font-black uppercase tracking-[0.4em] transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-white/10"
             >
-              <Plus size={16} />
+              <Plus size={16} aria-hidden="true" />
               <span>Express Log</span>
             </button>
             <button
               onClick={() => navigate('/ai-coach')}
               className="flex items-center gap-3 px-8 py-3.5 bg-[#0D1424] border border-white/5 text-white rounded-full text-[0.65rem] font-black uppercase tracking-[0.4em] transition-all hover:bg-white/[0.05] hover:border-voro-primary/30"
             >
-              <Zap size={16} className="text-voro-accent" />
+              <Zap size={16} className="text-voro-accent" aria-hidden="true" />
               <span>AI Advisor</span>
             </button>
           </div>
@@ -551,6 +551,7 @@ const Dashboard = () => {
 const QuickLogModal = ({ isOpen, onClose, onSubmit }) => {
   const [type, setType] = useState('meal');
   const [value, setValue] = useState('');
+  const magnitudeId = useId();
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Express Manifestation">
@@ -562,7 +563,8 @@ const QuickLogModal = ({ isOpen, onClose, onSubmit }) => {
               <button
                 key={t}
                 onClick={() => setType(t)}
-                className={`py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${type === t ? 'bg-voro-primary text-white' : 'bg-white/5 text-gray-500 hover:bg-white/10'}`}
+                aria-pressed={type === t}
+                className={`py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all active:scale-95 ${type === t ? 'bg-voro-primary text-white' : 'bg-white/5 text-gray-500 hover:bg-white/10'}`}
               >
                 {t}
               </button>
@@ -571,13 +573,15 @@ const QuickLogModal = ({ isOpen, onClose, onSubmit }) => {
         </div>
 
         <div className="space-y-2">
-          <label className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-500 ml-1">Magnitude</label>
+          <label htmlFor={magnitudeId} className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-500 ml-1">Magnitude</label>
           <div className="relative">
              <input
+              id={magnitudeId}
               type="number"
               value={value}
               onChange={(e) => setValue(e.target.value)}
               placeholder={type === 'meal' ? 'Calories' : type === 'weight' ? 'kg' : 'ml'}
+              autoFocus
               className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-xl font-bold text-white focus:outline-none focus:border-voro-primary focus:ring-1 focus:ring-voro-primary transition-all placeholder:text-gray-700"
             />
             <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-500">
@@ -589,13 +593,14 @@ const QuickLogModal = ({ isOpen, onClose, onSubmit }) => {
         <div className="flex gap-4 pt-4">
           <button
             onClick={onClose}
-            className="flex-1 py-4 rounded-2xl bg-white/5 text-gray-400 font-bold hover:bg-white/10 transition-all"
+            className="flex-1 py-4 rounded-2xl bg-white/5 text-gray-400 font-bold hover:bg-white/10 transition-all active:scale-95 focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14] outline-none"
           >
             Abort
           </button>
           <button
             onClick={() => onSubmit(type, value)}
-            className="flex-[2] py-4 rounded-2xl bg-voro-primary text-white font-bold hover:bg-voro-primary-dark shadow-lg shadow-voro-primary/20 transition-all"
+            disabled={!value || parseFloat(value) <= 0}
+            className="flex-[2] py-4 rounded-2xl bg-voro-primary text-white font-bold hover:bg-voro-primary-dark shadow-lg shadow-voro-primary/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14] outline-none"
           >
             Confirm Entry
           </button>
