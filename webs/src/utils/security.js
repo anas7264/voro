@@ -316,6 +316,119 @@ export const isDeceptionActive = () => {
 };
 
 /**
+ * Creates a Honey-Trap object using Proxy to monitor unauthorized access.
+ * Any interaction (get, set, delete) triggers a security lockdown.
+ */
+const createHoneyTrap = (name, target = {}) => {
+  if (typeof Proxy === 'undefined') return target;
+
+  return new Proxy(target, {
+    get(obj, prop) {
+      if (_console.error) _call.call(_console.error, console, `Security Sentinel: Honey-trap [${name}] accessed (get: ${String(prop)}).`);
+      executeLockdown();
+      return obj[prop];
+    },
+    set(obj, prop, value) {
+      if (_console.error) _call.call(_console.error, console, `Security Sentinel: Honey-trap [${name}] accessed (set: ${String(prop)}).`);
+      executeLockdown();
+      obj[prop] = value;
+      return true;
+    },
+    deleteProperty(obj, prop) {
+      if (_console.error) _call.call(_console.error, console, `Security Sentinel: Honey-trap [${name}] accessed (delete: ${String(prop)}).`);
+      executeLockdown();
+      return Reflect.deleteProperty(obj, prop);
+    },
+    defineProperty(obj, prop, descriptor) {
+      if (_console.error) _call.call(_console.error, console, `Security Sentinel: Honey-trap [${name}] accessed (defineProperty: ${String(prop)}).`);
+      executeLockdown();
+      return Reflect.defineProperty(obj, prop, descriptor);
+    },
+    ownKeys(obj) {
+      if (_console.error) _call.call(_console.error, console, `Security Sentinel: Honey-trap [${name}] accessed (ownKeys).`);
+      executeLockdown();
+      return Reflect.ownKeys(obj);
+    }
+  });
+};
+
+/**
+ * Injects high-fidelity honey-tokens into the global environment.
+ */
+const injectHoneyTokens = () => {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const tokens = [
+      { name: '__VORO_INTERNAL_VAULT__', data: { root_key: '0xAE712FB3C9', version: 'v3.0.1', integrity: 'verified' } },
+      { name: '_voro_debug_session', data: { session_id: 'voro_debug_882193', level: 'SU', bypass: true } },
+      { name: 'VORO_SECURITY_CONFIG', data: { lockdown_bypass: false, sentinel_debug: true, monitor_all: true } }
+    ];
+
+    tokens.forEach(token => {
+      if (!(token.name in window)) {
+        Object.defineProperty(window, token.name, {
+          get: () => createHoneyTrap(token.name, token.data),
+          configurable: false,
+          enumerable: false
+        });
+      }
+    });
+  } catch (e) {
+    // Fail silently to avoid breaking the app
+  }
+};
+
+// Initialize Honey-tokens
+injectHoneyTokens();
+
+/**
+ * Privacy-Preserving Global Error Orchestration
+ * Intercepts and redacts sensitive data from all global errors and unhandled rejections.
+ */
+const initializeErrorOrchestration = () => {
+  if (typeof window === 'undefined') return;
+
+  const handleGlobalError = (event) => {
+    // Prevent the error from leaking potentially sensitive data to the default console/UI
+    // by intercepting and redacting its properties.
+    const errorData = {
+      message: event.message || 'Unknown Error',
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno,
+      stack: event.error ? event.error.stack : null
+    };
+
+    const redactedError = redactData(errorData);
+
+    if (_console.error) {
+      _call.call(_console.error, console, "Security Sentinel: Intercepted Global Error", redactedError);
+    }
+
+    // Optional: Trigger lockdown for high-severity/untrusted origins in stack
+    if (redactedError.stack && (redactedError.stack.includes('eval') || redactedError.stack.includes('anonymous'))) {
+      executeLockdown();
+    }
+  };
+
+  const handleUnhandledRejection = (event) => {
+    const reason = event.reason;
+    const redactedReason = redactData(reason);
+
+    if (_console.error) {
+      _call.call(_console.error, console, "Security Sentinel: Intercepted Unhandled Rejection", redactedReason);
+    }
+  };
+
+  window.addEventListener('error', handleGlobalError);
+  window.addEventListener('unhandledrejection', handleUnhandledRejection);
+};
+
+// Initialize error orchestration
+initializeErrorOrchestration();
+
+/**
  * Active Defense Orchestrator
  * Cross-tab security synchronization via BroadcastChannel.
  */
@@ -440,13 +553,30 @@ export const performIntegrityCheck = () => {
     { obj: window.navigator, prop: 'sendBeacon', name: 'navigator.sendBeacon' },
     { obj: window, prop: 'Proxy', name: 'Proxy' },
     { obj: document, prop: 'createElement', name: 'document.createElement' },
-    { obj: document, prop: 'write', name: 'document.write' }
+    { obj: document, prop: 'write', name: 'document.write' },
+    { obj: window, prop: 'Notification', name: 'Notification' },
+    { obj: window.navigator, prop: 'geolocation', name: 'navigator.geolocation' },
+    { obj: window.navigator, prop: 'credentials', name: 'navigator.credentials' },
+    { obj: window, prop: 'Permissions', name: 'Permissions' },
+    { obj: window, prop: 'DeviceMotionEvent', name: 'DeviceMotionEvent' }
   ];
 
   let compromised = false;
 
   // Check Prototype Integrity
   if (!checkPrototypeIntegrity()) {
+    compromised = true;
+  }
+
+  // Active Frame-Integrity Shield
+  // Detects if the application is being rendered in an unauthorized frame (Clickjacking protection)
+  try {
+    if (typeof window !== 'undefined' && window.self !== window.top) {
+      if (_console.error) _call.call(_console.error, console, "Security Sentinel: Frame Integrity Violation! Application is being rendered in an unauthorized frame/iframe.");
+      compromised = true;
+    }
+  } catch (e) {
+    // If accessing window.top is blocked by cross-origin policy, we are definitely in a frame
     compromised = true;
   }
 
@@ -848,7 +978,11 @@ const initializeLoggingEngine = () => {
 // Start the engine
 initializeLoggingEngine();
 
-export default {
+/**
+ * Sentinel Self-Protection
+ * Freezes the public API and core utilities to prevent runtime tampering.
+ */
+const sentinelExports = {
   sanitizeInput,
   sanitizeObject,
   maskBiometrics,
@@ -862,3 +996,22 @@ export default {
   getDecoyData,
   isDeceptionActive
 };
+
+// Deep freeze the exports to prevent tampering
+const deepFreeze = (obj) => {
+  _freeze(obj);
+  _getOwnPropertyNames(obj).forEach(prop => {
+    if (obj[prop] !== null &&
+        (typeof obj[prop] === 'object' || typeof obj[prop] === 'function') &&
+        !Object.isFrozen(obj[prop])) {
+      deepFreeze(obj[prop]);
+    }
+  });
+  return obj;
+};
+
+if (typeof window !== 'undefined') {
+  deepFreeze(sentinelExports);
+}
+
+export default sentinelExports;
