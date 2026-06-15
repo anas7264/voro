@@ -8,6 +8,8 @@ import { useStorage } from '@/hooks/useStorage';
 import { useApp } from '@/hooks/useAppContext';
 import { bodyFatStandards, bodyFatLevelDescriptions, bodyFatHealthMetrics } from '@/data/bodyFatStandards';
 
+const labelFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+
 const BodyComposition = () => {
   const { storageData } = useStorage();
   const { user } = useApp();
@@ -26,35 +28,54 @@ const BodyComposition = () => {
   const compositionHistory = useMemo(() => {
     if (!metrics.weights?.length || !metrics.bodyFat?.length) return [];
 
-    const weightsWithTs = [...metrics.weights]
-      .map(w => ({ ...w, ts: new Date(w.date).getTime() }))
-      .sort((a, b) => a.ts - b.ts);
+    /**
+     * ⚡ OPTIMIZATION: Single-pass O(N+M) alignment for merging biometric time-series.
+     * Pre-calculates timestamps to eliminate redundant Date parsing in the loop.
+     * Includes O(N log N) safety sort which is minimal for typical 30-day windows.
+     */
+    const weights = [...metrics.weights]
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .slice(-30)
+      .map(w => {
+        const date = new Date(w.date);
+        return { ...w, ts: date.getTime(), dateObj: date };
+      });
 
-    const bfWithTs = [...metrics.bodyFat]
-      .map(b => ({ ...b, ts: new Date(b.date).getTime() }))
-      .sort((a, b) => a.ts - b.ts);
+    const bodyFat = [...metrics.bodyFat]
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .map(b => ({ ...b, ts: new Date(b.date).getTime() }));
 
     let bfIdx = 0;
+    const result = [];
 
-    return weightsWithTs.map(w => {
-      while (bfIdx < bfWithTs.length - 1 &&
-             Math.abs(bfWithTs[bfIdx + 1].ts - w.ts) <= Math.abs(bfWithTs[bfIdx].ts - w.ts)) {
-        bfIdx++;
+    for (const w of weights) {
+      const wTs = w.ts;
+
+      while (bfIdx < bodyFat.length - 1) {
+        const currentDiff = Math.abs(bodyFat[bfIdx].ts - wTs);
+        const nextDiff = Math.abs(bodyFat[bfIdx + 1].ts - wTs);
+        if (nextDiff <= currentDiff) {
+          bfIdx++;
+        } else {
+          break;
+        }
       }
 
-      const closestBF = bfWithTs[bfIdx];
-      const bfPct = closestBF.value;
-      const fatMass = (w.value * bfPct / 100);
-      const leanMass = (w.value - fatMass);
+      const bfPct = bodyFat[bfIdx].value;
+      const weight = w.value;
+      const fatMass = (weight * bfPct / 100);
+      const leanMass = (weight - fatMass);
 
-      return {
-        date: new Date(w.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      result.push({
+        date: labelFormatter.format(w.dateObj),
         leanMass: Number(leanMass.toFixed(2)),
         fatMass: Number(fatMass.toFixed(2)),
         bodyFat: Number(bfPct.toFixed(2)),
-        weight: Number(w.value.toFixed(2)),
-      };
-    }).slice(-30);
+        weight: Number(weight.toFixed(2)),
+      });
+    }
+
+    return result;
   }, [metrics]);
 
   const latest = useMemo(() =>

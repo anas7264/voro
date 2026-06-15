@@ -40,6 +40,8 @@ const NAV_LINKS = [
   { label: 'Evolution', path: '/ai-coach', icon: <Activity size={18} /> }
 ];
 
+const getISODate = (date) => date.toISOString().slice(0, 10);
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAppContext();
@@ -112,7 +114,7 @@ const Dashboard = () => {
     for (let i = 0; i < 365; i++) {
       if (!trainingActive && !loggingActive && !waterActive) break;
 
-      const dateStr = cursorDate.toISOString().split('T')[0];
+      const dateStr = getISODate(cursorDate);
 
       if (trainingActive) {
         if (workoutLog[dateStr]?.attended) trainingStreak++;
@@ -136,7 +138,7 @@ const Dashboard = () => {
   }, [storageData['workout_log'], storageData['nutrition_log'], user?.waterGoal]);
 
   const handleQuickLog = useCallback(async (type, value) => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getISODate(new Date());
     const numValue = parseFloat(value);
 
     if (isNaN(numValue) || numValue <= 0) {

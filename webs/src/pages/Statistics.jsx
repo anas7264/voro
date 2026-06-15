@@ -46,8 +46,10 @@ const Statistics = () => {
     const weeklyWorkouts = [];
 
     // ⚡ OPTIMIZATION: Use a single cursor to avoid O(N) Date object instantiation and string churn.
+    // Populate arrays in chronological order directly to eliminate O(N) reverse() passes.
     const cursor = new Date();
     cursor.setHours(0, 0, 0, 0);
+    cursor.setDate(cursor.getDate() - 6);
 
     for (let i = 0; i < 7; i++) {
       const dateStr = getISODate(cursor);
@@ -55,13 +57,13 @@ const Statistics = () => {
         day: daysOfWeek[cursor.getDay()],
         workouts: workoutLog[dateStr]?.attended ? 1 : 0
       });
-      cursor.setDate(cursor.getDate() - 1);
+      cursor.setDate(cursor.getDate() + 1);
     }
-    weeklyWorkouts.reverse();
 
     // Reset cursor for main trend
     cursor.setTime(new Date().getTime());
     cursor.setHours(0, 0, 0, 0);
+    cursor.setDate(cursor.getDate() - (days - 1));
 
     for (let i = 0; i < days; i++) {
       const dateStr = getISODate(cursor);
@@ -82,9 +84,8 @@ const Statistics = () => {
         workoutDays++;
         totalVolume += workoutLog[dateStr]?.volume || 0;
       }
-      cursor.setDate(cursor.getDate() - 1);
+      cursor.setDate(cursor.getDate() + 1);
     }
-    calorieTrend.reverse();
 
     return {
       calorieTrend,
