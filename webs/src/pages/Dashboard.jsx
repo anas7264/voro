@@ -21,6 +21,7 @@ import Modal from '@/components/Modal';
 import LineChartComponent from '@/components/LineChartComponent';
 import Ring from '@/components/Ring';
 import Stat from '@/components/Stat';
+import Button from '@/components/Button';
 
 const MACRO_CONFIG = [
   { label: 'Protein', macro: 'protein', color: '#7C3AED', bg: 'bg-[#7C3AED]/10', text: 'text-[#A78BFA]', icon: '🍗' },
@@ -297,21 +298,22 @@ const Dashboard = () => {
             <p className="text-gray-600 font-medium tracking-[0.4em] text-[0.65rem] uppercase opacity-40">{todayDate}</p>
           </div>
 
-          <div className="flex gap-4">
-             <button
+          <div className="flex gap-6">
+            <Button
               onClick={() => setShowQuickLog(true)}
-              className="group flex items-center gap-3 px-8 py-3.5 bg-white text-black rounded-full text-[0.65rem] font-black uppercase tracking-[0.4em] transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-white/10"
+              className="!bg-white !text-black !rounded-full shadow-2xl shadow-white/10"
             >
               <Plus size={16} aria-hidden="true" />
               <span>Express Log</span>
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="secondary"
               onClick={() => navigate('/ai-coach')}
-              className="flex items-center gap-3 px-8 py-3.5 bg-[#0D1424] border border-white/5 text-white rounded-full text-[0.65rem] font-black uppercase tracking-[0.4em] transition-all hover:bg-white/[0.05] hover:border-voro-primary/30"
+              className="!rounded-full"
             >
               <Zap size={16} className="text-voro-accent" aria-hidden="true" />
               <span>AI Advisor</span>
-            </button>
+            </Button>
           </div>
         </header>
 
