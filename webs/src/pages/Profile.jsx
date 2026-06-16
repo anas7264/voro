@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Edit2, Save, X, User as UserIcon, Ruler, Weight, Target, Activity } from 'lucide-react';
-import Button from '@/components/Button';
-import Card from '@/components/Card';
-import Input from '@/components/Input';
+import { Button, Card, Input, Header } from '@/components';
 import { useApp } from '@/hooks/useAppContext';
 import { useStorage } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -66,19 +64,10 @@ const Profile = () => {
     <div className="min-h-screen bg-[#080B14] text-[#F0F4FF] pb-24">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
-        {/* Header */}
-        <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-8">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3 text-voro-primary">
-              <UserIcon size={18} />
-              <span className="text-[0.6rem] font-black uppercase tracking-[0.3em]">Identity Matrix</span>
-            </div>
-            <h1 className="text-4xl md:text-5xl font-serif italic font-medium text-white tracking-tight">
-              Subject <span className="text-voro-primary not-italic font-bold">{user.name}</span>
-            </h1>
-          </div>
-
-          {!editing && (
+        <Header
+          eyebrow="Identity Matrix"
+          title={<>Subject <span className="text-voro-primary not-italic font-bold">{user.name}</span></>}
+          action={!editing && (
             <Button
               onClick={() => setEditing(true)}
               className="px-8 shadow-xl shadow-voro-primary/20"
@@ -87,7 +76,7 @@ const Profile = () => {
               Modify Identity
             </Button>
           )}
-        </header>
+        />
 
         {editing ? (
           <div className="space-y-10 animate-slide-up">
