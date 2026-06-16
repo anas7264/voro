@@ -7,8 +7,13 @@
 const _toString = Function.prototype.toString;
 const _call = Function.prototype.call;
 const _apply = Function.prototype.apply;
+const _test = RegExp.prototype.test;
+const _exec = RegExp.prototype.exec;
+const _setInterval = typeof setInterval !== 'undefined' ? setInterval : null;
+const _setTimeout = typeof setTimeout !== 'undefined' ? setTimeout : null;
 const _Error = Error;
 const _freeze = Object.freeze;
+const _defineProperty = Object.defineProperty;
 const _getOwnPropertyNames = Object.getOwnPropertyNames;
 const _getPrototypeOf = Object.getPrototypeOf;
 const _hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -477,8 +482,18 @@ export const executeLockdown = (broadcast = true) => {
 
   if (_console.error) _call.call(_console.error, console, "CRITICAL: VORO Neural Shield has detected an integrity violation. Executing Lockdown.");
 
-  // Set global compromise flag
-  window.VORO_COMPROMISED = true;
+  // Set global compromise flag and make it immutable to prevent reset
+  try {
+    if (!window.VORO_COMPROMISED) {
+      _defineProperty(window, 'VORO_COMPROMISED', {
+        value: true,
+        writable: false,
+        configurable: false
+      });
+    }
+  } catch (e) {
+    window.VORO_COMPROMISED = true;
+  }
 
   // Activate deception mode
   window.VORO_DECEPTION_ACTIVE = true;
@@ -565,7 +580,9 @@ export const performIntegrityCheck = () => {
     { obj: window, prop: 'DeviceMotionEvent', name: 'DeviceMotionEvent' },
     { obj: window, prop: 'Worker', name: 'Worker' },
     { obj: window, prop: 'SharedWorker', name: 'SharedWorker' },
-    { obj: window.navigator?.serviceWorker, prop: 'register', name: 'navigator.serviceWorker.register' }
+    { obj: window.navigator?.serviceWorker, prop: 'register', name: 'navigator.serviceWorker.register' },
+    { obj: window, prop: 'setInterval', name: 'setInterval' },
+    { obj: window, prop: 'setTimeout', name: 'setTimeout' }
   ];
 
   let compromised = false;
@@ -591,7 +608,7 @@ export const performIntegrityCheck = () => {
   const isNative = (fn) => {
     try {
       return typeof fn === 'function' &&
-             /\{\s*\[native code\]\s*\}/.test(_call.call(_toString, fn));
+             _call.call(_test, /\{\s*\[native code\]\s*\}/, _call.call(_toString, fn));
     } catch (e) {
       return false;
     }
@@ -624,12 +641,13 @@ export const performIntegrityCheck = () => {
  */
 let heartbeatInterval = null;
 export const startSecurityHeartbeat = (intervalMs = 30000) => {
-  if (heartbeatInterval) return;
+  if (heartbeatInterval || !_setInterval) return;
 
-  heartbeatInterval = setInterval(() => {
+  heartbeatInterval = _setInterval(() => {
     performIntegrityCheck();
     if (window.VORO_COMPROMISED) {
-      clearInterval(heartbeatInterval);
+      // Note: We use the native clearInterval if possible, though heartbeat silence is preferred in lockdown
+      if (typeof clearInterval !== 'undefined') clearInterval(heartbeatInterval);
       heartbeatInterval = null;
     }
   }, intervalMs);
