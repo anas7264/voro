@@ -41,6 +41,18 @@ const NAV_LINKS = [
   { label: 'Evolution', path: '/ai-coach', icon: <Activity size={18} /> }
 ];
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
+ * Prevents redundant object instantiation of Intl.DateTimeFormat in loops or high-frequency renders.
+ */
+const shortDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+const longDateFormatter = new Intl.DateTimeFormat('en-US', {
+  weekday: 'long',
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric'
+});
+
 const getISODate = (date) => date.toISOString().slice(0, 10);
 
 const Dashboard = () => {
@@ -92,7 +104,7 @@ const Dashboard = () => {
     const metrics = storageData['body_metrics'] || {};
     const weights = metrics.weights || [];
     return weights.slice(-30).map(w => ({
-      date: new Date(w.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      date: shortDateFormatter.format(new Date(w.date)),
       weight: w.value,
       fullDate: w.date
     }));
@@ -237,12 +249,7 @@ const Dashboard = () => {
     });
   }, [nutritionToday, user]);
 
-  const todayDate = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
+  const todayDate = longDateFormatter.format(new Date());
 
   if (!user) {
     return (
