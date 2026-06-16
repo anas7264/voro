@@ -8,6 +8,16 @@ import { useStorage } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { validateVitals } from '@/utils/validators';
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
+ * Prevents redundant object instantiation of Intl.DateTimeFormat in loops.
+ */
+const fullDateFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric'
+});
+
 const VitalsTracker = () => {
   const { setItem, storageData } = useStorage();
   const { addNotification } = useNotifications();
@@ -199,7 +209,7 @@ const VitalsTracker = () => {
               {recentHistory.map((entry, idx) => (
                 <div key={idx} className="group p-6 bg-white/[0.02] border border-white/5 rounded-3xl hover:border-white/10 transition-all">
                   <div className="text-[0.6rem] font-black text-gray-600 uppercase tracking-widest mb-4">
-                    {new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    {fullDateFormatter.format(new Date(entry.date))}
                   </div>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">

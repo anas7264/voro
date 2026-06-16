@@ -6,6 +6,17 @@ import { validateWaterEntry } from '@/utils/validators';
 import Button from '@/components/Button';
 import LineChartComponent from '@/components/LineChartComponent';
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
+ * Prevents redundant object instantiation of Intl.DateTimeFormat in loops.
+ */
+const shortDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+const longDateFormatter = new Intl.DateTimeFormat('en-US', {
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric'
+});
+
 const HydroVessel = memo(({ percentage }) => {
   return (
     <div className="relative w-48 h-80 mx-auto group">
@@ -64,7 +75,7 @@ const HydroVessel = memo(({ percentage }) => {
 });
 
 const WaterTracker = () => {
-  const { getItem, setItem, storageData } = useStorage();
+  const { getItem, setItem, updateItem, storageData } = useStorage();
   const { addNotification } = useNotifications();
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const dailyGoal = 2000;
@@ -88,7 +99,7 @@ const WaterTracker = () => {
     return Object.entries(all)
       .slice(-30)
       .map(([d, amount]) => ({
-        date: new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        date: shortDateFormatter.format(new Date(d)),
         water: amount,
       }));
   }, [storageData['water_history']]);
@@ -111,14 +122,18 @@ const WaterTracker = () => {
       time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
     };
 
-    const logs = getItem('water_log') || {};
-    const updatedLogs = [...(logs[date] || []), newLog];
+    /**
+     * ⚡ OPTIMIZATION: Use updateItem for surgical key-level updates.
+     * Reduces the complexity of reading and spreading entire log objects.
+     */
+    const logsForDate = dailyLogs;
+    const updatedLogs = [...logsForDate, newLog];
 
-    const history = getItem('water_history') || {};
+    const history = storageData['water_history'] || {};
     const newTotal = (history[date] || 0) + amount;
 
-    await setItem('water_log', { ...logs, [date]: updatedLogs });
-    await setItem('water_history', { ...history, [date]: newTotal });
+    await updateItem('water_log', { [date]: updatedLogs });
+    await updateItem('water_history', { [date]: newTotal });
 
     if (newTotal >= dailyGoal && (newTotal - amount) < dailyGoal) {
       addNotification('Hydration threshold achieved. Cellular homeostasis optimized.', 'success');
@@ -126,17 +141,16 @@ const WaterTracker = () => {
   };
 
   const deleteLog = async (id) => {
-    const logs = getItem('water_log') || {};
-    const currentLogs = logs[date] || [];
+    const currentLogs = dailyLogs;
     const logToDelete = currentLogs.find(l => l.id === id);
     if (!logToDelete) return;
 
     const updatedLogs = currentLogs.filter(log => log.id !== id);
-    const history = getItem('water_history') || {};
+    const history = storageData['water_history'] || {};
     const newTotal = Math.max(0, (history[date] || 0) - logToDelete.amount);
 
-    await setItem('water_log', { ...logs, [date]: updatedLogs });
-    await setItem('water_history', { ...history, [date]: newTotal });
+    await updateItem('water_log', { [date]: updatedLogs });
+    await updateItem('water_history', { [date]: newTotal });
   };
 
   const handleDateChange = (days) => {
@@ -146,11 +160,7 @@ const WaterTracker = () => {
   };
 
   const percentage = Math.min((todayTotal / dailyGoal) * 100, 100);
-  const formattedDate = new Date(date).toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric'
-  });
+  const formattedDate = longDateFormatter.format(new Date(date));
 
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] pb-32 selection:bg-blue-500/30">

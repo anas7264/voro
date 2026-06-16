@@ -14,6 +14,7 @@ export const useStorage = () => {
     storageData: context.storageData,
     getStorage: context.getItem,
     setStorage: context.setItem,
+    updateItem: context.updateItem,
     removeStorage: context.deleteItem,
   };
 };
