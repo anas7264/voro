@@ -95,3 +95,14 @@ Defensive programming at the storage boundary provides a critical safety net. By
 
 **Prevention:**
 Always implement explicit key validation in persistence and state management utilities. Reject any key that matches `__proto__`, `constructor`, or `prototype` before performing any property assignment or serialization.
+
+## 2025-05-19 - Immutable Security State & Native Primitive Pinning
+
+**Vulnerability:**
+Runtime Self-Protection (RASP) systems are vulnerable to "meta-tampering" where an attacker monkey-patches the functions the security system itself relies on (e.g., `RegExp.prototype.test`, `setInterval`). Furthermore, global security flags like `VORO_COMPROMISED` can be reset to `false` by malicious scripts to escape lockdown.
+
+**Learning:**
+Effective RASP requires "Native Primitive Pinning"—capturing references to core browser functions (including timing and regex methods) at module load before any third-party code executes. Additionally, critical security state must be made immutable using `Object.defineProperty` with `writable: false` to prevent state-rollback attacks.
+
+**Prevention:**
+Always capture essential primitives (`setInterval`, `test`, `defineProperty`) as safe local variables at the very top of security modules. Ensure that security initialization in the application entry point (e.g., `main.jsx`) is the absolute first import to guarantee provenance of captured primitives.
