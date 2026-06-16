@@ -6,6 +6,17 @@ import Badge from '@/components/Badge';
 import { useStorage } from '@/hooks/useStorage';
 import { useNavigate } from 'react-router-dom';
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
+ * Prevents redundant object instantiation of Intl.DateTimeFormat in loops.
+ */
+const fullDateFormatter = new Intl.DateTimeFormat('en-US', {
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric'
+});
+
 const WorkoutHistory = () => {
   const { storageData } = useStorage();
   const navigate = useNavigate();
@@ -83,9 +94,7 @@ const WorkoutHistory = () => {
                       <div className="flex items-center gap-3 mb-1">
                         <Calendar size={14} className="text-gray-500" />
                         <span className="text-sm text-gray-400">
-                          {new Date(workout.date).toLocaleDateString('en-US', {
-                            weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
-                          })}
+                          {fullDateFormatter.format(new Date(workout.date))}
                         </span>
                       </div>
                       <h3 className={`text-lg font-bold mb-2 ${typeColors[workout.type] || typeColors.default}`}>

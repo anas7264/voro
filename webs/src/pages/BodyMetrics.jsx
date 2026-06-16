@@ -11,8 +11,14 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { calculateBMI, calculateFFMI } from '@/utils/calculators';
 import { isValidWeight, isValidBodyFat, isPositiveNumber } from '@/utils/validators';
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
+ * Prevents redundant object instantiation of Intl.DateTimeFormat in loops.
+ */
+const shortDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+
 const BodyMetrics = () => {
-  const { setItem, storageData } = useStorage();
+  const { setItem, updateItem, storageData } = useStorage();
   const { user } = useApp();
   const { addNotification } = useNotifications();
   const [weight, setWeight] = useState('');
@@ -52,12 +58,19 @@ const BodyMetrics = () => {
       return;
     }
 
-    const allMetrics = { ...metrics };
-    allMetrics.weights = [...allMetrics.weights, {
+    const newWeight = {
       date: new Date().toISOString(),
       value: Number(weight),
-    }];
-    await setItem('body_metrics', allMetrics);
+    };
+
+    /**
+     * ⚡ OPTIMIZATION: Use updateItem for atomic key-level persistence.
+     * Prevents full object read-spread-write cycles.
+     */
+    await updateItem('body_metrics', {
+      weights: [...(metrics.weights || []), newWeight]
+    });
+
     setWeight('');
     addNotification('Mass record synchronized', 'success');
   };
@@ -74,12 +87,18 @@ const BodyMetrics = () => {
       return;
     }
 
-    const allMetrics = { ...metrics };
-    allMetrics.measurements = [...allMetrics.measurements, {
+    const newMeasurement = {
       date: new Date().toISOString(),
       ...measurements,
-    }];
-    await setItem('body_metrics', allMetrics);
+    };
+
+    /**
+     * ⚡ OPTIMIZATION: Atomic update for anatomical dimensions.
+     */
+    await updateItem('body_metrics', {
+      measurements: [...(metrics.measurements || []), newMeasurement]
+    });
+
     setMeasurements({
       chest: '',
       waist: '',
@@ -99,27 +118,33 @@ const BodyMetrics = () => {
       return;
     }
 
-    const allMetrics = { ...metrics };
-    allMetrics.bodyFat = [...allMetrics.bodyFat, {
+    const newBodyFat = {
       date: new Date().toISOString(),
       value: Number(bodyFat),
-    }];
-    await setItem('body_metrics', allMetrics);
+    };
+
+    /**
+     * ⚡ OPTIMIZATION: Atomic update for adipose index.
+     */
+    await updateItem('body_metrics', {
+      bodyFat: [...(metrics.bodyFat || []), newBodyFat]
+    });
+
     setBodyFat('');
     addNotification('Adipose index updated', 'success');
   };
 
   /**
-   * ⚡ OPTIMIZATION: Memoized derived data.
-   * Ensures expensive transformations and calculations only run when metrics change.
+   * ⚡ OPTIMIZATION: Memoized derived data with surgical reactivity.
+   * Hoisted formatters eliminate object churn in the trend loop.
    */
   const weightData = useMemo(() => metrics.weights.slice(-30).map(w => ({
-    date: new Date(w.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    date: shortDateFormatter.format(new Date(w.date)),
     weight: w.value,
   })), [metrics.weights]);
 
   const bodyFatData = useMemo(() => metrics.bodyFat.slice(-30).map(b => ({
-    date: new Date(b.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    date: shortDateFormatter.format(new Date(b.date)),
     bodyFat: b.value,
   })), [metrics.bodyFat]);
 

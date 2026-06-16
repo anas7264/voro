@@ -6,6 +6,17 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { isDateInFuture } from '@/utils/validators';
 
 /**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
+ * Prevents redundant object instantiation of Intl.DateTimeFormat.
+ */
+const longDateFormatter = new Intl.DateTimeFormat('en-US', {
+  weekday: 'short',
+  month: 'long',
+  day: 'numeric',
+  year: 'numeric'
+});
+
+/**
  * ⚡ OPTIMIZATION: Redesigned as a 'Peak Performance Manifest' luxury experience.
  * Incorporates a luxury boutique gallery aesthetic with Playfair Display italics,
  * mathematical whitespace, and a high-end 'Chronos Node' countdown artifact.
@@ -152,7 +163,7 @@ const CompetitionPrep = () => {
                     <div className="space-y-4">
                       <h3 className="text-[0.65rem] font-mono font-medium text-gray-600 uppercase tracking-[0.4em]">Target Event</h3>
                       <p className="text-2xl font-mono font-bold text-white tracking-[0.2em] leading-tight">
-                        {new Date(compData.date).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()}
+                        {longDateFormatter.format(new Date(compData.date)).toUpperCase()}
                       </p>
                     </div>
                   </div>

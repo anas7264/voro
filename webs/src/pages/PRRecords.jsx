@@ -5,6 +5,16 @@ import Badge from '@/components/Badge';
 import { useStorage } from '@/hooks/useStorage';
 import { exercises } from '@/data/exercises';
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
+ * Prevents redundant object instantiation of Intl.DateTimeFormat in loops.
+ */
+const fullDateFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric'
+});
+
 const PRRecords = () => {
   const { storageData } = useStorage();
 
@@ -72,7 +82,7 @@ const PRRecords = () => {
                           {record.reps} <span className="text-[0.65rem] font-black text-gray-600 uppercase tracking-widest ml-1">reps</span>
                         </div>
                         <div className="text-[0.55rem] font-black text-gray-600 uppercase tracking-[0.2em] mt-1">
-                          {new Date(record.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          {fullDateFormatter.format(new Date(record.date))}
                         </div>
                       </div>
                       {idx === 0 && <Badge variant="voro-accent" dot>APEX</Badge>}

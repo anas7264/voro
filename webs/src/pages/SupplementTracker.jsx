@@ -6,6 +6,16 @@ import { useStorage } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { supplements } from '@/data/supplements';
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
+ * Prevents redundant object instantiation of Intl.DateTimeFormat in loops.
+ */
+const fullDateFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric'
+});
+
 const SupplementTracker = () => {
   const { storageData, setItem } = useStorage();
   const { addNotification } = useNotifications();
@@ -119,7 +129,7 @@ const SupplementTracker = () => {
                     <div>
                       <p className="text-[0.55rem] font-black text-gray-600 uppercase tracking-widest">Protocol Initiation</p>
                       <p className="text-sm font-mono font-bold text-white uppercase">
-                        {new Date(supp.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {fullDateFormatter.format(new Date(supp.startDate))}
                       </p>
                     </div>
                   </div>
