@@ -115,7 +115,7 @@ const QuickLog = () => {
                 <button
                   key={food.name}
                   onClick={() => handleQuickFoodLog(food.name)}
-                  className="w-full flex items-center justify-between px-6 py-5 bg-white/[0.02] border border-white/5 rounded-2xl transition-all hover:bg-white/[0.05] hover:border-voro-primary/30 group"
+                  className="w-full flex items-center justify-between px-6 py-5 bg-white/[0.02] border border-white/5 rounded-2xl transition-all hover:bg-white/[0.05] hover:border-voro-primary/30 group active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-voro-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14]"
                 >
                   <div className="flex items-center gap-4">
                     <span className="text-xl">{food.icon}</span>
@@ -150,7 +150,7 @@ const QuickLog = () => {
                 <button
                    key={workout.name}
                    onClick={() => handleQuickWorkoutLog(workout.name, workout.type)}
-                   className="w-full flex items-center justify-between px-6 py-5 bg-white/[0.02] border border-white/5 rounded-2xl transition-all hover:bg-white/[0.05] hover:border-voro-secondary/30 group"
+                   className="w-full flex items-center justify-between px-6 py-5 bg-white/[0.02] border border-white/5 rounded-2xl transition-all hover:bg-white/[0.05] hover:border-voro-secondary/30 group active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-voro-secondary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14]"
                 >
                   <div className="flex items-center gap-4">
                     <span className="text-xl">{workout.icon}</span>
@@ -188,7 +188,7 @@ const QuickLog = () => {
                 <button
                   key={water.amount}
                   onClick={() => handleQuickWaterLog(water.amount)}
-                  className="flex flex-col items-center justify-center p-8 bg-white/[0.02] border border-white/5 rounded-[2.5rem] transition-all hover:bg-white/[0.05] hover:border-voro-primary/30 group"
+                  className="flex flex-col items-center justify-center p-8 bg-white/[0.02] border border-white/5 rounded-[2.5rem] transition-all hover:bg-white/[0.05] hover:border-voro-primary/30 group active:scale-[0.95] outline-none focus-visible:ring-2 focus-visible:ring-voro-primary/50 focus-visible:ring-offset-4 focus-visible:ring-offset-[#0A0C14]"
                 >
                    <div className="text-4xl font-serif italic font-bold text-white mb-1">+{water.amount}<span className="text-[0.6rem] not-italic font-sans font-black text-voro-primary uppercase ml-1">ml</span></div>
                    <div className="text-[0.6rem] font-black text-gray-600 uppercase tracking-widest">{water.label}</div>
@@ -239,11 +239,11 @@ const QuickLog = () => {
         </Card>
 
         <div className="mt-12 flex flex-col sm:flex-row justify-center gap-6">
-           <button className="flex items-center justify-center gap-3 px-8 py-3.5 bg-white/5 border border-white/5 text-gray-400 rounded-full text-[0.6rem] font-black uppercase tracking-[0.25em] transition-all hover:bg-white/10 hover:text-white">
+           <button className="flex items-center justify-center gap-3 px-8 py-3.5 bg-white/5 border border-white/5 text-gray-400 rounded-full text-[0.6rem] font-black uppercase tracking-[0.25em] transition-all hover:bg-white/10 hover:text-white active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408]">
               <Download size={14} />
               <span>Export History</span>
            </button>
-           <button className="flex items-center justify-center gap-3 px-8 py-3.5 bg-white/5 border border-white/5 text-gray-400 rounded-full text-[0.6rem] font-black uppercase tracking-[0.25em] transition-all hover:bg-white/10 hover:text-white">
+           <button className="flex items-center justify-center gap-3 px-8 py-3.5 bg-white/5 border border-white/5 text-gray-400 rounded-full text-[0.6rem] font-black uppercase tracking-[0.25em] transition-all hover:bg-white/10 hover:text-white active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408]">
               <Share2 size={14} />
               <span>Share Evolution</span>
            </button>
