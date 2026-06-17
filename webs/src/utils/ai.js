@@ -1,7 +1,7 @@
 // VORO Claude AI Integration
 // API wrapper for Claude AI with streaming and error handling
 
-import { redactData, validateAIResponse, generateSecurityNonce, maskBiometrics, validateCallStack, isDeceptionActive, getDecoyData } from './security';
+import { redactData, validateAIResponse, generateSecurityNonce, maskBiometrics, validateCallStack, isDeceptionActive, getDecoyData, executeSecurely } from './security';
 
 const CLAUDE_API_KEY = import.meta.env.VITE_CLAUDE_API_KEY;
 const CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
@@ -67,16 +67,18 @@ class VoroAIClient {
         return await this.streamAPI(payload, abortSignal, nonce);
       }
 
-      // Regular API call
-      const response = await fetch(this.apiUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": this.apiKey,
-          "anthropic-version": "2023-06-01"
-        },
-        body: JSON.stringify(payload),
-        signal: abortSignal
+      // Neural Command Attestation: Authorize network egress
+      const response = await executeSecurely("Claude API Call", async () => {
+        return await fetch(this.apiUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": this.apiKey,
+            "anthropic-version": "2023-06-01"
+          },
+          body: JSON.stringify(payload),
+          signal: abortSignal
+        });
       });
 
       if (!response.ok) {
@@ -114,15 +116,18 @@ class VoroAIClient {
   // Stream API responses for real-time output
   async streamAPI(payload, abortSignal, nonce = null) {
     try {
-      const response = await fetch(this.apiUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": this.apiKey,
-          "anthropic-version": "2023-06-01"
-        },
-        body: JSON.stringify({ ...payload, stream: true }),
-        signal: abortSignal
+      // Neural Command Attestation: Authorize network egress
+      const response = await executeSecurely("Claude API Stream", async () => {
+        return await fetch(this.apiUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": this.apiKey,
+            "anthropic-version": "2023-06-01"
+          },
+          body: JSON.stringify({ ...payload, stream: true }),
+          signal: abortSignal
+        });
       });
 
       if (!response.ok) {
