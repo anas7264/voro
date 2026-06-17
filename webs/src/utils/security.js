@@ -12,9 +12,14 @@ const _exec = RegExp.prototype.exec;
 const _setInterval = typeof setInterval !== 'undefined' ? setInterval : null;
 const _setTimeout = typeof setTimeout !== 'undefined' ? setTimeout : null;
 const _Error = Error;
+const _fetch = typeof window !== 'undefined' ? window.fetch : null;
+const _XHR = typeof window !== 'undefined' ? window.XMLHttpRequest : null;
+const _WebSocket = typeof window !== 'undefined' ? window.WebSocket : null;
+const _sendBeacon = (typeof window !== 'undefined' && window.navigator) ? window.navigator.sendBeacon : null;
 const _freeze = Object.freeze;
 const _defineProperty = Object.defineProperty;
 const _getOwnPropertyNames = Object.getOwnPropertyNames;
+const _getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
 const _getPrototypeOf = Object.getPrototypeOf;
 const _hasOwnProperty = Object.prototype.hasOwnProperty;
 const _ReflectApply = typeof Reflect !== 'undefined' ? Reflect.apply : null;
@@ -59,6 +64,8 @@ const corePrototypes = [
   { name: 'Number', proto: Number.prototype },
   { name: 'Boolean', proto: Boolean.prototype }
 ];
+
+const TRUSTED_WRAPPERS = new WeakSet();
 
 const snapshotPrototypes = () => {
   if (typeof window === 'undefined') return;
@@ -323,6 +330,158 @@ export const getDecoyData = (key) => {
 export const isDeceptionActive = () => {
   return typeof window !== 'undefined' && window.VORO_DECEPTION_ACTIVE === true;
 };
+
+/**
+ * Neural Command Attestation (NCA)
+ * Implements a capability-based security model for high-risk network sinks.
+ */
+let attestationPermitCount = 0;
+
+// Trusted origins that bypass mandatory attestation (UX safety)
+const ATTESTATION_WHITELIST = [
+  'self',
+  'https://fonts.googleapis.com',
+  'https://fonts.gstatic.com'
+];
+
+/**
+ * Executes a callback within a secure attested context, authorizing network egress.
+ */
+export const executeSecurely = async (action, callback) => {
+  if (typeof window === 'undefined') return await callback();
+
+  // Pre-execution Call Stack Attestation
+  if (!validateCallStack()) {
+    throw new _Error("Security Sentinel: Secure execution context denied due to unauthorized provenance.");
+  }
+
+  attestationPermitCount++;
+  try {
+    return await callback();
+  } finally {
+    attestationPermitCount--;
+  }
+};
+
+const verifyAttestation = (sinkName, targetUrl = null) => {
+  if (typeof window === 'undefined') return true;
+
+  // Circuit breaker: skip if already compromised
+  if (window.VORO_COMPROMISED) return false;
+
+  // 1. Whitelist Verification (Prevents breaking core app functionality)
+  if (targetUrl) {
+    try {
+      const url = new URL(targetUrl, window.location.origin);
+      if (ATTESTATION_WHITELIST.includes('self') && url.origin === window.location.origin) return true;
+      if (ATTESTATION_WHITELIST.some(allowed => url.origin === allowed)) return true;
+    } catch (e) { /* fallback to strict attestation if URL is malformed */ }
+  }
+
+  // 2. Capability Check: Is there an active authorized context?
+  if (attestationPermitCount <= 0) {
+    if (_console.error) _call.call(_console.error, console, `Security Sentinel: Unauthorized network egress attempt via ${sinkName} to [${targetUrl || 'unknown'}]. Command denied (Missing Attestation Permit).`);
+
+    // Surgical Lockdown: Only trigger for sensitive API targets to minimize false positives
+    if (targetUrl && (targetUrl.includes('api.anthropic.com') || targetUrl.includes('openai.com'))) {
+      executeLockdown();
+    }
+    return false;
+  }
+
+  // 3. CSA: Ensure the current call stack provenance is still valid
+  if (!validateCallStack()) {
+    if (_console.error) _call.call(_console.error, console, `Security Sentinel: Attestation Permit mismatch for ${sinkName}. Provenance validation failed.`);
+    executeLockdown();
+    return false;
+  }
+
+  return true;
+};
+
+/**
+ * Attestation Sink Orchestrator
+ * Intercepts and wraps high-risk browser APIs with attestation guards.
+ */
+const initializeNetworkAttestation = () => {
+  if (typeof window === 'undefined') return;
+
+  // Wrap fetch
+  if (_fetch) {
+    const fetchWrapper = function(...args) {
+      const url = (args[0] instanceof Request) ? args[0].url : args[0];
+      if (!verifyAttestation('fetch', url)) {
+        return Promise.reject(new _Error("Network command blocked by VORO Neural Shield. No Attestation Permit found."));
+      }
+      return _ReflectApply ? _ReflectApply(_fetch, window, args) : _call.call(_fetch, window, ...args);
+    };
+    TRUSTED_WRAPPERS.add(fetchWrapper);
+    window.fetch = fetchWrapper;
+  }
+
+  // Wrap XMLHttpRequest
+  if (_XHR) {
+    const OriginalXHR = _XHR;
+    const xhrWrapper = function() {
+      if (!verifyAttestation('XMLHttpRequest')) {
+        throw new _Error("XHR creation blocked by VORO Neural Shield. No Attestation Permit found.");
+      }
+      return new OriginalXHR();
+    };
+    // Re-link prototype and static properties
+    xhrWrapper.prototype = OriginalXHR.prototype;
+    _getOwnPropertyNames(OriginalXHR).forEach(prop => {
+      if (!xhrWrapper[prop]) {
+        try {
+          const descriptor = _getOwnPropertyDescriptor(OriginalXHR, prop);
+          if (descriptor) _defineProperty(xhrWrapper, prop, descriptor);
+        } catch (e) { /* ignore */ }
+      }
+    });
+
+    TRUSTED_WRAPPERS.add(xhrWrapper);
+    window.XMLHttpRequest = xhrWrapper;
+  }
+
+  // Wrap WebSocket
+  if (_WebSocket) {
+    const OriginalWS = _WebSocket;
+    const wsWrapper = function(url, protocols) {
+      if (!verifyAttestation('WebSocket', url)) {
+        throw new _Error("WebSocket connection blocked by VORO Neural Shield. No Attestation Permit found.");
+      }
+      return new OriginalWS(url, protocols);
+    };
+    wsWrapper.prototype = OriginalWS.prototype;
+    _getOwnPropertyNames(OriginalWS).forEach(prop => {
+      if (!wsWrapper[prop]) {
+        try {
+          const descriptor = _getOwnPropertyDescriptor(OriginalWS, prop);
+          if (descriptor) _defineProperty(wsWrapper, prop, descriptor);
+        } catch (e) { /* ignore */ }
+      }
+    });
+
+    TRUSTED_WRAPPERS.add(wsWrapper);
+    window.WebSocket = wsWrapper;
+  }
+
+  // Wrap Navigator.sendBeacon
+  if (_sendBeacon && window.navigator) {
+    const beaconWrapper = function(...args) {
+      const url = args[0];
+      if (!verifyAttestation('navigator.sendBeacon', url)) {
+        return false;
+      }
+      return _ReflectApply ? _ReflectApply(_sendBeacon, window.navigator, args) : _call.call(_sendBeacon, window.navigator, ...args);
+    };
+    TRUSTED_WRAPPERS.add(beaconWrapper);
+    window.navigator.sendBeacon = beaconWrapper;
+  }
+};
+
+// Initialize Attestation Sinks
+initializeNetworkAttestation();
 
 /**
  * Creates a Honey-Trap object using Proxy to monitor unauthorized access.
@@ -614,10 +773,16 @@ export const performIntegrityCheck = () => {
     }
   };
 
+  // Attestation-Aware Integrity Check
+  const isAuthorized = (fn) => {
+    if (TRUSTED_WRAPPERS.has(fn)) return true;
+    return isNative(fn);
+  };
+
   coreAPIs.forEach(({ obj, prop, name }) => {
     try {
       if (obj && obj[prop]) {
-        if (!isNative(obj[prop])) {
+        if (!isAuthorized(obj[prop])) {
           if (_console.error) _call.call(_console.error, console, `Security Sentinel: Integrity Violation! ${name} has been monkey-patched.`);
           compromised = true;
         }
@@ -636,377 +801,6 @@ export const performIntegrityCheck = () => {
 };
 
 /**
- * Security Heartbeat
- * Continuously monitors environment integrity in the background.
- */
-let heartbeatInterval = null;
-export const startSecurityHeartbeat = (intervalMs = 30000) => {
-  if (heartbeatInterval || !_setInterval) return;
-
-  heartbeatInterval = _setInterval(() => {
-    performIntegrityCheck();
-    if (window.VORO_COMPROMISED) {
-      // Note: We use the native clearInterval if possible, though heartbeat silence is preferred in lockdown
-      if (typeof clearInterval !== 'undefined') clearInterval(heartbeatInterval);
-      heartbeatInterval = null;
-    }
-  }, intervalMs);
-};
-
-/**
- * Privacy-Preserving Biometric Masking
- * Applies "jitter" or "bucketing" to sensitive metrics to protect exact identity.
- * Hardened with window.crypto for secure entropy.
- */
-export const maskBiometrics = (data, seen = new WeakSet()) => {
-  if (data === null || data === undefined) return data;
-  if (typeof data !== 'object') return data;
-  if (seen.has(data)) return data;
-
-  seen.add(data);
-
-  if (Array.isArray(data)) {
-    return data.map(item => maskBiometrics(item, seen));
-  }
-
-  const result = {};
-  const biometricKeys = ['weight', 'height', 'bodyfat', 'body_fat', 'age', 'bmi', 'systolic', 'diastolic', 'heartrate', 'heart_rate'];
-
-  Object.keys(data).forEach(key => {
-    const lowerKey = key.toLowerCase();
-    const value = data[key];
-
-    if (biometricKeys.includes(lowerKey) && typeof value === 'number') {
-      // Apply deterministic bucketing/jittering
-      if (lowerKey === 'age') {
-        // Bucket age into 5-year increments (e.g., 27 -> "25-30")
-        const floor = Math.floor(value / 5) * 5;
-        result[key] = `${floor}-${floor + 5}`;
-      } else if (lowerKey.includes('weight')) {
-        // Round to nearest 0.5kg
-        result[key] = Math.round(value * 2) / 2;
-      } else if (lowerKey.includes('fat')) {
-        // Round to nearest 1%
-        result[key] = Math.round(value);
-      } else if (lowerKey.includes('systolic') || lowerKey.includes('diastolic')) {
-        // Round to nearest 5mmHg
-        result[key] = Math.round(value / 5) * 5;
-      } else {
-        // Hardened Jitter: Use CSPRNG for entropy
-        let entropy = 0.5;
-        if (typeof window !== 'undefined' && window.crypto) {
-          const array = new Uint32Array(1);
-          window.crypto.getRandomValues(array);
-          entropy = array[0] / 4294967295;
-        } else {
-          entropy = Math.random();
-        }
-
-        const jitter = 0.99 + (entropy * 0.02); // +/- 1% range
-        result[key] = parseFloat((value * jitter).toFixed(1));
-      }
-    } else {
-      result[key] = maskBiometrics(value, seen);
-    }
-  });
-
-  return result;
-};
-
-/**
- * Advanced PII Redaction Engine
- * Uses a multi-tier approach to protect user privacy.
- */
-export const redactData = (data, seen = new WeakSet()) => {
-  if (data === null || data === undefined) return data;
-
-  // Handle strings (Regex-based PII detection)
-  if (typeof data === 'string') {
-    let redacted = data;
-    // Email (Standard PII)
-    redacted = redacted.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[REDACTED_EMAIL]');
-    // Phone
-    redacted = redacted.replace(/(\+\d{1,3}[- ]?)?\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}/g, '[REDACTED_PHONE]');
-    // Addresses / Locations (Basic pattern)
-    redacted = redacted.replace(/\d+\s+[a-zA-Z0-9\s,]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Square|Sq|Trail|Trl)\.?/gi, '[REDACTED_ADDRESS]');
-    // Credit Cards (Harsher detection for 13-19 digits with optional spaces/dashes)
-    redacted = redacted.replace(/\b(?:4[0-9]{3}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{1,4}|5[1-5][0-9]{2}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}|3[47][0-9]{2}[\s-]?\d{6}[\s-]?\d{5}|6(?:011|5[0-9]{2})[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4})\b/g, '[REDACTED_FINANCIAL]');
-    // SSN (Identity Protection)
-    redacted = redacted.replace(/\b\d{3}-\d{2}-\d{4}\b/g, '[REDACTED_ID]');
-    // IP Addresses (IPv4 & IPv6)
-    redacted = redacted.replace(/\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/g, '[REDACTED_IP]');
-    redacted = redacted.replace(/\b(?:[A-F0-9]{1,4}:){7}[A-F0-9]{1,4}\b/gi, '[REDACTED_IP]');
-    // JWT Tokens
-    redacted = redacted.replace(/\beyJ[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*\b/g, '[REDACTED_JWT]');
-    // UUIDs
-    redacted = redacted.replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, '[REDACTED_UUID]');
-    // Crypto Wallets (BTC & ETH)
-    redacted = redacted.replace(/\b(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,39}\b/g, '[REDACTED_CRYPTO]');
-    redacted = redacted.replace(/\b0x[a-fA-F0-9]{40}\b/g, '[REDACTED_CRYPTO]');
-    // Common API Keys (Anthropic, OpenAI, AWS, Google, GitHub, etc.)
-    redacted = redacted.replace(/\b(sk-ant-api03-[a-zA-Z0-9_-]{20,}|sk-[a-zA-Z0-9]{20,})\b/g, '[REDACTED_API_KEY]');
-    redacted = redacted.replace(/\b(sk_(?:live|test)_[0-9a-zA-Z]{24,34})\b/g, '[REDACTED_STRIPE_KEY]');
-    redacted = redacted.replace(/\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/g, '[REDACTED_AWS_KEY]');
-    redacted = redacted.replace(/\bAIza[0-9A-Za-z-_]{35}\b/g, '[REDACTED_GOOGLE_KEY]');
-    redacted = redacted.replace(/\bgh[pousr]_[a-zA-Z0-9]{36,251}\b/g, '[REDACTED_GITHUB_TOKEN]');
-    // GitHub Fine-grained Personal Access Token
-    redacted = redacted.replace(/\bgithub_pat_[a-zA-Z0-9]{82}\b/g, '[REDACTED_GITHUB_TOKEN]');
-    // Private Keys (RSA/EC/Generic)
-    redacted = redacted.replace(/-----BEGIN (?:RSA |EC )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC )?PRIVATE KEY-----/gi, '[REDACTED_PRIVATE_KEY]');
-    // Slack & Discord Webhooks
-    redacted = redacted.replace(/https:\/\/hooks\.slack\.com\/services\/[A-Z0-9]+\/[A-Z0-9]+\/[A-Za-z0-9]+/g, '[REDACTED_WEBHOOK]');
-    redacted = redacted.replace(/https:\/\/discord\.com\/api\/webhooks\/\d+\/[A-Za-z0-9_-]+/g, '[REDACTED_WEBHOOK]');
-
-    // Entropy-based catch-all for unknown high-entropy secrets (API keys, session tokens)
-    // Targets alphanumeric strings with high entropy that are likely to be secrets
-    redacted = redacted.replace(/\b[A-Za-z0-9+/=]{24,}\b/g, (match) => {
-      // Skip already redacted markers
-      if (match.startsWith('[REDACTED_') || match.startsWith('[[') || match.includes('_REDACTED')) return match;
-      // If entropy is high enough, it's likely a secret
-      if (calculateEntropy(match) > 3.8) {
-        return '[REDACTED_HIGH_ENTROPY_SECRET]';
-      }
-      return match;
-    });
-
-    // AI Boundary Marker Neutralization (Prevents indirect prompt injection)
-    // Escapes markers like [USER_DATA], [MESSAGE_HISTORY], [SECURITY_PROTOCOL]
-    // Uses balanced brackets (e.g., [[USER_DATA]]) to neutralize their special meaning
-    // Generalizes to any [TAG] or [/TAG] with 3+ uppercase alphanumeric characters
-    redacted = redacted.replace(/\[(\/?(?:[A-Z0-9_]{3,}))\]/gi, '[[$1]]');
-
-    return redacted;
-  }
-
-  // If deception is active, serve decoy data if possible
-  if (isDeceptionActive() && typeof data === 'object' && data !== null) {
-    // We only serve decoys for known sensitive object patterns
-    const objectKeys = Object.keys(data);
-    if (objectKeys.includes('calories') || objectKeys.includes('exercise') || objectKeys.includes('heart_rate')) {
-      return getDecoyData('vitals');
-    }
-  }
-
-  // Handle non-objects
-  if (typeof data !== 'object') return data;
-
-  // Prevent circularity
-  if (seen.has(data)) return '[CIRCULAR_REF]';
-
-  // Handle Arrays
-  if (Array.isArray(data)) {
-    seen.add(data);
-    return data.map(item => redactData(item, seen));
-  }
-
-  // Handle Objects
-  seen.add(data);
-  const result = {};
-
-  // Sensitivity Tiers
-  const criticalKeys = ['password', 'secret', 'token', 'key', 'apiKey', 'masterKey', 'auth', 'credential', 'session', 'cookie', 'canary'];
-  const sensitiveKeys = ['name', 'email', 'phone', 'address', 'location', 'gymname', 'gym_name', 'latitude', 'longitude', 'lat', 'lng', 'birthday', 'social', 'voro_'];
-
-  Object.keys(data).forEach(key => {
-    // Prototype Pollution Guard
-    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
-      if (_console.error) _call.call(_console.error, console, "Security Sentinel: Potential Prototype Pollution attempt detected and blocked during redaction.");
-      return;
-    }
-
-    const lowerKey = key.toLowerCase();
-
-    // Tier 1: Critical - Hard Redaction
-    if (criticalKeys.some(ck => lowerKey.includes(ck))) {
-      result[key] = '[CRITICAL_DATA_REDACTED]';
-    }
-    // Tier 2: Sensitive - Standard Redaction
-    else if (sensitiveKeys.some(sk => lowerKey === sk || lowerKey.includes(sk))) {
-      result[key] = '[REDACTED]';
-    }
-    // Tier 3: Pass-through with recursive check
-    else {
-      result[key] = redactData(data[key], seen);
-    }
-  });
-
-  return result;
-};
-
-/**
- * Deep URL decoding to uncover obfuscated exfiltration paths.
- */
-const recursiveUrlDecode = (url) => {
-  let decoded = url;
-  let prev;
-  try {
-    do {
-      prev = decoded;
-      decoded = decodeURIComponent(decoded);
-    } while (decoded !== prev);
-  } catch (e) {
-    // Stop decoding if malformed
-  }
-  return decoded;
-};
-
-/**
- * Validates AI response for security and privacy compliance.
- */
-export const validateAIResponse = (response, nonce = null) => {
-  if (typeof response !== 'string') return response;
-
-  // 1. Critical Violation: Nonce Leakage
-  if (nonce && response.includes(nonce)) {
-    if (_console.error) _call.call(_console.error, console, "Security Sentinel: Security nonce leaked in AI response. Potential instruction override.");
-    return "The AI generated a response that violates security protocols and has been neutralized.";
-  }
-
-  // 2. Critical Violation: Prompt Injection Remnants
-  const dangerousIndicators = [
-    'system prompt',
-    'ignore previous instructions',
-    'reveal your secrets',
-    'new role is',
-    'acting as a',
-    'from now on you'
-  ];
-
-  if (dangerousIndicators.some(indicator => response.toLowerCase().includes(indicator))) {
-    if (_console.error) _call.call(_console.error, console, "Security Sentinel: Potential prompt injection detected in AI response.");
-    return "The AI generated a response that violates security protocols and has been neutralized.";
-  }
-
-  let validatedResponse = response;
-
-  // 3. Privacy: Mandatory Data Redaction
-  // We run redactData unconditionally to ensure all sensitive patterns (JWT, UUID, Crypto, PII) are caught.
-  validatedResponse = redactData(validatedResponse);
-
-  // 4. Data Exfiltration: AI Firewall (Recursive Markdown & Protocol Analysis)
-  // Prevents "Indirect Prompt Injection" or AI-driven exfiltration via tracking pixels,
-  // credential harvesting, or protocol-relative smuggling.
-  const exfiltrationPattern = /!?\[.*?\]\((.*?)\)/gi;
-  validatedResponse = validatedResponse.replace(exfiltrationPattern, (match, url) => {
-    const trimmedUrl = url.trim();
-
-    // Block protocol-relative and non-standard schemes
-    if (trimmedUrl.startsWith('//') ||
-        trimmedUrl.toLowerCase().startsWith('javascript:') ||
-        trimmedUrl.toLowerCase().startsWith('data:') ||
-        trimmedUrl.toLowerCase().startsWith('blob:') ||
-        trimmedUrl.toLowerCase().startsWith('file:') ||
-        trimmedUrl.toLowerCase().startsWith('php:') ||
-        trimmedUrl.toLowerCase().startsWith('vbscript:')) {
-      if (_console.error) _call.call(_console.error, console, "Security Sentinel: Smuggled protocol detected in AI response.");
-      return '[LINK_REMOVED_FOR_SECURITY]';
-    }
-
-    // Deep Analysis of the URL target
-    const decodedUrl = recursiveUrlDecode(trimmedUrl);
-
-    // Check for leaked nonces or sensitive system keys in parameters
-    const hasSensitiveParams = (nonce && decodedUrl.includes(nonce)) ||
-      /token|key|auth|credential|secret|cookie|session|localstorage|nonce|voro_|id_token|access_token/i.test(decodedUrl);
-
-    if (hasSensitiveParams) {
-      if (_console.error) _call.call(_console.error, console, "Security Sentinel: Sensitive data leakage detected in AI link.");
-      return '[LINK_REMOVED_FOR_SECURITY]';
-    }
-
-    // High-Entropy Detection: Identifies potential base64-encoded exfiltration
-    // Threshold 4.5 is high enough for typical text but flags high-entropy blobs
-    if (calculateEntropy(decodedUrl) > 4.5 && decodedUrl.length > 50) {
-      if (_console.error) _call.call(_console.error, console, "Security Sentinel: High-entropy data smuggling detected in AI response.");
-      return '[LINK_REMOVED_FOR_SECURITY]';
-    }
-
-    return match;
-  });
-
-  return validatedResponse;
-};
-
-/**
- * Deep sanitization for nested objects (used before storage)
- */
-export const sanitizeObject = (obj, seen = new WeakSet()) => {
-  if (obj === null || obj === undefined) return obj;
-  if (typeof obj === 'string') return sanitizeInput(obj);
-  if (typeof obj !== 'object') return obj;
-  if (seen.has(obj)) return obj;
-
-  seen.add(obj);
-
-  if (Array.isArray(obj)) {
-    return obj.map(item => sanitizeObject(item, seen));
-  }
-
-  const result = {};
-  Object.keys(obj).forEach(key => {
-    // Prototype Pollution Guard
-    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
-      if (_console.error) _call.call(_console.error, console, "Security Sentinel: Potential Prototype Pollution attempt detected and blocked during sanitization.");
-      return;
-    }
-
-    result[key] = sanitizeObject(obj[key], seen);
-  });
-  return result;
-};
-
-/**
- * Privacy-Preserving Logging Engine
- * Globally overrides console methods to redact PII/secrets and inject deception.
- * Positioned at the end of the module to ensure all dependencies are initialized.
- */
-const initializeLoggingEngine = () => {
-  if (typeof window === 'undefined' || typeof console === 'undefined') return;
-
-  const methods = ['log', 'warn', 'error', 'info', 'debug', 'trace'];
-
-  methods.forEach(method => {
-    const originalMethod = _console[method];
-    if (!originalMethod) return;
-
-    console[method] = (...args) => {
-      // 1. Cyber Deception: Inject honey-tokens if compromised
-      if (isDeceptionActive() && Math.random() > 0.8) {
-        const decoys = [
-          "Security Sentinel: Bypass confirmed with token VORO_BYPASS_882193",
-          "Internal vault access granted: root_config_v3_master",
-          "Session restored for admin_session_token_0x7721",
-          "DEBUG: system_vault decryption key 0xAE712FB3C9"
-        ];
-        _call.call(originalMethod, console, decoys[Math.floor(Math.random() * decoys.length)]);
-      }
-
-      // 2. Redaction: Process arguments to strip PII and high-entropy secrets
-      // Note: We use a special flag to prevent recursive redaction loops if redactData logs.
-      const redactedArgs = args.map(arg => {
-        try {
-          if (typeof arg === 'string') return redactData(arg);
-          if (typeof arg === 'object' && arg !== null) return redactData(arg);
-          return arg;
-        } catch (e) {
-          return "[REDACTION_FAILURE]";
-        }
-      });
-
-      // 3. Execution: Call native primitive with safe data
-      if (_ReflectApply) {
-        _ReflectApply(originalMethod, console, redactedArgs);
-      } else {
-        _call.call(originalMethod, console, ...redactedArgs);
-      }
-    };
-  });
-};
-
-// Start the engine
-initializeLoggingEngine();
-
-/**
  * Sentinel Self-Protection
  * Freezes the public API and core utilities to prevent runtime tampering.
  */
@@ -1020,6 +814,7 @@ const sentinelExports = {
   generateSecurityNonce,
   performIntegrityCheck,
   executeLockdown,
+  executeSecurely: (action, callback) => executeSecurely(action, callback),
   startSecurityHeartbeat,
   getDecoyData,
   isDeceptionActive
