@@ -521,6 +521,154 @@ const createHoneyTrap = (name, target = {}) => {
 };
 
 /**
+ * Redacts PII and sensitive patterns from strings or objects.
+ */
+export const redactData = (data) => {
+  if (!data) return data;
+
+  if (typeof data === 'string') {
+    let redacted = data;
+
+    // Detect and redact high-entropy strings (potential secrets)
+    const tokens = redacted.split(/\s+/);
+    tokens.forEach(token => {
+      if (token.length > 24 && calculateEntropy(token) > 4.2) {
+        redacted = redacted.replace(token, '[REDACTED_SECRET]');
+      }
+    });
+
+    // PII & Secret Regex
+    const patterns = [
+      { name: 'Google API Key', regex: /AIza[0-9A-Za-z-_]{35}/g },
+      { name: 'GitHub Token', regex: /gh[pous]_[a-zA-Z0-9]{36}/g },
+      { name: 'AWS Access Key', regex: /AKIA[0-9A-Z]{16}/g },
+      { name: 'Stripe API Key', regex: /sk_(?:live|test)_[0-9a-zA-Z]{24,34}/g },
+      { name: 'Slack Webhook', regex: /https:\/\/hooks\.slack\.com\/services\/T[A-Z0-9]+\/B[A-Z0-9]+\/[A-Za-z0-9]+/g },
+      { name: 'Discord Webhook', regex: /https:\/\/discord\.com\/api\/webhooks\/\d+\/[A-Za-z0-9_-]+/g },
+      { name: 'Generic Authorization', regex: /Bearer\s+[a-zA-Z0-9._-]+/gi },
+      { name: 'Email', regex: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g }
+    ];
+
+    patterns.forEach(p => {
+      redacted = redacted.replace(p.regex, `[REDACTED_${p.name.toUpperCase().replace(/\s+/g, '_')}]`);
+    });
+
+    // Neutralize AI boundary markers
+    redacted = redacted.replace(/\[USER_DATA\]/g, '[[USER_DATA]]');
+
+    return redacted;
+  }
+
+  if (Array.isArray(data)) {
+    return data.map(item => redactData(item));
+  }
+
+  if (typeof data === 'object' && data !== null) {
+    const redactedObj = {};
+    const sensitiveKeys = ['credential', 'session', 'cookie', 'canary', 'password', 'token', 'key', 'secret'];
+
+    for (const key in data) {
+      if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk))) {
+        redactedObj[key] = '[REDACTED_SENSITIVE_KEY]';
+      } else {
+        redactedObj[key] = redactData(data[key]);
+      }
+    }
+    return redactedObj;
+  }
+
+  return data;
+};
+
+/**
+ * Recursively sanitizes all strings within an object.
+ */
+export const sanitizeObject = (obj) => {
+  if (!obj) return obj;
+
+  if (typeof obj === 'string') {
+    return sanitizeInput(obj);
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map(item => sanitizeObject(item));
+  }
+
+  if (typeof obj === 'object' && obj !== null) {
+    const sanitized = {};
+    for (const key in obj) {
+      sanitized[key] = sanitizeObject(obj[key]);
+    }
+    return sanitized;
+  }
+
+  return obj;
+};
+
+/**
+ * Applies privacy-preserving masking to biometric data.
+ */
+export const maskBiometrics = (data) => {
+  if (!data) return data;
+
+  if (typeof data === 'object' && data !== null) {
+    const masked = { ...data };
+    const biometricKeys = ['weight', 'height', 'bodyFat', 'heartRate', 'bloodPressure'];
+
+    biometricKeys.forEach(key => {
+      if (key in masked && typeof masked[key] === 'number') {
+        // Add subtle Gaussian noise to preserve trend while masking exact value
+        const noise = (Math.random() - 0.5) * (masked[key] * 0.02);
+        masked[key] = Number((masked[key] + noise).toFixed(2));
+      }
+    });
+
+    return masked;
+  }
+
+  return data;
+};
+
+/**
+ * Validates AI responses for security violations.
+ */
+export const validateAIResponse = (content, nonce = null) => {
+  if (typeof content !== 'string') return content;
+
+  // Check for attempt to reveal the security nonce
+  if (nonce && content.includes(nonce)) {
+    if (_console.error) _call.call(_console.error, console, "Security Sentinel: AI response contained security nonce. Potential exfiltration detected.");
+    executeLockdown();
+    return "[SECURITY_VIOLATION_DETECTED]";
+  }
+
+  // Check for data leakage patterns
+  const patterns = [
+    /\[REDACTED_/,
+    /sk_(?:live|test)_/,
+    /gh[pous]_/
+  ];
+
+  if (patterns.some(p => p.test(content))) {
+    if (_console.error) _call.call(_console.error, console, "Security Sentinel: AI response contained sensitive redacted patterns. Potential leakage detected.");
+    return redactData(content);
+  }
+
+  return content;
+};
+
+/**
+ * Starts a background heartbeat that periodically verifies environment integrity.
+ */
+export const startSecurityHeartbeat = (interval = 30000) => {
+  if (typeof window === 'undefined' || !_setInterval) return;
+
+  _setInterval(() => {
+    performIntegrityCheck();
+  }, interval);
+};
+
+/**
  * Injects high-fidelity honey-tokens into the global environment.
  */
 const injectHoneyTokens = () => {

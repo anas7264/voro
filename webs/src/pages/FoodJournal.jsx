@@ -1,90 +1,159 @@
-import React, { useEffect, useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
-import Button from '@/components/Button';
-import Card from '@/components/Card';
-import Input from '@/components/Input';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { Plus, Trash2, BookOpen, Clock, Zap } from 'lucide-react';
+import { Button, Card, Textarea, Header } from '@/components';
 import { useStorage } from '@/hooks/useStorage';
+import { useNotifications } from '@/hooks/useNotifications';
+
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
+ * Prevents redundant object instantiation of Intl.DateTimeFormat in render loops.
+ */
+const dateFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric'
+});
+
+const timeFormatter = new Intl.DateTimeFormat('en-US', {
+  hour: '2-digit',
+  minute: '2-digit'
+});
 
 const FoodJournal = () => {
-  const { getStorage, setStorage } = useStorage();
-  const [entries, setEntries] = useState([]);
+  const { storageData, setItem } = useStorage();
+  const { addNotification } = useNotifications();
   const [note, setNote] = useState('');
 
   useEffect(() => {
     document.title = 'VORO | Food Journal';
-    const data = getStorage('voro_food_journal') || [];
-    setEntries(data);
   }, []);
 
-  const handleAddEntry = () => {
+  /**
+   * ⚡ OPTIMIZATION: Surgical Reactivity.
+   * Derive entries directly from StorageContext using useMemo.
+   * Eliminates the imperative load cycle and ensures UI remains in sync
+   * across all tabs/components without secondary state management.
+   */
+  const entries = useMemo(() => {
+    const data = storageData['food_journal'] || [];
+    return [...data].sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [storageData['food_journal']]);
+
+  const handleAddEntry = useCallback(async () => {
     if (!note.trim()) return;
-    const entry = {
+
+    const newEntry = {
       id: Date.now(),
       date: new Date().toISOString(),
-      note,
+      note: note.trim(),
     };
-    const updated = [...entries, entry];
-    setEntries(updated);
-    setStorage('voro_food_journal', updated);
-    setNote('');
-  };
 
-  const handleDeleteEntry = (id) => {
-    const updated = entries.filter(e => e.id !== id);
-    setEntries(updated);
-    setStorage('voro_food_journal', updated);
-  };
+    /**
+     * ⚡ OPTIMISTIC UI: Notify immediately.
+     * Persistence happens in the background via async setItem.
+     */
+    setNote('');
+    const updatedEntries = [newEntry, ...entries];
+
+    await setItem('food_journal', updatedEntries);
+    addNotification('Journal entry archived.', 'success');
+  }, [note, entries, setItem, addNotification]);
+
+  const handleDeleteEntry = useCallback(async (id) => {
+    const updatedEntries = entries.filter(e => e.id !== id);
+    await setItem('food_journal', updatedEntries);
+    addNotification('Entry purged from archive.', 'info');
+  }, [entries, setItem, addNotification]);
 
   return (
-    <div className="min-h-screen bg-voro-surface p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-white mb-6">Food Journal</h1>
+    <div className="min-h-screen bg-[#020408] text-[#F0F4FF] pb-24 selection:bg-voro-primary/30">
+      {/* Background Decor */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[5%] left-[5%] w-[40%] h-[40%] bg-voro-primary/5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[5%] right-[5%] w-[35%] h-[35%] bg-voro-secondary/5 rounded-full blur-[120px]" />
+      </div>
 
-        <Card className="p-6 mb-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Daily Notes</h3>
-          <div className="flex gap-2">
-            <textarea
-              placeholder="Record your eating experience, feelings, energy levels..."
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              className="flex-1 bg-voro-elevated text-white px-4 py-3 rounded border border-voro-border focus:outline-none focus:border-voro-primary resize-none"
-              rows="4"
-            />
-          </div>
-          <Button onClick={handleAddEntry} className="w-full mt-3">
-            Add Entry
-          </Button>
-        </Card>
+      <div className="relative max-w-5xl mx-auto px-6 py-12 md:px-12 lg:px-20">
+        <Header
+          eyebrow="Energy Synthesis Log"
+          title={<>Food <span className="text-voro-primary not-italic font-bold">Journal</span></>}
+          subtitle="Qualitative metabolic reflection and experiential archiving."
+        />
 
-        {entries.length > 0 ? (
-          <div className="space-y-3">
-            {entries.slice().reverse().map(entry => (
-              <Card key={entry.id} className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="text-sm text-gray-400 mb-2">
-                      {new Date(entry.date).toLocaleDateString()} at {new Date(entry.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                    <p className="text-white whitespace-pre-wrap">{entry.note}</p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    onClick={() => handleDeleteEntry(entry.id)}
-                    className="text-danger ml-4 flex-shrink-0"
-                  >
-                    <Trash2 size={18} />
-                  </Button>
-                </div>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <Card className="p-12 text-center">
-            <div className="text-5xl mb-4">📔</div>
-            <h3 className="text-xl font-bold text-white mb-2">No entries yet</h3>
-            <p className="text-gray-400">Start journaling your food experiences</p>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Entry Form */}
+          <Card className="lg:col-span-12 p-10 bg-[#0A0C14] border-white/5 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-voro-primary/5 rounded-full blur-[100px] -mr-32 -mt-32 group-hover:bg-voro-primary/10 transition-colors duration-1000" />
+
+            <div className="relative space-y-8">
+              <div className="flex items-center gap-3">
+                <BookOpen size={18} className="text-voro-primary" />
+                <h3 className="text-[0.65rem] font-black uppercase tracking-[0.3em] text-gray-500">Record Experience</h3>
+              </div>
+
+              <Textarea
+                placeholder="Synthesize your eating experience, neural state, and energy dynamics..."
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                rows={4}
+                className="bg-white/[0.02] border-white/10 italic font-serif text-lg leading-relaxed focus:border-voro-primary/50"
+              />
+
+              <Button
+                onClick={handleAddEntry}
+                disabled={!note.trim()}
+                className="w-full py-6 shadow-xl shadow-voro-primary/20"
+              >
+                <Plus size={18} className="mr-2" />
+                Archive Reflection
+              </Button>
+            </div>
           </Card>
-        )}
+
+          {/* Entries List */}
+          <div className="lg:col-span-12 space-y-6">
+            {entries.length > 0 ? (
+              entries.map(entry => {
+                const dateObj = new Date(entry.date);
+                return (
+                  <Card key={entry.id} className="p-8 bg-[#0A0C14] border-white/5 hover:border-white/10 transition-all group animate-fade-in">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 space-y-4">
+                        <div className="flex items-center gap-6">
+                          <div className="flex items-center gap-2">
+                            <Clock size={14} className="text-voro-primary" />
+                            <span className="text-[0.65rem] font-mono font-bold text-gray-500 uppercase tracking-widest">
+                              {dateFormatter.format(dateObj)} — {timeFormatter.format(dateObj)}
+                            </span>
+                          </div>
+                          <div className="h-px flex-1 bg-gradient-to-r from-white/5 to-transparent" />
+                        </div>
+                        <p className="text-xl font-serif italic text-gray-200 leading-relaxed max-w-3xl">
+                          {entry.note}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteEntry(entry.id)}
+                        className="p-3 rounded-xl text-gray-800 hover:text-red-400 hover:bg-red-400/10 transition-all opacity-0 group-hover:opacity-100 focus-visible:opacity-100 outline-none"
+                        aria-label="Purge entry"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </Card>
+                );
+              })
+            ) : (
+              <div className="py-32 text-center border-2 border-dashed border-white/5 rounded-[3rem]">
+                <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-8">
+                  <Zap size={32} className="text-gray-700" />
+                </div>
+                <h3 className="text-xl font-serif italic font-bold text-white mb-2">Archive Void</h3>
+                <p className="text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.2em]">Awaiting the first metabolic reflection</p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
