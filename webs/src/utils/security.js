@@ -801,6 +801,120 @@ export const performIntegrityCheck = () => {
 };
 
 /**
+ * Privacy-Preserving Redaction Engine
+ * Neutralizes PII, API keys, and system architecture signatures using high-entropy
+ * pattern matching and Shannon entropy-based catch-all detection.
+ */
+export const redactData = (data) => {
+  if (!data) return data;
+
+  if (typeof data === 'string') {
+    let redacted = data;
+
+    // API Keys and Secrets
+    redacted = redacted.replace(/sk_(?:live|test)_[0-9a-zA-Z]{24,34}/g, '[STRIPE_KEY]');
+    redacted = redacted.replace(/AIza[0-9A-Za-z-_]{35}/g, '[GOOGLE_API_KEY]');
+    redacted = redacted.replace(/ghp_[a-zA-Z0-9]{36}/g, '[GITHUB_TOKEN]');
+    redacted = redacted.replace(/sq0csp-[0-9A-Za-z-_]{43}/g, '[SQUARE_SECRET]');
+    redacted = redacted.replace(/xox[baprs]-[0-9a-zA-Z-]{10,48}/g, '[SLACK_TOKEN]');
+
+    // AI Boundaries
+    redacted = redacted.replace(/\[USER_DATA\]/g, '[[USER_DATA]]');
+
+    // Entropy-based catch-all (long high-entropy strings)
+    if (calculateEntropy(redacted) > 4.5 && redacted.length > 32) {
+      return "[REDACTED_HIGH_ENTROPY_BLOCK]";
+    }
+
+    return redacted;
+  }
+
+  if (Array.isArray(data)) {
+    return data.map(item => redactData(item));
+  }
+
+  if (typeof data === 'object') {
+    const redactedObj = {};
+    const sensitiveKeys = ['password', 'token', 'secret', 'key', 'credential', 'session', 'cookie', 'canary', 'auth', 'biometric'];
+
+    for (const [key, value] of Object.entries(data)) {
+      if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk))) {
+        redactedObj[key] = '[REDACTED_SENSITIVE_KEY]';
+      } else {
+        redactedObj[key] = redactData(value);
+      }
+    }
+    return redactedObj;
+  }
+
+  return data;
+};
+
+/**
+ * Recursive Object Sanitization
+ * Applies sanitizeInput to all string values within an object tree.
+ */
+export const sanitizeObject = (obj) => {
+  if (!obj) return obj;
+  if (typeof obj === 'string') return sanitizeInput(obj);
+  if (Array.isArray(obj)) return obj.map(sanitizeObject);
+  if (typeof obj === 'object') {
+    const sanitized = {};
+    for (const [key, value] of Object.entries(obj)) {
+      sanitized[key] = sanitizeObject(value);
+    }
+    return sanitized;
+  }
+  return obj;
+};
+
+/**
+ * Biometric Privacy Mask
+ * Anonymizes sensitive physiological data before transmission or logging.
+ */
+export const maskBiometrics = (data) => {
+  if (!data) return data;
+  const masked = { ...data };
+  if (masked.weight) masked.weight = 'XX.X';
+  if (masked.heartRate) masked.heartRate = 'XX';
+  if (masked.bloodPressure) masked.bloodPressure = 'XXX/XX';
+  return masked;
+};
+
+/**
+ * AI Response Validation
+ * Verifies that AI-generated content does not contain executable code or unauthorized markers.
+ */
+export const validateAIResponse = (response) => {
+  if (typeof response !== 'string') return false;
+  const dangerousPatterns = [
+    /<script/i,
+    /javascript:/i,
+    /window\./i,
+    /document\./i,
+    /localStorage/i,
+    /eval\(/i
+  ];
+  return !dangerousPatterns.some(pattern => pattern.test(response));
+};
+
+/**
+ * Security Heartbeat
+ * Periodically verifies the environment's integrity and prototypes.
+ */
+export const startSecurityHeartbeat = (interval = 30000) => {
+  if (typeof window === 'undefined' || !_setInterval) return null;
+  return _setInterval.call(window, () => {
+    performIntegrityCheck();
+  }, interval);
+};
+
+// Auto-start heartbeat
+if (typeof window !== 'undefined') {
+  startSecurityHeartbeat();
+}
+
+/**
  * Sentinel Self-Protection
  * Freezes the public API and core utilities to prevent runtime tampering.
  */
