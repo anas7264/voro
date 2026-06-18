@@ -801,6 +801,65 @@ export const performIntegrityCheck = () => {
 };
 
 /**
+ * Recursive object sanitization with circular reference and prototype pollution protection.
+ */
+export const sanitizeObject = (o, s = new WeakSet()) => {
+  if (!o || typeof o !== 'object') return typeof o === 'string' ? sanitizeInput(o) : o;
+  if (s.has(o)) return "[CIRCULAR_REFERENCE]";
+  s.add(o);
+  if (Array.isArray(o)) return o.map(i => sanitizeObject(i, s));
+  const r = {};
+  _getOwnPropertyNames(o).forEach(k => { if (!['__proto__', 'constructor', 'prototype'].includes(k)) r[k] = sanitizeObject(o[k], s); });
+  return r;
+};
+
+/**
+ * Redacts PII (Emails), Secrets (Stripe, AWS, JWT, Google), and AI markers. Circular reference safe.
+ */
+export const redactData = (d, s = new WeakSet()) => {
+  if (typeof d === 'string') {
+    const p = { EMAIL: /[\w.-]+@[\w.-]+\.\w+/g, STRIPE: /sk_(?:live|test)_\w{24,34}/g, AWS: /AKIA\w{16}/g, JWT: /eyJ[\w=-]+\.eyJ[\w=-]+\.[\w-_.+/=]*/g, GOOGLE: /AIza[0-9A-Za-z-_]{35}/g, GITHUB: /gh[pk]_[a-zA-Z0-9]{36,255}/g, SLACK: /https:\/\/hooks\.slack\.com\/services\/T\w{8,10}\/B\w{8,10}\/\w{24}/g, DISCORD: /https:\/\/discord\.com\/api\/webhooks\/\d+\/[\w-]{68}/g, MARKER: /\[(USER_DATA|SECURITY_PROTOCOL|MESSAGE_HISTORY|USER_INPUT)_\w{32}\]/g };
+    let r = d; Object.entries(p).forEach(([n, g]) => r = r.replace(g, m => n === 'MARKER' ? `[[${m.slice(1, -1)}]]` : `[REDACTED_${n}]`));
+    return r;
+  }
+  if (!d || typeof d !== 'object') return d;
+  if (s.has(d)) return "[CIRCULAR_REFERENCE]";
+  s.add(d);
+  if (Array.isArray(d)) return d.map(i => redactData(i, s));
+  const r = {}; _getOwnPropertyNames(d).forEach(k => r[k] = redactData(d[k], s)); return r;
+};
+
+/**
+ * Recursively masks sensitive biometric/health data (weight, body_fat, heart_rate, etc.). Circular reference safe.
+ */
+export const maskBiometrics = (d, s = new WeakSet()) => {
+  if (!d || typeof d !== 'object') return d;
+  if (s.has(d)) return "[CIRCULAR_REFERENCE]";
+  const k = ['weight', 'body_fat', 'systolic', 'diastolic', 'heart_rate', 'glucose', 'insulin', 'testosterone'];
+  s.add(d);
+  if (Array.isArray(d)) return d.map(i => maskBiometrics(i, s));
+  const r = {};
+  _getOwnPropertyNames(d).forEach(p => r[p] = k.includes(p) ? '[REDACTED_BIOMETRIC]' : maskBiometrics(d[p], s));
+  return r;
+};
+
+/**
+ * Validates AI output for nonce leakage and suspicious exfiltration patterns.
+ */
+export const validateAIResponse = (c, n = null) => {
+  if (!c) return c;
+  if (n && c.includes(n)) { executeLockdown(); return "[SECURITY_VIOLATION_DETECTED]"; }
+  let v = redactData(c.replace(/\[\/?(USER_DATA|SECURITY_PROTOCOL|MESSAGE_HISTORY|USER_INPUT).*?\]/g, '[REDACTED_BOUNDARY]'));
+  if (/!\[.*?\]\(https?:\/\/.*?\?(?:cookie|session|localstorage|voro_).*?\)/gi.test(v)) { executeLockdown(); return "[SECURITY_VIOLATION_DETECTED]"; }
+  return v;
+};
+
+/**
+ * Background task to periodically verify runtime integrity (RASP).
+ */
+export const startSecurityHeartbeat = () => _setInterval && _setInterval(performIntegrityCheck, 30000);
+
+/**
  * Sentinel Self-Protection
  * Freezes the public API and core utilities to prevent runtime tampering.
  */
