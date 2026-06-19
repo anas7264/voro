@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Trash2, Droplets, Target, Utensils, Zap } from 'lucide-react';
 import { useStorage } from '@/hooks/useStorage';
 import { useAppContext as useApp } from '@/hooks/useAppContext';
@@ -11,8 +11,18 @@ import Modal from '@/components/Modal';
 import Ring from '@/components/Ring';
 import { foods } from '@/data/foods';
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
+ * Prevents redundant object instantiation of Intl.DateTimeFormat in render loops.
+ */
+const dateFormatter = new Intl.DateTimeFormat('en-US', {
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric'
+});
+
 const FoodDiary = () => {
-  const { storageData, setItem, getItem } = useStorage();
+  const { storageData, updateItem } = useStorage();
   const { user } = useApp();
   const { addNotification } = useNotifications();
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -40,7 +50,7 @@ const FoodDiary = () => {
     setDate(newDate.toISOString().split('T')[0]);
   };
 
-  const handleAddFood = async (food, portion = 100) => {
+  const handleAddFood = useCallback(async (food, portion = 100) => {
     if (!selectedSlot || !nutritionLog) return;
 
     const { valid, errors } = validateFoodDiaryEntry({ portion });
@@ -62,91 +72,72 @@ const FoodDiary = () => {
       fiber: Math.round((food.fiber || 0) * multiplier * 10) / 10,
     };
 
-    const allLogs = getItem('nutrition_log') || {};
-    const currentDayLog = allLogs[date] || nutritionLog;
-
-    // Efficient immutable update
+    /**
+     * ⚡ OPTIMIZATION: Atomic storage update.
+     * Uses updateItem for surgical shallow merge of nutrition_log,
+     * significantly reducing serialization overhead for large logs.
+     */
     const updatedMeals = {
-      ...currentDayLog.meals,
-      [selectedSlot]: [...(currentDayLog.meals[selectedSlot] || []), foodEntry]
+      ...nutritionLog.meals,
+      [selectedSlot]: [...(nutritionLog.meals[selectedSlot] || []), foodEntry]
     };
 
-    // Incremental totals update (O(1) vs O(N))
     const updatedTotals = {
-      calories: currentDayLog.totals.calories + foodEntry.calories,
-      protein: Math.round((currentDayLog.totals.protein + foodEntry.protein) * 10) / 10,
-      carbs: Math.round((currentDayLog.totals.carbs + foodEntry.carbs) * 10) / 10,
-      fat: Math.round((currentDayLog.totals.fat + foodEntry.fat) * 10) / 10,
-      fiber: Math.round((currentDayLog.totals.fiber + foodEntry.fiber) * 10) / 10,
+      calories: nutritionLog.totals.calories + foodEntry.calories,
+      protein: Math.round((nutritionLog.totals.protein + foodEntry.protein) * 10) / 10,
+      carbs: Math.round((nutritionLog.totals.carbs + foodEntry.carbs) * 10) / 10,
+      fat: Math.round((nutritionLog.totals.fat + foodEntry.fat) * 10) / 10,
+      fiber: Math.round((nutritionLog.totals.fiber + foodEntry.fiber) * 10) / 10,
     };
 
-    const updatedDayLog = {
-      ...currentDayLog,
-      meals: updatedMeals,
-      totals: updatedTotals
-    };
-
-    await setItem('nutrition_log', {
-      ...allLogs,
-      [date]: updatedDayLog
+    await updateItem('nutrition_log', {
+      [date]: { ...nutritionLog, meals: updatedMeals, totals: updatedTotals }
     });
 
     setShowFoodSearch(false);
     setSelectedSlot(null);
     addNotification(`${food.name} added to ${selectedSlot}`, 'success');
-  };
+  }, [selectedSlot, nutritionLog, date, updateItem, addNotification]);
 
-  const handleRemoveFood = async (slot, index) => {
-    const allLogs = getItem('nutrition_log') || {};
-    const currentDayLog = allLogs[date];
-    if (!currentDayLog) return;
+  const handleRemoveFood = useCallback(async (slot, index) => {
+    if (!nutritionLog) return;
 
-    const foodEntry = currentDayLog.meals[slot][index];
-    const updatedSlotMeals = [...currentDayLog.meals[slot]];
+    const foodEntry = nutritionLog.meals[slot][index];
+    const updatedSlotMeals = [...nutritionLog.meals[slot]];
     updatedSlotMeals.splice(index, 1);
 
     const updatedMeals = {
-      ...currentDayLog.meals,
+      ...nutritionLog.meals,
       [slot]: updatedSlotMeals
     };
 
-    // Incremental totals update
     const updatedTotals = {
-      calories: Math.max(0, currentDayLog.totals.calories - foodEntry.calories),
-      protein: Math.max(0, Math.round((currentDayLog.totals.protein - foodEntry.protein) * 10) / 10),
-      carbs: Math.max(0, Math.round((currentDayLog.totals.carbs - foodEntry.carbs) * 10) / 10),
-      fat: Math.max(0, Math.round((currentDayLog.totals.fat - foodEntry.fat) * 10) / 10),
-      fiber: Math.max(0, Math.round((currentDayLog.totals.fiber - foodEntry.fiber) * 10) / 10),
+      calories: Math.max(0, nutritionLog.totals.calories - foodEntry.calories),
+      protein: Math.max(0, Math.round((nutritionLog.totals.protein - foodEntry.protein) * 10) / 10),
+      carbs: Math.max(0, Math.round((nutritionLog.totals.carbs - foodEntry.carbs) * 10) / 10),
+      fat: Math.max(0, Math.round((nutritionLog.totals.fat - foodEntry.fat) * 10) / 10),
+      fiber: Math.max(0, Math.round((nutritionLog.totals.fiber - foodEntry.fiber) * 10) / 10),
     };
 
-    await setItem('nutrition_log', {
-      ...allLogs,
-      [date]: {
-        ...currentDayLog,
-        meals: updatedMeals,
-        totals: updatedTotals
-      }
+    await updateItem('nutrition_log', {
+      [date]: { ...nutritionLog, meals: updatedMeals, totals: updatedTotals }
     });
-  };
+  }, [nutritionLog, date, updateItem]);
 
-  const handleWaterAdd = async (amount) => {
+  const handleWaterAdd = useCallback(async (amount) => {
     const { valid, errors } = validateWaterEntry({ amount, date });
     if (!valid) {
       addNotification(Object.values(errors)[0], 'error');
       return;
     }
 
-    const allLogs = getItem('nutrition_log') || {};
-    const currentDayLog = allLogs[date] || nutritionLog;
-
-    await setItem('nutrition_log', {
-      ...allLogs,
+    await updateItem('nutrition_log', {
       [date]: {
-        ...currentDayLog,
-        water: (currentDayLog.water || 0) + amount
+        ...nutritionLog,
+        water: (nutritionLog.water || 0) + amount
       }
     });
-  };
+  }, [date, nutritionLog, updateItem, addNotification]);
 
   if (!nutritionLog) return null;
 
@@ -159,11 +150,7 @@ const FoodDiary = () => {
     { label: 'Fat', value: nutritionLog.totals.fat, goal: user?.fatGoal || 65, color: '#F59E0B', unit: 'g' }
   ];
 
-  const formattedDate = new Date(date).toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric'
-  });
+  const formattedDate = useMemo(() => dateFormatter.format(new Date(date)), [date]);
 
   return (
     <div className="min-h-screen bg-[#080B14] text-[#F0F4FF] pb-20">
@@ -354,20 +341,21 @@ const FoodDiary = () => {
 
 const FoodSearchModal = ({ isOpen, onClose, onSelectFood }) => {
   const [search, setSearch] = useState('');
-  const [results, setResults] = useState(foods.slice(0, 15));
   const [selectedFood, setSelectedFood] = useState(null);
   const [portion, setPortion] = useState(100);
 
-  useEffect(() => {
-    if (search.trim()) {
-      const filtered = foods.filter(f =>
-        f.name.toLowerCase().includes(search.toLowerCase()) ||
-        (f.category && f.category.toLowerCase().includes(search.toLowerCase()))
-      );
-      setResults(filtered.slice(0, 20));
-    } else {
-      setResults(foods.slice(0, 15));
-    }
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Derived Search State.
+   * Uses useMemo to filter results directly from search state.
+   * Eliminates the double-render cycle of useEffect + useState.
+   */
+  const results = useMemo(() => {
+    if (!search.trim()) return foods.slice(0, 15);
+    const query = search.toLowerCase();
+    return foods.filter(f =>
+      f.name.toLowerCase().includes(query) ||
+      (f.category && f.category.toLowerCase().includes(query))
+    ).slice(0, 20);
   }, [search]);
 
   return (
