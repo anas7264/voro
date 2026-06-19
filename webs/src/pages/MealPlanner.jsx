@@ -74,42 +74,36 @@ const MealPlanner = () => {
         {!mealPlan ? (
           <Card className="p-8">
             <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Duration</label>
-                <Select
-                  value={formData.duration}
-                  onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
-                  options={[
-                    { value: '1 day', label: '1 Day' },
-                    { value: '3 days', label: '3 Days' },
-                    { value: '1 week', label: '1 Week' },
-                    { value: '2 weeks', label: '2 Weeks' },
-                  ]}
-                />
-              </div>
+              <Select
+                label="Duration"
+                value={formData.duration}
+                onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
+                options={[
+                  { value: '1 day', label: '1 Day' },
+                  { value: '3 days', label: '3 Days' },
+                  { value: '1 week', label: '1 Week' },
+                  { value: '2 weeks', label: '2 Weeks' },
+                ]}
+              />
 
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Budget Level</label>
-                <Select
-                  value={formData.budget}
-                  onChange={(e) => setFormData(prev => ({ ...prev, budget: e.target.value }))}
-                  options={[
-                    { value: 'Budget-friendly', label: 'Budget-friendly' },
-                    { value: 'Moderate', label: 'Moderate' },
-                    { value: 'Premium', label: 'Premium' },
-                  ]}
-                />
-              </div>
+              <Select
+                label="Budget Level"
+                value={formData.budget}
+                onChange={(e) => setFormData(prev => ({ ...prev, budget: e.target.value }))}
+                options={[
+                  { value: 'Budget-friendly', label: 'Budget-friendly' },
+                  { value: 'Moderate', label: 'Moderate' },
+                  { value: 'Premium', label: 'Premium' },
+                ]}
+              />
 
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Special Notes</label>
-                <Textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                  placeholder="Any preferences, foods to include/avoid..."
-                  rows={4}
-                />
-              </div>
+              <Textarea
+                label="Special Notes"
+                value={formData.notes}
+                onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="Any preferences, foods to include/avoid..."
+                rows={4}
+              />
 
               <Button
                 onClick={generatePlan}

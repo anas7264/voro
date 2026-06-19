@@ -134,7 +134,7 @@ const FoodJournal = () => {
                       </div>
                       <button
                         onClick={() => handleDeleteEntry(entry.id)}
-                        className="p-3 rounded-xl text-gray-800 hover:text-red-400 hover:bg-red-400/10 transition-all opacity-0 group-hover:opacity-100 focus-visible:opacity-100 outline-none"
+                        className="p-3 rounded-xl text-gray-500 hover:text-red-400 hover:bg-red-400/10 transition-all opacity-0 group-hover:opacity-100 focus-visible:opacity-100 outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                         aria-label="Purge entry"
                       >
                         <Trash2 size={18} />
