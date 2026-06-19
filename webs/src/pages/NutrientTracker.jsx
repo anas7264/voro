@@ -1,33 +1,76 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { Plus, Trash2, Heart, Zap, Target } from 'lucide-react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { Plus, Heart, Zap, Target, RefreshCw } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
+import Input from '@/components/Input';
 import { useStorage } from '@/hooks/useStorage';
+import { foods } from '@/data/foods';
 
 const NutrientTracker = () => {
-  const { storageData, setItem } = useStorage();
-  const [selectedNutrient, setSelectedNutrient] = useState('vitamin_d');
+  const { storageData, updateItem } = useStorage();
+  const [selectedNutrient, setSelectedNutrient] = useState('iron');
+  const [supplementAmount, setSupplementAmount] = useState('');
 
   useEffect(() => {
     document.title = 'VORO | Nutrient Tracker';
   }, []);
 
   const nutrients = useMemo(() => [
-    { id: 'vitamin_d', name: 'Vitamin D', unit: 'IU', dailyGoal: 2000, warning: 'Low levels linked to poor mood and immunity', color: '#F59E0B' },
     { id: 'iron', name: 'Iron', unit: 'mg', dailyGoal: 18, warning: 'Essential for oxygen transport', color: '#EF4444' },
-    { id: 'magnesium', name: 'Magnesium', unit: 'mg', dailyGoal: 420, warning: 'Critical for muscle recovery', color: '#7C3AED' },
-    { id: 'zinc', name: 'Zinc', unit: 'mg', dailyGoal: 11, warning: 'Immune system support', color: '#10B981' },
-    { id: 'b12', name: 'Vitamin B12', unit: 'mcg', dailyGoal: 2.4, warning: 'Energy metabolism', color: '#3B82F6' },
-    { id: 'omega3', name: 'Omega-3', unit: 'g', dailyGoal: 1.1, warning: 'Anti-inflammatory benefits', color: '#EC4899' },
+    { id: 'calcium', name: 'Calcium', unit: 'mg', dailyGoal: 1000, warning: 'Critical for bone density and signaling', color: '#3B82F6' },
+    { id: 'vitaminC', name: 'Vitamin C', unit: 'mg', dailyGoal: 90, warning: 'Potent antioxidant and immune support', color: '#10B981' },
+    { id: 'potassium', name: 'Potassium', unit: 'mg', dailyGoal: 3400, warning: 'Maintains fluid balance and neural function', color: '#7C3AED' },
+    { id: 'sodium', name: 'Sodium', unit: 'mg', dailyGoal: 2300, warning: 'Essential electrolyte for neural transmission', color: '#6B7280' },
+    { id: 'vitamin_d', name: 'Vitamin D', unit: 'IU', dailyGoal: 2000, warning: 'Low levels linked to poor mood and immunity', color: '#F59E0B' },
   ], []);
 
-  const tracker = useMemo(() => {
-    return storageData['nutrient_tracker'] || {};
-  }, [storageData['nutrient_tracker']]);
+  const tracker = useMemo(() => storageData['nutrient_tracker'] || {}, [storageData['nutrient_tracker']]);
+  const currentNutrient = nutrients.find(n => n.id === selectedNutrient) || nutrients[0];
 
-  const currentNutrient = nutrients.find(n => n.id === selectedNutrient);
-  const currentStatus = tracker[selectedNutrient] || { intake: 0, fromFood: 0 };
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Food Intake Calculation.
+   * Derives micronutrient values from nutrition_log by mapping to the foods master list.
+   * This provides a dynamic, real-time view of dietary nutrient absorption.
+   */
+  const foodIntake = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const log = storageData['nutrition_log']?.[today];
+    if (!log || !log.meals) return 0;
+
+    let total = 0;
+    Object.values(log.meals).forEach(meal => {
+      meal.forEach(entry => {
+        const masterFood = foods.find(f => f.id === entry.foodId);
+        if (masterFood && masterFood[currentNutrient.id]) {
+          total += (masterFood[currentNutrient.id] * entry.portion) / 100;
+        }
+      });
+    });
+    return Math.round(total * 10) / 10;
+  }, [storageData['nutrition_log'], currentNutrient.id]);
+
+  const supplementIntake = useMemo(() => tracker[selectedNutrient]?.intake || 0, [tracker, selectedNutrient]);
+  const totalIntake = foodIntake + supplementIntake;
+  const progressPercentage = Math.min(Math.round((totalIntake / currentNutrient.dailyGoal) * 100), 100);
+
+  const handleAddSupplement = useCallback(async () => {
+    if (!supplementAmount || isNaN(supplementAmount)) return;
+    const current = tracker[selectedNutrient] || { intake: 0 };
+    await updateItem('nutrient_tracker', {
+      [selectedNutrient]: {
+        ...current,
+        intake: (current.intake || 0) + Number(supplementAmount),
+      }
+    });
+    setSupplementAmount('');
+  }, [selectedNutrient, supplementAmount, tracker, updateItem]);
+
+  const handleReset = useCallback(async () => {
+    await updateItem('nutrient_tracker', {
+      [selectedNutrient]: { intake: 0 }
+    });
+  }, [selectedNutrient, updateItem]);
 
   return (
     <div className="min-h-screen bg-[#080B14] text-[#F0F4FF] pb-24">
@@ -74,21 +117,45 @@ const NutrientTracker = () => {
             </Card>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="p-8 space-y-6">
-                <h4 className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-500">Intake Statistics</h4>
+              <Card className="p-8 space-y-8">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-500">Intake Statistics</h4>
+                  <button onClick={handleReset} className="text-gray-600 hover:text-voro-primary transition-colors" title="Reset Supplement Intake">
+                    <RefreshCw size={14} />
+                  </button>
+                </div>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-5 bg-white/[0.02] border border-white/5 rounded-2xl">
-                    <span className="text-xs font-bold text-white uppercase tracking-tight">Supplements</span>
-                    <Badge variant="voro-secondary" dot>100%</Badge>
+                    <div className="space-y-1">
+                      <span className="text-xs font-bold text-white uppercase tracking-tight">Supplements</span>
+                      <p className="text-[0.6rem] font-mono text-gray-600">{supplementIntake} {currentNutrient.unit}</p>
+                    </div>
+                    <Badge variant="voro-secondary">{Math.round((supplementIntake / currentNutrient.dailyGoal) * 100)}%</Badge>
                   </div>
                   <div className="flex items-center justify-between p-5 bg-white/[0.02] border border-white/5 rounded-2xl">
-                    <span className="text-xs font-bold text-white uppercase tracking-tight">Dietary Sources</span>
-                    <Badge variant="voro-accent">60%</Badge>
+                    <div className="space-y-1">
+                      <span className="text-xs font-bold text-white uppercase tracking-tight">Dietary Sources</span>
+                      <p className="text-[0.6rem] font-mono text-gray-600">{foodIntake} {currentNutrient.unit}</p>
+                    </div>
+                    <Badge variant="voro-accent">{Math.round((foodIntake / currentNutrient.dailyGoal) * 100)}%</Badge>
                   </div>
+                </div>
+
+                <div className="pt-4 flex gap-2">
+                  <Input
+                    type="number"
+                    placeholder={`Log ${currentNutrient.unit}...`}
+                    value={supplementAmount}
+                    onChange={(e) => setSupplementAmount(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button onClick={handleAddSupplement} className="px-4">
+                    <Plus size={18} />
+                  </Button>
                 </div>
               </Card>
 
-              <Card className="p-8 bg-gradient-to-br from-yellow-500/5 to-transparent border-yellow-500/10">
+              <Card className="p-8 bg-gradient-to-br from-voro-primary/5 to-transparent border-white/5">
                 <div className="flex items-center gap-3 mb-4 text-yellow-500">
                   <Heart size={16} />
                   <span className="text-[0.65rem] font-black uppercase tracking-[0.2em]">Clinical Insight</span>
@@ -136,14 +203,14 @@ const NutrientTracker = () => {
                         strokeWidth="12"
                         fill="none"
                         strokeDasharray={`${2 * Math.PI * 80}`}
-                        strokeDashoffset={`${2 * Math.PI * 80 * 0.25}`}
+                        strokeDashoffset={`${2 * Math.PI * 80 * (1 - progressPercentage / 100)}`}
                         strokeLinecap="round"
                         className="transition-all duration-1000 ease-out"
                         style={{ filter: `drop-shadow(0 0 8px ${currentNutrient.color}40)` }}
                       />
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center flex-col">
-                      <span className="text-3xl font-serif italic font-bold text-white">75%</span>
+                      <span className="text-3xl font-serif italic font-bold text-white">{progressPercentage}%</span>
                       <span className="text-[0.5rem] font-black text-gray-600 uppercase tracking-widest">Absorbed</span>
                     </div>
                   </div>
