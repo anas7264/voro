@@ -819,15 +819,36 @@ export const sanitizeObject = (o, s = new WeakSet()) => {
  */
 export const redactData = (d, s = new WeakSet()) => {
   if (typeof d === 'string') {
-    const p = { EMAIL: /[\w.-]+@[\w.-]+\.\w+/g, STRIPE: /sk_(?:live|test)_\w{24,34}/g, AWS: /AKIA\w{16}/g, JWT: /eyJ[\w=-]+\.eyJ[\w=-]+\.[\w-_.+/=]*/g, GOOGLE: /AIza[0-9A-Za-z-_]{35}/g, GITHUB: /gh[pk]_[a-zA-Z0-9]{36,255}/g, SLACK: /https:\/\/hooks\.slack\.com\/services\/T\w{8,10}\/B\w{8,10}\/\w{24}/g, DISCORD: /https:\/\/discord\.com\/api\/webhooks\/\d+\/[\w-]{68}/g, MARKER: /\[(USER_DATA|SECURITY_PROTOCOL|MESSAGE_HISTORY|USER_INPUT)_\w{32}\]/g };
-    let r = d; Object.entries(p).forEach(([n, g]) => r = r.replace(g, m => n === 'MARKER' ? `[[${m.slice(1, -1)}]]` : `[REDACTED_${n}]`));
+    const p = {
+      EMAIL: /[\w.-]+@[\w.-]+\.\w+/g,
+      PHONE: /\b(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g,
+      STRIPE: /sk_(?:live|test)_\w{24,34}/g,
+      AWS: /AKIA\w{16}/g,
+      JWT: /eyJ[\w=-]+\.eyJ[\w=-]+\.[\w-_.+/=]*/g,
+      GOOGLE: /AIza[0-9A-Za-z-_]{35}/g,
+      GITHUB: /gh[pk]_[a-zA-Z0-9]{36,255}/g,
+      CLAUDE: /sk-ant-api03-[a-zA-Z0-9\-_]{93,}/g,
+      SLACK: /https:\/\/hooks\.slack\.com\/services\/T\w{8,10}\/B\w{8,10}\/\w{24}/g,
+      DISCORD: /https:\/\/discord\.com\/api\/webhooks\/\d+\/[\w-]{68}/g,
+      MARKER: /\[(USER_DATA|SECURITY_PROTOCOL|MESSAGE_HISTORY|USER_INPUT)_\w{32}\]/g
+    };
+    let r = d;
+    Object.entries(p).forEach(([n, g]) => {
+      r = r.replace(g, m => n === 'MARKER' ? `[[${m.slice(1, -1)}]]` : `[REDACTED_${n}]`);
+    });
+    // Shannon entropy-based catch-all for high-entropy tokens > 24 chars
+    r = r.replace(/\b[A-Za-z0-9+/=]{24,}\b/g, m => (calculateEntropy(m) > 4.2) ? "[REDACTED_SECRET]" : m);
     return r;
   }
   if (!d || typeof d !== 'object') return d;
   if (s.has(d)) return "[CIRCULAR_REFERENCE]";
   s.add(d);
   if (Array.isArray(d)) return d.map(i => redactData(i, s));
-  const r = {}; _getOwnPropertyNames(d).forEach(k => r[k] = redactData(d[k], s)); return r;
+  const r = {};
+  _getOwnPropertyNames(d).forEach(k => {
+    r[k] = redactData(d[k], s);
+  });
+  return r;
 };
 
 /**
@@ -836,7 +857,7 @@ export const redactData = (d, s = new WeakSet()) => {
 export const maskBiometrics = (d, s = new WeakSet()) => {
   if (!d || typeof d !== 'object') return d;
   if (s.has(d)) return "[CIRCULAR_REFERENCE]";
-  const k = ['weight', 'body_fat', 'systolic', 'diastolic', 'heart_rate', 'glucose', 'insulin', 'testosterone'];
+  const k = ['weight', 'body_fat', 'systolic', 'diastolic', 'heart_rate', 'glucose', 'insulin', 'testosterone', 'oxygen'];
   s.add(d);
   if (Array.isArray(d)) return d.map(i => maskBiometrics(i, s));
   const r = {};
