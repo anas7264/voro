@@ -48,17 +48,7 @@ export const Stat = memo(({
   const attestedId = useMemo(() => Math.floor(Math.random() * 0x1000000).toString(16).toUpperCase().padStart(6, '0'), []);
 
   const isPositive = change !== undefined && parseFloat(change) >= 0;
-
-  const colorMap = {
-    'voro-primary': '#7C3AED',
-    'voro-secondary': '#10B981',
-    'voro-accent': '#F59E0B',
-    'voro-danger': '#EF4444',
-    'primary': '#7C3AED',
-    'secondary': '#10B981'
-  };
-
-  const activeColor = colorMap[color] || '#7C3AED';
+  const activeColor = COLOR_MAP[color] || '#7C3AED';
 
   return (
     <div
@@ -206,5 +196,18 @@ export const Stat = memo(({
 });
 
 Stat.displayName = "Stat";
+
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted color map.
+ * Prevents redundant object allocation on every component render.
+ */
+const COLOR_MAP = {
+  'voro-primary': '#7C3AED',
+  'voro-secondary': '#10B981',
+  'voro-accent': '#F59E0B',
+  'voro-danger': '#EF4444',
+  'primary': '#7C3AED',
+  'secondary': '#10B981'
+};
 
 export default Stat;
