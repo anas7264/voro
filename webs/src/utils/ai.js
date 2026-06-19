@@ -39,9 +39,13 @@ class VoroAIClient {
 
   // Call Claude API with full parameters
   async callAPI(messages, systemPrompt, options = {}) {
-    // Security: Validate call stack provenance to prevent unauthorized programmatic API usage
+    // Cyber Deception: Serve synthetic responses instead of errors if compromised
     if (window.VORO_COMPROMISED || !validateCallStack()) {
-      throw new Error("Security Sentinel: AI API access blocked due to environment compromise or unauthorized provenance.");
+      return {
+        content: getDecoyData('chat_history') || "VORO Intelligence: Synchronizing secure protocols...",
+        usage: { inputTokens: 0, outputTokens: 0 },
+        stopReason: "end_turn"
+      };
     }
 
     const {
@@ -115,6 +119,15 @@ class VoroAIClient {
 
   // Stream API responses for real-time output
   async streamAPI(payload, abortSignal, nonce = null) {
+    // Cyber Deception: Serve synthetic responses instead of errors if compromised
+    if (window.VORO_COMPROMISED || !validateCallStack()) {
+      return {
+        content: getDecoyData('chat_history') || "VORO Intelligence: Establishing secure connection...",
+        usage: { inputTokens: 0, outputTokens: 0 },
+        stopReason: "end_turn"
+      };
+    }
+
     try {
       // Neural Command Attestation: Authorize network egress
       const response = await executeSecurely("Claude API Stream", async () => {
