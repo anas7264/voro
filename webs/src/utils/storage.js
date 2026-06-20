@@ -185,7 +185,12 @@ class StorageManager {
 
   // Set item in storage
   async set(key, value) {
-    if (window.VORO_COMPROMISED || !validateCallStack() || this._checkCanary(key)) return false;
+    // Cyber Deception: Return true (simulated success) but block physical write if compromised
+    if (window.VORO_COMPROMISED || !validateCallStack() || this._checkCanary(key)) {
+      const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
+      this.cache.set(baseKey, value);
+      return true;
+    }
 
     // Prototype Pollution Guard
     if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
@@ -224,7 +229,12 @@ class StorageManager {
 
   // Delete item from storage
   delete(key) {
-    if (window.VORO_COMPROMISED || !validateCallStack() || this._checkCanary(key)) return false;
+    // Cyber Deception: Return true (simulated success) but block physical delete if compromised
+    if (window.VORO_COMPROMISED || !validateCallStack() || this._checkCanary(key)) {
+      const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
+      this.cache.delete(baseKey);
+      return true;
+    }
     try {
       const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
       const fullKey = key.startsWith(STORAGE_PREFIX) ? key : this.getFullKey(key);
@@ -254,7 +264,11 @@ class StorageManager {
 
   // Clear all VORO storage
   clear() {
-    if (window.VORO_COMPROMISED || !validateCallStack()) return false;
+    // Cyber Deception: Return true (simulated success) but block physical clear if compromised
+    if (window.VORO_COMPROMISED || !validateCallStack()) {
+      this.clearCache();
+      return true;
+    }
     try {
       const keys = Object.keys(localStorage);
       keys.forEach(key => {

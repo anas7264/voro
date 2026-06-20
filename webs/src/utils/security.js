@@ -83,7 +83,8 @@ const snapshotPrototypes = () => {
 snapshotPrototypes();
 
 /**
- * Verifies the integrity of core prototypes against snapshots.
+ * Verifies and repairs the integrity of core prototypes against snapshots.
+ * Implements "Self-Healing RASP" by proactively purging unauthorized properties.
  */
 export const checkPrototypeIntegrity = () => {
   if (typeof window === 'undefined') return true;
@@ -99,12 +100,22 @@ export const checkPrototypeIntegrity = () => {
       // Check for added properties (pollution)
       for (const key of currentKeys) {
         if (!originalKeys.has(key)) {
-          if (_console.error) _call.call(_console.error, console, `Security Sentinel: Prototype Pollution detected on ${name}.prototype.${key}`);
+          if (_console.error) _call.call(_console.error, console, `Security Sentinel: Prototype Pollution detected on ${name}.prototype.${key}. Proactively purging polluted property.`);
+
+          // Self-Healing: Proactively delete the unauthorized property
+          try {
+            delete proto[key];
+          } catch (e) {
+            // If delete fails, attempt to shadow it with undefined and make it non-configurable
+            try {
+              _defineProperty(proto, key, { value: undefined, configurable: false, writable: false });
+            } catch (innerE) { /* total failure */ }
+          }
           compromised = true;
         }
       }
 
-      // Check for deleted or modified properties
+      // Check for deleted properties
       originalKeys.forEach(key => {
         if (!currentKeys.includes(key)) {
           if (_console.error) _call.call(_console.error, console, `Security Sentinel: Prototype Tampering detected (deleted): ${name}.prototype.${key}`);
@@ -389,7 +400,21 @@ const verifyAttestation = (sinkName, targetUrl = null) => {
     return false;
   }
 
-  // 3. CSA: Ensure the current call stack provenance is still valid
+  // 3. Stack-Bound Attestation: Ensure the call originates from within an authorized executeSecurely context
+  try {
+    const stack = new _Error().stack;
+    if (stack && !stack.includes('executeSecurely')) {
+      if (_console.error) _call.call(_console.error, console, `Security Sentinel: Attestation Permit bypass detected for ${sinkName}. Call originated outside of authorized executeSecurely scope.`);
+      executeLockdown();
+      return false;
+    }
+  } catch (e) {
+    // If stack analysis fails in this context, assume compromise
+    executeLockdown();
+    return false;
+  }
+
+  // 4. CSA: Ensure the current call stack provenance is still valid
   if (!validateCallStack()) {
     if (_console.error) _call.call(_console.error, console, `Security Sentinel: Attestation Permit mismatch for ${sinkName}. Provenance validation failed.`);
     executeLockdown();
