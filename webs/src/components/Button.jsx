@@ -61,21 +61,6 @@ const Button = memo(({
     buttonRef.current.style.setProperty('--rotate-y', '0deg');
   };
 
-  const variants = {
-    primary: "bg-voro-primary text-white border border-white/10 shadow-[0_20px_50px_rgba(124,58,237,0.3)] hover:shadow-[0_40px_80px_rgba(124,58,237,0.5)]",
-    secondary: "bg-[#0D1424]/80 backdrop-blur-xl text-white border border-white/5 hover:border-voro-primary/30 shadow-[0_20px_40px_rgba(0,0,0,0.4)] hover:shadow-[0_30px_60px_rgba(0,0,0,0.6)]",
-    outline: "border border-voro-primary/50 text-voro-primary hover:bg-voro-primary hover:text-white shadow-[0_10px_30px_rgba(124,58,237,0.1)]",
-    ghost: "text-voro-primary hover:bg-voro-primary/5 hover:text-white",
-    danger: "bg-red-500/90 backdrop-blur-md text-white border border-white/10 shadow-[0_20px_40px_rgba(239,68,68,0.3)]"
-  };
-
-  const sizes = {
-    sm: "px-5 py-2.5 text-[0.6rem]",
-    md: "px-8 py-4 text-[0.65rem]",
-    lg: "px-10 py-5 text-[0.75rem]",
-    xl: "px-12 py-6 text-[0.85rem]"
-  };
-
   const activeColor = variant === 'secondary' ? '#7C3AED' : variant === 'danger' ? '#EF4444' : '#7C3AED';
 
   return (
@@ -91,8 +76,8 @@ const Button = memo(({
         font-black uppercase tracking-[0.4em] rounded-2xl
         transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
         overflow-hidden group
-        ${variants[variant]}
-        ${sizes[size]}
+        ${VARIANTS[variant]}
+        ${SIZES[size]}
         ${fullWidth ? "w-full" : ""}
         ${(disabled || isLoading) ? "opacity-50 cursor-not-allowed" : "active:scale-[0.97]"}
         ${className}
@@ -145,6 +130,25 @@ const Button = memo(({
 });
 
 Button.displayName = "Button";
+
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted static style maps.
+ * Prevents redundant object allocation on every component render.
+ */
+const VARIANTS = {
+  primary: "bg-voro-primary text-white border border-white/10 shadow-[0_20px_50px_rgba(124,58,237,0.3)] hover:shadow-[0_40px_80px_rgba(124,58,237,0.5)]",
+  secondary: "bg-[#0D1424]/80 backdrop-blur-xl text-white border border-white/5 hover:border-voro-primary/30 shadow-[0_20px_40px_rgba(0,0,0,0.4)] hover:shadow-[0_30px_60px_rgba(0,0,0,0.6)]",
+  outline: "border border-voro-primary/50 text-voro-primary hover:bg-voro-primary hover:text-white shadow-[0_10px_30px_rgba(124,58,237,0.1)]",
+  ghost: "text-voro-primary hover:bg-voro-primary/5 hover:text-white",
+  danger: "bg-red-500/90 backdrop-blur-md text-white border border-white/10 shadow-[0_20px_40px_rgba(239,68,68,0.3)]"
+};
+
+const SIZES = {
+  sm: "px-5 py-2.5 text-[0.6rem]",
+  md: "px-8 py-4 text-[0.65rem]",
+  lg: "px-10 py-5 text-[0.75rem]",
+  xl: "px-12 py-6 text-[0.85rem]"
+};
 
 export { Button };
 export default Button;

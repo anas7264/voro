@@ -11,6 +11,16 @@ import Modal from '@/components/Modal';
 import Ring from '@/components/Ring';
 import { foods } from '@/data/foods';
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
+ * Prevents redundant object instantiation of Intl.DateTimeFormat in render loops.
+ */
+const dateFormatter = new Intl.DateTimeFormat('en-US', {
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric'
+});
+
 const FoodDiary = () => {
   const { storageData, setItem, getItem } = useStorage();
   const { user } = useApp();
@@ -159,11 +169,7 @@ const FoodDiary = () => {
     { label: 'Fat', value: nutritionLog.totals.fat, goal: user?.fatGoal || 65, color: '#F59E0B', unit: 'g' }
   ];
 
-  const formattedDate = new Date(date).toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric'
-  });
+  const formattedDate = dateFormatter.format(new Date(date));
 
   return (
     <div className="min-h-screen bg-[#080B14] text-[#F0F4FF] pb-20">
@@ -354,20 +360,22 @@ const FoodDiary = () => {
 
 const FoodSearchModal = ({ isOpen, onClose, onSelectFood }) => {
   const [search, setSearch] = useState('');
-  const [results, setResults] = useState(foods.slice(0, 15));
   const [selectedFood, setSelectedFood] = useState(null);
   const [portion, setPortion] = useState(100);
 
-  useEffect(() => {
-    if (search.trim()) {
-      const filtered = foods.filter(f =>
-        f.name.toLowerCase().includes(search.toLowerCase()) ||
-        (f.category && f.category.toLowerCase().includes(search.toLowerCase()))
-      );
-      setResults(filtered.slice(0, 20));
-    } else {
-      setResults(foods.slice(0, 15));
-    }
+  /**
+   * ⚡ OPTIMIZATION: Deriving filtered results via useMemo.
+   * This eliminates the double-render cycle (effect + state update)
+   * and ensures results are computed only when the search query changes.
+   */
+  const results = useMemo(() => {
+    if (!search.trim()) return foods.slice(0, 15);
+
+    const query = search.toLowerCase();
+    return foods.filter(f =>
+      f.name.toLowerCase().includes(query) ||
+      (f.category && f.category.toLowerCase().includes(query))
+    ).slice(0, 20);
   }, [search]);
 
   return (
