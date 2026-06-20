@@ -35,6 +35,14 @@ const AppLayout = ({ children }) => {
 
   return (
     <SidebarContext.Provider value={contextValue}>
+      {/* Skip to Content Link (Accessibility) */}
+      <a
+        href="#main-content"
+        className="fixed top-4 left-4 z-[200] px-6 py-3 bg-voro-primary text-white font-mono text-[0.6rem] font-black uppercase tracking-[0.3em] rounded-xl shadow-2xl sr-only focus:not-sr-only focus:outline-none focus:ring-2 focus:ring-white transition-all duration-300"
+      >
+        Skip to Content
+      </a>
+
       <div className="flex h-full bg-[#080B14] relative selection:bg-voro-primary/30">
         <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} isMobile={isMobile} />
 
@@ -46,7 +54,9 @@ const AppLayout = ({ children }) => {
         )}
 
         <main
-          className="flex-1 min-h-screen overflow-y-auto overflow-x-hidden transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
+          id="main-content"
+          tabIndex="-1"
+          className="flex-1 min-h-screen overflow-y-auto overflow-x-hidden transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] focus:outline-none"
           style={{ marginLeft: isMobile ? '0' : (collapsed ? '96px' : '320px') }}
         >
           <SecurityLockdown />
