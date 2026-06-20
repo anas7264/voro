@@ -80,13 +80,16 @@ const snapshotPrototypes = () => {
 };
 
 // Initial snapshot
-snapshotPrototypes();
+if (typeof window !== 'undefined') {
+  snapshotPrototypes();
+}
 
 /**
  * Verifies the integrity of core prototypes against snapshots.
  */
 export const checkPrototypeIntegrity = () => {
   if (typeof window === 'undefined') return true;
+  if (!prototypeSnapshots.has('Object')) snapshotPrototypes();
   let compromised = false;
 
   corePrototypes.forEach(({ name, proto }) => {
@@ -99,8 +102,15 @@ export const checkPrototypeIntegrity = () => {
       // Check for added properties (pollution)
       for (const key of currentKeys) {
         if (!originalKeys.has(key)) {
-          if (_console.error) _call.call(_console.error, console, `Security Sentinel: Prototype Pollution detected on ${name}.prototype.${key}`);
+          if (_console.error) _call.call(_console.error, console, `Security Sentinel: Prototype Pollution detected on ${name}.prototype.${key}. Attempting self-healing...`);
           compromised = true;
+          // Active Self-Healing: Attempt to delete the unauthorized property
+          try {
+            delete proto[key];
+          } catch (e) {
+            // If delete fails, it's likely non-configurable, indicating a more serious compromise
+            if (_console.error) _call.call(_console.error, console, `Security Sentinel: Self-healing failed for ${name}.prototype.${key}. Property is non-configurable.`);
+          }
         }
       }
 
@@ -127,7 +137,7 @@ export const checkPrototypeIntegrity = () => {
  * Verifies the provenance of the execution stack to prevent unauthorized programmatic access
  * to sensitive security sinks from non-application contexts (eval, third-party, etc.).
  */
-export const validateCallStack = () => {
+export const validateCallStack = (requiredFunction = null) => {
   if (typeof window === 'undefined') return true;
 
   // Circuit breaker: skip if already compromised
@@ -139,6 +149,7 @@ export const validateCallStack = () => {
 
     const lines = stack.split('\n');
     const trustedOrigin = window.location.origin;
+    let foundRequired = !requiredFunction;
 
     // Detection 0: Stack Depth Validation (Prevents recursion/exhaustion attacks)
     if (lines.length > 50) {
@@ -152,6 +163,10 @@ export const validateCallStack = () => {
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i];
       if (!line || line.includes('validateCallStack')) continue;
+
+      if (requiredFunction && line.includes(requiredFunction)) {
+        foundRequired = true;
+      }
 
       // Detection 1: Anonymous / Evaluated Code
       if (line.includes('<anonymous>') || line.includes('eval at') || line.includes('at eval')) {
@@ -188,6 +203,11 @@ export const validateCallStack = () => {
           return false;
         }
       }
+    }
+
+    if (!foundRequired) {
+      if (_console.error) _call.call(_console.error, console, `Security Sentinel: Stack-bound attestation failed. Required function [${requiredFunction}] not found in stack.`);
+      return false;
     }
 
     return true;
@@ -389,9 +409,9 @@ const verifyAttestation = (sinkName, targetUrl = null) => {
     return false;
   }
 
-  // 3. CSA: Ensure the current call stack provenance is still valid
-  if (!validateCallStack()) {
-    if (_console.error) _call.call(_console.error, console, `Security Sentinel: Attestation Permit mismatch for ${sinkName}. Provenance validation failed.`);
+  // 3. CSA: Ensure the current call stack provenance is still valid and originates from the secure wrapper
+  if (!validateCallStack('executeSecurely')) {
+    if (_console.error) _call.call(_console.error, console, `Security Sentinel: Attestation Permit mismatch for ${sinkName}. Provenance validation failed or missing secure wrapper.`);
     executeLockdown();
     return false;
   }
@@ -819,15 +839,40 @@ export const sanitizeObject = (o, s = new WeakSet()) => {
  */
 export const redactData = (d, s = new WeakSet()) => {
   if (typeof d === 'string') {
-    const p = { EMAIL: /[\w.-]+@[\w.-]+\.\w+/g, STRIPE: /sk_(?:live|test)_\w{24,34}/g, AWS: /AKIA\w{16}/g, JWT: /eyJ[\w=-]+\.eyJ[\w=-]+\.[\w-_.+/=]*/g, GOOGLE: /AIza[0-9A-Za-z-_]{35}/g, GITHUB: /gh[pk]_[a-zA-Z0-9]{36,255}/g, SLACK: /https:\/\/hooks\.slack\.com\/services\/T\w{8,10}\/B\w{8,10}\/\w{24}/g, DISCORD: /https:\/\/discord\.com\/api\/webhooks\/\d+\/[\w-]{68}/g, MARKER: /\[(USER_DATA|SECURITY_PROTOCOL|MESSAGE_HISTORY|USER_INPUT)_\w{32}\]/g };
-    let r = d; Object.entries(p).forEach(([n, g]) => r = r.replace(g, m => n === 'MARKER' ? `[[${m.slice(1, -1)}]]` : `[REDACTED_${n}]`));
+    const p = {
+      EMAIL: /[\w.-]+@[\w.-]+\.\w+/g,
+      STRIPE: /sk_(?:live|test)_\w{24,34}/g,
+      AWS: /AKIA\w{16}/g,
+      JWT: /eyJ[\w=-]+\.eyJ[\w=-]+\.[\w-_.+/=]*/g,
+      GOOGLE: /AIza[0-9A-Za-z-_]{35}/g,
+      GITHUB: /gh[pk]_[a-zA-Z0-9]{36,255}/g,
+      ANTHROPIC: /sk-ant-api03-[a-zA-Z0-9\-_]{93,}/g,
+      SLACK: /https:\/\/hooks\.slack\.com\/services\/T\w{8,10}\/B\w{8,10}\/\w{24}/g,
+      DISCORD: /https:\/\/discord\.com\/api\/webhooks\/\d+\/[\w-]{68}/g,
+      MARKER: /\[(USER_DATA|SECURITY_PROTOCOL|MESSAGE_HISTORY|USER_INPUT)_\w{32}\]/g
+    };
+    let r = d;
+    Object.entries(p).forEach(([n, g]) => r = r.replace(g, m => n === 'MARKER' ? `[[${m.slice(1, -1)}]]` : `[REDACTED_${n}]`));
+
+    // Heuristic: Entropy-based catch-all for high-entropy tokens > 24 chars
+    if (typeof r === 'string' && r.length > 24 && calculateEntropy(r) > 4.2) {
+      if (!r.startsWith('[[') && !r.startsWith('[REDACTED_')) {
+        return "[REDACTED_HIGH_ENTROPY_TOKEN]";
+      }
+    }
+
     return r;
   }
   if (!d || typeof d !== 'object') return d;
   if (s.has(d)) return "[CIRCULAR_REFERENCE]";
   s.add(d);
   if (Array.isArray(d)) return d.map(i => redactData(i, s));
-  const r = {}; _getOwnPropertyNames(d).forEach(k => r[k] = redactData(d[k], s)); return r;
+  const r = {};
+  _getOwnPropertyNames(d).forEach(k => {
+    const redactedKey = redactData(k, s);
+    r[redactedKey] = redactData(d[k], s);
+  });
+  return r;
 };
 
 /**
