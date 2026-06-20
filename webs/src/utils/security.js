@@ -19,6 +19,7 @@ const _sendBeacon = (typeof window !== 'undefined' && window.navigator) ? window
 const _freeze = Object.freeze;
 const _defineProperty = Object.defineProperty;
 const _getOwnPropertyNames = Object.getOwnPropertyNames;
+const _getOwnPropertySymbols = Object.getOwnPropertySymbols;
 const _getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
 const _getPrototypeOf = Object.getPrototypeOf;
 const _hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -72,7 +73,8 @@ const snapshotPrototypes = () => {
   corePrototypes.forEach(({ name, proto }) => {
     try {
       const keys = _getOwnPropertyNames(proto);
-      prototypeSnapshots.set(name, new Set(keys));
+      const symbols = _getOwnPropertySymbols ? _getOwnPropertySymbols(proto) : [];
+      prototypeSnapshots.set(name, new Set([...keys, ...symbols]));
     } catch (e) {
       // Ignore errors during snapshotting
     }
@@ -92,7 +94,9 @@ export const checkPrototypeIntegrity = () => {
 
   corePrototypes.forEach(({ name, proto }) => {
     try {
-      const currentKeys = _getOwnPropertyNames(proto);
+      const keys = _getOwnPropertyNames(proto);
+      const symbols = _getOwnPropertySymbols ? _getOwnPropertySymbols(proto) : [];
+      const currentKeys = [...keys, ...symbols];
       const originalKeys = prototypeSnapshots.get(name);
 
       if (!originalKeys) return;
@@ -100,7 +104,8 @@ export const checkPrototypeIntegrity = () => {
       // Check for added properties (pollution)
       for (const key of currentKeys) {
         if (!originalKeys.has(key)) {
-          if (_console.error) _call.call(_console.error, console, `Security Sentinel: Prototype Pollution detected on ${name}.prototype.${key}. Proactively purging polluted property.`);
+          const keyDesc = typeof key === 'symbol' ? key.toString() : key;
+          if (_console.error) _call.call(_console.error, console, `Security Sentinel: Prototype Pollution detected on ${name}.prototype.${keyDesc}. Proactively purging polluted property.`);
 
           // Self-Healing: Proactively delete the unauthorized property
           try {
@@ -118,7 +123,8 @@ export const checkPrototypeIntegrity = () => {
       // Check for deleted properties
       originalKeys.forEach(key => {
         if (!currentKeys.includes(key)) {
-          if (_console.error) _call.call(_console.error, console, `Security Sentinel: Prototype Tampering detected (deleted): ${name}.prototype.${key}`);
+          const keyDesc = typeof key === 'symbol' ? key.toString() : key;
+          if (_console.error) _call.call(_console.error, console, `Security Sentinel: Prototype Tampering detected (deleted): ${name}.prototype.${keyDesc}`);
           compromised = true;
         }
       });
@@ -871,7 +877,9 @@ export const redactData = (d, s = new WeakSet()) => {
   if (Array.isArray(d)) return d.map(i => redactData(i, s));
   const r = {};
   _getOwnPropertyNames(d).forEach(k => {
-    r[k] = redactData(d[k], s);
+    if (!['__proto__', 'constructor', 'prototype'].includes(k)) {
+      r[k] = redactData(d[k], s);
+    }
   });
   return r;
 };
@@ -886,7 +894,11 @@ export const maskBiometrics = (d, s = new WeakSet()) => {
   s.add(d);
   if (Array.isArray(d)) return d.map(i => maskBiometrics(i, s));
   const r = {};
-  _getOwnPropertyNames(d).forEach(p => r[p] = k.includes(p) ? '[REDACTED_BIOMETRIC]' : maskBiometrics(d[p], s));
+  _getOwnPropertyNames(d).forEach(p => {
+    if (!['__proto__', 'constructor', 'prototype'].includes(p)) {
+      r[p] = k.includes(p) ? '[REDACTED_BIOMETRIC]' : maskBiometrics(d[p], s);
+    }
+  });
   return r;
 };
 
