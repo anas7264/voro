@@ -270,42 +270,56 @@ const Dashboard = () => {
       </div>
 
       <div className="relative max-w-[1440px] mx-auto px-6 py-12 md:px-12 lg:px-20">
-        <header className="mb-24 flex flex-col md:flex-row md:items-end justify-between gap-12">
-          <div className="space-y-6">
+        <header className="mb-32 flex flex-col md:flex-row md:items-end justify-between gap-16 group/header">
+          <div className="space-y-10 max-w-4xl">
+            {/* Neural Pulse Eyebrow */}
             <div className="flex items-center gap-4 text-voro-primary">
-              <div className="w-2 h-2 rounded-full bg-voro-primary animate-pulse shadow-[0_0_12px_#7C3AED]" />
-              <span className="text-[0.65rem] font-black uppercase tracking-[0.5em] opacity-80">Evolutionary Status // {user.name.toUpperCase()}</span>
+              <div className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-voro-primary opacity-40"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-voro-primary shadow-[0_0_15px_rgba(124,58,237,0.8)]"></span>
+              </div>
+              <span className="text-[0.7rem] font-mono font-black uppercase tracking-[0.6em] opacity-90">
+                Evolutionary Status // {user.name.replace(' ', '_').toUpperCase()}
+              </span>
             </div>
-            <div className="space-y-0">
-              <h1 className="text-7xl md:text-9xl font-serif italic font-medium tracking-tighter text-white leading-[0.8] mb-2">
+
+            <div className="space-y-4">
+              <h1 className="text-[5rem] md:text-[8.5rem] font-serif italic font-medium tracking-[-0.04em] text-white leading-[0.85] mb-4">
                 {greeting},
               </h1>
-              <div className="flex flex-col md:flex-row md:items-end gap-10">
-                <span className="text-gradient text-7xl md:text-9xl font-serif font-black tracking-tighter leading-[0.8]">
+              <div className="flex flex-col md:flex-row md:items-end gap-12">
+                <span className="text-gradient text-[5.5rem] md:text-[9rem] font-serif font-black tracking-[-0.05em] leading-[0.8]">
                   In Motion.
                 </span>
-                <div className="flex gap-8 pb-4">
-                  <div className="flex flex-col">
-                    <span className="text-[0.55rem] font-mono text-gray-700 uppercase tracking-[0.4em]">Integrity</span>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="w-1 h-1 rounded-full bg-voro-secondary" />
-                      <span className="text-[0.65rem] font-mono text-voro-secondary font-bold tracking-widest">NOMINAL_99.8%</span>
+
+                {/* System Telemetry Grid */}
+                <div className="grid grid-cols-2 gap-10 pb-4 border-l border-white/5 pl-10 ml-2">
+                  <div className="space-y-2">
+                    <span className="text-[0.55rem] font-mono text-gray-700 uppercase tracking-[0.5em] block">Integrity</span>
+                    <div className="flex items-center gap-3">
+                      <div className="w-1.5 h-1.5 rounded-full bg-voro-secondary shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                      <span className="text-[0.7rem] font-mono text-white font-bold tracking-[0.2em]">0x99_NOMINAL</span>
                     </div>
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-[0.55rem] font-mono text-gray-700 uppercase tracking-[0.4em]">Node</span>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="w-1 h-1 rounded-full bg-voro-primary animate-ping" />
-                      <span className="text-[0.65rem] font-mono text-voro-primary font-bold tracking-widest">ACTIVE_A1</span>
+                  <div className="space-y-2">
+                    <span className="text-[0.55rem] font-mono text-gray-700 uppercase tracking-[0.5em] block">Sync Node</span>
+                    <div className="flex items-center gap-3">
+                      <div className="w-1.5 h-1.5 rounded-full bg-voro-primary animate-pulse" />
+                      <span className="text-[0.7rem] font-mono text-voro-primary font-bold tracking-[0.2em]">ACTIVE_v2.0</span>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-            <p className="text-gray-600 font-medium tracking-[0.4em] text-[0.65rem] uppercase opacity-40">{todayDate}</p>
+
+            {/* Architectural Datum Line */}
+            <div className="flex items-center gap-6">
+              <div className="h-px w-32 bg-gradient-to-r from-voro-primary to-transparent opacity-50 group-hover/header:w-64 transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)]" />
+              <p className="text-gray-600 font-mono font-bold tracking-[0.5em] text-[0.6rem] uppercase opacity-50 whitespace-nowrap">{todayDate}</p>
+            </div>
           </div>
 
-          <div className="flex gap-6">
+          <div className="flex gap-8 pb-2">
             <Button
               onClick={() => setShowQuickLog(true)}
               className="!bg-white !text-black !rounded-full shadow-2xl shadow-white/10"
@@ -329,62 +343,76 @@ const Dashboard = () => {
             <section
               ref={metabolicCardRef}
               onMouseMove={handleMouseMove}
-              className="relative overflow-hidden rounded-[3rem] bg-[#0A0C14] border border-white/5 p-16 md:p-20 shadow-2xl shadow-black/40 transition-all hover:border-white/10 group/card bg-boutique-grain"
+              className="relative overflow-hidden rounded-[4rem] bg-[#0A0C14] border border-white/5 p-20 md:p-24 shadow-[0_80px_160px_-40px_rgba(0,0,0,0.8),inset_0_1px_1px_0_rgba(255,255,255,0.05)] transition-all duration-1000 hover:border-white/10 group/card bg-boutique-grain"
             >
-              <div className="absolute top-0 right-0 w-96 h-96 bg-voro-primary/5 rounded-full blur-[120px] -mr-48 -mt-48 group-hover/card:bg-voro-primary/10 transition-colors duration-1000" />
+              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-voro-primary/5 rounded-full blur-[140px] -mr-64 -mt-64 group-hover/card:bg-voro-primary/10 transition-colors duration-1000" />
+              <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-voro-secondary/5 rounded-full blur-[120px] -ml-48 -mb-48" />
 
               {/* Dynamic Light Lens */}
               <div
                 className="absolute inset-0 pointer-events-none opacity-0 group-hover/card:opacity-100 transition-opacity duration-700"
                 style={{
-                  background: `radial-gradient(1000px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(124, 58, 237, 0.05), transparent 40%)`,
+                  background: `radial-gradient(1200px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(124, 58, 237, 0.08), transparent 45%)`,
                 }}
               />
 
-              <div className="kinetic-sweep opacity-20 group-hover/card:opacity-40 transition-opacity duration-1000" />
+              <div className="kinetic-sweep opacity-30 group-hover/card:opacity-50 transition-opacity duration-1000" />
 
-              <div className="relative grid grid-cols-1 md:grid-cols-2 gap-24 items-center">
-                <div className="flex justify-center">
-                  <div className="relative p-2 rounded-full bg-black/40 backdrop-blur-md border border-white/5 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
-                    <div className="absolute inset-0 rounded-full bg-voro-primary/5 animate-pulse-slow blur-2xl" />
+              <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-20 lg:gap-32 items-center">
+                <div className="lg:col-span-5 flex justify-center">
+                  <div className="relative p-4 rounded-full bg-black/40 backdrop-blur-3xl border border-white/10 shadow-[0_40px_80px_rgba(0,0,0,0.6),inset_0_2px_2px_0_rgba(255,255,255,0.05)]">
+                    <div className="absolute inset-[-20px] rounded-full bg-voro-primary/10 animate-pulse-slow blur-3xl" />
                     <Ring
                       value={(nutritionToday?.totals?.calories || 0)}
                       max={user.calorieGoal}
-                      size={280}
+                      size={320}
                       unit="kcal"
                       label="Energy Balance"
                     />
+
+                    {/* Precision Ring Overlay */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] h-[340px] border border-white/5 rounded-full pointer-events-none" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[360px] h-[360px] border border-white/[0.02] rounded-full pointer-events-none" />
                   </div>
                 </div>
 
-                <div className="space-y-10">
+                <div className="lg:col-span-7 space-y-16">
                   <div>
-                    <h3 className="text-[0.65rem] font-black text-voro-primary uppercase tracking-[0.4em] mb-6">Metabolic Velocity</h3>
-                    <div className="flex items-baseline gap-4">
-                      <span className="text-8xl font-serif italic font-black tracking-tighter text-white">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="h-px w-8 bg-voro-primary" />
+                      <h3 className="text-[0.7rem] font-mono font-black text-voro-primary uppercase tracking-[0.6em]">Metabolic Velocity</h3>
+                    </div>
+                    <div className="flex items-baseline gap-6">
+                      <span className="text-9xl font-serif italic font-medium tracking-[-0.05em] text-white leading-none">
                         {nutritionToday?.totals?.calories || 0}
                       </span>
-                      <span className="text-lg font-medium text-gray-500 tracking-tight">/ {user.calorieGoal} kcal</span>
+                      <span className="text-2xl font-serif italic text-gray-500 tracking-tight opacity-60">/ {user.calorieGoal} kcal</span>
                     </div>
                   </div>
 
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between p-5 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm">
-                      <div className="flex items-center gap-4">
-                        <div className={`p-2.5 rounded-xl ${calorieStatus.status === 'under' ? 'bg-voro-secondary/10 text-voro-secondary' : 'bg-voro-danger/10 text-voro-danger'}`}>
-                          {calorieStatus.status === 'under' ? <TrendingDown size={20} /> : <TrendingUp size={20} />}
-                        </div>
-                        <span className="text-xs font-black uppercase tracking-[0.2em] text-gray-400">Allowance</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                    <div className="flex flex-col gap-4 p-8 rounded-[2rem] bg-white/[0.03] border border-white/5 backdrop-blur-xl transition-all hover:bg-white/[0.05]">
+                      <div className="flex items-center justify-between">
+                         <span className="text-[0.6rem] font-mono font-black uppercase tracking-[0.4em] text-gray-500">Allowance</span>
+                         <div className={`p-2 rounded-lg ${calorieStatus.status === 'under' ? 'text-voro-secondary bg-voro-secondary/10' : 'text-voro-danger bg-voro-danger/10'}`}>
+                           {calorieStatus.status === 'under' ? <TrendingDown size={14} /> : <TrendingUp size={14} />}
+                         </div>
                       </div>
-                      <span className="text-xl font-serif italic font-bold text-white">{calorieStatus.remaining} <span className="text-[0.6rem] not-italic font-sans font-black text-gray-600 uppercase ml-1 tracking-widest">kcal</span></span>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-4xl font-serif italic font-bold text-white">{calorieStatus.remaining}</span>
+                        <span className="text-[0.6rem] font-mono font-black text-gray-600 uppercase tracking-widest">kcal</span>
+                      </div>
                     </div>
 
                     <button
                       onClick={() => navigate('/nutrition/diary')}
-                      className="w-full flex items-center justify-between px-8 py-5 rounded-2xl bg-voro-primary text-white font-black uppercase tracking-[0.3em] text-[0.65rem] transition-all hover:bg-voro-primary-dark hover:scale-[1.02] active:scale-[0.98] group shadow-xl shadow-voro-primary/20"
+                      className="relative h-full flex flex-col justify-center items-center gap-4 px-10 py-8 rounded-[2rem] bg-voro-primary text-white font-black uppercase tracking-[0.4em] text-[0.7rem] transition-all duration-700 hover:scale-[1.02] active:scale-[0.98] group/btn shadow-[0_30px_60px_rgba(124,58,237,0.3)] hover:shadow-[0_40px_80px_rgba(124,58,237,0.5)] overflow-hidden"
                     >
-                      <span>Examine Nutrition Matrix</span>
-                      <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" />
+                      <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity duration-700" />
+                      <div className="flex items-center gap-4 relative z-10">
+                        <span>Examine Matrix</span>
+                        <ChevronRight size={18} className="transition-transform duration-500 group-hover/btn:translate-x-2" />
+                      </div>
                     </button>
                   </div>
                 </div>
