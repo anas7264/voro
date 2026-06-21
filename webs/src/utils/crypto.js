@@ -1,6 +1,6 @@
 // VORO Crypto Utility
 // Authenticated Encryption at Rest (AES-GCM) using Web Crypto API
-import { validateCallStack } from './security';
+import { validateCallStack, executeSecurely } from './security';
 
 const DB_NAME = 'VORO_SECURE_STORAGE';
 const STORE_NAME = 'KEYS';
@@ -52,10 +52,11 @@ class CryptoManager {
 
   // Get keys from IndexedDB or generate new ones
   async getOrGenerateKeys() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, 1);
+    return await executeSecurely("Retrieve Master Keys", () => {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, 1);
 
-      request.onupgradeneeded = (event) => {
+        request.onupgradeneeded = (event) => {
         const db = event.target.result;
         if (!db.objectStoreNames.contains(STORE_NAME)) {
           db.createObjectStore(STORE_NAME);
@@ -121,10 +122,11 @@ class CryptoManager {
           };
         };
 
-        getMaster.onerror = () => reject(new Error('Failed to retrieve master key'));
-      };
+          getMaster.onerror = () => reject(new Error('Failed to retrieve master key'));
+        };
 
-      request.onerror = () => reject(new Error('Failed to open secure key store'));
+        request.onerror = () => reject(new Error('Failed to open secure key store'));
+      });
     });
   }
 

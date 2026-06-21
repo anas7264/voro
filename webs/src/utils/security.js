@@ -14,6 +14,7 @@ const _setTimeout = typeof setTimeout !== 'undefined' ? setTimeout : null;
 const _Error = Error;
 const _fetch = typeof window !== 'undefined' ? window.fetch : null;
 const _XHR = typeof window !== 'undefined' ? window.XMLHttpRequest : null;
+const _indexedDBOpen = (typeof window !== 'undefined' && window.indexedDB) ? window.indexedDB.open : null;
 const _WebSocket = typeof window !== 'undefined' ? window.WebSocket : null;
 const _sendBeacon = (typeof window !== 'undefined' && window.navigator) ? window.navigator.sendBeacon : null;
 const _freeze = Object.freeze;
@@ -434,8 +435,22 @@ const verifyAttestation = (sinkName, targetUrl = null) => {
  * Attestation Sink Orchestrator
  * Intercepts and wraps high-risk browser APIs with attestation guards.
  */
-const initializeNetworkAttestation = () => {
+const initializeAttestationSinks = () => {
   if (typeof window === 'undefined') return;
+
+  // Wrap IndexedDB.open (Enclave Attestation)
+  if (_indexedDBOpen && window.indexedDB) {
+    const idbWrapper = function(name, version) {
+      // Specifically protect the VORO vault name
+      const isSecureVault = name === 'VORO_SECURE_STORAGE';
+      if (isSecureVault && !verifyAttestation('indexedDB.open', 'voro://enclave')) {
+        throw new _Error("Enclave access blocked by VORO Neural Shield. No Attestation Permit found.");
+      }
+      return _ReflectApply ? _ReflectApply(_indexedDBOpen, window.indexedDB, arguments) : _call.call(_indexedDBOpen, window.indexedDB, name, version);
+    };
+    TRUSTED_WRAPPERS.add(idbWrapper);
+    window.indexedDB.open = idbWrapper;
+  }
 
   // Wrap fetch
   if (_fetch) {
@@ -512,7 +527,7 @@ const initializeNetworkAttestation = () => {
 };
 
 // Initialize Attestation Sinks
-initializeNetworkAttestation();
+initializeAttestationSinks();
 
 /**
  * Creates a Honey-Trap object using Proxy to monitor unauthorized access.
@@ -759,6 +774,7 @@ export const performIntegrityCheck = () => {
     { obj: window.localStorage, prop: 'removeItem', name: 'localStorage.removeItem' },
     { obj: window.sessionStorage, prop: 'setItem', name: 'sessionStorage.setItem' },
     { obj: window, prop: 'XMLHttpRequest', name: 'XMLHttpRequest' },
+    { obj: window.indexedDB, prop: 'open', name: 'indexedDB.open' },
     { obj: window, prop: 'WebSocket', name: 'WebSocket' },
     { obj: window.navigator, prop: 'sendBeacon', name: 'navigator.sendBeacon' },
     { obj: window, prop: 'Proxy', name: 'Proxy' },
