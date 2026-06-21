@@ -85,10 +85,12 @@ const WorkoutHistory = () => {
 
             <div className="space-y-3">
               {workouts.map((workout, idx) => (
-                <Card key={idx} className="p-5 cursor-pointer hover:border-violet-500/50 transition-all border border-voro-border">
-                  <div
-                    className="flex items-start justify-between"
+                <Card key={idx} className="p-0 overflow-hidden hover:border-voro-primary/50 transition-all border border-voro-border">
+                  <button
+                    type="button"
+                    className="w-full p-5 flex items-start justify-between text-left transition-all active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-voro-surface outline-none"
                     onClick={() => setExpandedIdx(expandedIdx === idx ? null : idx)}
+                    aria-expanded={expandedIdx === idx}
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-1">
@@ -117,12 +119,15 @@ const WorkoutHistory = () => {
                     </div>
                     <div className="ml-4 text-gray-500">
                       {expandedIdx === idx ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                      <span className="sr-only">
+                        {expandedIdx === idx ? 'Collapse details' : 'Expand details'}
+                      </span>
                     </div>
-                  </div>
+                  </button>
 
                   {expandedIdx === idx && workout.exercises?.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-voro-border">
-                      <div className="space-y-2">
+                    <div className="px-5 pb-5 border-t border-voro-border">
+                      <div className="space-y-2 mt-4">
                         {workout.exercises.map((ex, eIdx) => (
                           <div key={eIdx} className="flex items-center justify-between text-sm">
                             <span className="text-white">{ex.name}</span>
