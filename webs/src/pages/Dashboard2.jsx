@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import Progress from '@/components/Progress';
+import Header from '@/components/Header';
 
 const Dashboard2 = () => {
   useEffect(() => {
@@ -8,69 +10,119 @@ const Dashboard2 = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-voro-surface p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold text-white mb-6">Alternative Dashboard</h1>
+    <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30 pb-24">
+      {/* Ambient background architectural lighting */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-voro-primary/5 rounded-full blur-[150px]" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-voro-secondary/5 rounded-full blur-[120px]" />
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-          <Card className="p-6 bg-gradient-to-br from-blue-600 to-blue-700">
-            <div className="text-3xl mb-2">📊</div>
-            <div className="text-sm text-blue-100">Nutrition Summary</div>
-            <div className="text-2xl font-bold text-white mt-2">1,850 kcal</div>
-            <div className="text-xs text-blue-100 mt-1">of 2,200 goal</div>
+      <div className="relative max-w-[1440px] mx-auto px-6 py-12 md:px-12 lg:px-20">
+        <Header
+          eyebrow="System_Analysis_v2.0"
+          title={<>Alternative <span className="text-voro-primary not-italic font-bold">Insights</span></>}
+          subtitle="A high-fidelity perspective on your current biological trajectory and system telemetry."
+        />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+          <Card className="p-8 group hover:border-voro-info/30 transition-all duration-700" variant="glass">
+             <div className="flex items-center justify-between mb-8">
+               <div className="p-4 bg-voro-info/10 rounded-2xl text-voro-info shadow-lg shadow-voro-info/20">
+                 <span className="text-2xl">📊</span>
+               </div>
+               <span className="text-[0.6rem] font-mono font-bold text-voro-info uppercase tracking-[0.4em]">Matrix_01</span>
+             </div>
+             <p className="text-[0.6rem] font-black text-gray-500 uppercase tracking-[0.3em] mb-2">Nutrition Summary</p>
+             <div className="flex items-baseline gap-3">
+               <span className="text-4xl font-serif italic font-bold text-white">1,850</span>
+               <span className="text-[0.65rem] font-mono text-gray-600 uppercase tracking-widest">kcal logged</span>
+             </div>
+             <div className="mt-8 pt-8 border-t border-white/5">
+                <span className="text-[0.55rem] font-mono text-gray-700 uppercase tracking-[0.2em]">Target Ceiling: 2,200 kcal</span>
+             </div>
           </Card>
 
-          <Card className="p-6 bg-gradient-to-br from-green-600 to-green-700">
-            <div className="text-3xl mb-2">💪</div>
-            <div className="text-sm text-green-100">Workout</div>
-            <div className="text-2xl font-bold text-white mt-2">45 min</div>
-            <div className="text-xs text-green-100 mt-1">Upper body push</div>
+          <Card className="p-8 group hover:border-voro-secondary/30 transition-all duration-700" variant="glass">
+             <div className="flex items-center justify-between mb-8">
+               <div className="p-4 bg-voro-secondary/10 rounded-2xl text-voro-secondary shadow-lg shadow-voro-secondary/20">
+                 <span className="text-2xl">💪</span>
+               </div>
+               <span className="text-[0.6rem] font-mono font-bold text-voro-secondary uppercase tracking-[0.4em]">Matrix_02</span>
+             </div>
+             <p className="text-[0.6rem] font-black text-gray-500 uppercase tracking-[0.3em] mb-2">Active Session</p>
+             <div className="flex items-baseline gap-3">
+               <span className="text-4xl font-serif italic font-bold text-white">45</span>
+               <span className="text-[0.65rem] font-mono text-gray-600 uppercase tracking-widest">Min Depth</span>
+             </div>
+             <div className="mt-8 pt-8 border-t border-white/5">
+                <span className="text-[0.55rem] font-mono text-gray-700 uppercase tracking-[0.2em]">Archetype: Upper Body Push</span>
+             </div>
           </Card>
 
-          <Card className="p-6 bg-gradient-to-br from-purple-600 to-purple-700">
-            <div className="text-3xl mb-2">📈</div>
-            <div className="text-sm text-purple-100">Progress</div>
-            <div className="text-2xl font-bold text-white mt-2">↓ 2.5 kg</div>
-            <div className="text-xs text-purple-100 mt-1">This month</div>
+          <Card className="p-8 group hover:border-voro-primary/30 transition-all duration-700" variant="glass">
+             <div className="flex items-center justify-between mb-8">
+               <div className="p-4 bg-voro-primary/10 rounded-2xl text-voro-primary shadow-lg shadow-voro-primary/20">
+                 <span className="text-2xl">📈</span>
+               </div>
+               <span className="text-[0.6rem] font-mono font-bold text-voro-primary uppercase tracking-[0.4em]">Matrix_03</span>
+             </div>
+             <p className="text-[0.6rem] font-black text-gray-500 uppercase tracking-[0.3em] mb-2">Kinetic Shift</p>
+             <div className="flex items-baseline gap-3">
+               <span className="text-4xl font-serif italic font-bold text-white">↓ 2.5</span>
+               <span className="text-[0.65rem] font-mono text-gray-600 uppercase tracking-widest">kg Mass</span>
+             </div>
+             <div className="mt-8 pt-8 border-t border-white/5">
+                <span className="text-[0.55rem] font-mono text-gray-700 uppercase tracking-[0.2em]">Temporal Frame: 30D Matrix</span>
+             </div>
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
-            <div className="space-y-2">
-              <Button variant="secondary" className="w-full justify-start">Log Meal</Button>
-              <Button variant="secondary" className="w-full justify-start">Log Workout</Button>
-              <Button variant="secondary" className="w-full justify-start">Check Stats</Button>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <Card className="p-10 space-y-10">
+            <div className="flex items-center gap-4">
+              <div className="w-1.5 h-1.5 rounded-full bg-voro-primary shadow-[0_0_10px_rgba(124,58,237,0.5)]" />
+              <h3 className="text-[0.7rem] font-black uppercase tracking-[0.4em] text-white">Express Commands</h3>
+            </div>
+            <div className="grid grid-cols-1 gap-4">
+              <Button variant="secondary" className="w-full !justify-start !px-8 h-16 group/btn">
+                <span className="text-gray-500 group-hover/btn:text-voro-primary transition-colors mr-4 font-mono text-xs">01</span>
+                Log Nutritional Intake
+              </Button>
+              <Button variant="secondary" className="w-full !justify-start !px-8 h-16 group/btn">
+                <span className="text-gray-500 group-hover/btn:text-voro-primary transition-colors mr-4 font-mono text-xs">02</span>
+                Archive Movement Pattern
+              </Button>
+              <Button variant="secondary" className="w-full !justify-start !px-8 h-16 group/btn">
+                <span className="text-gray-500 group-hover/btn:text-voro-primary transition-colors mr-4 font-mono text-xs">03</span>
+                Examine Biometric Logs
+              </Button>
             </div>
           </Card>
 
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Today's Goals</h3>
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Calories</span>
-                <span className="text-white font-semibold">84%</span>
-              </div>
-              <div className="w-full bg-voro-border rounded-full h-2">
-                <div className="h-2 rounded-full bg-blue-500" style={{ width: '84%' }} />
-              </div>
-
-              <div className="flex justify-between items-center mt-3">
-                <span className="text-gray-400">Protein</span>
-                <span className="text-white font-semibold">92%</span>
-              </div>
-              <div className="w-full bg-voro-border rounded-full h-2">
-                <div className="h-2 rounded-full bg-green-500" style={{ width: '92%' }} />
-              </div>
-
-              <div className="flex justify-between items-center mt-3">
-                <span className="text-gray-400">Water</span>
-                <span className="text-white font-semibold">65%</span>
-              </div>
-              <div className="w-full bg-voro-border rounded-full h-2">
-                <div className="h-2 rounded-full bg-blue-400" style={{ width: '65%' }} />
-              </div>
+          <Card className="p-10 space-y-10">
+            <div className="flex items-center gap-4">
+              <div className="w-1.5 h-1.5 rounded-full bg-voro-secondary shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+              <h3 className="text-[0.7rem] font-black uppercase tracking-[0.4em] text-white">Temporal Goals</h3>
+            </div>
+            <div className="space-y-10">
+              <Progress
+                label="Energy Balance"
+                value={1850}
+                max={2200}
+                color="info"
+              />
+              <Progress
+                label="Protein Density"
+                value={148}
+                max={160}
+                color="secondary"
+              />
+              <Progress
+                label="Hydration Matrix"
+                value={1300}
+                max={2000}
+                color="info"
+              />
             </div>
           </Card>
         </div>
