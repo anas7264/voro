@@ -12,6 +12,7 @@ import SecurityLockdown from "./components/SecurityLockdown";
 
 // Lazy-loaded pages
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Dashboard2 = lazy(() => import("./pages/Dashboard2"));
 const FoodDiary = lazy(() => import("./pages/FoodDiary"));
 const MealPlanner = lazy(() => import("./pages/MealPlanner"));
 const FoodLibrary = lazy(() => import("./pages/FoodLibrary"));
@@ -86,6 +87,7 @@ export const App = () => {
 
                   {/* Dashboard */}
                   <Route path="/dashboard" element={<AppPage><Dashboard /></AppPage>} />
+                  <Route path="/dashboard-alt" element={<AppPage><Dashboard2 /></AppPage>} />
 
                   {/* Nutrition */}
                   <Route path="/nutrition">
