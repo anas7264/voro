@@ -106,3 +106,14 @@ Effective RASP requires "Native Primitive Pinning"—capturing references to cor
 
 **Prevention:**
 Always capture essential primitives (`setInterval`, `test`, `defineProperty`) as safe local variables at the very top of security modules. Ensure that security initialization in the application entry point (e.g., `main.jsx`) is the absolute first import to guarantee provenance of captured primitives.
+
+## 2025-05-20 - Markdown-Based AI Data Exfiltration & Policy Fallback Constraints
+
+**Vulnerability:**
+AI response validation often focuses only on markdown image tags (`![...]()`) for exfiltration detection, ignoring standard links (`[...]()`). An attacker can use deceptive link text to trick users into clicking exfiltration URLs containing sensitive tokens or session identifiers.
+
+**Learning:**
+Hardening exfiltration detection requires expanding regex patterns to cover all markdown media types and monitoring a broader range of sensitive keywords (e.g., `token`, `secret`) in URL parameters. However, security "alignment" between Trusted Types and their fallbacks must be handled with care; returning empty strings in a fallback `createScript` (to match the primary policy's blocking behavior) is a breaking change for browsers like Firefox/Safari if the application or its dependencies rely on dynamic script creation through that policy.
+
+**Prevention:**
+Always validate both image and link markdown in AI outputs. Maintain high-fidelity cross-browser compatibility by ensuring that security policy fallbacks do not introduce functional regressions in non-Chromium environments unless the specific sink is verified as unused or unauthorized.
