@@ -925,7 +925,11 @@ export const validateAIResponse = (c, n = null) => {
   if (!c) return c;
   if (n && c.includes(n)) { executeLockdown(); return "[SECURITY_VIOLATION_DETECTED]"; }
   let v = redactData(c.replace(/\[\/?(USER_DATA|SECURITY_PROTOCOL|MESSAGE_HISTORY|USER_INPUT).*?\]/g, '[REDACTED_BOUNDARY]'));
-  if (/!\[.*?\]\(https?:\/\/.*?\?(?:cookie|session|localstorage|voro_).*?\)/gi.test(v)) { executeLockdown(); return "[SECURITY_VIOLATION_DETECTED]"; }
+  // Detect exfiltration attempts in markdown media (images/links) containing sensitive keywords
+  if (/!?\[.*?\]\(https?:\/\/.*?\?(?:cookie|session|localstorage|voro_|token|secret).*?\)/gi.test(v)) {
+    executeLockdown();
+    return "[SECURITY_VIOLATION_DETECTED]";
+  }
   return v;
 };
 
