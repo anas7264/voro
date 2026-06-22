@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useId } from 'react';
 import { Moon, Sun, Settings as SettingsIcon, RotateCcw, Download, Upload } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
@@ -10,6 +10,12 @@ import { useApp } from '@/hooks/useAppContext';
 const Settings = () => {
   const { storageData, setStorage, exportData, clearAllData } = useStorage();
   const { user } = useApp();
+
+  const themeId = useId();
+  const fontSizeId = useId();
+  const accentColorId = useId();
+  const weightUnitId = useId();
+  const heightUnitId = useId();
 
   useEffect(() => {
     document.title = 'VORO | Settings';
@@ -60,6 +66,8 @@ const Settings = () => {
     }
   };
 
+  const labelStyle = "block text-[0.65rem] font-mono font-black uppercase tracking-[0.3em] text-gray-500 group-hover:text-voro-primary transition-colors cursor-pointer mb-1";
+
   return (
     <div className="min-h-screen bg-voro-surface p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
@@ -72,12 +80,13 @@ const Settings = () => {
             Display
           </h3>
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between group">
               <div>
-                <span className="text-white">Dark Mode</span>
+                <label htmlFor={themeId} className={labelStyle}>Dark Mode</label>
                 <p className="text-xs text-gray-400">Easy on the eyes</p>
               </div>
               <button
+                id={themeId}
                 onClick={toggleTheme}
                 className="flex items-center gap-2 focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14] outline-none transition-all active:scale-90 rounded-lg p-1"
                 aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -90,11 +99,12 @@ const Settings = () => {
               </button>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between group">
               <div>
-                <span className="text-white">Font Size</span>
+                <label htmlFor={fontSizeId} className={labelStyle}>Font Size</label>
               </div>
               <Select
+                id={fontSizeId}
                 value={settings.fontSize || 'medium'}
                 onChange={(e) => handleSettingChange('fontSize', e.target.value)}
                 options={[
@@ -102,14 +112,16 @@ const Settings = () => {
                   { value: 'medium', label: 'Medium' },
                   { value: 'large', label: 'Large' },
                 ]}
+                className="w-40"
               />
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between group">
               <div>
-                <span className="text-white">Accent Color</span>
+                <label htmlFor={accentColorId} className={labelStyle}>Accent Color</label>
               </div>
               <Select
+                id={accentColorId}
                 value={settings.accentColor || 'voro-primary'}
                 onChange={(e) => handleSettingChange('accentColor', e.target.value)}
                 options={[
@@ -117,6 +129,7 @@ const Settings = () => {
                   { value: 'voro-secondary', label: 'Emerald' },
                   { value: 'voro-accent', label: 'Amber' },
                 ]}
+                className="w-40"
               />
             </div>
           </div>
@@ -126,26 +139,30 @@ const Settings = () => {
         <Card className="p-6 mb-6">
           <h3 className="text-lg font-semibold text-white mb-4">Units</h3>
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-white">Weight</span>
+            <div className="flex items-center justify-between group">
+              <label htmlFor={weightUnitId} className={labelStyle}>Weight</label>
               <Select
+                id={weightUnitId}
                 value={settings.weightUnit || 'kg'}
                 onChange={(e) => handleSettingChange('weightUnit', e.target.value)}
                 options={[
                   { value: 'kg', label: 'Kilograms (kg)' },
                   { value: 'lbs', label: 'Pounds (lbs)' },
                 ]}
+                className="w-40"
               />
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-white">Height</span>
+            <div className="flex items-center justify-between group">
+              <label htmlFor={heightUnitId} className={labelStyle}>Height</label>
               <Select
+                id={heightUnitId}
                 value={settings.heightUnit || 'cm'}
                 onChange={(e) => handleSettingChange('heightUnit', e.target.value)}
                 options={[
                   { value: 'cm', label: 'Centimeters (cm)' },
                   { value: 'ft', label: 'Feet (ft)' },
                 ]}
+                className="w-40"
               />
             </div>
           </div>
