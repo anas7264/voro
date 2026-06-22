@@ -4,6 +4,7 @@ import crypto from './crypto';
 import { sanitizeObject, validateCallStack, executeLockdown, getDecoyData, isDeceptionActive } from './security';
 
 const STORAGE_PREFIX = "voro_";
+const GHOST_VAULT_KEY = "voro_ghost_vault";
 
 // Honey-token Entrapment: Canary keys that are never used by the application.
 // Any interaction with these keys triggers a system-wide security lockdown.
@@ -87,6 +88,32 @@ class StorageManager {
   // Get full key with prefix
   getFullKey(key) {
     return `${STORAGE_PREFIX}${key}`;
+  }
+
+  // Ghost Vault Management: Redirects persistence to a synthetic vault during compromise
+  _ghostSet(key, value) {
+    try {
+      const vaultRaw = localStorage.getItem(GHOST_VAULT_KEY) || "{}";
+      const vault = JSON.parse(vaultRaw);
+      vault[key] = value;
+      localStorage.setItem(GHOST_VAULT_KEY, JSON.stringify(vault));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  _ghostDelete(key) {
+    try {
+      const vaultRaw = localStorage.getItem(GHOST_VAULT_KEY);
+      if (!vaultRaw) return true;
+      const vault = JSON.parse(vaultRaw);
+      delete vault[key];
+      localStorage.setItem(GHOST_VAULT_KEY, JSON.stringify(vault));
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
   // Detects interaction with honey-token canary keys
@@ -185,9 +212,11 @@ class StorageManager {
 
   // Set item in storage
   async set(key, value) {
-    // Cyber Deception: Return true (simulated success) but block physical write if compromised
+    // Cyber Deception: Redirect to Ghost Vault if compromised or unauthorized provenance
     if (window.VORO_COMPROMISED || !validateCallStack() || this._checkCanary(key)) {
       const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
+      const fullKey = key.startsWith(STORAGE_PREFIX) ? key : this.getFullKey(key);
+      this._ghostSet(fullKey, value);
       this.cache.set(baseKey, value);
       return true;
     }
@@ -229,9 +258,11 @@ class StorageManager {
 
   // Delete item from storage
   delete(key) {
-    // Cyber Deception: Return true (simulated success) but block physical delete if compromised
+    // Cyber Deception: Redirect to Ghost Vault if compromised or unauthorized provenance
     if (window.VORO_COMPROMISED || !validateCallStack() || this._checkCanary(key)) {
       const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
+      const fullKey = key.startsWith(STORAGE_PREFIX) ? key : this.getFullKey(key);
+      this._ghostDelete(fullKey);
       this.cache.delete(baseKey);
       return true;
     }
