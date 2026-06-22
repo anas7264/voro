@@ -13,6 +13,7 @@ class CryptoManager {
   constructor() {
     this.key = null;
     this.hkdfKey = null;
+    this.domainKeyCache = new Map();
     this.initialized = false;
 
     // Security: High-priority listener for system-wide lockdown
@@ -31,6 +32,7 @@ class CryptoManager {
   shredKeys() {
     this.key = null;
     this.hkdfKey = null;
+    this.domainKeyCache.clear();
     this.initialized = false;
     console.warn("Security Sentinel: Cryptographic keys have been shredded from memory.");
   }
@@ -141,12 +143,17 @@ class CryptoManager {
     if (window.VORO_COMPROMISED || !validateCallStack()) {
       this.key = null;
       this.hkdfKey = null;
+      this.domainKeyCache.clear();
       throw new Error("Security Sentinel: Cryptographic operations blocked due to environment compromise or unauthorized provenance.");
+    }
+
+    if (this.domainKeyCache.has(domain)) {
+      return this.domainKeyCache.get(domain);
     }
 
     await this.init();
     const encoder = new TextEncoder();
-    return await window.crypto.subtle.deriveKey(
+    const derivedKey = await window.crypto.subtle.deriveKey(
       {
         name: 'HKDF',
         salt: new Uint8Array(), // Static salt is acceptable in this context as HKDF key is unique
@@ -158,6 +165,9 @@ class CryptoManager {
       false,
       ['encrypt', 'decrypt']
     );
+
+    this.domainKeyCache.set(domain, derivedKey);
+    return derivedKey;
   }
 
   /**
