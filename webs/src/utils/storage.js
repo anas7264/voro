@@ -52,8 +52,18 @@ class StorageManager {
     this.encryptedKeys = new Set(Object.values(STORAGE_KEYS));
     this.listeners = new Set();
     this.cache = new Map();
+    this.memoizedData = null;
     this.initialized = false;
     this.initPromise = null;
+
+    // Security: High-priority listener for system-wide lockdown
+    // Performs immediate memory purge of all cached data.
+    if (typeof window !== 'undefined') {
+      window.addEventListener('voro-security-lockdown', () => {
+        this.clearCache();
+        this.notify('*', null);
+      });
+    }
   }
 
   async ensureInitialized() {
@@ -67,6 +77,8 @@ class StorageManager {
         this.cache.set(key, value);
       }
       this.initialized = true;
+      this.memoizedData = null; // Ensure cache is invalidated
+      this.notify('*', this.getAllSync());
     })();
 
     return this.initPromise;
@@ -351,10 +363,14 @@ class StorageManager {
       return data;
     }
 
+    if (this.memoizedData) return this.memoizedData;
+
     const data = {};
     this.cache.forEach((value, key) => {
       data[key] = value;
     });
+
+    this.memoizedData = data;
     return data;
   }
 
@@ -451,6 +467,7 @@ class StorageManager {
   }
 
   notify(key, value) {
+    this.memoizedData = null; // Invalidate bulk memoization
     this.listeners.forEach(callback => callback(key, value));
   }
 }

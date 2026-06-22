@@ -4,50 +4,32 @@ import storage from "../utils/storage";
 export const StorageContext = createContext();
 
 export const StorageProvider = ({ children }) => {
-  const [storageData, setStorageData] = useState({});
-  const [lastUpdated, setLastUpdated] = useState(null);
   const [isCompromised, setIsCompromised] = useState(false);
 
   // Initialize and subscribe to storage changes
   useEffect(() => {
     const init = async () => {
       await storage.ensureInitialized();
-      if (!window.VORO_COMPROMISED) {
-        setStorageData(storage.getAllSync());
-      }
     };
 
     init();
 
-    const unsubscribe = storage.subscribe((key, value) => {
-      if (window.VORO_COMPROMISED) return;
-
-      if (key === '*') {
-        setStorageData(storage.getAllSync());
-      } else {
-        setStorageData(prev => ({ ...prev, [key]: value }));
-      }
-      setLastUpdated(new Date());
-    });
-
     // Security Lockdown Listener
     const handleLockdown = () => {
       setIsCompromised(true);
-      setStorageData({}); // Purge state from memory
     };
 
     window.addEventListener('voro-security-lockdown', handleLockdown);
 
     return () => {
-      unsubscribe();
       window.removeEventListener('voro-security-lockdown', handleLockdown);
     };
   }, []);
 
   // Get item from storage
   const getItem = useCallback((key) => {
-    return storageData[key];
-  }, [storageData]);
+    return storage.get(key);
+  }, []);
 
   // Get item from storage asynchronously (bypassing state)
   const getItemAsync = useCallback(async (key) => {
@@ -174,10 +156,10 @@ export const StorageProvider = ({ children }) => {
   }, []);
 
   /**
-   * ⚡ OPTIMIZATION: Memoize context provider value.
-   * Prevents redundant re-renders of all consumer components (like trackers)
-   * when StorageProvider re-renders for unrelated reasons (e.g. parent updates).
-   * Stable functions and state dependencies are correctly tracked.
+   * ⚡ OPTIMIZATION: Stable context provider value.
+   * By removing storageData and lastUpdated from state, we stabilize the
+   * context value. Methods are now purely stable wrappers around the
+   * storage utility, preventing full-tree re-renders on every update.
    */
   const value = useMemo(() => ({
     getItem,
@@ -193,8 +175,6 @@ export const StorageProvider = ({ children }) => {
     importData,
     clearAllData,
     getStorageSize,
-    lastUpdated,
-    storageData,
     isCompromised
   }), [
     getItem,
@@ -210,8 +190,6 @@ export const StorageProvider = ({ children }) => {
     importData,
     clearAllData,
     getStorageSize,
-    lastUpdated,
-    storageData,
     isCompromised
   ]);
 

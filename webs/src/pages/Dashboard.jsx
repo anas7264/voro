@@ -14,7 +14,7 @@ import {
   Layout
 } from 'lucide-react';
 import { useAppContext } from '@/hooks/useAppContext';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorage, useStorageKey } from '@/hooks/useStorage';
 import { useAI } from '@/hooks/useAI';
 import { useNotifications } from '@/hooks/useNotifications';
 import Modal from '@/components/Modal';
@@ -58,7 +58,17 @@ const getISODate = (date) => date.toISOString().slice(0, 10);
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAppContext();
-  const { getItem, setItem, storageData } = useStorage();
+  const { setItem } = useStorage();
+
+  /**
+   * ⚡ OPTIMIZATION: Surgical Reactivity.
+   * Subscribe only to relevant storage keys to avoid redundant re-renders
+   * when unrelated data (e.g., settings, habits) is updated.
+   */
+  const nutritionLog = useStorageKey('nutrition_log') || {};
+  const workoutLog = useStorageKey('workout_log') || {};
+  const bodyMetrics = useStorageKey('body_metrics') || {};
+
   const { response: aiInsight } = useAI();
   const { addNotification } = useNotifications();
   
@@ -87,32 +97,27 @@ const Dashboard = () => {
    * reactivity to StorageContext updates without manual load calls.
    */
   const nutritionToday = useMemo(() => {
-    const nutritionLog = storageData['nutrition_log'] || {};
     return nutritionLog[today] || {
       meals: {},
       water: 0,
       totals: { calories: 0, protein: 0, carbs: 0, fat: 0 }
     };
-  }, [storageData['nutrition_log'], today]);
+  }, [nutritionLog, today]);
 
   const workoutToday = useMemo(() => {
-    const workoutLog = storageData['workout_log'] || {};
     return workoutLog[today];
-  }, [storageData['workout_log'], today]);
+  }, [workoutLog, today]);
 
   const weightTrend = useMemo(() => {
-    const metrics = storageData['body_metrics'] || {};
-    const weights = metrics.weights || [];
+    const weights = bodyMetrics.weights || [];
     return weights.slice(-30).map(w => ({
       date: shortDateFormatter.format(new Date(w.date)),
       weight: w.value,
       fullDate: w.date
     }));
-  }, [storageData['body_metrics']]);
+  }, [bodyMetrics]);
 
   const streaks = useMemo(() => {
-    const workoutLog = storageData['workout_log'] || {};
-    const nutritionLog = storageData['nutrition_log'] || {};
     const waterGoal = user?.waterGoal || 2000;
     
     let trainingStreak = 0;
@@ -148,7 +153,7 @@ const Dashboard = () => {
     }
 
     return { training: trainingStreak, logging: loggingStreak, water: waterStreak };
-  }, [storageData['workout_log'], storageData['nutrition_log'], user?.waterGoal]);
+  }, [workoutLog, nutritionLog, user?.waterGoal]);
 
   const handleQuickLog = useCallback(async (type, value) => {
     const todayStr = getISODate(new Date());
@@ -166,15 +171,17 @@ const Dashboard = () => {
     setShowQuickLog(false);
 
     if (type === 'weight') {
-      const metrics = storageData['body_metrics'] || { weights: [] };
+      const metrics = { ...bodyMetrics };
+      if (!metrics.weights) metrics.weights = [];
+
       const updated = {
         ...metrics,
-        weights: [...(metrics.weights || []), { date: todayStr, value: numValue }]
+        weights: [...metrics.weights, { date: todayStr, value: numValue }]
       };
       setItem('body_metrics', updated);
       addNotification('Body transformation record synthesized', 'success');
     } else if (type === 'water') {
-      const log = { ...(storageData['nutrition_log'] || {}) };
+      const log = { ...nutritionLog };
       const dayData = log[todayStr] || { meals: {}, water: 0, totals: { calories: 0, protein: 0, carbs: 0, fat: 0 } };
 
       log[todayStr] = {
@@ -185,7 +192,7 @@ const Dashboard = () => {
       setItem('nutrition_log', log);
       addNotification('Hydration matrix updated', 'success');
     } else if (type === 'meal') {
-      const log = { ...(storageData['nutrition_log'] || {}) };
+      const log = { ...nutritionLog };
       const dayData = log[todayStr] || { meals: {}, water: 0, totals: { calories: 0, protein: 0, carbs: 0, fat: 0 } };
       const mealId = `express_${Date.now()}`;
 
@@ -204,7 +211,7 @@ const Dashboard = () => {
       setItem('nutrition_log', log);
       addNotification('Energy dynamics logged', 'success');
     }
-  }, [storageData, setItem, addNotification]);
+  }, [bodyMetrics, nutritionLog, setItem, addNotification]);
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
