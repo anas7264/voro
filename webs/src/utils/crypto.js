@@ -107,6 +107,9 @@ class CryptoManager {
                     false,
                     ['deriveKey']
                   );
+
+                  // Memory Hygiene: Atomically shred entropy buffer after key import
+                  entropy.fill(0);
                   await new Promise((res, rej) => {
                     const putHKDF = store.put(hkdfKey, HKDF_KEY_NAME);
                     putHKDF.onsuccess = res;

@@ -311,8 +311,14 @@ export const voroPolicy = (typeof window !== 'undefined' && window.trustedTypes)
     })
   : {
       createHTML: (input) => sanitizeInput(input),
-      createScript: (input) => input,
-      createScriptURL: (input) => input
+      createScript: (input) => {
+        if (_console.error) _call.call(_console.error, console, "Security Sentinel: Dynamic script creation blocked by Trusted Types Fallback.");
+        return "";
+      },
+      createScriptURL: (input) => {
+        if (_console.error) _call.call(_console.error, console, "Security Sentinel: External script URL blocked by Trusted Types Fallback.");
+        return "";
+      }
     };
 
 /**
@@ -354,6 +360,7 @@ export const isDeceptionActive = () => {
  * Implements a capability-based security model for high-risk network sinks.
  */
 let attestationPermitCount = 0;
+const activeAttestationNonces = new Set();
 
 // Trusted origins that bypass mandatory attestation (UX safety)
 const ATTESTATION_WHITELIST = [
@@ -373,11 +380,23 @@ export const executeSecurely = async (action, callback) => {
     throw new _Error("Security Sentinel: Secure execution context denied due to unauthorized provenance.");
   }
 
+  const nonce = generateSecurityNonce();
+  const tag = `__VORO_CTX_${nonce}__`;
+  activeAttestationNonces.add(nonce);
+
   attestationPermitCount++;
   try {
-    return await callback();
+    // Dynamic Stack Tagging: Wraps the execution in a uniquely named function
+    // to bind the call stack to this specific authorized context.
+    const context = {
+      [tag]: async () => {
+        return await callback();
+      }
+    };
+    return await context[tag]();
   } finally {
     attestationPermitCount--;
+    activeAttestationNonces.delete(nonce);
   }
 };
 
@@ -408,12 +427,19 @@ const verifyAttestation = (sinkName, targetUrl = null) => {
   }
 
   // 3. Stack-Bound Attestation: Ensure the call originates from within an authorized executeSecurely context
+  // Hardened with Dynamic Stack Tagging validation.
   try {
     const stack = new _Error().stack;
-    if (stack && !stack.includes('executeSecurely')) {
-      if (_console.error) _call.call(_console.error, console, `Security Sentinel: Attestation Permit bypass detected for ${sinkName}. Call originated outside of authorized executeSecurely scope.`);
-      executeLockdown();
-      return false;
+    if (stack) {
+      const hasValidTag = Array.from(activeAttestationNonces).some(nonce =>
+        stack.includes(`__VORO_CTX_${nonce}__`)
+      );
+
+      if (!hasValidTag) {
+        if (_console.error) _call.call(_console.error, console, `Security Sentinel: Attestation Permit bypass detected for ${sinkName}. Call originated outside of authorized executeSecurely scope or stack tag mismatch.`);
+        executeLockdown();
+        return false;
+      }
     }
   } catch (e) {
     // If stack analysis fails in this context, assume compromise
