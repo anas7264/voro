@@ -949,13 +949,66 @@ export const maskBiometrics = (d, s = new WeakSet()) => {
  */
 export const validateAIResponse = (c, n = null) => {
   if (!c) return c;
+  // 1. Nonce leakage check (Terminal)
   if (n && c.includes(n)) { executeLockdown(); return "[SECURITY_VIOLATION_DETECTED]"; }
-  let v = redactData(c.replace(/\[\/?(USER_DATA|SECURITY_PROTOCOL|MESSAGE_HISTORY|USER_INPUT).*?\]/g, '[REDACTED_BOUNDARY]'));
-  // Detect exfiltration attempts in markdown media (images/links) containing sensitive keywords
-  if (/!?\[.*?\]\(https?:\/\/.*?\?(?:cookie|session|localstorage|voro_|token|secret).*?\)/gi.test(v)) {
-    executeLockdown();
-    return "[SECURITY_VIOLATION_DETECTED]";
+
+  // 2. Comprehensive Data Exfiltration Check (Detects keywords and high-entropy tokens in URLs)
+  // Check both markdown links/images and raw URLs for exfiltration patterns
+  const urlRegex = /(?:https?:\/\/|www\.)[^\s)\]]+/gi;
+  const urls = c.match(urlRegex) || [];
+
+  // High-signal keywords that trigger on any match within the URL
+  const highSignalKeywords = ['cookie', 'session', 'localstorage', 'voro_', 'token', 'secret'];
+  // Low-signal keywords that only trigger if found in the query string to minimize false positives
+  const queryOnlyKeywords = ['auth', 'key', 'sid', 'pwd', 'access_token', 'id_token'];
+
+  const appOrigin = typeof window !== 'undefined' ? window.location.origin : null;
+
+  for (const url of urls) {
+    try {
+      const urlObj = new URL(url.startsWith('www.') ? `https://${url}` : url);
+
+      // Whitelist: Skip exfiltration check for links to the application's own origin
+      if (appOrigin && urlObj.origin === appOrigin) continue;
+
+      const lowerUrl = url.toLowerCase();
+      const lowerQuery = urlObj.search.toLowerCase();
+
+      // Check high-signal keywords anywhere in URL
+      if (highSignalKeywords.some(kw => lowerUrl.includes(kw))) {
+        if (_console.warn) _call.call(_console.warn, console, "Security Sentinel: AI exfiltration attempt blocked (High-signal Keyword in URL).");
+        executeLockdown();
+        return "[SECURITY_VIOLATION_DETECTED]";
+      }
+
+      // Check low-signal keywords in query string only
+      if (queryOnlyKeywords.some(kw => lowerQuery.includes(kw))) {
+        if (_console.warn) _call.call(_console.warn, console, "Security Sentinel: AI exfiltration attempt blocked (Sensitive Keyword in Query).");
+        executeLockdown();
+        return "[SECURITY_VIOLATION_DETECTED]";
+      }
+
+      // High-entropy token check (detects exfiltration even without known keywords)
+      const segments = url.split(/[\/\?&%=:._-]/);
+      for (const segment of segments) {
+        if (segment.length >= 24 && calculateEntropy(segment) > 4.2) {
+          if (_console.warn) _call.call(_console.warn, console, "Security Sentinel: AI exfiltration attempt blocked (High-entropy token in URL).");
+          executeLockdown();
+          return "[SECURITY_VIOLATION_DETECTED]";
+        }
+      }
+    } catch (e) {
+      // If URL parsing fails, perform a basic keyword check on the raw string
+      if (highSignalKeywords.some(kw => url.toLowerCase().includes(kw))) {
+        executeLockdown();
+        return "[SECURITY_VIOLATION_DETECTED]";
+      }
+    }
   }
+
+  // 3. Redaction and boundary neutralization
+  let v = redactData(c.replace(/\[\/?(USER_DATA|SECURITY_PROTOCOL|MESSAGE_HISTORY|USER_INPUT).*?\]/g, '[REDACTED_BOUNDARY]'));
+
   return v;
 };
 
