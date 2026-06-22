@@ -1,13 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Camera, Trash2, ChevronLeft, ChevronRight, Scale, Calendar } from 'lucide-react';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Badge from '@/components/Badge';
 import { useStorage } from '@/hooks/useStorage';
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
+ * Prevents redundant object instantiation of Intl.DateTimeFormat in render loops.
+ */
+const progressDateFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric'
+});
+
 const ProgressPhotos = () => {
-  const { getItem, setItem } = useStorage();
-  const [photos, setPhotos] = useState([]);
+  const { storageData, setItem } = useStorage();
   const [selected, setSelected] = useState(null);
   const [viewIdx, setViewIdx] = useState(0);
   const [compareMode, setCompareMode] = useState(false);
@@ -17,9 +26,25 @@ const ProgressPhotos = () => {
 
   useEffect(() => {
     document.title = 'VORO | Progress Photos';
-    const saved = getItem('voro_progress_photos') || [];
-    setPhotos(saved);
   }, []);
+
+  /**
+   * ⚡ OPTIMIZATION: Synchronous data derivation using useMemo.
+   * Eliminates the initial mount-time double-render cycle and ensures
+   * reactivity to StorageContext updates without manual load calls.
+   * Surgical Reactivity: Depend only on the specific 'voro_progress_photos' key.
+   */
+  const photos = useMemo(() => {
+    return storageData['voro_progress_photos'] || [];
+  }, [storageData['voro_progress_photos']]);
+
+  /**
+   * ⚡ OPTIMIZATION: Memoized sort operation.
+   * Prevents O(N log N) overhead on every component re-render.
+   */
+  const sortedPhotos = useMemo(() => {
+    return [...photos].sort((a, b) => new Date(a.date) - new Date(b.date));
+  }, [photos]);
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -34,7 +59,6 @@ const ProgressPhotos = () => {
         note: '',
       };
       const updated = [...photos, newPhoto];
-      setPhotos(updated);
       setItem('voro_progress_photos', updated);
     };
     reader.readAsDataURL(file);
@@ -42,15 +66,11 @@ const ProgressPhotos = () => {
 
   const deletePhoto = (id) => {
     const updated = photos.filter(p => p.id !== id);
-    setPhotos(updated);
     setItem('voro_progress_photos', updated);
     if (selected?.id === id) setSelected(null);
   };
 
-  const formatDate = (iso) =>
-    new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-
-  const sortedPhotos = [...photos].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const formatDate = (iso) => progressDateFormatter.format(new Date(iso));
 
   return (
     <div className="min-h-screen bg-voro-surface p-4 md:p-8">
