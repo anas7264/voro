@@ -3,6 +3,7 @@ import { BookOpen, Clock, ArrowUpRight, Search, Bookmark, Share2, Sparkles, Filt
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Badge from '@/components/Badge';
+import Accordion from '@/components/Accordion';
 
 const EducationHub = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -269,6 +270,31 @@ const EducationHub = () => {
               </Button>
           </div>
         )}
+
+        <section className="mt-32 mb-32">
+          <header className="mb-12">
+            <h2 className="text-3xl md:text-4xl font-serif italic font-medium text-white tracking-tight mb-4">
+              Frequently Asked <span className="text-voro-primary not-italic font-bold">Questions</span>
+            </h2>
+            <p className="text-gray-500 font-mono text-[0.6rem] uppercase tracking-[0.3em]">Neural Knowledge Base v2.0</p>
+          </header>
+          <Accordion
+            items={[
+              {
+                title: "How is metabolic velocity calculated?",
+                content: "Metabolic velocity is derived from a multi-variant analysis of your basal metabolic rate (BMR) and total daily energy expenditure (TDEE), adjusted in real-time based on logged kinetic activities and thermal dynamic intake."
+              },
+              {
+                title: "What is the Anabolic Potential Matrix?",
+                content: "The matrix utilizes your fat-free mass index (FFMI) compared against longitudinal data of drug-free elite athletes to estimate your physiological ceiling for muscle synthesis and force production."
+              },
+              {
+                title: "How secure is my biometric telemetry?",
+                content: "All biometric data is processed within a zero-trust provenance model. Data is stored locally using AES-256 equivalent encryption in your browser's secure enclave, and all network sinks are gated by Neural Command Attestation."
+              }
+            ]}
+          />
+        </section>
 
         <footer className="mt-32 pt-16 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-10">
            <div className="flex items-center gap-6">
