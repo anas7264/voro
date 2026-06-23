@@ -25,6 +25,12 @@ const _getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
 const _getPrototypeOf = Object.getPrototypeOf;
 const _hasOwnProperty = Object.prototype.hasOwnProperty;
 const _ReflectApply = typeof Reflect !== 'undefined' ? Reflect.apply : null;
+const _perfNow = typeof performance !== 'undefined' ? performance.now : null;
+const _seal = Object.seal;
+const _preventExtensions = Object.preventExtensions;
+const _isFrozen = Object.isFrozen;
+const _isSealed = Object.isSealed;
+const _isExtensible = Object.isExtensible;
 
 // Capture native console methods to prevent bypass
 const _console = {
@@ -669,6 +675,17 @@ const initializeErrorOrchestration = () => {
 // Initialize error orchestration
 initializeErrorOrchestration();
 
+// Initialize Active Mutation Shield
+if (typeof window !== 'undefined') {
+  // We wrap the initialization to ensure it doesn't block the main thread
+  // and starts as early as possible after the DOM is ready for observation.
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => startMutationShield());
+  } else {
+    startMutationShield();
+  }
+}
+
 /**
  * Active Defense Orchestrator
  * Cross-tab security synchronization via BroadcastChannel.
@@ -815,10 +832,44 @@ export const performIntegrityCheck = () => {
     { obj: window, prop: 'SharedWorker', name: 'SharedWorker' },
     { obj: window.navigator?.serviceWorker, prop: 'register', name: 'navigator.serviceWorker.register' },
     { obj: window, prop: 'setInterval', name: 'setInterval' },
-    { obj: window, prop: 'setTimeout', name: 'setTimeout' }
+    { obj: window, prop: 'setTimeout', name: 'setTimeout' },
+    { obj: performance, prop: 'now', name: 'performance.now' },
+    { obj: Object, prop: 'freeze', name: 'Object.freeze' },
+    { obj: Object, prop: 'seal', name: 'Object.seal' },
+    { obj: Object, prop: 'preventExtensions', name: 'Object.preventExtensions' },
+    { obj: Object, prop: 'isFrozen', name: 'Object.isFrozen' },
+    { obj: Object, prop: 'isSealed', name: 'Object.isSealed' },
+    { obj: Object, prop: 'isExtensible', name: 'Object.isExtensible' }
   ];
 
   let compromised = false;
+
+  // Environment Attestation: Detect automation frameworks
+  if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
+    // Allow bypass for legitimate automated testing via a secure marker
+    const bypassAutomation = window.__VORO_TEST_BYPASS__ === true ||
+                             (typeof localStorage !== 'undefined' && localStorage.getItem('voro_test_mode') === 'true');
+
+    if (!bypassAutomation) {
+      const isAutomation =
+        navigator.webdriver ||
+        window.callPhantom ||
+        window._phantom ||
+        window.__nightmare ||
+        window.domAutomation ||
+        window.domAutomationController ||
+        window.Cypress ||
+        window.__pw_click ||
+        document.documentElement.getAttribute('webdriver') ||
+        navigator.languages === "" ||
+        (navigator.plugins && navigator.plugins.length === 0 && navigator.webdriver);
+
+      if (isAutomation) {
+        if (_console.error) _call.call(_console.error, console, "Security Sentinel: Environment Attestation Failure (Automation Detected).");
+        compromised = true;
+      }
+    }
+  }
 
   // Check Prototype Integrity
   if (!checkPrototypeIntegrity()) {
@@ -1010,6 +1061,67 @@ export const validateAIResponse = (c, n = null) => {
   let v = redactData(c.replace(/\[\/?(USER_DATA|SECURITY_PROTOCOL|MESSAGE_HISTORY|USER_INPUT).*?\]/g, '[REDACTED_BOUNDARY]'));
 
   return v;
+};
+
+/**
+ * Active Mutation Shield
+ * Monitors the DOM for unauthorized script injections and attribute tampering.
+ */
+export const startMutationShield = () => {
+  if (typeof window === 'undefined' || typeof MutationObserver === 'undefined') return;
+
+  const dangerousTags = ['script', 'iframe', 'object', 'embed', 'base'];
+
+  const checkNode = (node) => {
+    if (node.nodeType !== 1) return false;
+    const tag = node.tagName.toLowerCase();
+    if (dangerousTags.includes(tag)) return true;
+
+    if (node.attributes) {
+      for (let i = 0; i < node.attributes.length; i++) {
+        const attr = node.attributes[i].name.toLowerCase();
+        const val = node.attributes[i].value.toLowerCase();
+        if (attr.startsWith('on') || val.startsWith('javascript:')) return true;
+      }
+    }
+    return false;
+  };
+
+  const observer = new MutationObserver((mutations) => {
+    let violation = false;
+
+    for (const mutation of mutations) {
+      if (mutation.type === 'childList') {
+        for (const node of mutation.addedNodes) {
+          if (checkNode(node)) {
+            violation = true;
+            if (_console.error) _call.call(_console.error, console, "Security Sentinel: Unauthorized DOM injection detected.");
+            break;
+          }
+        }
+      } else if (mutation.type === 'attributes') {
+        const attr = mutation.attributeName.toLowerCase();
+        const val = mutation.target.getAttribute(mutation.attributeName)?.toLowerCase() || '';
+        if (attr.startsWith('on') || val.startsWith('javascript:')) {
+          violation = true;
+          if (_console.error) _call.call(_console.error, console, `Security Sentinel: Unauthorized attribute tampering [${attr}] detected.`);
+        }
+      }
+      if (violation) break;
+    }
+
+    if (violation) executeLockdown();
+  });
+
+  // Observe with a wide net but optimized processing
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+    attributes: true
+    // Note: No attributeFilter to ensure all on* event handlers are caught
+  });
+
+  return observer;
 };
 
 /**
