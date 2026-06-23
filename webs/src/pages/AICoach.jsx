@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, memo } from 'react';
-import { Send, Loader, Bot, Sparkles } from 'lucide-react';
+import { Send, Loader, Bot, Sparkles, Copy, Check } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
@@ -8,6 +8,13 @@ import { useAI } from '@/hooks/useAI';
 
 const MessageItem = memo(({ msg }) => {
   const isAssistant = msg.role === 'assistant';
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(msg.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div className={`flex ${isAssistant ? 'justify-start' : 'justify-end'} group/msg animate-fade-in`}>
@@ -40,12 +47,32 @@ const MessageItem = memo(({ msg }) => {
           {msg.content}
         </div>
 
-        {isAssistant && (
-           <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between opacity-0 group-hover/msg:opacity-100 transition-opacity">
-              <span className="text-[0.55rem] font-black uppercase tracking-widest text-voro-primary">Accuracy Verified</span>
-              <Sparkles size={12} className="text-voro-primary/40" />
-           </div>
-        )}
+        <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between opacity-0 group-hover/msg:opacity-100 group-focus-within/msg:opacity-100 transition-opacity">
+          <div className="flex items-center gap-4">
+            <span className={`text-[0.55rem] font-black uppercase tracking-widest ${isAssistant ? 'text-voro-primary' : 'text-gray-500'}`}>
+              {isAssistant ? 'Accuracy Verified' : 'Data Integrity'}
+            </span>
+            {isAssistant ? <Sparkles size={12} className="text-voro-primary/40" /> : <div className="w-1 h-1 rounded-full bg-gray-700" />}
+          </div>
+
+          <button
+            onClick={handleCopy}
+            className="flex items-center gap-2 text-[0.55rem] font-mono font-bold uppercase tracking-widest text-gray-500 hover:text-white transition-all active:scale-90 focus-visible:ring-1 focus-visible:ring-voro-primary rounded-md px-2 py-1 outline-none"
+            aria-label="Copy message content"
+          >
+            {copied ? (
+              <>
+                <Check size={12} className="text-voro-secondary" />
+                <span className="text-voro-secondary">Copied</span>
+              </>
+            ) : (
+              <>
+                <Copy size={12} />
+                <span>Copy</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
