@@ -1,32 +1,56 @@
 // VORO Formatters
 // Data formatting utilities for display
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Memoized Intl formatters.
+ * Reusing Intl.DateTimeFormat and Intl.NumberFormat instances avoids the high
+ * overhead of object instantiation during frequent re-renders or loop processing.
+ */
+const dateFormatterCache = new Map();
+const numberFormatterCache = new Map();
+
+/**
+ * Private helper to retrieve or create a memoized Intl formatter.
+ * @param {Map} cache - The cache map to use
+ * @param {Function} FormatterClass - Intl.DateTimeFormat or Intl.NumberFormat
+ * @param {string} locale - The locale string (e.g., 'en-US')
+ * @param {Object} options - Formatter configuration options
+ * @returns {Object} The cached or new Intl formatter instance
+ */
+const getFormatter = (cache, FormatterClass, locale, options) => {
+  const cacheKey = `${locale}-${JSON.stringify(options)}`;
+  if (!cache.has(cacheKey)) {
+    cache.set(cacheKey, new FormatterClass(locale, options));
+  }
+  return cache.get(cacheKey);
+};
+
 // Format date to readable string
 export const formatDate = (date, format = "short") => {
   const dateObj = typeof date === "string" ? new Date(date) : date;
 
   if (format === "short") {
-    return dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    return getFormatter(dateFormatterCache, Intl.DateTimeFormat, "en-US", { month: "short", day: "numeric", year: "numeric" }).format(dateObj);
   } else if (format === "long") {
-    return dateObj.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+    return getFormatter(dateFormatterCache, Intl.DateTimeFormat, "en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" }).format(dateObj);
   } else if (format === "time") {
-    return dateObj.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    return getFormatter(dateFormatterCache, Intl.DateTimeFormat, "en-US", { hour: "2-digit", minute: "2-digit" }).format(dateObj);
   } else if (format === "datetime") {
-    return dateObj.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    return getFormatter(dateFormatterCache, Intl.DateTimeFormat, "en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(dateObj);
   } else if (format === "iso") {
     return dateObj.toISOString().split("T")[0];
   }
 
-  return dateObj.toLocaleDateString();
+  return getFormatter(dateFormatterCache, Intl.DateTimeFormat, undefined, {}).format(dateObj);
 };
 
 // Format number with decimals and separators
 export const formatNumber = (num, decimals = 0) => {
   if (num === null || num === undefined) return "0";
-  return parseFloat(num).toLocaleString("en-US", {
+  return getFormatter(numberFormatterCache, Intl.NumberFormat, "en-US", {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals
-  });
+  }).format(parseFloat(num));
 };
 
 // Format weight (kg ↔ lbs)
@@ -96,7 +120,7 @@ export const formatPercentage = (value, decimals = 1) => {
 
 // Format as currency
 export const formatCurrency = (amount, currency = "USD") => {
-  return new Intl.NumberFormat("en-US", {
+  return getFormatter(numberFormatterCache, Intl.NumberFormat, "en-US", {
     style: "currency",
     currency: currency
   }).format(amount);
