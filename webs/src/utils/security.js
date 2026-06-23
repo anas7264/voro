@@ -758,11 +758,6 @@ export const executeLockdown = (broadcast = true) => {
   });
   window.dispatchEvent(lockdownEvent);
 
-  // Clear sensitive global references if they exist
-  if (window.voroAIClient) {
-    window.voroAIClient.apiKey = null;
-  }
-
   // Purge in-memory storage cache if available to prevent exfiltration of decrypted data
   if (window.storage && typeof window.storage.clearCache === 'function') {
     window.storage.clearCache();
@@ -950,7 +945,8 @@ export const redactData = (d, s = new WeakSet()) => {
       AWS: /AKIA\w{16}/g,
       JWT: /eyJ[\w=-]+\.eyJ[\w=-]+\.[\w-_.+/=]*/g,
       GOOGLE: /AIza[0-9A-Za-z-_]{35}/g,
-      GITHUB: /gh[pk]_[a-zA-Z0-9]{36,255}/g,
+      GITHUB: /\b(?:ghp|gho|ghu|ghs|ghr|github_pat)_[a-zA-Z0-9]{36,255}\b/g,
+      OPENAI: /\bsk-[a-zA-Z0-9]{20,}\b/g,
       CLAUDE: /sk-ant-api03-[a-zA-Z0-9\-_]{93,}/g,
       SLACK: /https:\/\/hooks\.slack\.com\/services\/T\w{8,10}\/B\w{8,10}\/\w{24}/g,
       DISCORD: /https:\/\/discord\.com\/api\/webhooks\/\d+\/[\w-]{68}/g,
