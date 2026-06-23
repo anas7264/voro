@@ -50,4 +50,17 @@ export const useStorage = () => {
   };
 };
 
+/**
+ * ⚡ OPTIMIZATION: Stable storage methods.
+ * Use this when you only need to perform write operations (setItem, deleteItem)
+ * and do not need to react to changes. Prevents redundant re-renders.
+ */
+export const useStorageMethods = () => {
+  const context = useContext(StorageContext);
+  if (!context) {
+    throw new Error("useStorageMethods must be used within StorageProvider");
+  }
+  return context;
+};
+
 export default useStorage;

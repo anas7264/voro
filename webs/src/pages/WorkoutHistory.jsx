@@ -3,7 +3,7 @@ import { Dumbbell, Clock, BarChart2, Calendar, ChevronDown, ChevronUp } from 'lu
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey } from '@/hooks/useStorage';
 import { useNavigate } from 'react-router-dom';
 
 /**
@@ -18,7 +18,7 @@ const fullDateFormatter = new Intl.DateTimeFormat('en-US', {
 });
 
 const WorkoutHistory = () => {
-  const { storageData } = useStorage();
+  const workoutLog = useStorageKey('workout_log');
   const navigate = useNavigate();
   const [expandedIdx, setExpandedIdx] = useState(null);
 
@@ -32,12 +32,12 @@ const WorkoutHistory = () => {
    * is reactive to storage changes without secondary state updates.
    */
   const workouts = useMemo(() => {
-    const data = storageData['workout_log'] || {};
+    const data = workoutLog || {};
     return Object.entries(data)
       .filter(([_, w]) => w.attended)
       .map(([date, w]) => ({ date, ...w }))
       .sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [storageData['workout_log']]);
+  }, [workoutLog]);
 
   const typeColors = {
     Strength: 'text-violet-400',

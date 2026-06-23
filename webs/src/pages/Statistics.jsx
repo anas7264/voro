@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { BarChart3, TrendingUp, Calendar, Zap, Activity, Target, Weight } from 'lucide-react';
 import { Card, Button, Tabs, LineChartComponent, BarChartComponent, Stat } from '@/components';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey } from '@/hooks/useStorage';
 import { useApp } from '@/hooks/useAppContext';
 
 /**
@@ -12,7 +12,8 @@ const labelFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: '
 const getISODate = (date) => date.toISOString().slice(0, 10);
 
 const Statistics = () => {
-  const { storageData } = useStorage();
+  const nutritionLog = useStorageKey('nutrition_log') || {};
+  const workoutLog = useStorageKey('workout_log') || {};
   const { user } = useApp();
   const [period, setPeriod] = useState('30D');
 
@@ -21,8 +22,6 @@ const Statistics = () => {
   }, []);
 
   const stats = useMemo(() => {
-    const nutritionLog = storageData['nutrition_log'] || {};
-    const workoutLog = storageData['workout_log'] || {};
 
     const getPeriodDays = () => {
       switch (period) {
@@ -45,33 +44,35 @@ const Statistics = () => {
     const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const weeklyWorkouts = [];
 
-    // ⚡ OPTIMIZATION: Use a single cursor to avoid O(N) Date object instantiation and string churn.
-    // Populate arrays in chronological order directly to eliminate O(N) reverse() passes.
-    const cursor = new Date();
-    cursor.setHours(0, 0, 0, 0);
-    cursor.setDate(cursor.getDate() - 6);
+    // ⚡ OPTIMIZATION: Use a single cursor and temporal arithmetic to avoid O(N) Date instantiation.
+    // We pre-calculate timestamps to minimize object creation overhead in high-frequency loops.
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const todayMs = now.getTime();
+    const dayMs = 86400000;
 
-    for (let i = 0; i < 7; i++) {
-      const dateStr = getISODate(cursor);
+    // Populate weekly distribution (last 7 days)
+    for (let i = 6; i >= 0; i--) {
+      const ts = todayMs - (i * dayMs);
+      const d = new Date(ts);
+      const dateStr = getISODate(d);
       weeklyWorkouts.push({
-        day: daysOfWeek[cursor.getDay()],
+        day: daysOfWeek[d.getDay()],
         workouts: workoutLog[dateStr]?.attended ? 1 : 0
       });
-      cursor.setDate(cursor.getDate() + 1);
     }
 
-    // Reset cursor for main trend
-    cursor.setTime(new Date().getTime());
-    cursor.setHours(0, 0, 0, 0);
-    cursor.setDate(cursor.getDate() - (days - 1));
-
-    for (let i = 0; i < days; i++) {
-      const dateStr = getISODate(cursor);
+    // Populate main trend (period days)
+    for (let i = days - 1; i >= 0; i--) {
+      const ts = todayMs - (i * dayMs);
+      const d = new Date(ts);
+      const dateStr = getISODate(d);
       const dayData = nutritionLog[dateStr];
+      const workoutDay = workoutLog[dateStr];
       const kcal = dayData?.totals?.calories || 0;
 
       calorieTrend.push({
-        date: labelFormatter.format(cursor),
+        date: labelFormatter.format(d),
         calories: kcal,
       });
 
@@ -80,11 +81,10 @@ const Statistics = () => {
         loggedDays++;
       }
 
-      if (workoutLog[dateStr]?.attended) {
+      if (workoutDay?.attended) {
         workoutDays++;
-        totalVolume += workoutLog[dateStr]?.volume || 0;
+        totalVolume += workoutDay.volume || 0;
       }
-      cursor.setDate(cursor.getDate() + 1);
     }
 
     return {
@@ -95,7 +95,7 @@ const Statistics = () => {
       avgCalories: loggedDays > 0 ? Math.round(totalKcal / loggedDays) : 0,
       adherence: Math.round((loggedDays / days) * 100)
     };
-  }, [period, storageData['nutrition_log'], storageData['workout_log']]);
+  }, [period, nutritionLog, workoutLog]);
 
   const periodTabs = useMemo(() => [
     { id: '7D', label: '7D' },

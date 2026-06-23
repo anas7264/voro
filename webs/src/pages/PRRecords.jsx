@@ -2,7 +2,7 @@ import React, { useEffect, useMemo } from 'react';
 import { Trophy, Zap } from 'lucide-react';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey } from '@/hooks/useStorage';
 import { exercises } from '@/data/exercises';
 
 /**
@@ -16,7 +16,7 @@ const fullDateFormatter = new Intl.DateTimeFormat('en-US', {
 });
 
 const PRRecords = () => {
-  const { storageData } = useStorage();
+  const prHistory = useStorageKey('pr_history');
 
   useEffect(() => {
     document.title = 'VORO | PR Records';
@@ -28,7 +28,7 @@ const PRRecords = () => {
    * reactivity to storage changes without secondary state management.
    */
   const prs = useMemo(() => {
-    const data = storageData['pr_history'] || {};
+    const data = prHistory || {};
 
     // ⚡ OPTIMIZATION: O(1) exercise lookup map to avoid O(N) searches inside the loop.
     const exerciseMap = exercises.reduce((acc, e) => {
@@ -41,7 +41,7 @@ const PRRecords = () => {
       exerciseName: exerciseMap[exerciseId] || 'Unknown',
       records: Array.isArray(records) ? [...records].sort((a, b) => new Date(b.date) - new Date(a.date)) : [],
     })).filter(pr => pr.records.length > 0);
-  }, [storageData['pr_history']]);
+  }, [prHistory]);
 
   return (
     <div className="min-h-screen bg-[#080B14] text-[#F0F4FF] pb-24">

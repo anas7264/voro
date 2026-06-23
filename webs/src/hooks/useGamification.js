@@ -1,17 +1,18 @@
 import { useMemo, useCallback } from "react";
-import { useStorage } from "./useStorage";
+import { useStorageMethods, useStorageKey } from "./useStorage";
 import * as gamification from "../utils/gamification";
 
 export const useGamification = () => {
-  const { getItem, setItem, storageData } = useStorage();
+  const { setItem } = useStorageMethods();
+  const gamificationData = useStorageKey("gamification");
 
   /**
    * ⚡ OPTIMIZATION: Surgical Reactivity.
-   * Depend on the specific 'gamification' key instead of the entire 'storageData' object
-   * to prevent redundant re-computations during unrelated storage updates.
+   * Subscribe only to 'gamification' data to prevent redundant re-renders
+   * when unrelated storage keys change.
    */
   const gameState = useMemo(() => {
-    return storageData["gamification"] || {
+    return gamificationData || {
       totalXP: 0,
       level: 1,
       currentStreak: 0,
@@ -23,7 +24,7 @@ export const useGamification = () => {
       totalNutritionDays: 0,
       milestones: []
     };
-  }, [storageData["gamification"]]);
+  }, [gamificationData]);
 
   // Award XP for action
   const awardXP = useCallback((action, metadata = {}) => {

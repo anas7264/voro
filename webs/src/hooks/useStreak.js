@@ -1,22 +1,23 @@
 import { useMemo, useCallback } from "react";
-import { useStorage } from "./useStorage";
+import { useStorageMethods, useStorageKey } from "./useStorage";
 
 export const useStreak = () => {
-  const { setItem, storageData } = useStorage();
+  const { setItem } = useStorageMethods();
+  const streakDataFromStorage = useStorageKey("streak");
 
   /**
    * ⚡ OPTIMIZATION: Surgical Reactivity.
-   * Depend on the specific 'streak' key instead of the entire 'storageData' object
-   * to prevent redundant re-computations during unrelated storage updates.
+   * Subscribe only to 'streak' data to prevent redundant re-renders
+   * when unrelated storage keys change.
    */
   const streakData = useMemo(() => {
-    return storageData["streak"] || {
+    return streakDataFromStorage || {
       current: 0,
       best: 0,
       completedDates: [],
       lastCompletedDate: null
     };
-  }, [storageData["streak"]]);
+  }, [streakDataFromStorage]);
 
   // Derived metrics from streak data
   const currentStreak = streakData.current;

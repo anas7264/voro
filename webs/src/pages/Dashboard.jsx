@@ -14,7 +14,7 @@ import {
   Layout
 } from 'lucide-react';
 import { useAppContext } from '@/hooks/useAppContext';
-import { useStorage, useStorageKey } from '@/hooks/useStorage';
+import { useStorageMethods, useStorageKey } from '@/hooks/useStorage';
 import { useAI } from '@/hooks/useAI';
 import { useNotifications } from '@/hooks/useNotifications';
 import Modal from '@/components/Modal';
@@ -58,7 +58,7 @@ const getISODate = (date) => date.toISOString().slice(0, 10);
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAppContext();
-  const { setItem } = useStorage();
+  const { setItem } = useStorageMethods();
 
   /**
    * ⚡ OPTIMIZATION: Surgical Reactivity.
