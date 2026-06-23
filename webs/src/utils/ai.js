@@ -17,6 +17,14 @@ class VoroAIClient {
   }
 
   /**
+   * Atomic Cryptographic Shredding
+   * Purges the API key from memory upon system lockdown.
+   */
+  shred() {
+    this.apiKey = null;
+  }
+
+  /**
    * Redacts Personally Identifiable Information (PII) and applies
    * privacy-preserving biometric masking before sending it to external AI services.
    * Leverages the centralized Security Sentinel.
@@ -434,6 +442,16 @@ export const callVoroAI = async (
 
 // Export client for direct use
 export const voroAIClient = createVoroAIClient();
+
+// Security: High-priority listener for system-wide lockdown
+// Performs atomic shredding of the AI API key from memory.
+if (typeof window !== 'undefined') {
+  window.addEventListener('voro-security-lockdown', () => {
+    if (voroAIClient) {
+      voroAIClient.shred();
+    }
+  });
+}
 
 export default {
   VoroAIClient,

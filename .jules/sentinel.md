@@ -117,3 +117,14 @@ Hardening exfiltration detection requires expanding regex patterns to cover all 
 
 **Prevention:**
 Always validate both image and link markdown in AI outputs. Maintain high-fidelity cross-browser compatibility by ensuring that security policy fallbacks do not introduce functional regressions in non-Chromium environments unless the specific sink is verified as unused or unauthorized.
+
+## 2025-05-21 - Decentralized Security Lockdown & Key Shredding
+
+**Vulnerability:**
+Centralized security orchestrators often rely on brittle, hardcoded global references (e.g., `window.voroAIClient`) to purge sensitive data during a lockdown. In modular applications, these globals may not exist or may be inaccessible, leading to "stale secrets" remaining in memory after a compromise is detected.
+
+**Learning:**
+A decentralized, event-driven lockdown strategy is more robust. By having individual sensitive modules (AI clients, Crypto managers, Storage managers) subscribe to a unified `voro-security-lockdown` event, each component can autonomously execute its own "shredding" logic (e.g., nullifying API keys, purging caches). This ensures that the security orchestrator doesn't need deep knowledge of every module's internals.
+
+**Prevention:**
+Avoid reaching into other modules' state from a central security utility. Instead, define a standard security lifecycle event and ensure every module that handles PII or secrets implements an autonomous responder to purge that data upon detection of an integrity violation.
