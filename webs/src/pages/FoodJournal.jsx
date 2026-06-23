@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Plus, Trash2, BookOpen, Clock, Zap } from 'lucide-react';
 import { Button, Card, Textarea, Header } from '@/components';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageMethods, useStorageKey } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 
 /**
@@ -20,7 +20,8 @@ const timeFormatter = new Intl.DateTimeFormat('en-US', {
 });
 
 const FoodJournal = () => {
-  const { storageData, setItem } = useStorage();
+  const { setItem } = useStorageMethods();
+  const foodJournalData = useStorageKey('food_journal');
   const { addNotification } = useNotifications();
   const [note, setNote] = useState('');
 
@@ -35,9 +36,9 @@ const FoodJournal = () => {
    * across all tabs/components without secondary state management.
    */
   const entries = useMemo(() => {
-    const data = storageData['food_journal'] || [];
+    const data = foodJournalData || [];
     return [...data].sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [storageData['food_journal']]);
+  }, [foodJournalData]);
 
   const handleAddEntry = useCallback(async () => {
     if (!note.trim()) return;
