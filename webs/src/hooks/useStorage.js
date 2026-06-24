@@ -16,7 +16,7 @@ export const useStorageKey = (key) => {
     });
   }, [key]);
 
-  const getSnapshot = () => storage.get(key);
+  const getSnapshot = useCallback(() => storage.get(key), [key]);
 
   return useSyncExternalStore(subscribe, getSnapshot);
 };
@@ -34,10 +34,10 @@ export const useStorage = () => {
    * This ensures components using the full storageData remain reactive
    * even though StorageProvider is now stable.
    */
-  const storageData = useSyncExternalStore(
-    storage.subscribe.bind(storage),
-    storage.getAllSync.bind(storage)
-  );
+  const subscribe = useCallback((cb) => storage.subscribe(cb), []);
+  const getSnapshot = useCallback(() => storage.getAllSync(), []);
+
+  const storageData = useSyncExternalStore(subscribe, getSnapshot);
 
   // Provide aliases for backwards-compatible API
   return {
