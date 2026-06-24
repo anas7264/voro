@@ -672,19 +672,6 @@ const initializeErrorOrchestration = () => {
   window.addEventListener('unhandledrejection', handleUnhandledRejection);
 };
 
-// Initialize error orchestration
-initializeErrorOrchestration();
-
-// Initialize Active Mutation Shield
-if (typeof window !== 'undefined') {
-  // We wrap the initialization to ensure it doesn't block the main thread
-  // and starts as early as possible after the DOM is ready for observation.
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => startMutationShield());
-  } else {
-    startMutationShield();
-  }
-}
 
 /**
  * Active Defense Orchestrator
@@ -1160,6 +1147,19 @@ const deepFreeze = (obj) => {
 
 if (typeof window !== 'undefined') {
   deepFreeze(sentinelExports);
+}
+
+/**
+ * ⚡ TDZ SAFETY: Initialize orchestration after all dependencies are defined.
+ */
+initializeErrorOrchestration();
+
+if (typeof window !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => startMutationShield());
+  } else {
+    startMutationShield();
+  }
 }
 
 export default sentinelExports;
