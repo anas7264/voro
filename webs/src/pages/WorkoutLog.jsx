@@ -6,6 +6,7 @@ import Input from '@/components/Input';
 import Modal from '@/components/Modal';
 import Checkbox from '@/components/Checkbox';
 import Confetti from '@/components/Confetti';
+import DatePicker from '@/components/DatePicker';
 import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { validateWorkoutEntry } from '@/utils/validators';
@@ -170,14 +171,10 @@ const WorkoutLog = () => {
           <div className="lg:col-span-4 space-y-6">
             <Card className="p-8 space-y-8 bg-gradient-to-b from-[#0A0C14] to-black border-white/5">
               <div className="space-y-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <Calendar size={16} className="text-voro-primary" />
-                  <span className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-500">Temporal Frame</span>
-                </div>
-                <Input
-                  type="date"
+                <DatePicker
+                  label="Temporal Frame"
                   value={date}
-                  onChange={(e) => setDate(e.target.value)}
+                  onChange={(newDate) => setDate(newDate)}
                   className="bg-transparent border-white/10"
                 />
               </div>

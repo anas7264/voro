@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Calendar, Trophy, Clock, CheckCircle2, Zap, Target, TrendingDown } from 'lucide-react';
-import { Card, Button, Input, Divider } from '@/components';
+import { Card, Button, Input, Divider, DatePicker } from '@/components';
 import { useStorage } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { isDateInFuture } from '@/utils/validators';
@@ -115,13 +115,12 @@ const CompetitionPrep = () => {
           <section className="mb-20 animate-slide-up">
             <Card className="p-12 border-voro-primary/20 bg-voro-primary/5 backdrop-blur-3xl">
               <div className="flex flex-col md:flex-row items-end gap-8">
-                <div className="flex-1 space-y-4">
-                  <label className="text-[0.65rem] font-black text-gray-500 uppercase tracking-[0.3em] ml-1">Temporal Target</label>
-                  <Input
-                    type="date"
+                <div className="flex-1">
+                  <DatePicker
+                    label="Temporal Target"
                     value={newDate}
-                    onChange={(e) => setNewDate(e.target.value)}
-                    className="bg-black/40 border-white/10 h-[60px] text-lg font-mono"
+                    onChange={(date) => setNewDate(date)}
+                    className="bg-black/40 border-white/10"
                   />
                 </div>
                 <Button onClick={handleSetDate} className="px-14 h-[60px] text-[0.65rem] font-black tracking-[0.3em]">Synchronize</Button>
