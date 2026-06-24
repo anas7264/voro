@@ -858,6 +858,18 @@ export const performIntegrityCheck = () => {
     compromised = true;
   }
 
+  // Credential Scrubbing: Periodically attempt to purge sensitive keys from import.meta.env
+  try {
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+      const sensitiveKeys = ['VITE_CLAUDE_API_KEY', 'VITE_OPENAI_API_KEY', 'VITE_STRIPE_KEY'];
+      sensitiveKeys.forEach(key => {
+        if (import.meta.env[key] && import.meta.env[key] !== '[REDACTED_BY_SENTINEL]') {
+          import.meta.env[key] = '[REDACTED_BY_SENTINEL]';
+        }
+      });
+    }
+  } catch (e) { /* non-critical */ }
+
   // Active Frame-Integrity Shield
   // Detects if the application is being rendered in an unauthorized frame (Clickjacking protection)
   try {
