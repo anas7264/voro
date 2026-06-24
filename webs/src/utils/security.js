@@ -945,7 +945,8 @@ export const redactData = (d, s = new WeakSet()) => {
       JWT: /eyJ[\w=-]+\.eyJ[\w=-]+\.[\w-_.+/=]*/g,
       GOOGLE: /AIza[0-9A-Za-z-_]{35}/g,
       GITHUB: /\b(?:ghp|gho|ghu|ghs|ghr|github_pat)_[a-zA-Z0-9]{36,255}\b/g,
-      OPENAI: /\bsk-[a-zA-Z0-9]{20,}\b/g,
+      OPENAI: /\bsk-(?:proj-)?[a-zA-Z0-9\-_]{20,}\b/g,
+      PEM_KEY: /-----BEGIN (?:[\w\s]+)PRIVATE KEY-----[\s\S]+?-----END (?:[\w\s]+)PRIVATE KEY-----|-----BEGIN (?:[\w\s]+)PUBLIC KEY-----[\s\S]+?-----END (?:[\w\s]+)PUBLIC KEY-----/g,
       CLAUDE: /sk-ant-api03-[a-zA-Z0-9\-_]{93,}/g,
       SLACK: /https:\/\/hooks\.slack\.com\/services\/T\w{8,10}\/B\w{8,10}\/\w{24}/g,
       DISCORD: /https:\/\/discord\.com\/api\/webhooks\/\d+\/[\w-]{68}/g,
@@ -956,7 +957,7 @@ export const redactData = (d, s = new WeakSet()) => {
       r = r.replace(g, m => n === 'MARKER' ? `[[${m.slice(1, -1)}]]` : `[REDACTED_${n}]`);
     });
     // Shannon entropy-based catch-all for high-entropy tokens > 24 chars
-    r = r.replace(/\b[A-Za-z0-9+/=]{24,}\b/g, m => (calculateEntropy(m) > 4.2) ? "[REDACTED_SECRET]" : m);
+    r = r.replace(/\b[A-Za-z0-9+/=\-_]{24,}\b/g, m => (calculateEntropy(m) > 4.2) ? "[REDACTED_SECRET]" : m);
     return r;
   }
   if (!d || typeof d !== 'object') return d;
@@ -1000,7 +1001,8 @@ export const validateAIResponse = (c, n = null) => {
 
   // 2. Comprehensive Data Exfiltration Check (Detects keywords and high-entropy tokens in URLs)
   // Check both markdown links/images and raw URLs for exfiltration patterns
-  const urlRegex = /(?:https?:\/\/|www\.)[^\s)\]]+/gi;
+  // Expanded to catch protocol-relative URLs, javascript: URIs, and data: URIs
+  const urlRegex = /(?:https?:\/\/|www\.|(?:\s|^)\/\/|javascript:|data:)[^\s)\]]+/gi;
   const urls = c.match(urlRegex) || [];
 
   // High-signal keywords that trigger on any match within the URL
