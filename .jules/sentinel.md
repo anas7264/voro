@@ -128,3 +128,13 @@ A decentralized, event-driven lockdown strategy is more robust. By having indivi
 
 **Prevention:**
 Avoid reaching into other modules' state from a central security utility. Instead, define a standard security lifecycle event and ensure every module that handles PII or secrets implements an autonomous responder to purge that data upon detection of an integrity violation.
+
+## 2025-05-22 - Polymorphic Exfiltration & PEM Redaction
+**Vulnerability:**
+Standard exfiltration detection often overlooks protocol-relative URLs (`//attacker.com`), `javascript:`, and `data:` URIs in AI-generated content, which can be used to bypass origin-based filters. Additionally, redaction engines may miss PEM-encoded technical secrets (private keys) and modern, prefixed API tokens (e.g., OpenAI `sk-proj-`).
+
+**Learning:**
+A robust redaction and exfiltration engine must account for polymorphic URL schemes and high-precision technical markers. Expanding detection to include protocol-relative and non-standard URI schemes, alongside technical secrets like PEM blocks, provides a more comprehensive defense against both accidental data leakage and intentional exfiltration attempts.
+
+**Prevention:**
+Always include `//`, `javascript:`, and `data:` in URL detection regexes for untrusted content. Maintain high-fidelity redaction patterns for technical secrets (PEM, SSH keys) and keep API token patterns updated to include modern vendor prefixes.
