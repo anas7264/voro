@@ -138,7 +138,7 @@ class VoroAIClient {
         return await this.streamAPI(payload, abortSignal, nonce);
       }
 
-      // Neural Command Attestation: Authorize network egress
+      // Neural Command Attestation: Authorize network egress with granular capabilities
       const response = await executeSecurely("Claude API Call", async () => {
         // JIT assembly: The key only exists in full in this transient, ephemeral scope
         const apiKey = getSecureCredential();
@@ -154,7 +154,7 @@ class VoroAIClient {
           body: JSON.stringify(payload),
           signal: abortSignal
         });
-      });
+      }, ['sink:fetch', 'domain:api.anthropic.com']);
 
       if (!response.ok) {
         if (response.status === 429 && retryCount < this.maxRetries) {
@@ -200,7 +200,7 @@ class VoroAIClient {
     }
 
     try {
-      // Neural Command Attestation: Authorize network egress
+      // Neural Command Attestation: Authorize network egress with granular capabilities
       const response = await executeSecurely("Claude API Stream", async () => {
         // JIT assembly: The key only exists in full in this transient, ephemeral scope
         const apiKey = getSecureCredential();
@@ -216,7 +216,7 @@ class VoroAIClient {
           body: JSON.stringify({ ...payload, stream: true }),
           signal: abortSignal
         });
-      });
+      }, ['sink:fetch', 'domain:api.anthropic.com']);
 
       if (!response.ok) {
         const error = await response.json();
