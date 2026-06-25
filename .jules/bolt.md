@@ -85,3 +85,8 @@
 **Learning:** Tracking mouse coordinates in React state (`useState`) at the page or high-level component level causes the entire component tree to re-render at 60fps. For purely visual interactions like 3D tilts and light lenses, this is a massive waste of CPU. Direct DOM manipulation via `useRef` and `style.setProperty` with CSS variables allows the browser's style engine to handle the updates without involving React's reconciliation, resulting in zero re-renders and perfectly fluid interaction.
 
 **Action:** Replace high-frequency event state tracking (mouse, scroll) with CSS variables and refs to bypass React's render loop for visual effects. Use `innerText` on refs for real-time numeric display if needed.
+
+## 2025-05-18 - Surgical Reactivity for Biometric Composition
+**Learning:** This codebase uses a centralized `StorageContext` that, if accessed via the broad `useStorage()` hook, exposes the entire global state (`storageData`). This causes components to re-render whenever ANY storage key is updated (e.g., a simple water log entry). Transitioning to `useStorageKey('key')` creates a targeted subscription using `useSyncExternalStore`, isolating the component from unrelated state churn.
+
+**Action:** Prefer `useStorageKey(key)` for data subscriptions and `useStorageMethods()` for write-only operations to minimize the re-render surface area in pages and complex components.
