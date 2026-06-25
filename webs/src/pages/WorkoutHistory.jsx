@@ -17,10 +17,25 @@ const fullDateFormatter = new Intl.DateTimeFormat('en-US', {
   year: 'numeric'
 });
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted static style map.
+ * Prevents redundant object allocation on every component render.
+ */
+const typeColors = {
+  Strength: 'text-violet-400',
+  Cardio: 'text-blue-400',
+  HIIT: 'text-red-400',
+  Yoga: 'text-emerald-400',
+  default: 'text-gray-400',
+};
+
+const PAGE_SIZE = 15;
+
 const WorkoutHistory = () => {
   const workoutLog = useStorageKey('workout_log');
   const navigate = useNavigate();
   const [expandedIdx, setExpandedIdx] = useState(null);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
     document.title = 'VORO | Workout History';
@@ -39,13 +54,17 @@ const WorkoutHistory = () => {
       .sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [workoutLog]);
 
-  const typeColors = {
-    Strength: 'text-violet-400',
-    Cardio: 'text-blue-400',
-    HIIT: 'text-red-400',
-    Yoga: 'text-emerald-400',
-    default: 'text-gray-400',
-  };
+  /**
+   * ⚡ OPTIMIZATION: Memoized summary statistics.
+   * Prevents O(N) re-calculations on every render (e.g., when expanding/collapsing).
+   */
+  const summaryStats = useMemo(() => {
+    return {
+      totalSessions: workouts.length,
+      totalHours: Math.round(workouts.reduce((s, w) => s + (w.duration || 0), 0) / 60),
+      totalVolumeK: (workouts.reduce((s, w) => s + (w.volume || 0), 0) / 1000).toFixed(0)
+    };
+  }, [workouts]);
 
   return (
     <div className="min-h-screen bg-voro-surface p-4 md:p-8">
@@ -66,26 +85,26 @@ const WorkoutHistory = () => {
             {/* Summary stats */}
             <div className="grid grid-cols-3 gap-4 mb-6">
               <Card className="p-4 text-center">
-                <div className="text-2xl font-bold text-violet-400">{workouts.length}</div>
+                <div className="text-2xl font-bold text-violet-400">{summaryStats.totalSessions}</div>
                 <div className="text-xs text-gray-400 mt-1">Total Sessions</div>
               </Card>
               <Card className="p-4 text-center">
                 <div className="text-2xl font-bold text-emerald-400">
-                  {Math.round(workouts.reduce((s, w) => s + (w.duration || 0), 0) / 60)}h
+                  {summaryStats.totalHours}h
                 </div>
                 <div className="text-xs text-gray-400 mt-1">Total Time</div>
               </Card>
               <Card className="p-4 text-center">
                 <div className="text-2xl font-bold text-amber-400">
-                  {(workouts.reduce((s, w) => s + (w.volume || 0), 0) / 1000).toFixed(0)}k
+                  {summaryStats.totalVolumeK}k
                 </div>
                 <div className="text-xs text-gray-400 mt-1">Total Volume (kg)</div>
               </Card>
             </div>
 
             <div className="space-y-3">
-              {workouts.map((workout, idx) => (
-                <Card key={idx} className="p-0 overflow-hidden hover:border-voro-primary/50 transition-all border border-voro-border">
+              {workouts.slice(0, visibleCount).map((workout, idx) => (
+                <Card key={workout.date} className="p-0 overflow-hidden hover:border-voro-primary/50 transition-all border border-voro-border">
                   <button
                     type="button"
                     className="w-full p-5 flex items-start justify-between text-left transition-all active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-voro-surface outline-none"
@@ -143,6 +162,18 @@ const WorkoutHistory = () => {
                 </Card>
               ))}
             </div>
+
+            {visibleCount < workouts.length && (
+              <div className="mt-8 flex justify-center">
+                <Button
+                  variant="secondary"
+                  onClick={() => setVisibleCount(prev => prev + PAGE_SIZE)}
+                  className="px-12"
+                >
+                  Load More Sessions
+                </Button>
+              </div>
+            )}
           </>
         ) : (
           <Card className="p-16 text-center">

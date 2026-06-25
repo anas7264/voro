@@ -31,7 +31,7 @@ const HabitTracker = () => {
     return { habits: list, todayHabits: log };
   }, [storageData['habits']]);
 
-  const addHabit = async () => {
+  const addHabit = useCallback(async () => {
     const { valid, errors } = validateHabit(newHabit);
     if (!valid) {
       addNotification(Object.values(errors)[0], 'error');
@@ -56,9 +56,9 @@ const HabitTracker = () => {
       setShowAddForm(false);
       addNotification('Neural pattern registered', 'success');
     }
-  };
+  }, [newHabit, addNotification, getItemAsync, setItem]);
 
-  const toggleHabit = async (habitId) => {
+  const toggleHabit = useCallback(async (habitId) => {
     const data = await getItemAsync('habits') || { list: [], log: {} };
     const today = new Date().toISOString().split('T')[0];
 
@@ -72,16 +72,16 @@ const HabitTracker = () => {
 
     const updatedData = { ...data, log: updatedLog };
     await setItem('habits', updatedData);
-  };
+  }, [getItemAsync, setItem]);
 
-  const removeHabit = async (habitId) => {
+  const removeHabit = useCallback(async (habitId) => {
     const data = await getItemAsync('habits') || { list: [], log: {} };
     const updatedData = {
       ...data,
       list: (data.list || []).filter(h => h.id !== habitId)
     };
     await setItem('habits', updatedData);
-  };
+  }, [getItemAsync, setItem]);
 
   return (
     <div className="min-h-screen bg-[#080B14] text-[#F0F4FF] pb-24">
