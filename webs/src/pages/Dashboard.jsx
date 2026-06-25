@@ -75,7 +75,7 @@ const Dashboard = () => {
   const [showQuickLog, setShowQuickLog] = useState(false);
   const metabolicCardRef = useRef(null);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!metabolicCardRef.current) return;
     const rect = metabolicCardRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -83,7 +83,7 @@ const Dashboard = () => {
 
     metabolicCardRef.current.style.setProperty('--mouse-x', `${x}px`);
     metabolicCardRef.current.style.setProperty('--mouse-y', `${y}px`);
-  };
+  }, []);
 
   useEffect(() => {
     document.title = 'VORO | Evolution Dashboard';
@@ -119,20 +119,29 @@ const Dashboard = () => {
 
   const streaks = useMemo(() => {
     const waterGoal = user?.waterGoal || 2000;
-    
+
     let trainingStreak = 0;
     let loggingStreak = 0;
     let waterStreak = 0;
-    
+
     let trainingActive = true;
     let loggingActive = true;
     let waterActive = true;
 
-    const cursorDate = new Date();
+    const todayMs = new Date().setHours(0, 0, 0, 0);
+    const dayMs = 86400000;
+
+    /**
+     * ⚡ PERFORMANCE OPTIMIZATION: Optimized streak loop.
+     * Replaced cursorDate.setDate() with temporal arithmetic and
+     * optimized date string construction to minimize churn.
+     */
     for (let i = 0; i < 365; i++) {
       if (!trainingActive && !loggingActive && !waterActive) break;
 
-      const dateStr = getISODate(cursorDate);
+      const cursorTs = todayMs - (i * dayMs);
+      const d = new Date(cursorTs);
+      const dateStr = d.toISOString().split('T')[0];
 
       if (trainingActive) {
         if (workoutLog[dateStr]?.attended) trainingStreak++;
@@ -148,8 +157,6 @@ const Dashboard = () => {
         if (nutritionLog[dateStr]?.water >= waterGoal) waterStreak++;
         else if (waterStreak > 0 || i > 0) waterActive = false;
       }
-
-      cursorDate.setDate(cursorDate.getDate() - 1);
     }
 
     return { training: trainingStreak, logging: loggingStreak, water: waterStreak };
