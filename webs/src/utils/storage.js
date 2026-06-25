@@ -54,6 +54,7 @@ class StorageManager {
     this.listeners = new Set();
     this.cache = new Map();
     this.memoizedData = null;
+    this.memoizedDecoyData = null;
     this.initialized = false;
     this.initPromise = null;
 
@@ -157,9 +158,11 @@ class StorageManager {
     }
 
     try {
-
       const fullKey = key.startsWith(STORAGE_PREFIX) ? key : this.getFullKey(key);
-      const item = localStorage.getItem(fullKey);
+
+      const item = await executeSecurely(`Read ${baseKey}`, () => {
+        return localStorage.getItem(fullKey);
+      }, ['sink:localStorage.getItem']);
 
       if (!item) return null;
 
@@ -241,7 +244,6 @@ class StorageManager {
 
     try {
       const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
-
       const fullKey = key.startsWith(STORAGE_PREFIX) ? key : this.getFullKey(key);
 
       // Security: Sanitize all data before it touches storage or encryption
@@ -255,7 +257,9 @@ class StorageManager {
         serialized = typeof sanitizedValue === "string" ? sanitizedValue : JSON.stringify(sanitizedValue);
       }
 
-      localStorage.setItem(fullKey, serialized);
+      await executeSecurely(`Write ${baseKey}`, () => {
+        localStorage.setItem(fullKey, serialized);
+      }, ['sink:localStorage.setItem']);
 
       // Update cache and notify listeners
       this.cache.set(baseKey, value);
@@ -269,7 +273,7 @@ class StorageManager {
   }
 
   // Delete item from storage
-  delete(key) {
+  async delete(key) {
     // Cyber Deception: Redirect to Ghost Vault if compromised or unauthorized provenance
     if (window.VORO_COMPROMISED || !validateCallStack() || this._checkCanary(key)) {
       const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
@@ -281,7 +285,10 @@ class StorageManager {
     try {
       const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
       const fullKey = key.startsWith(STORAGE_PREFIX) ? key : this.getFullKey(key);
-      localStorage.removeItem(fullKey);
+
+      await executeSecurely(`Delete ${baseKey}`, () => {
+        localStorage.removeItem(fullKey);
+      }, ['sink:localStorage.removeItem']);
 
       this.cache.delete(baseKey);
       this.notify(baseKey, null);
@@ -306,7 +313,7 @@ class StorageManager {
   }
 
   // Clear all VORO storage
-  clear() {
+  async clear() {
     // Cyber Deception: Return true (simulated success) but block physical clear if compromised
     if (window.VORO_COMPROMISED || !validateCallStack()) {
       this.clearCache();
@@ -314,11 +321,13 @@ class StorageManager {
     }
     try {
       const keys = Object.keys(localStorage);
-      keys.forEach(key => {
+      for (const key of keys) {
         if (key.startsWith(STORAGE_PREFIX)) {
-          localStorage.removeItem(key);
+          await executeSecurely(`Clear ${key}`, () => {
+            localStorage.removeItem(key);
+          }, ['sink:localStorage.removeItem']);
         }
-      });
+      }
 
       this.clearCache();
       this.notify('*', null);
@@ -386,11 +395,15 @@ class StorageManager {
   getAllSync() {
     // Honey-Routing for bulk data
     if (window.VORO_COMPROMISED || !validateCallStack()) {
+      if (this.memoizedDecoyData) return this.memoizedDecoyData;
+
       const data = {};
       const keys = this.list();
       keys.forEach(key => {
         data[key] = getDecoyData(key);
       });
+
+      this.memoizedDecoyData = data;
       return data;
     }
 
@@ -499,6 +512,7 @@ class StorageManager {
 
   notify(key, value) {
     this.memoizedData = null; // Invalidate bulk memoization
+    this.memoizedDecoyData = null; // Invalidate decoy memoization
     this.listeners.forEach(callback => callback(key, value));
   }
 }

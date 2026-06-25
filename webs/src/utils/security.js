@@ -362,11 +362,10 @@ export const isDeceptionActive = () => {
 };
 
 /**
- * Neural Command Attestation (NCA)
- * Implements a capability-based security model for high-risk network sinks.
+ * Granular Neural Capability Attestation (GNCA)
+ * Implements a time-bound, scoped capability model for high-risk sinks.
  */
-let attestationPermitCount = 0;
-const activeAttestationNonces = new Set();
+const activeCapabilities = new Map();
 
 // Trusted origins that bypass mandatory attestation (UX safety)
 const ATTESTATION_WHITELIST = [
@@ -376,9 +375,10 @@ const ATTESTATION_WHITELIST = [
 ];
 
 /**
- * Executes a callback within a secure attested context, authorizing network egress.
+ * Executes a callback within a secure attested context, authorizing network egress or storage access
+ * with specific, granular capabilities.
  */
-export const executeSecurely = async (action, callback) => {
+export const executeSecurely = async (action, callback, requiredCapabilities = []) => {
   if (typeof window === 'undefined') return await callback();
 
   // Pre-execution Call Stack Attestation
@@ -388,12 +388,18 @@ export const executeSecurely = async (action, callback) => {
 
   const nonce = generateSecurityNonce();
   const tag = `__VORO_CTX_${nonce}__`;
-  activeAttestationNonces.add(nonce);
 
-  attestationPermitCount++;
+  // Register capabilities for this specific execution context
+  activeCapabilities.set(nonce, {
+    action,
+    timestamp: _perfNow ? _perfNow() : Date.now(),
+    capabilities: Array.isArray(requiredCapabilities) ? requiredCapabilities : [requiredCapabilities],
+    tag
+  });
+
   try {
     // Dynamic Stack Tagging: Wraps the execution in a uniquely named function
-    // to bind the call stack to this specific authorized context.
+    // to bind the call stack to this specific authorized context and its capabilities.
     const context = {
       [tag]: async () => {
         return await callback();
@@ -401,8 +407,8 @@ export const executeSecurely = async (action, callback) => {
     };
     return await context[tag]();
   } finally {
-    attestationPermitCount--;
-    activeAttestationNonces.delete(nonce);
+    // Cleanup: Ephemeral capabilities expire immediately after execution
+    activeCapabilities.delete(nonce);
   }
 };
 
@@ -421,46 +427,67 @@ const verifyAttestation = (sinkName, targetUrl = null) => {
     } catch (e) { /* fallback to strict attestation if URL is malformed */ }
   }
 
-  // 2. Capability Check: Is there an active authorized context?
-  if (attestationPermitCount <= 0) {
-    if (_console.error) _call.call(_console.error, console, `Security Sentinel: Unauthorized network egress attempt via ${sinkName} to [${targetUrl || 'unknown'}]. Command denied (Missing Attestation Permit).`);
-
-    // Surgical Lockdown: Only trigger for sensitive API targets to minimize false positives
-    if (targetUrl && (targetUrl.includes('api.anthropic.com') || targetUrl.includes('openai.com'))) {
-      executeLockdown();
-    }
-    return false;
-  }
-
-  // 3. Stack-Bound Attestation: Ensure the call originates from within an authorized executeSecurely context
-  // Hardened with Dynamic Stack Tagging validation.
+  // 2. Stack-Bound Granular Policy Enforcement (GPE)
+  // Ensure the call originates from within an authorized executeSecurely context
+  // and that the context possesses the required capabilities for this sink.
   try {
     const stack = new _Error().stack;
-    if (stack) {
-      const hasValidTag = Array.from(activeAttestationNonces).some(nonce =>
-        stack.includes(`__VORO_CTX_${nonce}__`)
-      );
+    if (!stack) return false;
 
-      if (!hasValidTag) {
-        if (_console.error) _call.call(_console.error, console, `Security Sentinel: Attestation Permit bypass detected for ${sinkName}. Call originated outside of authorized executeSecurely scope or stack tag mismatch.`);
-        executeLockdown();
-        return false;
+    let authorized = false;
+    let authorizedNonce = null;
+
+    // Iterate active capabilities and verify if any match the current stack
+    for (const [nonce, record] of activeCapabilities.entries()) {
+      if (stack.includes(record.tag)) {
+        // Verification: Does this context have the specific capability for this sink?
+        // Granular check: 'sink:fetch', 'sink:indexedDB', 'domain:api.anthropic.com', etc.
+        const hasSinkCap = record.capabilities.includes(`sink:${sinkName}`);
+
+        let hasDomainCap = true;
+        if (targetUrl) {
+          try {
+            const url = new URL(targetUrl, window.location.origin);
+            const domainCap = `domain:${url.host}`;
+            // If domains are specified in capabilities, we must match one
+            const restrictedDomains = record.capabilities.filter(c => c.startsWith('domain:'));
+            if (restrictedDomains.length > 0) {
+              hasDomainCap = restrictedDomains.includes(domainCap);
+            }
+          } catch (e) { hasDomainCap = false; }
+        }
+
+        if (hasSinkCap && hasDomainCap) {
+          authorized = true;
+          authorizedNonce = nonce;
+          break;
+        }
       }
     }
+
+    if (!authorized) {
+      if (_console.error) _call.call(_console.error, console, `Security Sentinel: GNCA Violation for ${sinkName}. Call originated outside of authorized scope or lacks granular capabilities [target: ${targetUrl || 'none'}].`);
+
+      // Surgical Lockdown: Only trigger for sensitive API targets to minimize false positives
+      if (targetUrl && (targetUrl.includes('api.anthropic.com') || targetUrl.includes('openai.com'))) {
+        executeLockdown();
+      }
+      return false;
+    }
+
+    // 3. CSA: Ensure the current call stack provenance is still valid
+    if (!validateCallStack()) {
+      if (_console.error) _call.call(_console.error, console, `Security Sentinel: Attestation Permit mismatch for ${sinkName}. Provenance validation failed.`);
+      executeLockdown();
+      return false;
+    }
+
+    return true;
   } catch (e) {
-    // If stack analysis fails in this context, assume compromise
+    // If stack analysis fails, assume compromise
     executeLockdown();
     return false;
   }
-
-  // 4. CSA: Ensure the current call stack provenance is still valid
-  if (!validateCallStack()) {
-    if (_console.error) _call.call(_console.error, console, `Security Sentinel: Attestation Permit mismatch for ${sinkName}. Provenance validation failed.`);
-    executeLockdown();
-    return false;
-  }
-
-  return true;
 };
 
 /**
@@ -555,6 +582,36 @@ const initializeAttestationSinks = () => {
     };
     TRUSTED_WRAPPERS.add(beaconWrapper);
     window.navigator.sendBeacon = beaconWrapper;
+  }
+
+  // Wrap localStorage (Storage Attestation)
+  if (typeof window !== 'undefined' && window.localStorage) {
+    const wrapStorageMethod = (methodName) => {
+      try {
+        const original = window.localStorage[methodName];
+        if (typeof original !== 'function') return;
+
+        const wrapper = function(...args) {
+          if (!verifyAttestation(`localStorage.${methodName}`)) {
+            if (_console.warn) _call.call(_console.warn, console, `Security Sentinel: Unauthorized localStorage.${methodName} blocked.`);
+            return null;
+          }
+          return _call.call(original, window.localStorage, ...args);
+        };
+        TRUSTED_WRAPPERS.add(wrapper);
+
+        _defineProperty(window.localStorage, methodName, {
+          value: wrapper,
+          configurable: true,
+          writable: true,
+          enumerable: true
+        });
+      } catch (e) {
+        // Fail-safe for restricted environments
+      }
+    };
+
+    ['getItem', 'setItem', 'removeItem', 'clear'].forEach(wrapStorageMethod);
   }
 };
 
@@ -902,8 +959,38 @@ export const performIntegrityCheck = () => {
     try {
       if (obj && obj[prop]) {
         if (!isAuthorized(obj[prop])) {
-          if (_console.error) _call.call(_console.error, console, `Security Sentinel: Integrity Violation! ${name} has been monkey-patched.`);
-          compromised = true;
+          if (_console.error) _call.call(_console.error, console, `Security Sentinel: Integrity Violation! ${name} has been monkey-patched. Executing Self-Healing restore.`);
+
+          // Self-Healing RASP: Attempt to restore native primitives from captured safe references
+          try {
+            const capturedMap = {
+              'fetch': _fetch,
+              'JSON.parse': JSON.parse, // JSON is rarely monkey-patched for exfil, but possible
+              'JSON.stringify': JSON.stringify,
+              'Object.defineProperty': _defineProperty,
+              'indexedDB.open': _indexedDBOpen,
+              'XMLHttpRequest': _XHR,
+              'WebSocket': _WebSocket,
+              'setInterval': _setInterval,
+              'setTimeout': _setTimeout,
+              'performance.now': _perfNow
+            };
+
+            const native = capturedMap[name];
+            if (native && obj) {
+              _defineProperty(obj, prop, {
+                value: native,
+                configurable: true,
+                writable: true,
+                enumerable: true
+              });
+              if (_console.info) _call.call(_console.info, console, `Security Sentinel: Successfully restored native primitive for ${name}.`);
+            } else {
+              compromised = true;
+            }
+          } catch (restoreError) {
+            compromised = true;
+          }
         }
       }
     } catch (e) {
@@ -1140,7 +1227,7 @@ const sentinelExports = {
   generateSecurityNonce,
   performIntegrityCheck,
   executeLockdown,
-  executeSecurely: (action, callback) => executeSecurely(action, callback),
+  executeSecurely: (action, callback, caps) => executeSecurely(action, callback, caps),
   startSecurityHeartbeat,
   getDecoyData,
   isDeceptionActive

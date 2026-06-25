@@ -59,80 +59,80 @@ class CryptoManager {
         const request = indexedDB.open(DB_NAME, 1);
 
         request.onupgradeneeded = (event) => {
-        const db = event.target.result;
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME);
-        }
-      };
-
-      request.onsuccess = (event) => {
-        const db = event.target.result;
-        const transaction = db.transaction(STORE_NAME, 'readwrite');
-        const store = transaction.objectStore(STORE_NAME);
-
-        const getMaster = store.get(KEY_NAME);
-        const getHKDF = store.get(HKDF_KEY_NAME);
-
-        let masterKey, hkdfKey;
-
-        getMaster.onsuccess = async () => {
-          masterKey = getMaster.result;
-
-          getHKDF.onsuccess = async () => {
-            hkdfKey = getHKDF.result;
-
-            if (masterKey && hkdfKey) {
-              resolve({ masterKey, hkdfKey });
-            } else {
-              // Generate missing keys
-              try {
-                if (!masterKey) {
-                  masterKey = await window.crypto.subtle.generateKey(
-                    { name: ALGO, length: KEY_SIZE },
-                    false,
-                    ['encrypt', 'decrypt']
-                  );
-                  await new Promise((res, rej) => {
-                    const putMaster = store.put(masterKey, KEY_NAME);
-                    putMaster.onsuccess = res;
-                    putMaster.onerror = rej;
-                  });
-                }
-
-                if (!hkdfKey) {
-                  // Generate random entropy for HKDF
-                  const entropy = window.crypto.getRandomValues(new Uint8Array(32));
-                  hkdfKey = await window.crypto.subtle.importKey(
-                    'raw',
-                    entropy,
-                    'HKDF',
-                    false,
-                    ['deriveKey']
-                  );
-
-                  // Memory Hygiene: Atomically shred entropy buffer after key import
-                  entropy.fill(0);
-                  await new Promise((res, rej) => {
-                    const putHKDF = store.put(hkdfKey, HKDF_KEY_NAME);
-                    putHKDF.onsuccess = res;
-                    putHKDF.onerror = rej;
-                  });
-                }
-
-                resolve({ masterKey, hkdfKey });
-              } catch (err) {
-                reject(err);
-              }
-            }
-          };
+          const db = event.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME);
+          }
         };
+
+        request.onsuccess = (event) => {
+          const db = event.target.result;
+          const transaction = db.transaction(STORE_NAME, 'readwrite');
+          const store = transaction.objectStore(STORE_NAME);
+
+          const getMaster = store.get(KEY_NAME);
+          const getHKDF = store.get(HKDF_KEY_NAME);
+
+          let masterKey, hkdfKey;
+
+          getMaster.onsuccess = async () => {
+            masterKey = getMaster.result;
+
+            getHKDF.onsuccess = async () => {
+              hkdfKey = getHKDF.result;
+
+              if (masterKey && hkdfKey) {
+                resolve({ masterKey, hkdfKey });
+              } else {
+                // Generate missing keys
+                try {
+                  if (!masterKey) {
+                    masterKey = await window.crypto.subtle.generateKey(
+                      { name: ALGO, length: KEY_SIZE },
+                      false,
+                      ['encrypt', 'decrypt']
+                    );
+                    await new Promise((res, rej) => {
+                      const putMaster = store.put(masterKey, KEY_NAME);
+                      putMaster.onsuccess = res;
+                      putMaster.onerror = rej;
+                    });
+                  }
+
+                  if (!hkdfKey) {
+                    // Generate random entropy for HKDF
+                    const entropy = window.crypto.getRandomValues(new Uint8Array(32));
+                    hkdfKey = await window.crypto.subtle.importKey(
+                      'raw',
+                      entropy,
+                      'HKDF',
+                      false,
+                      ['deriveKey']
+                    );
+
+                    // Memory Hygiene: Atomically shred entropy buffer after key import
+                    entropy.fill(0);
+                    await new Promise((res, rej) => {
+                      const putHKDF = store.put(hkdfKey, HKDF_KEY_NAME);
+                      putHKDF.onsuccess = res;
+                      putHKDF.onerror = rej;
+                    });
+                  }
+
+                  resolve({ masterKey, hkdfKey });
+                } catch (err) {
+                  reject(err);
+                }
+              }
+            };
+          };
 
           getMaster.onerror = () => reject(new Error('Failed to retrieve master key'));
         };
 
         request.onerror = () => reject(new Error('Failed to open secure key store'));
       });
-    });
+    }, ['sink:indexedDB']);
   }
 
   /**
