@@ -138,3 +138,14 @@ A robust redaction and exfiltration engine must account for polymorphic URL sche
 
 **Prevention:**
 Always include `//`, `javascript:`, and `data:` in URL detection regexes for untrusted content. Maintain high-fidelity redaction patterns for technical secrets (PEM, SSH keys) and keep API token patterns updated to include modern vendor prefixes.
+
+## 2025-05-23 - URL Fragment Exfiltration & RASP Coverage Expansion
+
+**Vulnerability:**
+AI response validation often overlooks URL fragments (the hash part after `#`). Malicious actors can use the hash to exfiltrate data since fragments are frequently not sent to the server but remain accessible to client-side scripts. Additionally, RASP systems missing Blob-related APIs (`URL.createObjectURL`, `URL.revokeObjectURL`) leave a significant blind spot for data smuggling via browser-generated object URLs.
+
+**Learning:**
+Robust exfiltration defense requires scrutinizing the entire URL structure, including the query string and the hash/fragment, for sensitive keywords or high-entropy tokens. Furthermore, RASP integrity checks must be "Pinned" (captured at module load) and "Promoted" (executed immediately upon import) to ensure that browser primitives are captured before any third-party scripts or application dependencies can monkey-patch them.
+
+**Prevention:**
+Always include `urlObj.hash` in exfiltration keyword checks. Expand RASP coverage to include all URL and Blob management APIs. Ensure that security and integrity checks are the absolute first pieces of executable code to run in the application's entry sequence.

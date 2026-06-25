@@ -17,6 +17,9 @@ const _XHR = typeof window !== 'undefined' ? window.XMLHttpRequest : null;
 const _indexedDBOpen = (typeof window !== 'undefined' && window.indexedDB) ? window.indexedDB.open : null;
 const _WebSocket = typeof window !== 'undefined' ? window.WebSocket : null;
 const _sendBeacon = (typeof window !== 'undefined' && window.navigator) ? window.navigator.sendBeacon : null;
+const _URL = typeof window !== 'undefined' ? window.URL : null;
+const _createObjectURL = (typeof window !== 'undefined' && window.URL) ? window.URL.createObjectURL : null;
+const _revokeObjectURL = (typeof window !== 'undefined' && window.URL) ? window.URL.revokeObjectURL : null;
 const _freeze = Object.freeze;
 const _defineProperty = Object.defineProperty;
 const _getOwnPropertyNames = Object.getOwnPropertyNames;
@@ -878,7 +881,10 @@ export const performIntegrityCheck = () => {
     { obj: Object, prop: 'preventExtensions', name: 'Object.preventExtensions' },
     { obj: Object, prop: 'isFrozen', name: 'Object.isFrozen' },
     { obj: Object, prop: 'isSealed', name: 'Object.isSealed' },
-    { obj: Object, prop: 'isExtensible', name: 'Object.isExtensible' }
+    { obj: Object, prop: 'isExtensible', name: 'Object.isExtensible' },
+    { obj: window, prop: 'URL', name: 'URL' },
+    { obj: window.URL, prop: 'createObjectURL', name: 'URL.createObjectURL' },
+    { obj: window.URL, prop: 'revokeObjectURL', name: 'URL.revokeObjectURL' }
   ];
 
   let compromised = false;
@@ -1101,13 +1107,15 @@ export const validateAIResponse = (c, n = null) => {
 
   for (const url of urls) {
     try {
-      const urlObj = new URL(url.startsWith('www.') ? `https://${url}` : url);
+      if (!_URL) throw new Error("URL constructor not available");
+      const urlObj = new _URL(url.startsWith('www.') ? `https://${url}` : url);
 
       // Whitelist: Skip exfiltration check for links to the application's own origin
       if (appOrigin && urlObj.origin === appOrigin) continue;
 
       const lowerUrl = url.toLowerCase();
       const lowerQuery = urlObj.search.toLowerCase();
+      const lowerHash = urlObj.hash.toLowerCase();
 
       // Check high-signal keywords anywhere in URL
       if (highSignalKeywords.some(kw => lowerUrl.includes(kw))) {
@@ -1116,9 +1124,9 @@ export const validateAIResponse = (c, n = null) => {
         return "[SECURITY_VIOLATION_DETECTED]";
       }
 
-      // Check low-signal keywords in query string only
-      if (queryOnlyKeywords.some(kw => lowerQuery.includes(kw))) {
-        if (_console.warn) _call.call(_console.warn, console, "Security Sentinel: AI exfiltration attempt blocked (Sensitive Keyword in Query).");
+      // Check low-signal keywords in query string or hash/fragment
+      if (queryOnlyKeywords.some(kw => lowerQuery.includes(kw) || lowerHash.includes(kw))) {
+        if (_console.warn) _call.call(_console.warn, console, "Security Sentinel: AI exfiltration attempt blocked (Sensitive Keyword in Query/Hash).");
         executeLockdown();
         return "[SECURITY_VIOLATION_DETECTED]";
       }
@@ -1256,6 +1264,9 @@ if (typeof window !== 'undefined') {
 initializeErrorOrchestration();
 
 if (typeof window !== 'undefined') {
+  // Execute VORO Neural Shield: Runtime Integrity Attestation immediately on load
+  performIntegrityCheck();
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => startMutationShield());
   } else {
