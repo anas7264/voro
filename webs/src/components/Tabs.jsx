@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useId } from "react";
 
 /**
  * ⚡ OPTIMIZATION: Refined luxury Tabs component.
@@ -7,6 +7,8 @@ import React, { useRef, useEffect, useState } from "react";
  */
 export const Tabs = ({ tabs = [], activeTab, onTabChange, className = "" }) => {
   const activeTabRef = useRef(null);
+  const tabListRef = useRef(null);
+  const baseId = useId();
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
 
   useEffect(() => {
@@ -18,26 +20,30 @@ export const Tabs = ({ tabs = [], activeTab, onTabChange, className = "" }) => {
 
   const handleKeyDown = (e) => {
     const currentIndex = tabs.findIndex((tab) => tab.id === activeTab);
+    let nextIndex;
+
     if (e.key === "ArrowRight") {
-      const nextIndex = (currentIndex + 1) % tabs.length;
-      onTabChange(tabs[nextIndex].id);
-      setTimeout(() => {
-        const nextTab = document.querySelector(`[aria-selected="true"]`);
-        if (nextTab) nextTab.focus();
-      }, 0);
+      nextIndex = (currentIndex + 1) % tabs.length;
     } else if (e.key === "ArrowLeft") {
-      const prevIndex = (currentIndex - 1 + tabs.length) % tabs.length;
-      onTabChange(tabs[prevIndex].id);
-      setTimeout(() => {
-        const prevTab = document.querySelector(`[aria-selected="true"]`);
-        if (prevTab) prevTab.focus();
-      }, 0);
+      nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+    } else {
+      return;
     }
+
+    onTabChange(tabs[nextIndex].id);
+    // Use the tabListRef to find the next active button within this component instance
+    setTimeout(() => {
+      if (tabListRef.current) {
+        const nextTab = tabListRef.current.querySelector('[aria-selected="true"]');
+        if (nextTab) nextTab.focus();
+      }
+    }, 0);
   };
 
   return (
     <div className={className}>
       <div
+        ref={tabListRef}
         role="tablist"
         className="relative flex gap-1 bg-white/[0.03] p-1.5 rounded-2xl border border-white/5 mb-12 overflow-x-auto no-scrollbar scroll-smooth"
         onKeyDown={handleKeyDown}
@@ -49,16 +55,22 @@ export const Tabs = ({ tabs = [], activeTab, onTabChange, className = "" }) => {
             left: indicatorStyle.left,
             width: indicatorStyle.width,
           }}
+          aria-hidden="true"
         />
 
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
+          const tabId = `${baseId}-tab-${tab.id}`;
+          const panelId = `${baseId}-panel-${tab.id}`;
+
           return (
             <button
               key={tab.id}
+              id={tabId}
               ref={isActive ? activeTabRef : null}
               role="tab"
               aria-selected={isActive}
+              aria-controls={panelId}
               tabIndex={isActive ? 0 : -1}
               onClick={() => onTabChange(tab.id)}
               className={`relative z-10 px-8 py-3.5 rounded-xl transition-all duration-500 whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:scale-95 flex items-center justify-center gap-3 group ${
@@ -82,7 +94,9 @@ export const Tabs = ({ tabs = [], activeTab, onTabChange, className = "" }) => {
         {tabs.map((tab) => (
           <div
             key={tab.id}
+            id={`${baseId}-panel-${tab.id}`}
             role="tabpanel"
+            aria-labelledby={`${baseId}-tab-${tab.id}`}
             className={`transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
               activeTab === tab.id
                 ? "opacity-100 translate-y-0 visible"
