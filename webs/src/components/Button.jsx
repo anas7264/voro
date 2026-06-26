@@ -79,7 +79,7 @@ const Button = memo(({
         ${VARIANTS[variant]}
         ${SIZES[size]}
         ${fullWidth ? "w-full" : ""}
-        ${(disabled || isLoading) ? "opacity-50 cursor-not-allowed" : "active:scale-[0.97]"}
+        ${(disabled || isLoading) ? "opacity-50 cursor-not-allowed" : "active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408]"}
         ${className}
       `}
       style={{
