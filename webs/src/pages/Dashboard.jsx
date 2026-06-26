@@ -22,6 +22,7 @@ import LineChartComponent from '@/components/LineChartComponent';
 import Ring from '@/components/Ring';
 import Stat from '@/components/Stat';
 import Button from '@/components/Button';
+import Breadcrumb from '@/components/Breadcrumb';
 
 const MACRO_CONFIG = [
   { label: 'Protein', macro: 'protein', color: '#7C3AED', bg: 'bg-[#7C3AED]/10', text: 'text-[#A78BFA]', icon: '🍗' },
@@ -284,6 +285,14 @@ const Dashboard = () => {
       </div>
 
       <div className="relative max-w-[1440px] mx-auto px-6 py-12 md:px-12 lg:px-20">
+        <Breadcrumb
+          items={[
+            { label: 'System', href: '/dashboard' },
+            { label: 'Neural Matrix', href: '/dashboard' },
+            { label: 'Evolution Dashboard' }
+          ]}
+          className="mb-12"
+        />
         <header className="mb-32 flex flex-col md:flex-row md:items-end justify-between gap-16 group/header">
           <div className="space-y-10 max-w-4xl">
             {/* Neural Pulse Eyebrow */}
