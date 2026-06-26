@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Activity } from 'lucide-react';
 import { ChallengeCard } from '@/components/ChallengeCard';
 import Tabs from '@/components/Tabs';
 import { challenges } from '@/data/challenges';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 
 /**
@@ -12,7 +12,8 @@ import { useNotifications } from '@/hooks/useNotifications';
  * and ambient background depth.
  */
 const Challenges = () => {
-  const { storageData, setStorage } = useStorage();
+  const gamificationData = useStorageKey('gamification') || {};
+  const { updateItem } = useStorageMethods();
   const { addNotification } = useNotifications();
   const [activeTab, setActiveTab] = useState('daily');
 
@@ -25,21 +26,18 @@ const Challenges = () => {
    * Eliminates mount-time double-render and ensures instant reactivity.
    */
   const completed = useMemo(() => {
-    const gamification = storageData['gamification'] || {};
-    return gamification.completedChallenges || {};
-  }, [storageData['gamification']]);
+    return gamificationData.completedChallenges || {};
+  }, [gamificationData]);
 
-  const handleClaimReward = (challenge) => {
-    const gamification = storageData['gamification'] || {};
+  const handleClaimReward = useCallback((challenge) => {
     const updated = { ...completed, [challenge.id]: true };
 
-    setStorage('gamification', {
-      ...gamification,
+    updateItem('gamification', {
       completedChallenges: updated,
-      xp: (gamification.xp || 0) + challenge.xpReward
+      xp: (gamificationData.xp || 0) + challenge.xpReward
     });
     addNotification(`${challenge.name} Manifested. +${challenge.xpReward} XP Synthesized.`, 'success');
-  };
+  }, [completed, gamificationData.xp, updateItem, addNotification]);
 
   const dailyChallenges = useMemo(() =>
     challenges.filter(c => c.category === 'Daily'), []);

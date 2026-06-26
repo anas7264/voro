@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Plus, Trash2, Pill, Calendar, Activity, Zap } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { supplements } from '@/data/supplements';
 
@@ -17,7 +17,8 @@ const fullDateFormatter = new Intl.DateTimeFormat('en-US', {
 });
 
 const SupplementTracker = () => {
-  const { storageData, setItem } = useStorage();
+  const userSupplements = useStorageKey('supplements') || [];
+  const { setItem } = useStorageMethods();
   const { addNotification } = useNotifications();
   const [showForm, setShowForm] = useState(false);
 
@@ -25,11 +26,8 @@ const SupplementTracker = () => {
     document.title = 'VORO | Supplement Tracker';
   }, []);
 
-  const userSupplements = useMemo(() => {
-    return storageData['supplements'] || [];
-  }, [storageData['supplements']]);
 
-  const handleAddSupplement = async (supplement) => {
+  const handleAddSupplement = useCallback(async (supplement) => {
     const updated = [...userSupplements, {
       ...supplement,
       id: Date.now(),
@@ -39,13 +37,13 @@ const SupplementTracker = () => {
     await setItem('supplements', updated);
     setShowForm(false);
     addNotification(`${supplement.name} integrated into protocol.`, 'success');
-  };
+  }, [userSupplements, setItem, addNotification]);
 
-  const handleRemove = async (id) => {
+  const handleRemove = useCallback(async (id) => {
     const updated = userSupplements.filter(s => s.id !== id);
     await setItem('supplements', updated);
     addNotification('Supplement removed from protocol.', 'info');
-  };
+  }, [userSupplements, setItem, addNotification]);
 
   return (
     <div className="min-h-screen bg-[#080B14] text-[#F0F4FF] pb-24">
