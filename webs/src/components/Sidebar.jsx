@@ -145,7 +145,7 @@ const Sidebar = ({ collapsed, setCollapsed, isMobile }) => {
                     onClick={() => isMobile && setCollapsed(true)}
                     className={`
                       flex items-center gap-4 px-4 py-3.5 rounded-2xl text-sm font-medium
-                      transition-all duration-500 group relative overflow-hidden
+                      transition-all duration-500 group relative overflow-hidden focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408] outline-none
                       ${collapsed && !isMobile ? 'justify-center' : ''}
                       ${isActive
                         ? 'text-white'
@@ -185,9 +185,9 @@ const Sidebar = ({ collapsed, setCollapsed, isMobile }) => {
                       <div className="
                         absolute left-full ml-8 px-5 py-3
                         bg-[#0A0C14] text-white text-[0.6rem] font-mono font-medium uppercase tracking-[0.3em] rounded-xl shadow-2xl
-                        opacity-0 group-hover:opacity-100 pointer-events-none
+                        opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 pointer-events-none
                         whitespace-nowrap z-[70] border border-white/10
-                        transition-all duration-500 translate-x-[-15px] group-hover:translate-x-0
+                        transition-all duration-700 translate-x-[-15px] group-hover:translate-x-0 group-focus-visible:translate-x-0
                         backdrop-blur-xl
                       ">
                         {item.label}
