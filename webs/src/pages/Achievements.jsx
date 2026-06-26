@@ -2,10 +2,17 @@ import React, { useEffect, useMemo } from 'react';
 import { Trophy } from 'lucide-react';
 import { AchievementCard } from '@/components/AchievementCard';
 import { achievements } from '@/data/achievements';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey } from '@/hooks/useStorage';
+
+const EMPTY_OBJ = Object.freeze({});
 
 const Achievements = () => {
-  const { storageData } = useStorage();
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
+   * Subscribe only to the 'gamification' key to prevent redundant re-renders
+   * when unrelated storage keys (e.g., nutrition_log, workout_log) change.
+   */
+  const gamificationData = useStorageKey('gamification') || EMPTY_OBJ;
 
   useEffect(() => {
     document.title = 'VORO | Achievement Matrix';
@@ -13,13 +20,12 @@ const Achievements = () => {
 
   // Synchronous data derivation from StorageContext
   const { earned, level, xp } = useMemo(() => {
-    const gamification = storageData['gamification'] || {};
     return {
-      earned: gamification.achievements || [],
-      level: gamification.level || 1,
-      xp: gamification.totalXP || 0 // Corrected to use totalXP from useGamification hook
+      earned: gamificationData.achievements || [],
+      level: gamificationData.level || 1,
+      xp: gamificationData.totalXP || 0
     };
-  }, [storageData]);
+  }, [gamificationData]);
 
   const earnedIds = useMemo(() => new Set(earned), [earned]);
 
