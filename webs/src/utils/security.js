@@ -20,6 +20,20 @@ const _sendBeacon = (typeof window !== 'undefined' && window.navigator) ? window
 const _URL = typeof window !== 'undefined' ? window.URL : null;
 const _createObjectURL = (typeof window !== 'undefined' && window.URL) ? window.URL.createObjectURL : null;
 const _revokeObjectURL = (typeof window !== 'undefined' && window.URL) ? window.URL.revokeObjectURL : null;
+
+// Storage Prototype Pinning
+const _StorageGetItem = (typeof window !== 'undefined' && typeof Storage !== 'undefined') ? Storage.prototype.getItem : null;
+const _StorageSetItem = (typeof window !== 'undefined' && typeof Storage !== 'undefined') ? Storage.prototype.setItem : null;
+const _StorageRemoveItem = (typeof window !== 'undefined' && typeof Storage !== 'undefined') ? Storage.prototype.removeItem : null;
+const _StorageClear = (typeof window !== 'undefined' && typeof Storage !== 'undefined') ? Storage.prototype.clear : null;
+
+// SubtleCrypto Prototype Pinning
+const _SubtleEncrypt = (typeof window !== 'undefined' && window.crypto?.subtle) ? window.crypto.subtle.encrypt : null;
+const _SubtleDecrypt = (typeof window !== 'undefined' && window.crypto?.subtle) ? window.crypto.subtle.decrypt : null;
+const _SubtleDeriveKey = (typeof window !== 'undefined' && window.crypto?.subtle) ? window.crypto.subtle.deriveKey : null;
+const _SubtleImportKey = (typeof window !== 'undefined' && window.crypto?.subtle) ? window.crypto.subtle.importKey : null;
+const _SubtleGenerateKey = (typeof window !== 'undefined' && window.crypto?.subtle) ? window.crypto.subtle.generateKey : null;
+
 const _freeze = Object.freeze;
 const _defineProperty = Object.defineProperty;
 const _getOwnPropertyNames = Object.getOwnPropertyNames;
@@ -356,7 +370,11 @@ const DECOY_DATA = {
     { date: new Date().toISOString().split('T')[0], exercise: 'Bench Press', sets: 5, reps: 5, weight: 100 }
   ],
   vitals: { heart_rate: 62, systolic: 118, diastolic: 78, oxygen: 99 },
-  settings: { notifications: true, privacy_mode: 'maximum', biometric_auth: true }
+  settings: { notifications: true, privacy_mode: 'maximum', biometric_auth: true },
+  chat_history: [],
+  notifications: [],
+  achievements: [],
+  habits: []
 };
 
 // ⚡ PERFORMANCE OPTIMIZATION: Stable default decoy object to prevent infinite re-render loops in deception mode.
@@ -606,34 +624,56 @@ const initializeAttestationSinks = () => {
     window.navigator.sendBeacon = beaconWrapper;
   }
 
-  // Wrap localStorage (Storage Attestation)
-  if (typeof window !== 'undefined' && window.localStorage) {
-    const wrapStorageMethod = (methodName) => {
+  // Wrap Storage.prototype (Comprehensive Storage Attestation for local/session)
+  if (typeof window !== 'undefined' && typeof Storage !== 'undefined') {
+    const storageMethods = [
+      { name: 'getItem', native: _StorageGetItem },
+      { name: 'setItem', native: _StorageSetItem },
+      { name: 'removeItem', native: _StorageRemoveItem },
+      { name: 'clear', native: _StorageClear }
+    ];
+
+    storageMethods.forEach(({ name, native }) => {
+      if (!native) return;
+
+      const wrapper = function(...args) {
+        // Determine which storage instance is being accessed
+        let instance = 'Storage';
+        try {
+          if (this === (typeof window !== 'undefined' ? window.localStorage : null)) instance = 'localStorage';
+          else if (this === (typeof window !== 'undefined' ? window.sessionStorage : null)) instance = 'sessionStorage';
+        } catch (e) { /* fail-safe */ }
+
+        if (!verifyAttestation(`${instance}.${name}`)) {
+          if (_console.warn) _call.call(_console.warn, console, `Security Sentinel: Unauthorized ${instance}.${name} blocked.`);
+          return null;
+        }
+        return _call.call(native, this, ...args);
+      };
+
+      TRUSTED_WRAPPERS.add(wrapper);
+
       try {
-        const original = window.localStorage[methodName];
-        if (typeof original !== 'function') return;
-
-        const wrapper = function(...args) {
-          if (!verifyAttestation(`localStorage.${methodName}`)) {
-            if (_console.warn) _call.call(_console.warn, console, `Security Sentinel: Unauthorized localStorage.${methodName} blocked.`);
-            return null;
-          }
-          return _call.call(original, window.localStorage, ...args);
-        };
-        TRUSTED_WRAPPERS.add(wrapper);
-
-        _defineProperty(window.localStorage, methodName, {
+        _defineProperty(Storage.prototype, name, {
           value: wrapper,
-          configurable: true,
-          writable: true,
+          configurable: false, // Prevent easy removal or monkey-patching
+          writable: false,
           enumerable: true
         });
       } catch (e) {
-        // Fail-safe for restricted environments
+        // Fallback for environments where prototype is frozen
+        if (window.localStorage) {
+          try {
+            _defineProperty(window.localStorage, name, { value: wrapper, configurable: false, writable: false });
+          } catch (le) { /* ignore */ }
+        }
+        if (window.sessionStorage) {
+          try {
+            _defineProperty(window.sessionStorage, name, { value: wrapper, configurable: false, writable: false });
+          } catch (se) { /* ignore */ }
+        }
       }
-    };
-
-    ['getItem', 'setItem', 'removeItem', 'clear'].forEach(wrapStorageMethod);
+    });
   }
 };
 
@@ -876,7 +916,10 @@ export const performIntegrityCheck = () => {
     { obj: window, prop: 'DOMParser', name: 'DOMParser' },
     { obj: window.localStorage, prop: 'clear', name: 'localStorage.clear' },
     { obj: window.localStorage, prop: 'removeItem', name: 'localStorage.removeItem' },
+    { obj: window.sessionStorage, prop: 'getItem', name: 'sessionStorage.getItem' },
     { obj: window.sessionStorage, prop: 'setItem', name: 'sessionStorage.setItem' },
+    { obj: window.sessionStorage, prop: 'removeItem', name: 'sessionStorage.removeItem' },
+    { obj: window.sessionStorage, prop: 'clear', name: 'sessionStorage.clear' },
     { obj: window, prop: 'XMLHttpRequest', name: 'XMLHttpRequest' },
     { obj: window.indexedDB, prop: 'open', name: 'indexedDB.open' },
     { obj: window, prop: 'WebSocket', name: 'WebSocket' },
@@ -911,8 +954,9 @@ export const performIntegrityCheck = () => {
   // Environment Attestation: Detect automation frameworks
   if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
     // Allow bypass for legitimate automated testing via a secure marker
-    const bypassAutomation = window.__VORO_TEST_BYPASS__ === true ||
-                             (typeof localStorage !== 'undefined' && localStorage.getItem('voro_test_mode') === 'true');
+    // We use the captured _StorageGetItem primitive to avoid attestation deadlocks during early load.
+    const testMode = (typeof localStorage !== 'undefined' && _StorageGetItem) ? _call.call(_StorageGetItem, localStorage, 'voro_test_mode') : null;
+    const bypassAutomation = window.__VORO_TEST_BYPASS__ === true || testMode === 'true';
 
     if (!bypassAutomation) {
       const isAutomation =
@@ -975,22 +1019,35 @@ export const performIntegrityCheck = () => {
   };
 
   // Attestation-Aware Integrity Check
-  const isAuthorized = (fn) => {
-    if (TRUSTED_WRAPPERS.has(fn)) return true;
-    return isNative(fn);
+  const isAuthorized = (val, name) => {
+    if (TRUSTED_WRAPPERS.has(val)) return true;
+
+    // High-risk sinks MUST be wrapped; native primitives are unauthorized for these.
+    const mustBeWrapped = [
+      'fetch', 'XMLHttpRequest', 'WebSocket', 'indexedDB.open', 'navigator.sendBeacon',
+      'localStorage.getItem', 'localStorage.setItem', 'localStorage.removeItem', 'localStorage.clear',
+      'sessionStorage.getItem', 'sessionStorage.setItem', 'sessionStorage.removeItem', 'sessionStorage.clear'
+    ];
+
+    if (mustBeWrapped.includes(name)) return false;
+
+    // For non-functions (objects like navigator.geolocation), we allow them if not in mustBeWrapped.
+    if (typeof val !== 'function') return true;
+
+    return isNative(val);
   };
 
   coreAPIs.forEach(({ obj, prop, name }) => {
     try {
       if (obj && obj[prop]) {
-        if (!isAuthorized(obj[prop])) {
-          if (_console.error) _call.call(_console.error, console, `Security Sentinel: Integrity Violation! ${name} has been monkey-patched. Executing Self-Healing restore.`);
+        if (!isAuthorized(obj[prop], name)) {
+          if (_console.error) _call.call(_console.error, console, `Security Sentinel: Integrity Violation! ${name} has been monkey-patched or reverted to native. Executing Self-Healing restore.`);
 
           // Self-Healing RASP: Attempt to restore native primitives from captured safe references
           try {
             const capturedMap = {
               'fetch': _fetch,
-              'JSON.parse': JSON.parse, // JSON is rarely monkey-patched for exfil, but possible
+              'JSON.parse': JSON.parse,
               'JSON.stringify': JSON.stringify,
               'Object.defineProperty': _defineProperty,
               'indexedDB.open': _indexedDBOpen,
@@ -998,7 +1055,19 @@ export const performIntegrityCheck = () => {
               'WebSocket': _WebSocket,
               'setInterval': _setInterval,
               'setTimeout': _setTimeout,
-              'performance.now': _perfNow
+              'performance.now': _perfNow,
+              'localStorage.getItem': _StorageGetItem,
+              'localStorage.setItem': _StorageSetItem,
+              'localStorage.removeItem': _StorageRemoveItem,
+              'localStorage.clear': _StorageClear,
+              'sessionStorage.setItem': _StorageSetItem,
+              'crypto.subtle.encrypt': _SubtleEncrypt,
+              'crypto.subtle.decrypt': _SubtleDecrypt,
+              'crypto.subtle.deriveKey': _SubtleDeriveKey,
+              'crypto.subtle.importKey': _SubtleImportKey,
+              'crypto.subtle.generateKey': _SubtleGenerateKey,
+              'URL.createObjectURL': _createObjectURL,
+              'URL.revokeObjectURL': _revokeObjectURL
             };
 
             const native = capturedMap[name];

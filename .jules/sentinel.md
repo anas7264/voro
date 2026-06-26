@@ -149,3 +149,14 @@ Robust exfiltration defense requires scrutinizing the entire URL structure, incl
 
 **Prevention:**
 Always include `urlObj.hash` in exfiltration keyword checks. Expand RASP coverage to include all URL and Blob management APIs. Ensure that security and integrity checks are the absolute first pieces of executable code to run in the application's entry sequence.
+
+## 2025-05-24 - RASP Evasion via Native Reversion
+
+**Vulnerability:**
+Runtime Self-Protection (RASP) systems that only monitor for monkey-patching of native primitives are vulnerable to "Native Reversion". An attacker can delete the security wrapper and revert a sink (e.g., `fetch`) to its native browser implementation. Since the native code passes the `isNative` check, the RASP system "fails open" and stops monitoring the sink, allowing un-attested data exfiltration.
+
+**Learning:**
+Effective RASP must not only detect monkey-patching but also enforce that high-risk sinks *must* be wrapped. By explicitly rejecting native-code primitives for sensitive APIs (fetch, Storage, WebSocket) within the `isAuthorized` check, we force the system to stay within the attestation-guarded environment. Furthermore, targeting `Storage.prototype` provides atomic coverage for all storage instances (local/session) while hardening them against easy removal.
+
+**Prevention:**
+Maintain a "Must-Be-Wrapped" list for high-risk sinks. Ensure the integrity check rejects native browser implementations for these specific APIs. Use `configurable: false` on property definitions to prevent the deletion or replacement of security wrappers at runtime.
