@@ -354,10 +354,13 @@ const DECOY_DATA = {
   settings: { notifications: true, privacy_mode: 'maximum', biometric_auth: true }
 };
 
+// ⚡ PERFORMANCE OPTIMIZATION: Stable default decoy object to prevent infinite re-render loops in deception mode.
+const DEFAULT_DECOY = _freeze({ status: 'secure', integrity: 'verified' });
+
 export const getDecoyData = (key) => {
   // Normalize key
   const baseKey = key.replace(/^voro_/, '');
-  return DECOY_DATA[baseKey] || DECOY_DATA[key] || { status: 'secure', integrity: 'verified' };
+  return DECOY_DATA[baseKey] || DECOY_DATA[key] || DEFAULT_DECOY;
 };
 
 export const isDeceptionActive = () => {

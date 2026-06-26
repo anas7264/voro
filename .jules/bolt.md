@@ -86,6 +86,14 @@
 
 **Action:** Replace high-frequency event state tracking (mouse, scroll) with CSS variables and refs to bypass React's render loop for visual effects. Use `innerText` on refs for real-time numeric display if needed.
 
+## 2025-05-18 - Snapshot Stability & Infinite Loops
+**Learning:** `useSyncExternalStore` (used by `useStorageKey`) relies on referential equality of the `getSnapshot` result. If `getSnapshot` returns a new object literal (e.g., a fallback or decoy) on every call, React assumes a state change and triggers a re-render, leading to an infinite loop. This is critical in 'deception' or 'security lockdown' modes where static fallback data must be referentially stable.
+
+**Action:**
+1. Always return a stable reference (e.g., a frozen module-level constant like `EMPTY_OBJ` or `DEFAULT_DECOY`) for fallbacks.
+2. Hoist fallback objects outside component/hook bodies to ensure stability.
+3. Ensure `getSnapshot` logic never instantiates new objects/arrays unless the underlying data has fundamentally changed.
+
 ## 2025-05-18 - Surgical Reactivity for Biometric Composition
 **Learning:** This codebase uses a centralized `StorageContext` that, if accessed via the broad `useStorage()` hook, exposes the entire global state (`storageData`). This causes components to re-render whenever ANY storage key is updated (e.g., a simple water log entry). Transitioning to `useStorageKey('key')` creates a targeted subscription using `useSyncExternalStore`, isolating the component from unrelated state churn.
 
