@@ -1,15 +1,16 @@
-import React, { useEffect, useState, useMemo, useId } from 'react';
+import React, { useEffect, useState, useMemo, useId, useCallback } from 'react';
 import { Plus, Trash2, Check, Zap, Target, Star } from 'lucide-react';
 import { Button, Card, Input, Header } from '@/components';
 import Confetti from '@/components/Confetti';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { validateHabit } from '@/utils/validators';
 import { defaultHabits } from '@/data/defaultHabits';
 
 const HabitTracker = () => {
   const iconInputId = useId();
-  const { getItemAsync, setItem, storageData } = useStorage();
+  const habitsData = useStorageKey('habits') || { list: [], log: {} };
+  const { setItem, updateItem } = useStorageMethods();
   const { addNotification } = useNotifications();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newHabit, setNewHabit] = useState({ name: '', icon: '✓', color: 'voro-primary' });
@@ -24,12 +25,11 @@ const HabitTracker = () => {
    * reactivity to StorageContext updates without manual load calls.
    */
   const { habits, todayHabits } = useMemo(() => {
-    const data = storageData['habits'] || { list: [], log: {} };
-    const list = data.list && data.list.length > 0 ? data.list : defaultHabits;
+    const list = habitsData.list && habitsData.list.length > 0 ? habitsData.list : defaultHabits;
     const today = new Date().toISOString().split('T')[0];
-    const log = data.log?.[today] || {};
+    const log = habitsData.log?.[today] || {};
     return { habits: list, todayHabits: log };
-  }, [storageData['habits']]);
+  }, [habitsData]);
 
   const addHabit = useCallback(async () => {
     const { valid, errors } = validateHabit(newHabit);
@@ -38,50 +38,42 @@ const HabitTracker = () => {
       return;
     }
 
-    const data = await getItemAsync('habits') || { list: [], log: {} };
     const habit = {
       id: Date.now().toString(),
       ...newHabit,
       createdAt: new Date().toISOString(),
     };
 
-    const updatedData = {
-      ...data,
-      list: [...(data.list || []), habit]
-    };
+    const success = await updateItem('habits', {
+      list: [...(habitsData.list || []), habit]
+    });
 
-    const success = await setItem('habits', updatedData);
     if (success) {
       setNewHabit({ name: '', icon: '✓', color: 'voro-primary' });
       setShowAddForm(false);
       addNotification('Neural pattern registered', 'success');
     }
-  }, [newHabit, addNotification, getItemAsync, setItem]);
+  }, [newHabit, addNotification, habitsData.list, updateItem]);
 
   const toggleHabit = useCallback(async (habitId) => {
-    const data = await getItemAsync('habits') || { list: [], log: {} };
     const today = new Date().toISOString().split('T')[0];
+    const currentLog = habitsData.log?.[today] || {};
 
     const updatedLog = {
-      ...(data.log || {}),
+      ...(habitsData.log || {}),
       [today]: {
-        ...(data.log?.[today] || {}),
-        [habitId]: !data.log?.[today]?.[habitId]
+        ...currentLog,
+        [habitId]: !currentLog[habitId]
       }
     };
 
-    const updatedData = { ...data, log: updatedLog };
-    await setItem('habits', updatedData);
-  }, [getItemAsync, setItem]);
+    await updateItem('habits', { log: updatedLog });
+  }, [habitsData.log, updateItem]);
 
   const removeHabit = useCallback(async (habitId) => {
-    const data = await getItemAsync('habits') || { list: [], log: {} };
-    const updatedData = {
-      ...data,
-      list: (data.list || []).filter(h => h.id !== habitId)
-    };
-    await setItem('habits', updatedData);
-  }, [getItemAsync, setItem]);
+    const updatedList = (habitsData.list || []).filter(h => h.id !== habitId);
+    await updateItem('habits', { list: updatedList });
+  }, [habitsData.list, updateItem]);
 
   return (
     <div className="min-h-screen bg-[#080B14] text-[#F0F4FF] pb-24">

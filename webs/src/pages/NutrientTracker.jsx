@@ -3,10 +3,11 @@ import { Plus, Trash2, Heart, Zap, Target } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 
 const NutrientTracker = () => {
-  const { storageData, setItem } = useStorage();
+  const tracker = useStorageKey('nutrient_tracker') || {};
+  const { setItem } = useStorageMethods();
   const [selectedNutrient, setSelectedNutrient] = useState('vitamin_d');
 
   useEffect(() => {
@@ -22,9 +23,6 @@ const NutrientTracker = () => {
     { id: 'omega3', name: 'Omega-3', unit: 'g', dailyGoal: 1.1, warning: 'Anti-inflammatory benefits', color: '#EC4899' },
   ], []);
 
-  const tracker = useMemo(() => {
-    return storageData['nutrient_tracker'] || {};
-  }, [storageData['nutrient_tracker']]);
 
   const currentNutrient = nutrients.find(n => n.id === selectedNutrient);
   const currentStatus = tracker[selectedNutrient] || { intake: 0, fromFood: 0 };

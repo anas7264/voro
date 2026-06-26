@@ -1,14 +1,15 @@
-import React, { useEffect, useState, useMemo, useId } from 'react';
+import React, { useEffect, useState, useMemo, useId, useCallback } from 'react';
 import { Moon, Sun, Settings as SettingsIcon, RotateCcw, Download, Upload } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Select from '@/components/Select';
 import Toggle from '@/components/Toggle';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useApp } from '@/hooks/useAppContext';
 
 const Settings = () => {
-  const { storageData, setStorage, exportData, clearAllData } = useStorage();
+  const settings = useStorageKey('settings') || {};
+  const { setItem, exportData, clearAllData } = useStorageMethods();
   const { user } = useApp();
 
   const themeId = useId();
@@ -21,22 +22,14 @@ const Settings = () => {
     document.title = 'VORO | Settings';
   }, []);
 
-  /**
-   * ⚡ OPTIMIZATION: Synchronous data derivation for user settings.
-   * Eliminates mount-time double-render and ensures instant reactivity.
-   */
-  const settings = useMemo(() => {
-    return storageData['settings'] || {};
-  }, [storageData['settings']]);
-
   const theme = useMemo(() => {
     return settings.theme || 'dark';
   }, [settings.theme]);
 
-  const handleSettingChange = (key, value) => {
+  const handleSettingChange = useCallback((key, value) => {
     const updated = { ...settings, [key]: value };
-    setStorage('settings', updated);
-  };
+    setItem('settings', updated);
+  }, [settings, setItem]);
 
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';

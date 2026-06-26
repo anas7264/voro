@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useRef, memo } from 'react';
+import React, { useEffect, useState, useRef, memo, useCallback } from 'react';
 import { Send, Loader, Bot, Sparkles } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageMethods } from '@/hooks/useStorage';
 import { useAI } from '@/hooks/useAI';
 
 const MessageItem = memo(({ msg }) => {
@@ -54,7 +54,7 @@ const MessageItem = memo(({ msg }) => {
 MessageItem.displayName = 'MessageItem';
 
 const AICoach = () => {
-  const { getStorage, setStorage } = useStorage();
+  const { getItem: getStorage, setItem: setStorage } = useStorageMethods();
   const { chat, loading: aiLoading } = useAI();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -86,7 +86,7 @@ const AICoach = () => {
     setMessages(saved);
   }, []);
 
-  const handleSendMessage = async (text = input) => {
+  const handleSendMessage = useCallback(async (text = input) => {
     if (!text.trim() || loading) return;
 
     const userMessage = { role: 'user', content: text, timestamp: new Date().toISOString() };
@@ -127,7 +127,7 @@ const AICoach = () => {
         setLocalLoading(false);
       }, 800);
     }
-  };
+  }, [input, loading, messages, chat, setStorage]);
 
   const generateLocalFallback = (userInput) => {
     const responses = {
