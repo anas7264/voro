@@ -35,6 +35,11 @@ const _isFrozen = Object.isFrozen;
 const _isSealed = Object.isSealed;
 const _isExtensible = Object.isExtensible;
 
+// Pulse Integrity Constants
+const PULSE_INTERVAL = 30000; // 30s
+const PULSE_DRIFT_THRESHOLD = PULSE_INTERVAL + 10000; // 40s (10s tolerance for background throttling)
+let _lastIntegrityPulse = 0;
+
 // Capture native console methods to prevent bypass
 const _console = {
   log: typeof console !== 'undefined' ? console.log : null,
@@ -481,7 +486,18 @@ const verifyAttestation = (sinkName, targetUrl = null) => {
       return false;
     }
 
-    // 3. CSA: Ensure the current call stack provenance is still valid
+    // 3. Pulse Integrity (AHLA): Ensure the security heartbeat is active and fresh
+    // If the last integrity check is older than the threshold, the Sentinel has likely
+    // been neutralized or frozen.
+    const now = _perfNow ? _perfNow() : Date.now();
+    const drift = now - _lastIntegrityPulse;
+    if (drift > PULSE_DRIFT_THRESHOLD) {
+      if (_console.error) _call.call(_console.error, console, `Security Sentinel: Attestation Permit expired for ${sinkName}. Integrity Pulse drift exceeded threshold [${Math.round(drift)}ms].`);
+      executeLockdown();
+      return false;
+    }
+
+    // 4. CSA: Ensure the current call stack provenance is still valid
     if (!validateCallStack()) {
       if (_console.error) _call.call(_console.error, console, `Security Sentinel: Attestation Permit mismatch for ${sinkName}. Provenance validation failed.`);
       executeLockdown();
@@ -1010,6 +1026,9 @@ export const performIntegrityCheck = () => {
 
   if (compromised) {
     executeLockdown();
+  } else {
+    // AHLA: Update the integrity pulse timestamp only upon a successful, complete check
+    _lastIntegrityPulse = _perfNow ? _perfNow() : Date.now();
   }
 
   return !compromised;
@@ -1220,9 +1239,31 @@ export const startMutationShield = () => {
 };
 
 /**
- * Background task to periodically verify runtime integrity (RASP).
+ * Autonomous Heartbeat-Linked Attestation (AHLA)
+ * Implements a recursive, hardened heartbeat that serves as the system's "Dead Man's Switch".
+ * If the heartbeat is neutralized, all sensitive security sinks immediately expire.
  */
-export const startSecurityHeartbeat = () => _setInterval && _setInterval(performIntegrityCheck, 30000);
+const startAutonomousPulse = () => {
+  if (typeof window === 'undefined' || !_setTimeout) return;
+
+  const pulse = () => {
+    try {
+      // Circuit breaker: skip if already compromised
+      if (window.VORO_COMPROMISED) return;
+
+      performIntegrityCheck();
+
+      // Schedule next pulse recursively to prevent interval-piling and make tracking harder
+      _call.call(_setTimeout, window, pulse, PULSE_INTERVAL);
+    } catch (e) {
+      if (_console.error) _call.call(_console.error, console, "Security Sentinel: Pulse Failure.", e);
+      executeLockdown();
+    }
+  };
+
+  // Initial pulse
+  _call.call(_setTimeout, window, pulse, PULSE_INTERVAL);
+};
 
 /**
  * Sentinel Self-Protection
@@ -1239,7 +1280,6 @@ const sentinelExports = {
   performIntegrityCheck,
   executeLockdown,
   executeSecurely: (action, callback, caps) => executeSecurely(action, callback, caps),
-  startSecurityHeartbeat,
   getDecoyData,
   isDeceptionActive
 };
@@ -1269,6 +1309,9 @@ initializeErrorOrchestration();
 if (typeof window !== 'undefined') {
   // Execute VORO Neural Shield: Runtime Integrity Attestation immediately on load
   performIntegrityCheck();
+
+  // Initialize Autonomous Pulse (Dead Man's Switch)
+  startAutonomousPulse();
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => startMutationShield());
