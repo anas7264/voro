@@ -1213,9 +1213,9 @@ export const validateAIResponse = (c, n = null) => {
   const urls = c.match(urlRegex) || [];
 
   // High-signal keywords that trigger on any match within the URL
-  const highSignalKeywords = ['cookie', 'session', 'localstorage', 'voro_', 'token', 'secret'];
+  const highSignalKeywords = ['cookie', 'session', 'localstorage', 'voro_', 'token', 'secret', 'credential', 'password'];
   // Low-signal keywords that only trigger if found in the query string to minimize false positives
-  const queryOnlyKeywords = ['auth', 'key', 'sid', 'pwd', 'access_token', 'id_token'];
+  const queryOnlyKeywords = ['auth', 'key', 'sid', 'pwd', 'access_token', 'id_token', 'api'];
 
   const appOrigin = typeof window !== 'undefined' ? window.location.origin : null;
 
@@ -1227,9 +1227,15 @@ export const validateAIResponse = (c, n = null) => {
       // Whitelist: Skip exfiltration check for links to the application's own origin
       if (appOrigin && urlObj.origin === appOrigin) continue;
 
-      const lowerUrl = url.toLowerCase();
-      const lowerQuery = urlObj.search.toLowerCase();
-      const lowerHash = urlObj.hash.toLowerCase();
+      // Deep Decoding: Prevent bypass via percent-encoding (e.g., %74%6F%6B%65%6E for "token")
+      let decodedUrl = url;
+      try {
+        decodedUrl = decodeURIComponent(url);
+      } catch (e) { /* fallback to raw url if malformed */ }
+
+      const lowerUrl = decodedUrl.toLowerCase();
+      const lowerQuery = urlObj.search ? decodeURIComponent(urlObj.search).toLowerCase() : "";
+      const lowerHash = urlObj.hash ? decodeURIComponent(urlObj.hash).toLowerCase() : "";
 
       // Check high-signal keywords anywhere in URL
       if (highSignalKeywords.some(kw => lowerUrl.includes(kw))) {
@@ -1246,7 +1252,8 @@ export const validateAIResponse = (c, n = null) => {
       }
 
       // High-entropy token check (detects exfiltration even without known keywords)
-      const segments = url.split(/[\/\?&%=:._-]/);
+      // Check segments of the decoded URL
+      const segments = decodedUrl.split(/[\/\?&%=:._-]/);
       for (const segment of segments) {
         if (segment.length >= 24 && calculateEntropy(segment) > 4.2) {
           if (_console.warn) _call.call(_console.warn, console, "Security Sentinel: AI exfiltration attempt blocked (High-entropy token in URL).");

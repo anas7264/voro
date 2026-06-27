@@ -150,6 +150,16 @@ Robust exfiltration defense requires scrutinizing the entire URL structure, incl
 **Prevention:**
 Always include `urlObj.hash` in exfiltration keyword checks. Expand RASP coverage to include all URL and Blob management APIs. Ensure that security and integrity checks are the absolute first pieces of executable code to run in the application's entry sequence.
 
+## 2025-05-25 - Encoding-Aware AI Exfiltration Defense & Secure Logging
+**Vulnerability:**
+AI exfiltration detection using regex or keyword matching on raw URLs is vulnerable to percent-encoding bypass (e.g., using `%74%6F%6B%65%6E` to represent `token`). Additionally, AI client implementations may inadvertently leak PII or transiently assembled credentials into the console during error handling if the error objects are logged without redaction.
+
+**Learning:**
+Robust exfiltration defense must implement "Deep Decoding" by applying `decodeURIComponent` to all extracted URLs, query strings, and hash fragments before performing keyword or entropy analysis. Furthermore, security-conscious error handling requires that all logs originating from sensitive modules (like AI clients) be piped through a redaction utility to maintain confidentiality even in failure states.
+
+**Prevention:**
+Always decode untrusted URLs before security validation. Ensure all error logging in sensitive modules uses a centralized redaction engine to prevent the accidental exposure of secrets or PII in development or production logs.
+
 ## 2025-05-24 - RASP Evasion via Native Reversion
 
 **Vulnerability:**

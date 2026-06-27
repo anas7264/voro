@@ -188,7 +188,8 @@ class VoroAIClient {
         stopReason: data.stop_reason
       };
     } catch (error) {
-      console.error("VORO AI Error:", error);
+      // Security: Redact potential sensitive info from error logs
+      console.error("VORO AI Error:", redactData(error));
       throw error;
     }
   }
@@ -274,7 +275,8 @@ class VoroAIClient {
         stopReason: "end_turn"
       };
     } catch (error) {
-      console.error("Stream API Error:", error);
+      // Security: Redact potential sensitive info from error logs
+      console.error("Stream API Error:", redactData(error));
       throw error;
     }
   }
