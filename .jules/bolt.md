@@ -98,3 +98,7 @@
 **Learning:** This codebase uses a centralized `StorageContext` that, if accessed via the broad `useStorage()` hook, exposes the entire global state (`storageData`). This causes components to re-render whenever ANY storage key is updated (e.g., a simple water log entry). Transitioning to `useStorageKey('key')` creates a targeted subscription using `useSyncExternalStore`, isolating the component from unrelated state churn.
 
 **Action:** Prefer `useStorageKey(key)` for data subscriptions and `useStorageMethods()` for write-only operations to minimize the re-render surface area in pages and complex components.
+
+## 2025-05-18 - Native Primitive Capture & Binding
+**Learning:** Capturing native browser primitives (like `performance.now`) for security attestation or RASP enforcement can trigger `Illegal invocation` errors if they are not bound to their parent context. This occurs because these methods often rely on internal state tied to the `this` value (the original object).
+**Action:** Always use `.bind(parent)` when capturing native methods (e.g., `performance.now.bind(performance)`) to ensure stability when called within redirected execution contexts.
