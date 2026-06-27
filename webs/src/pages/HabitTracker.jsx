@@ -1,15 +1,75 @@
-import React, { useEffect, useState, useMemo, useId } from 'react';
+import React, { useEffect, useState, useMemo, useId, useCallback, memo } from 'react';
 import { Plus, Trash2, Check, Zap, Target, Star } from 'lucide-react';
 import { Button, Card, Input, Header } from '@/components';
 import Confetti from '@/components/Confetti';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { validateHabit } from '@/utils/validators';
 import { defaultHabits } from '@/data/defaultHabits';
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Memoized HabitItem component.
+ * Isolates habit-specific interactions and visual states, preventing
+ * full-list re-renders when a single habit is toggled or when the parent
+ * state (e.g., form visibility) changes.
+ */
+const HabitItem = memo(({ habit, isDone, onToggle, onRemove }) => (
+  <Card
+    className={`p-8 flex items-center justify-between transition-all duration-500 group ${
+      isDone
+        ? 'border-voro-secondary/30 bg-voro-secondary/5'
+        : 'hover:border-white/10'
+    }`}
+  >
+    <div className="flex items-center gap-6 flex-1">
+      <button
+        onClick={() => onToggle(habit.id)}
+        aria-label={`Mark ${habit.name} as ${isDone ? 'incomplete' : 'complete'}`}
+        className={`
+          flex items-center justify-center w-16 h-16 rounded-[1.5rem] border-2 transition-all duration-500 shadow-2xl
+          focus:outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#080B14]
+          ${isDone
+            ? 'border-voro-secondary bg-voro-secondary text-white rotate-[360deg] shadow-voro-secondary/30'
+            : 'border-white/5 bg-white/[0.02] text-gray-500 hover:border-voro-primary/50'
+          }
+        `}
+      >
+        {isDone ? (
+          <Check size={28} strokeWidth={3} />
+        ) : (
+          <span className="text-2xl group-hover:scale-125 transition-transform duration-500">{habit.icon}</span>
+        )}
+      </button>
+
+      <div className="space-y-1">
+        <h3 className={`text-xl font-bold tracking-tight transition-colors duration-500 uppercase ${isDone ? 'text-voro-secondary' : 'text-white'}`}>
+          {habit.name}
+        </h3>
+        <div className="flex items-center gap-2">
+           <div className={`w-1.5 h-1.5 rounded-full ${isDone ? 'bg-voro-secondary animate-pulse' : 'bg-gray-800'}`} />
+           <p className="text-[0.6rem] font-black uppercase tracking-[0.2em] text-gray-600">
+            {isDone ? 'Synchronization Active' : 'Awaiting Engagement'}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <button
+      onClick={() => onRemove(habit.id)}
+      aria-label={`Remove ${habit.name} pattern`}
+      className="p-3 rounded-xl text-gray-800 hover:text-red-400 hover:bg-red-400/10 transition-all opacity-0 group-hover:opacity-100 focus:outline-none focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-red-500"
+    >
+      <Trash2 size={18} />
+    </button>
+  </Card>
+));
+
+HabitItem.displayName = 'HabitItem';
+
 const HabitTracker = () => {
   const iconInputId = useId();
-  const { getItemAsync, setItem, storageData } = useStorage();
+  const { getItemAsync, setItem } = useStorageMethods();
+  const storageHabits = useStorageKey('habits');
   const { addNotification } = useNotifications();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newHabit, setNewHabit] = useState({ name: '', icon: '✓', color: 'voro-primary' });
@@ -24,12 +84,12 @@ const HabitTracker = () => {
    * reactivity to StorageContext updates without manual load calls.
    */
   const { habits, todayHabits } = useMemo(() => {
-    const data = storageData['habits'] || { list: [], log: {} };
+    const data = storageHabits || { list: [], log: {} };
     const list = data.list && data.list.length > 0 ? data.list : defaultHabits;
     const today = new Date().toISOString().split('T')[0];
     const log = data.log?.[today] || {};
     return { habits: list, todayHabits: log };
-  }, [storageData['habits']]);
+  }, [storageHabits]);
 
   const addHabit = useCallback(async () => {
     const { valid, errors } = validateHabit(newHabit);
@@ -83,6 +143,21 @@ const HabitTracker = () => {
     await setItem('habits', updatedData);
   }, [getItemAsync, setItem]);
 
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Stabilized Header action.
+   * Prevents the memoized Header component from re-rendering on every
+   * HabitTracker render by providing a referentially stable JSX element.
+   */
+  const headerAction = useMemo(() => (
+    <Button
+      onClick={() => setShowAddForm(prev => !prev)}
+      className="px-8 shadow-xl shadow-voro-primary/20"
+    >
+      <Plus size={18} className="mr-2" />
+      Integrate Habit
+    </Button>
+  ), []);
+
   return (
     <div className="min-h-screen bg-[#080B14] text-[#F0F4FF] pb-24">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -90,15 +165,7 @@ const HabitTracker = () => {
         <Header
           eyebrow="Neural Synchronization Log"
           title={<>Consistency <span className="text-voro-primary not-italic font-bold">Matrix</span></>}
-          action={(
-            <Button
-              onClick={() => setShowAddForm(!showAddForm)}
-              className="px-8 shadow-xl shadow-voro-primary/20"
-            >
-              <Plus size={18} className="mr-2" />
-              Integrate Habit
-            </Button>
-          )}
+          action={headerAction}
         />
 
         {/* Add Habit Form */}
@@ -149,60 +216,15 @@ const HabitTracker = () => {
 
         {/* Habits Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {habits.map(habit => {
-            const isDone = todayHabits[habit.id];
-            return (
-              <Card
-                key={habit.id}
-                className={`p-8 flex items-center justify-between transition-all duration-500 group ${
-                  isDone
-                    ? 'border-voro-secondary/30 bg-voro-secondary/5'
-                    : 'hover:border-white/10'
-                }`}
-              >
-                <div className="flex items-center gap-6 flex-1">
-                  <button
-                    onClick={() => toggleHabit(habit.id)}
-                    aria-label={`Mark ${habit.name} as ${isDone ? 'incomplete' : 'complete'}`}
-                    className={`
-                      flex items-center justify-center w-16 h-16 rounded-[1.5rem] border-2 transition-all duration-500 shadow-2xl
-                      focus:outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#080B14]
-                      ${isDone
-                        ? 'border-voro-secondary bg-voro-secondary text-white rotate-[360deg] shadow-voro-secondary/30'
-                        : 'border-white/5 bg-white/[0.02] text-gray-500 hover:border-voro-primary/50'
-                      }
-                    `}
-                  >
-                    {isDone ? (
-                      <Check size={28} strokeWidth={3} />
-                    ) : (
-                      <span className="text-2xl group-hover:scale-125 transition-transform duration-500">{habit.icon}</span>
-                    )}
-                  </button>
-
-                  <div className="space-y-1">
-                    <h3 className={`text-xl font-bold tracking-tight transition-colors duration-500 uppercase ${isDone ? 'text-voro-secondary' : 'text-white'}`}>
-                      {habit.name}
-                    </h3>
-                    <div className="flex items-center gap-2">
-                       <div className={`w-1.5 h-1.5 rounded-full ${isDone ? 'bg-voro-secondary animate-pulse' : 'bg-gray-800'}`} />
-                       <p className="text-[0.6rem] font-black uppercase tracking-[0.2em] text-gray-600">
-                        {isDone ? 'Synchronization Active' : 'Awaiting Engagement'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => removeHabit(habit.id)}
-                  aria-label={`Remove ${habit.name} pattern`}
-                  className="p-3 rounded-xl text-gray-800 hover:text-red-400 hover:bg-red-400/10 transition-all opacity-0 group-hover:opacity-100 focus:outline-none focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-red-500"
-                >
-                  <Trash2 size={18} />
-                </button>
-              </Card>
-            );
-          })}
+          {habits.map(habit => (
+            <HabitItem
+              key={habit.id}
+              habit={habit}
+              isDone={todayHabits[habit.id]}
+              onToggle={toggleHabit}
+              onRemove={removeHabit}
+            />
+          ))}
         </div>
 
         {habits.length === 0 && !showAddForm && (

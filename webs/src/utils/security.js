@@ -42,7 +42,7 @@ const _getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
 const _getPrototypeOf = Object.getPrototypeOf;
 const _hasOwnProperty = Object.prototype.hasOwnProperty;
 const _ReflectApply = typeof Reflect !== 'undefined' ? Reflect.apply : null;
-const _perfNow = typeof performance !== 'undefined' ? performance.now : null;
+const _perfNow = (typeof performance !== 'undefined' && performance.now) ? performance.now.bind(performance) : null;
 const _seal = Object.seal;
 const _preventExtensions = Object.preventExtensions;
 const _isFrozen = Object.isFrozen;
