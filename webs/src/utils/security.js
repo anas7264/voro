@@ -391,6 +391,14 @@ export const isDeceptionActive = () => {
 };
 
 /**
+ * Pulse Metadata Accessor
+ */
+export const getPulseMetadata = () => ({
+  lastPulse: _lastIntegrityPulse,
+  driftThreshold: PULSE_DRIFT_THRESHOLD
+});
+
+/**
  * Granular Neural Capability Attestation (GNCA)
  * Implements a time-bound, scoped capability model for high-risk sinks.
  */
@@ -421,8 +429,9 @@ export const executeSecurely = async (action, callback, requiredCapabilities = [
   // Register capabilities for this specific execution context
   activeCapabilities.set(nonce, {
     action,
-    timestamp: _perfNow ? _perfNow() : Date.now(),
+    timestamp: _perfNow ? _call.call(_perfNow, performance) : Date.now(),
     capabilities: Array.isArray(requiredCapabilities) ? requiredCapabilities : [requiredCapabilities],
+    consumed: new Set(),
     tag
   });
 
@@ -487,8 +496,17 @@ const verifyAttestation = (sinkName, targetUrl = null) => {
         }
 
         if (hasSinkCap && hasDomainCap) {
+          // Single-Shot Enforcement: Check if this specific sink/target has already been consumed
+          // This prevents replay attacks or unauthorized re-entry within the same context.
+          const consumptionToken = `${sinkName}${targetUrl ? `:${targetUrl}` : ''}`;
+          if (record.consumed.has(consumptionToken)) {
+            if (_console.warn) _call.call(_console.warn, console, `Security Sentinel: Single-shot violation for ${sinkName}. Authorization already consumed.`);
+            return false;
+          }
+
           authorized = true;
           authorizedNonce = nonce;
+          record.consumed.add(consumptionToken);
           break;
         }
       }
@@ -507,7 +525,7 @@ const verifyAttestation = (sinkName, targetUrl = null) => {
     // 3. Pulse Integrity (AHLA): Ensure the security heartbeat is active and fresh
     // If the last integrity check is older than the threshold, the Sentinel has likely
     // been neutralized or frozen.
-    const now = _perfNow ? _perfNow() : Date.now();
+    const now = _perfNow ? _call.call(_perfNow, performance) : Date.now();
     const drift = now - _lastIntegrityPulse;
     if (drift > PULSE_DRIFT_THRESHOLD) {
       if (_console.error) _call.call(_console.error, console, `Security Sentinel: Attestation Permit expired for ${sinkName}. Integrity Pulse drift exceeded threshold [${Math.round(drift)}ms].`);
@@ -984,6 +1002,11 @@ export const performIntegrityCheck = () => {
     compromised = true;
   }
 
+  // Check Structural DOM Integrity
+  if (!checkStructuralIntegrity()) {
+    compromised = true;
+  }
+
   // Credential Scrubbing: Periodically attempt to purge sensitive keys from import.meta.env
   try {
     if (typeof import.meta !== 'undefined' && import.meta.env) {
@@ -1244,6 +1267,66 @@ export const validateAIResponse = (c, n = null) => {
   let v = redactData(c.replace(/\[\/?(USER_DATA|SECURITY_PROTOCOL|MESSAGE_HISTORY|USER_INPUT).*?\]/g, '[REDACTED_BOUNDARY]'));
 
   return v;
+};
+
+/**
+ * Structural DOM Attestation
+ * Snapshots and verifies the architectural integrity of the DOM to detect
+ * unauthorized structural changes that might bypass MutationObservers.
+ */
+let _domBackboneSnapshot = null;
+const checkStructuralIntegrity = () => {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return true;
+
+  try {
+    // We snapshot the critical architectural skeleton: head and the primary app root
+    const root = document.getElementById('root');
+    const head = document.head;
+
+    const generateBackbone = () => {
+      const serialize = (el) => {
+        if (!el) return '';
+        // Capture tag and ID for strict architectural nodes.
+        // We exclude 'class' and 'role' as they can be dynamic in complex SPAs.
+        const attrStr = Array.from(el.attributes)
+          .filter(a => ['id'].includes(a.name.toLowerCase()))
+          .map(a => `${a.name}=${a.value}`)
+          .sort()
+          .join('|');
+        return `${el.tagName}[${attrStr}]`;
+      };
+
+      // Structural snapshot of head (immediate children) and root (architectural depth 2)
+      let backbone = serialize(head) + '{';
+      Array.from(head.children).forEach(c => backbone += serialize(c) + ',');
+      backbone += '};' + serialize(root) + '{';
+      if (root) {
+        Array.from(root.children).forEach(c => {
+          backbone += serialize(c) + '[';
+          Array.from(c.children).forEach(gc => backbone += serialize(gc) + ',');
+          backbone += '],';
+        });
+      }
+      backbone += '}';
+      return backbone;
+    };
+
+    const currentBackbone = generateBackbone();
+
+    if (!_domBackboneSnapshot) {
+      _domBackboneSnapshot = currentBackbone;
+      return true;
+    }
+
+    if (currentBackbone !== _domBackboneSnapshot) {
+      if (_console.error) _call.call(_console.error, console, "Security Sentinel: Structural DOM Integrity Violation detected.");
+      return false;
+    }
+
+    return true;
+  } catch (e) {
+    return false;
+  }
 };
 
 /**
