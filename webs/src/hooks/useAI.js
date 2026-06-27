@@ -3,20 +3,32 @@ import { buildVORO_SystemPrompt } from "../utils/aiPrompts";
 import { voroAIClient } from "../utils/ai";
 
 export const useAI = () => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [response, setResponse] = useState(null);
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Consolidated State.
+   * Grouping loading, error, and response into a single state object
+   * eliminates redundant render cycles during asynchronous state transitions.
+   */
+  const [state, setState] = useState({
+    loading: false,
+    error: null,
+    response: null
+  });
+
   const abortControllerRef = useRef(null);
+
+  // Helper to update state partially
+  const updateState = useCallback((updates) => {
+    setState(prev => ({ ...prev, ...updates }));
+  }, []);
 
   // Generate meal plan
   const generateMealPlan = useCallback(async (userProfile) => {
     if (!voroAIClient) {
-      setError("AI client not initialized");
+      updateState({ error: "AI client not initialized" });
       return null;
     }
 
-    setLoading(true);
-    setError(null);
+    updateState({ loading: true, error: null });
     abortControllerRef.current = new AbortController();
 
     try {
@@ -24,27 +36,24 @@ export const useAI = () => {
         userProfile,
         buildVORO_SystemPrompt()
       );
-      setResponse(result);
+      updateState({ response: result, loading: false });
       return result;
     } catch (err) {
       const errorMessage = err.message || "Failed to generate meal plan";
-      setError(errorMessage);
+      updateState({ error: errorMessage, loading: false });
       console.error("Meal plan generation error:", err);
       return null;
-    } finally {
-      setLoading(false);
     }
-  }, []);
+  }, [updateState]);
 
   // Generate training plan
   const generateTrainingPlan = useCallback(async (userProfile) => {
     if (!voroAIClient) {
-      setError("AI client not initialized");
+      updateState({ error: "AI client not initialized" });
       return null;
     }
 
-    setLoading(true);
-    setError(null);
+    updateState({ loading: true, error: null });
     abortControllerRef.current = new AbortController();
 
     try {
@@ -52,27 +61,24 @@ export const useAI = () => {
         userProfile,
         buildVORO_SystemPrompt()
       );
-      setResponse(result);
+      updateState({ response: result, loading: false });
       return result;
     } catch (err) {
       const errorMessage = err.message || "Failed to generate training plan";
-      setError(errorMessage);
+      updateState({ error: errorMessage, loading: false });
       console.error("Training plan generation error:", err);
       return null;
-    } finally {
-      setLoading(false);
     }
-  }, []);
+  }, [updateState]);
 
   // Get coaching advice
   const getCoachingAdvice = useCallback(async (userProfile) => {
     if (!voroAIClient) {
-      setError("AI client not initialized");
+      updateState({ error: "AI client not initialized" });
       return null;
     }
 
-    setLoading(true);
-    setError(null);
+    updateState({ loading: true, error: null });
     abortControllerRef.current = new AbortController();
 
     try {
@@ -80,27 +86,24 @@ export const useAI = () => {
         userProfile,
         buildVORO_SystemPrompt()
       );
-      setResponse(result);
+      updateState({ response: result, loading: false });
       return result;
     } catch (err) {
       const errorMessage = err.message || "Failed to get coaching advice";
-      setError(errorMessage);
+      updateState({ error: errorMessage, loading: false });
       console.error("Coaching advice error:", err);
       return null;
-    } finally {
-      setLoading(false);
     }
-  }, []);
+  }, [updateState]);
 
   // Analyze nutrition
   const analyzeNutrition = useCallback(async (nutritionData) => {
     if (!voroAIClient) {
-      setError("AI client not initialized");
+      updateState({ error: "AI client not initialized" });
       return null;
     }
 
-    setLoading(true);
-    setError(null);
+    updateState({ loading: true, error: null });
     abortControllerRef.current = new AbortController();
 
     try {
@@ -108,27 +111,24 @@ export const useAI = () => {
         nutritionData,
         buildVORO_SystemPrompt()
       );
-      setResponse(result);
+      updateState({ response: result, loading: false });
       return result;
     } catch (err) {
       const errorMessage = err.message || "Failed to analyze nutrition";
-      setError(errorMessage);
+      updateState({ error: errorMessage, loading: false });
       console.error("Nutrition analysis error:", err);
       return null;
-    } finally {
-      setLoading(false);
     }
-  }, []);
+  }, [updateState]);
 
   // Analyze body composition
   const analyzeBodyComposition = useCallback(async (metrics) => {
     if (!voroAIClient) {
-      setError("AI client not initialized");
+      updateState({ error: "AI client not initialized" });
       return null;
     }
 
-    setLoading(true);
-    setError(null);
+    updateState({ loading: true, error: null });
     abortControllerRef.current = new AbortController();
 
     try {
@@ -136,27 +136,24 @@ export const useAI = () => {
         metrics,
         buildVORO_SystemPrompt()
       );
-      setResponse(result);
+      updateState({ response: result, loading: false });
       return result;
     } catch (err) {
       const errorMessage = err.message || "Failed to analyze body composition";
-      setError(errorMessage);
+      updateState({ error: errorMessage, loading: false });
       console.error("Body composition analysis error:", err);
       return null;
-    } finally {
-      setLoading(false);
     }
-  }, []);
+  }, [updateState]);
 
   // General chat
   const chat = useCallback(async (message, conversationHistory = []) => {
     if (!voroAIClient) {
-      setError("AI client not initialized");
+      updateState({ error: "AI client not initialized" });
       return null;
     }
 
-    setLoading(true);
-    setError(null);
+    updateState({ loading: true, error: null });
     abortControllerRef.current = new AbortController();
 
     try {
@@ -165,35 +162,31 @@ export const useAI = () => {
         conversationHistory,
         buildVORO_SystemPrompt()
       );
-      setResponse(result);
+      updateState({ response: result, loading: false });
       return result;
     } catch (err) {
       const errorMessage = err.message || "Chat request failed";
-      setError(errorMessage);
+      updateState({ error: errorMessage, loading: false });
       console.error("Chat error:", err);
       return null;
-    } finally {
-      setLoading(false);
     }
-  }, []);
+  }, [updateState]);
 
   // Cancel ongoing request
   const cancel = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
-      setLoading(false);
+      updateState({ loading: false });
     }
-  }, []);
+  }, [updateState]);
 
   // Clear error
   const clearError = useCallback(() => {
-    setError(null);
-  }, []);
+    updateState({ error: null });
+  }, [updateState]);
 
   return {
-    loading,
-    error,
-    response,
+    ...state,
     generateMealPlan,
     generateTrainingPlan,
     getCoachingAdvice,

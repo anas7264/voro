@@ -5,9 +5,16 @@ import { foods } from '@/data/foods';
 
 const PAGE_SIZE = 24;
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted categories.
+ * Prevents O(N) extraction on every component render cycle.
+ */
+const CATEGORIES = ['All', ...new Set(foods.map(f => f.category))];
+
 const FoodLibrary = () => {
   const { addNotification } = useNotifications();
   const [searchQuery, setSearchQuery] = useState('');
+  const [deferredSearchQuery, setDeferredSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [favorites, setFavorites] = useState([]);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -17,16 +24,22 @@ const FoodLibrary = () => {
   }, []);
 
   /**
+   * ⚡ OPTIMIZATION: Debounced search term.
+   * Prevents expensive filtering operations on every keystroke.
+   */
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDeferredSearchQuery(searchQuery);
+    }, 200);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  /**
    * ⚡ OPTIMIZATION: Reset visible count when filters change to maintain performance.
    */
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [searchQuery, selectedCategory]);
-
-  /**
-   * ⚡ OPTIMIZATION: Memoize categories to avoid O(N) extraction on every render.
-   */
-  const categories = useMemo(() => ['All', ...new Set(foods.map(f => f.category))], []);
+  }, [deferredSearchQuery, selectedCategory]);
 
   /**
    * ⚡ OPTIMIZATION: Replace useEffect + useState pattern with useMemo for filtering.
@@ -39,8 +52,8 @@ const FoodLibrary = () => {
       filtered = filtered.filter(f => f.category === selectedCategory);
     }
 
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
+    if (deferredSearchQuery.trim()) {
+      const query = deferredSearchQuery.toLowerCase();
       filtered = filtered.filter(f =>
         f.name.toLowerCase().includes(query) ||
         (f.nameAr && f.nameAr.includes(query)) ||
@@ -49,7 +62,7 @@ const FoodLibrary = () => {
     }
 
     return filtered;
-  }, [searchQuery, selectedCategory]);
+  }, [deferredSearchQuery, selectedCategory]);
 
   const toggleFavorite = (food) => {
     const isFav = favorites.includes(food.id);
@@ -105,7 +118,7 @@ const FoodLibrary = () => {
               <Filter size={14} className="text-gray-700" />
               <span className="text-[0.55rem] font-mono font-bold uppercase tracking-[0.4em] text-gray-600">Archive Segments</span>
             </div>
-            {categories.map(cat => (
+            {CATEGORIES.map(cat => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
