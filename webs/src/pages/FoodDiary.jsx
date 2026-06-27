@@ -114,11 +114,18 @@ const FoodDiary = () => {
   };
 
   const handleRemoveFood = async (slot, index) => {
+    /**
+     * ⚡ OPTIMISTIC UI: Perform local calculations and update storage.
+     * The useStorageKey hook will reactively update the UI immediately
+     * after setItem is called, while the storage write persists.
+     */
     const allLogs = getItem('nutrition_log') || {};
     const currentDayLog = allLogs[date];
     if (!currentDayLog) return;
 
     const foodEntry = currentDayLog.meals[slot][index];
+    if (!foodEntry) return;
+
     const updatedSlotMeals = [...currentDayLog.meals[slot]];
     updatedSlotMeals.splice(index, 1);
 
@@ -127,23 +134,28 @@ const FoodDiary = () => {
       [slot]: updatedSlotMeals
     };
 
-    // Incremental totals update
+    // Incremental totals update (O(1))
     const updatedTotals = {
       calories: Math.max(0, currentDayLog.totals.calories - foodEntry.calories),
-      protein: Math.max(0, Math.round((currentDayLog.totals.protein - foodEntry.protein) * 10) / 10),
-      carbs: Math.max(0, Math.round((currentDayLog.totals.carbs - foodEntry.carbs) * 10) / 10),
-      fat: Math.max(0, Math.round((currentDayLog.totals.fat - foodEntry.fat) * 10) / 10),
-      fiber: Math.max(0, Math.round((currentDayLog.totals.fiber - foodEntry.fiber) * 10) / 10),
+      protein: Math.max(0, Math.round((currentDayLog.totals.protein - (foodEntry.protein || 0)) * 10) / 10),
+      carbs: Math.max(0, Math.round((currentDayLog.totals.carbs - (foodEntry.carbs || 0)) * 10) / 10),
+      fat: Math.max(0, Math.round((currentDayLog.totals.fat - (foodEntry.fat || 0)) * 10) / 10),
+      fiber: Math.max(0, Math.round((currentDayLog.totals.fiber - (foodEntry.fiber || 0)) * 10) / 10),
     };
 
-    await setItem('nutrition_log', {
+    const updatedDayLog = {
+      ...currentDayLog,
+      meals: updatedMeals,
+      totals: updatedTotals
+    };
+
+    // Immediate storage update for zero-latency UI transition
+    setItem('nutrition_log', {
       ...allLogs,
-      [date]: {
-        ...currentDayLog,
-        meals: updatedMeals,
-        totals: updatedTotals
-      }
+      [date]: updatedDayLog
     });
+
+    addNotification(`${foodEntry.name} removed from ${slot}`, 'info');
   };
 
   const handleWaterAdd = async (amount) => {

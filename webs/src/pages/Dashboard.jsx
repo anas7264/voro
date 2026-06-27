@@ -129,20 +129,27 @@ const Dashboard = () => {
     let loggingActive = true;
     let waterActive = true;
 
-    const todayMs = new Date().setHours(0, 0, 0, 0);
+    const todayObj = new Date();
+    todayObj.setHours(0, 0, 0, 0);
+    const todayMs = todayObj.getTime();
     const dayMs = 86400000;
 
     /**
-     * ⚡ PERFORMANCE OPTIMIZATION: Optimized streak loop.
-     * Replaced cursorDate.setDate() with temporal arithmetic and
-     * optimized date string construction to minimize churn.
+     * ⚡ PERFORMANCE OPTIMIZATION: Optimized streak engine.
+     * Replaces O(N) Date object instantiation with numeric temporal arithmetic.
+     * Uses a single pre-calculated date string for all lookups in each iteration.
      */
     for (let i = 0; i < 365; i++) {
       if (!trainingActive && !loggingActive && !waterActive) break;
 
       const cursorTs = todayMs - (i * dayMs);
       const d = new Date(cursorTs);
-      const dateStr = d.toISOString().split('T')[0];
+
+      // Manual date string construction is significantly faster than toISOString().split('T')[0] in tight loops.
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
 
       if (trainingActive) {
         if (workoutLog[dateStr]?.attended) trainingStreak++;

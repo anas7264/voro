@@ -4,8 +4,15 @@ import { exercises } from '@/data/exercises';
 
 const PAGE_SIZE = 20;
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted categories.
+ * Prevents O(N) extraction on every component render cycle.
+ */
+const CATEGORIES = ['All', ...new Set(exercises.map(e => e.category))];
+
 const ExerciseLibrary = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [deferredSearchQuery, setDeferredSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
@@ -14,16 +21,22 @@ const ExerciseLibrary = () => {
   }, []);
 
   /**
+   * ⚡ OPTIMIZATION: Debounced search term.
+   * Prevents expensive filtering operations on every keystroke.
+   */
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDeferredSearchQuery(searchQuery);
+    }, 200);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  /**
    * ⚡ OPTIMIZATION: Reset visible count when filters change to maintain performance.
    */
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [searchQuery, selectedCategory]);
-
-  /**
-   * ⚡ OPTIMIZATION: Memoize categories to avoid O(N) extraction on every render.
-   */
-  const categories = useMemo(() => ['All', ...new Set(exercises.map(e => e.category))], []);
+  }, [deferredSearchQuery, selectedCategory]);
 
   /**
    * ⚡ OPTIMIZATION: Replace useEffect + useState pattern with useMemo for filtering.
@@ -36,15 +49,15 @@ const ExerciseLibrary = () => {
       filtered = filtered.filter(e => e.category === selectedCategory);
     }
 
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
+    if (deferredSearchQuery.trim()) {
+      const query = deferredSearchQuery.toLowerCase();
       filtered = filtered.filter(e =>
         e.name.toLowerCase().includes(query)
       );
     }
 
     return filtered;
-  }, [searchQuery, selectedCategory]);
+  }, [deferredSearchQuery, selectedCategory]);
 
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30 pb-24">
@@ -85,7 +98,7 @@ const ExerciseLibrary = () => {
 
           <div className="flex gap-3 flex-wrap items-center">
             <span className="text-[0.55rem] font-mono font-bold uppercase tracking-[0.4em] text-gray-600 mr-4">Classification</span>
-            {categories.map(cat => (
+            {CATEGORIES.map(cat => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
