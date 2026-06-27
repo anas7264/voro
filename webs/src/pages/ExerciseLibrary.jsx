@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Search, Activity, ChevronRight, Sparkles } from 'lucide-react';
+import { Search, Activity } from 'lucide-react';
 import { exercises } from '@/data/exercises';
+import { ExerciseCard } from '@/components/ExerciseCard';
 
 const PAGE_SIZE = 20;
 
@@ -117,61 +118,19 @@ const ExerciseLibrary = () => {
         {/* Exercises Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {filteredExercises.slice(0, visibleCount).map((exercise, idx) => (
-            <div
-              key={exercise.id}
-              className="group animate-slide-up relative bg-[#0A0C14] border border-white/5 p-8 rounded-[2.5rem] transition-all hover:border-white/10 hover:translate-y-[-4px] flex flex-col justify-between"
-              style={{ animationDelay: `${idx * 50}ms` }}
-            >
-              <div>
-                <div className="flex items-start justify-between mb-6">
-                  <div>
-                    <h3 className="text-2xl font-serif italic font-medium text-white mb-2 group-hover:text-voro-primary transition-colors">
-                      {exercise.name}
-                    </h3>
-                    <div className="flex gap-3 flex-wrap items-center">
-                      <span className="text-[0.55rem] font-mono font-bold uppercase tracking-widest text-voro-primary bg-voro-primary/5 px-2 py-0.5 rounded">
-                        {exercise.category}
-                      </span>
-                      <span className="text-[0.55rem] font-mono font-bold uppercase tracking-widest text-gray-600">
-                        {exercise.difficulty}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="p-3 bg-white/5 rounded-2xl group-hover:bg-voro-primary/10 group-hover:text-voro-primary transition-all">
-                    <Activity size={18} />
-                  </div>
-                </div>
-
-                <p className="text-sm text-gray-500 leading-relaxed mb-8 opacity-80 line-clamp-2">
-                  {exercise.description}
-                </p>
-
-                {exercise.tips && exercise.tips.length > 0 && (
-                  <div className="space-y-3 mb-8">
-                    <div className="flex items-center gap-2 text-[0.55rem] font-black uppercase tracking-[0.3em] text-gray-700">
-                      <Sparkles size={10} className="text-voro-accent" />
-                      <span>Kinetic Insights</span>
-                    </div>
-                    {exercise.tips.slice(0, 1).map((tip, idx) => (
-                      <p key={idx} className="text-xs italic text-gray-400 pl-4 border-l border-voro-accent/20">
-                        "{tip}"
-                      </p>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <button className="w-full mt-auto flex items-center justify-between px-8 py-5 rounded-2xl bg-white/5 border border-white/5 text-[0.65rem] font-black uppercase tracking-[0.3em] text-white transition-all group-hover:bg-voro-primary group-hover:border-voro-primary group-hover:shadow-2xl group-hover:shadow-voro-primary/20">
-                <span>Integrate Pattern</span>
-                <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" />
-              </button>
+            <div key={exercise.id} className="animate-slide-up" style={{ animationDelay: `${idx * 50}ms` }}>
+              <ExerciseCard
+                exercise={exercise}
+                onSelect={() => console.log('Selected:', exercise.name)}
+              />
             </div>
           ))}
         </div>
 
         {filteredExercises.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-400">No exercises found</p>
+          <div className="text-center py-12 opacity-20">
+            <Activity size={48} className="mx-auto mb-4 text-gray-700" />
+            <p className="text-[0.65rem] font-black uppercase tracking-[0.3em] text-gray-400">Pattern Void</p>
           </div>
         )}
 
