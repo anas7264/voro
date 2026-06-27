@@ -18,6 +18,7 @@ export const Textarea = memo(({
   onChange,
   disabled = false,
   error = false,
+  required = false,
   label,
   rows = 4,
   className = "",
@@ -42,6 +43,7 @@ export const Textarea = memo(({
             className="block text-[0.6rem] font-mono font-black uppercase tracking-[0.4em] text-gray-500 group-focus-within/textarea-container:text-voro-primary transition-colors cursor-pointer"
           >
             {label}
+            {required && <span className="text-red-500 ml-1">*</span>}
           </label>
         )}
         <span className="text-[0.45rem] font-mono font-bold text-gray-700 uppercase tracking-widest opacity-0 group-focus-within/textarea-container:opacity-100 transition-opacity duration-500">
@@ -84,6 +86,7 @@ export const Textarea = memo(({
             onChange={onChange}
             placeholder={placeholder}
             disabled={disabled}
+            required={required}
             rows={rows}
             className={`
               w-full bg-transparent px-6 py-5 text-white font-mono text-sm

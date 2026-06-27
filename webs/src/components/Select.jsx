@@ -14,6 +14,7 @@ export const Select = memo(({
   disabled = false,
   label,
   error = false,
+  required = false,
   className = "",
   ...props
 }) => {
@@ -38,6 +39,7 @@ export const Select = memo(({
           className="block text-xs font-black uppercase tracking-[0.2em] text-gray-500 group-focus-within:text-voro-primary transition-colors mb-2"
         >
           {label}
+          {required && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
       <div className="relative transition-transform active:scale-[0.98]">
@@ -46,6 +48,7 @@ export const Select = memo(({
           value={value}
           onChange={onChange}
           disabled={disabled}
+          required={required}
           className={classes}
           aria-invalid={!!error}
           aria-describedby={error ? errorId : undefined}

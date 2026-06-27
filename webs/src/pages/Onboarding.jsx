@@ -7,6 +7,7 @@ import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
 import Select from '@/components/Select';
+import Textarea from '@/components/Textarea';
 import Checkbox from '@/components/Checkbox';
 import VoroLogo from '@/components/VoroLogo';
 import Confetti from '@/components/Confetti';
@@ -20,6 +21,7 @@ const Onboarding = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   const confettiRef = React.useRef(null);
 
+  const nameId = useId();
   const ageId = useId();
   const genderId = useId();
   const heightId = useId();
@@ -208,11 +210,13 @@ const Onboarding = () => {
               </p>
               <div className="mb-12 relative z-10">
                 <Input
+                  id={nameId}
+                  label="Your Name"
+                  required
                   placeholder="What's your name?"
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   autoFocus
-                  aria-label="Your name"
                   className="text-center text-2xl font-serif italic font-bold text-voro-primary bg-white/[0.02] border-white/5"
                 />
               </div>
@@ -224,60 +228,55 @@ const Onboarding = () => {
             <div className="animate-fade-in">
               <h2 className="text-3xl font-serif italic font-medium mb-8 text-white">Personal Information</h2>
               <div className="space-y-6">
-                <div>
-                  <label htmlFor={ageId} className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4">Age</label>
-                  <Input
-                    id={ageId}
-                    type="number"
-                    name="age"
-                    value={formData.age}
-                    onChange={handleInputChange}
-                    placeholder="25"
-                    min="13"
-                    max="120"
-                  />
-                </div>
-                <div>
-                  <label htmlFor={genderId} className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4">Gender</label>
-                  <Select
-                    id={genderId}
-                    name="gender"
-                    value={formData.gender}
-                    onChange={handleInputChange}
-                    options={[
-                      { value: 'Male', label: 'Male' },
-                      { value: 'Female', label: 'Female' },
-                      { value: 'Other', label: 'Prefer not to say' }
-                    ]}
-                  />
-                </div>
-                <div>
-                  <label htmlFor={heightId} className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4">Height (cm)</label>
-                  <Input
-                    id={heightId}
-                    type="number"
-                    name="heightCm"
-                    value={formData.heightCm}
-                    onChange={handleInputChange}
-                    placeholder="180"
-                    min="100"
-                    max="250"
-                  />
-                </div>
-                <div>
-                  <label htmlFor={weightId} className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4">Current Weight (kg)</label>
-                  <Input
-                    id={weightId}
-                    type="number"
-                    name="weightKg"
-                    value={formData.weightKg}
-                    onChange={handleInputChange}
-                    placeholder="80"
-                    min="30"
-                    max="300"
-                    step="0.1"
-                  />
-                </div>
+                <Input
+                  id={ageId}
+                  label="Age"
+                  required
+                  type="number"
+                  name="age"
+                  value={formData.age}
+                  onChange={handleInputChange}
+                  placeholder="25"
+                  min="13"
+                  max="120"
+                />
+                <Select
+                  id={genderId}
+                  label="Gender"
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleInputChange}
+                  options={[
+                    { value: 'Male', label: 'Male' },
+                    { value: 'Female', label: 'Female' },
+                    { value: 'Other', label: 'Prefer not to say' }
+                  ]}
+                />
+                <Input
+                  id={heightId}
+                  label="Height (cm)"
+                  required
+                  type="number"
+                  name="heightCm"
+                  value={formData.heightCm}
+                  onChange={handleInputChange}
+                  placeholder="180"
+                  min="100"
+                  max="250"
+                />
+                <Input
+                  id={weightId}
+                  label="Current Weight (kg)"
+                  required
+                  type="number"
+                  name="weightKg"
+                  value={formData.weightKg}
+                  onChange={handleInputChange}
+                  placeholder="80"
+                  min="30"
+                  max="300"
+                  step="0.1"
+                />
               </div>
             </div>
           )}
@@ -354,34 +353,24 @@ const Onboarding = () => {
                   </div>
                 </div>
 
-                <div>
-                  <label
-                    htmlFor={allergiesId}
-                    className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4"
-                  >
-                    Allergies / Medical Conditions
-                  </label>
-                  <textarea
-                    id={allergiesId}
-                    name="allergies"
-                    value={formData.allergies}
-                    onChange={handleInputChange}
-                    placeholder="e.g., Nut allergy, Lactose intolerant..."
-                    className="w-full px-4 py-4 bg-white/[0.02] border border-white/5 rounded-2xl text-white placeholder-gray-500 font-mono focus:outline-none focus:border-voro-primary transition-all duration-500"
-                    rows="4"
-                  />
-                </div>
+                <Textarea
+                  id={allergiesId}
+                  label="Allergies / Medical Conditions"
+                  name="allergies"
+                  value={formData.allergies}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Nut allergy, Lactose intolerant..."
+                  rows="4"
+                />
 
-                <div>
-                  <label htmlFor={gymNameId} className="block text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-4">Gym Name (Optional)</label>
-                  <Input
-                    id={gymNameId}
-                    name="gymName"
-                    value={formData.gymName}
-                    onChange={handleInputChange}
-                    placeholder="My Gym"
-                  />
-                </div>
+                <Input
+                  id={gymNameId}
+                  label="Gym Name (Optional)"
+                  name="gymName"
+                  value={formData.gymName}
+                  onChange={handleInputChange}
+                  placeholder="My Gym"
+                />
 
                 <div>
                   <label
