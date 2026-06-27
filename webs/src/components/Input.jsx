@@ -19,6 +19,7 @@ export const Input = memo(({
   onChange,
   disabled = false,
   error = false,
+  required = false,
   label,
   className = "",
   ...props
@@ -42,6 +43,7 @@ export const Input = memo(({
             className="block text-[0.6rem] font-mono font-black uppercase tracking-[0.4em] text-gray-500 group-focus-within/input-container:text-voro-primary transition-colors cursor-pointer"
           >
             {label}
+            {required && <span className="text-red-500 ml-1">*</span>}
           </label>
         )}
         <span className="text-[0.45rem] font-mono font-bold text-gray-700 uppercase tracking-widest opacity-0 group-focus-within/input-container:opacity-100 transition-opacity duration-500">
@@ -91,6 +93,7 @@ export const Input = memo(({
               focus:outline-none transition-all duration-500
               ${disabled ? "cursor-not-allowed" : ""}
             `}
+            required={required}
             aria-invalid={!!error}
             aria-describedby={error ? errorId : undefined}
             {...props}
