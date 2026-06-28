@@ -1,7 +1,7 @@
 // VORO Claude AI Integration
 // API wrapper for Claude AI with streaming and error handling
 
-import { redactData, validateAIResponse, generateSecurityNonce, maskBiometrics, validateCallStack, isDeceptionActive, getDecoyData, executeSecurely, performIntegrityCheck, getPulseMetadata } from './security';
+import { redactData, validateAIResponse, generateSecurityNonce, maskBiometrics, validateCallStack, isDeceptionActive, getDecoyData, executeSecurely, performIntegrityCheck, getPulseMetadata, checkUserPresence } from './security';
 
 const CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-3-5-sonnet-20241022"; // Latest Claude model
@@ -54,9 +54,10 @@ const SecretVault = (() => {
       const pulse = typeof getPulseMetadata === 'function' ? getPulseMetadata() : null;
       const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
       const isPulseSafe = !pulse || (now - pulse.lastPulse < pulse.driftThreshold);
+      const isUserPresent = typeof checkUserPresence === 'function' ? checkUserPresence() : true;
 
-      if (!isEnvironmentSafe || !isProvenanceSafe || !isPulseSafe) {
-        console.error("Security Sentinel: Credential assembly blocked due to attestation failure or pulse drift.");
+      if (!isEnvironmentSafe || !isProvenanceSafe || !isPulseSafe || !isUserPresent) {
+        console.error("Security Sentinel: Credential assembly blocked due to attestation failure, pulse drift, or lack of user presence.");
         return null;
       }
 
