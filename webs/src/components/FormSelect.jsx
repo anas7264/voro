@@ -4,13 +4,11 @@ import { Select } from "./Select";
 export const FormSelect = ({ name, label, options = [], error, required, ...props }) => {
   return (
     <div className="mb-4">
-      <label htmlFor={name} className="block text-sm font-medium text-gray-300 mb-2">
-        {label}
-        {required && <span className="text-red-500">*</span>}
-      </label>
       <Select
         id={name}
         name={name}
+        label={label}
+        required={required}
         options={options}
         error={error}
         {...props}
