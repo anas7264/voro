@@ -160,6 +160,16 @@ Robust exfiltration defense must implement "Deep Decoding" by applying `decodeUR
 **Prevention:**
 Always decode untrusted URLs before security validation. Ensure all error logging in sensitive modules uses a centralized redaction engine to prevent the accidental exposure of secrets or PII in development or production logs.
 
+## 2025-05-26 - High-Fidelity Redaction & Collision Avoidance
+**Vulnerability:**
+Broad regex patterns for sensitive data (like 13-16 digit sequences for credit cards) can lead to catastrophic false positives by redacting essential system identifiers like Unix timestamps (e.g., 1716388915000). Furthermore, overlapping patterns (like UUID and PHONE) can cause partial redaction or incorrect categorization.
+
+**Learning:**
+Redaction patterns must be "High-Fidelity" and ordered by specificity. Using issuer-specific prefixes for credit cards and incorporating negative lookaheads (e.g., `(?!\d{13,16}\b)`) in catch-all entropy checks prevents the accidental masking of timestamps while maintaining security. Ordering complex patterns like UUID before greedy ones like PHONE ensures structural integrity of the redaction.
+
+**Prevention:**
+Always validate redaction regexes against common non-sensitive technical identifiers (timestamps, metrics). Prioritize specific, prefixed patterns over generic length-based ones.
+
 ## 2025-05-24 - RASP Evasion via Native Reversion
 
 **Vulnerability:**
