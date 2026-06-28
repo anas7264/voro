@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, useId } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Plus,
-  TrendingUp,
-  TrendingDown,
   Activity,
-  Flame,
-  Zap,
-  Droplets,
   Calendar,
   ChevronRight,
+  Droplets,
+  Flame,
+  Layout,
+  Plus,
+  Scale,
   Target,
-  Layout
+  TrendingDown,
+  TrendingUp,
+  Utensils,
+  Zap
 } from 'lucide-react';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useStorageMethods, useStorageKey } from '@/hooks/useStorage';
@@ -618,7 +620,14 @@ const Dashboard = () => {
   );
 };
 
+const QUICK_LOG_ICONS = {
+  meal: Utensils,
+  weight: Scale,
+  water: Droplets
+};
+
 const QuickLogModal = ({ isOpen, onClose, onSubmit }) => {
+  const magnitudeId = useId();
   const [type, setType] = useState('meal');
   const [value, setValue] = useState('');
 
@@ -632,23 +641,30 @@ const QuickLogModal = ({ isOpen, onClose, onSubmit }) => {
             <span className="text-[0.6rem] font-mono font-black uppercase tracking-[0.4em] text-gray-500">Classification</span>
           </div>
           <div className="grid grid-cols-3 gap-3">
-            {['meal', 'weight', 'water'].map((t) => (
-              <button
-                key={t}
-                onClick={() => setType(t)}
-                aria-pressed={type === t}
-                className={`
-                  relative py-4 rounded-2xl text-[0.65rem] font-black uppercase tracking-[0.3em] transition-all duration-500 overflow-hidden group/opt
-                  ${type === t
-                    ? 'bg-voro-primary text-white shadow-[0_20px_40px_rgba(124,58,237,0.3)] ring-1 ring-white/20'
-                    : 'bg-white/[0.02] text-gray-600 border border-white/5 hover:border-white/20 hover:text-gray-300'
-                  }
-                `}
-              >
-                {type === t && <div className="absolute inset-0 bg-shimmer-gradient bg-[length:200%_100%] animate-shimmer opacity-20" />}
-                <span className="relative z-10">{t}</span>
-              </button>
-            ))}
+            {Object.keys(QUICK_LOG_ICONS).map((t) => {
+              const Icon = QUICK_LOG_ICONS[t];
+              return (
+                <button
+                  key={t}
+                  onClick={() => setType(t)}
+                  aria-pressed={type === t}
+                  className={`
+                    relative py-6 rounded-2xl text-[0.65rem] font-black uppercase tracking-[0.3em] transition-all duration-500 overflow-hidden group/opt
+                    active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14]
+                    ${type === t
+                      ? 'bg-voro-primary text-white shadow-[0_20px_40px_rgba(124,58,237,0.3)] ring-1 ring-white/20'
+                      : 'bg-white/[0.02] text-gray-600 border border-white/5 hover:border-white/20 hover:text-gray-300'
+                    }
+                  `}
+                >
+                  {type === t && <div className="absolute inset-0 bg-shimmer-gradient bg-[length:200%_100%] animate-shimmer opacity-20" />}
+                  <div className="relative z-10 flex flex-col items-center gap-3">
+                    <Icon size={18} className={type === t ? 'text-white' : 'text-gray-600 group-hover/opt:text-gray-300'} />
+                    <span className="relative z-10">{t}</span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -656,10 +672,16 @@ const QuickLogModal = ({ isOpen, onClose, onSubmit }) => {
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <div className="h-px w-6 bg-voro-primary/40" />
-            <span className="text-[0.6rem] font-mono font-black uppercase tracking-[0.4em] text-gray-500">Magnitude Entry</span>
+            <label
+              htmlFor={magnitudeId}
+              className="text-[0.6rem] font-mono font-black uppercase tracking-[0.4em] text-gray-500 cursor-pointer"
+            >
+              Magnitude Entry
+            </label>
           </div>
           <div className="relative">
             <Input
+              id={magnitudeId}
               type="number"
               value={value}
               onChange={(e) => setValue(e.target.value)}
