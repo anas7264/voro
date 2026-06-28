@@ -132,7 +132,7 @@ class CryptoManager {
 
         request.onerror = () => reject(new Error('Failed to open secure key store'));
       });
-    }, ['sink:indexedDB']);
+    }, ['sink:indexedDB', 'requirement:user-presence']);
   }
 
   /**
