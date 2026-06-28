@@ -3,7 +3,7 @@ import { Plus, Trash2, Heart, Zap, Target } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted static nutrient metadata.
@@ -19,19 +19,26 @@ const NUTRIENTS = [
 ];
 
 const NutrientTracker = () => {
-  const { storageData, setItem } = useStorage();
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
+   * Subscribe only to the relevant 'nutrient_tracker' key to avoid redundant re-renders
+   * when unrelated storage items change. useStorageMethods provides stable action refs.
+   */
+  const tracker = useStorageKey('nutrient_tracker') || {};
+  const { setItem } = useStorageMethods();
   const [selectedNutrient, setSelectedNutrient] = useState('vitamin_d');
 
   useEffect(() => {
     document.title = 'VORO | Nutrient Tracker';
   }, []);
 
-  const tracker = useMemo(() => {
-    return storageData['nutrient_tracker'] || {};
-  }, [storageData['nutrient_tracker']]);
+  const currentNutrient = useMemo(() =>
+    NUTRIENTS.find(n => n.id === selectedNutrient)
+  , [selectedNutrient]);
 
-  const currentNutrient = NUTRIENTS.find(n => n.id === selectedNutrient);
-  const currentStatus = tracker[selectedNutrient] || { intake: 0, fromFood: 0 };
+  const currentStatus = useMemo(() =>
+    tracker[selectedNutrient] || { intake: 0, fromFood: 0 }
+  , [tracker, selectedNutrient]);
 
   return (
     <div className="min-h-screen bg-[#080B14] text-[#F0F4FF] pb-24">

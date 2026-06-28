@@ -3,7 +3,7 @@ import { Send, Loader, Bot, Sparkles } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useAI } from '@/hooks/useAI';
 
 const MessageItem = memo(({ msg }) => {
@@ -54,9 +54,20 @@ const MessageItem = memo(({ msg }) => {
 MessageItem.displayName = 'MessageItem';
 
 const AICoach = () => {
-  const { getStorage, setStorage } = useStorage();
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
+   * Subscribe only to 'chat_history'. Use useStorageMethods for stable action refs.
+   */
+  const savedHistory = useStorageKey('chat_history');
+  const { setItem } = useStorageMethods();
   const { chat, loading: aiLoading } = useAI();
-  const [messages, setMessages] = useState([]);
+
+  /**
+   * ⚡ OPTIMIZATION: Hydration-safe state initialization.
+   * We initialize from the reactive storage snapshot, but also use a secondary
+   * effect to catch the transition if storage is still initializing on mount.
+   */
+  const [messages, setMessages] = useState(() => savedHistory || []);
   const [input, setInput] = useState('');
   const [localLoading, setLocalLoading] = useState(false);
   const messagesEndRef = useRef(null);
@@ -71,6 +82,13 @@ const AICoach = () => {
     scrollToBottom();
   }, [messages, loading]);
 
+  // Sync messages if storage was empty on mount but loads later
+  useEffect(() => {
+    if (savedHistory && savedHistory.length > 0 && messages.length === 0) {
+      setMessages(savedHistory);
+    }
+  }, [savedHistory, messages.length]);
+
   const quickPrompts = [
     'What should I eat today?',
     'Analyze my week',
@@ -82,8 +100,6 @@ const AICoach = () => {
 
   useEffect(() => {
     document.title = 'VORO | AI Coach';
-    const saved = getStorage('voro_chat_history') || [];
-    setMessages(saved);
   }, []);
 
   const handleSendMessage = async (text = input) => {
@@ -109,13 +125,13 @@ const AICoach = () => {
         };
         const finalMessages = [...updatedMessages, aiResponse];
         setMessages(finalMessages);
-        setStorage('voro_chat_history', finalMessages);
+        await setItem('chat_history', finalMessages);
       }
     } catch (error) {
       console.error("AI Coach Error:", error);
       // Fallback to local response if AI client fails (e.g. no API key)
       setLocalLoading(true);
-      setTimeout(() => {
+      setTimeout(async () => {
         const aiResponse = {
           role: 'assistant',
           content: generateLocalFallback(text),
@@ -123,7 +139,7 @@ const AICoach = () => {
         };
         const finalMessages = [...updatedMessages, aiResponse];
         setMessages(finalMessages);
-        setStorage('voro_chat_history', finalMessages);
+        await setItem('chat_history', finalMessages);
         setLocalLoading(false);
       }, 800);
     }

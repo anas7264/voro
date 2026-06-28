@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Plus, Trash2, Pill, Calendar, Activity, Zap } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { supplements } from '@/data/supplements';
 
@@ -17,17 +17,19 @@ const fullDateFormatter = new Intl.DateTimeFormat('en-US', {
 });
 
 const SupplementTracker = () => {
-  const { storageData, setItem } = useStorage();
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
+   * Subscribe only to the relevant 'supplements' key. This ensures the component
+   * only re-renders when the supplement protocol is modified.
+   */
+  const userSupplements = useStorageKey('supplements') || [];
+  const { setItem } = useStorageMethods();
   const { addNotification } = useNotifications();
   const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     document.title = 'VORO | Supplement Tracker';
   }, []);
-
-  const userSupplements = useMemo(() => {
-    return storageData['supplements'] || [];
-  }, [storageData['supplements']]);
 
   const handleAddSupplement = async (supplement) => {
     const updated = [...userSupplements, {

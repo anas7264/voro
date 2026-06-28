@@ -2,14 +2,20 @@ import React, { useEffect, useState } from 'react';
 import { Edit2, Save, X, User as UserIcon, Ruler, Weight, Target, Activity, Shield } from 'lucide-react';
 import { Button, Card, Input, Header, Avatar } from '@/components';
 import { useApp } from '@/hooks/useAppContext';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { calculateBMI, calculateBMR, calculateTDEE } from '@/utils/calculators';
 import { validateFitnessProfile } from '@/utils/validators';
 
 const Profile = () => {
   const { user, updateUser: setUser } = useApp();
-  const { setStorage } = useStorage();
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
+   * By using useStorageMethods() instead of useStorage(), we obtain a stable
+   * reference to storage actions without subscribing to the global state manifest.
+   * This prevents Profile from re-rendering when unrelated data (e.g. nutrition, habits) changes.
+   */
+  const { setItem } = useStorageMethods();
   const { addNotification } = useNotifications();
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState(user || {});
@@ -52,10 +58,14 @@ const Profile = () => {
       tdee,
     };
 
-    setStorage('voro_profile', updated);
-    setUser(updated);
-    addNotification('Neural identity synchronized', 'success');
-    setEditing(false);
+    const syncIdentity = async () => {
+      await setItem('voro_profile', updated);
+      setUser(updated);
+      addNotification('Neural identity synchronized', 'success');
+      setEditing(false);
+    };
+
+    syncIdentity();
   };
 
   if (!user) return null;
