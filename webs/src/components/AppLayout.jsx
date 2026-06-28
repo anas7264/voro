@@ -56,7 +56,7 @@ const AppLayout = ({ children }) => {
         <main
           id="main-content"
           tabIndex="-1"
-          className="flex-1 min-h-screen overflow-y-auto overflow-x-hidden transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] focus:outline-none"
+          className="flex-1 min-h-screen overflow-y-auto overflow-x-hidden transition-all duration-700 ease-expo-out focus:outline-none"
           style={{ marginLeft: isMobile ? '0' : (collapsed ? '96px' : '320px') }}
         >
           <SecurityLockdown />

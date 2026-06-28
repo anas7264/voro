@@ -48,7 +48,7 @@ export const Stat = memo(({
   const attestedId = useMemo(() => Math.floor(Math.random() * 0x1000000).toString(16).toUpperCase().padStart(6, '0'), []);
 
   const isPositive = change !== undefined && parseFloat(change) >= 0;
-  const activeColor = COLOR_MAP[color] || '#7C3AED';
+  const activeColor = TOKEN_MAP[color] || 'var(--voro-primary)';
 
   return (
     <div
@@ -60,10 +60,10 @@ export const Stat = memo(({
         transform: isHovered
           ? `perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-8px)`
           : `perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)`,
-        transition: isHovered ? 'none' : 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)',
+        transition: isHovered ? 'none' : 'transform 1s var(--ease-expo-out)',
         transformStyle: 'preserve-3d'
       }}
-      className={`Stat group relative bg-[#0A0C14] border border-white/5 p-10 rounded-[3rem] hover:border-white/20 hover:shadow-[0_40px_80px_rgba(0,0,0,0.8)] ${className}`}
+      className={`Stat group relative bg-voro-card border border-voro-border p-10 rounded-[3rem] hover:border-white/20 hover:shadow-[0_40px_80px_rgba(0,0,0,0.8)] ${className}`}
     >
       {/* Container clipping mask (individually applied to internal layers to preserve 3D) */}
       <div className="absolute inset-0 rounded-[3rem] overflow-hidden pointer-events-none">
@@ -86,8 +86,17 @@ export const Stat = memo(({
         <div
           className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"
           style={{
-            background: `radial-gradient(800px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), ${activeColor.startsWith('#') ? activeColor + '15' : 'rgba(124, 58, 237, 0.08)'}, transparent 40%)`,
+            background: `radial-gradient(800px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), color-mix(in srgb, ${activeColor}, transparent 85%), transparent 40%)`,
             transform: 'translateZ(20px)'
+          }}
+        />
+
+        {/* Glitch Overlay Detail */}
+        <div
+          className="absolute inset-0 opacity-0 group-hover:opacity-[0.03] pointer-events-none mix-blend-overlay group-hover:animate-glitch"
+          style={{
+            backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 2px, ${activeColor} 3px, transparent 3px)`,
+            backgroundSize: '100% 4px'
           }}
         />
       </div>
@@ -198,16 +207,17 @@ export const Stat = memo(({
 Stat.displayName = "Stat";
 
 /**
- * ⚡ PERFORMANCE OPTIMIZATION: Hoisted color map.
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted token map.
  * Prevents redundant object allocation on every component render.
  */
-const COLOR_MAP = {
-  'voro-primary': '#7C3AED',
-  'voro-secondary': '#10B981',
-  'voro-accent': '#F59E0B',
-  'voro-danger': '#EF4444',
-  'primary': '#7C3AED',
-  'secondary': '#10B981'
+const TOKEN_MAP = {
+  'voro-primary': 'var(--voro-primary)',
+  'voro-secondary': 'var(--voro-secondary)',
+  'voro-accent': 'var(--voro-accent)',
+  'voro-danger': 'var(--voro-danger)',
+  'voro-info': 'var(--voro-info)',
+  'primary': 'var(--voro-primary)',
+  'secondary': 'var(--voro-secondary)'
 };
 
 export default Stat;
