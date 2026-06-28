@@ -80,16 +80,17 @@ const Sidebar = ({ collapsed, setCollapsed, isMobile }) => {
     <aside
       className={`
         fixed left-0 top-0 h-full z-[60] flex flex-col
-        bg-[#020408] border-r border-white/[0.03] shadow-2xl
-        transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
+        bg-[#020408] border-r border-voro-border shadow-2xl
+        transition-all duration-700 ease-expo-out
         ${collapsed && !isMobile ? 'w-24' : 'w-80'}
         ${isMobile && collapsed ? '-translate-x-full' : 'translate-x-0'}
       `}
     >
       {/* Editorial Logo Section */}
       <div className={`
-        flex items-center h-28 px-8 flex-shrink-0 relative
+        flex items-center h-28 px-10 flex-shrink-0 relative
         ${collapsed && !isMobile ? 'justify-center' : 'justify-between'}
+        border-b border-voro-border bg-white/[0.01]
       `}>
         <div className="flex items-center gap-5 group cursor-pointer">
           <div className="relative">
@@ -120,7 +121,7 @@ const Sidebar = ({ collapsed, setCollapsed, isMobile }) => {
       </div>
 
       {/* Navigation Matrix */}
-      <nav className="flex-1 overflow-y-auto py-10 px-6 space-y-10 no-scrollbar">
+      <nav className="flex-1 overflow-y-auto py-12 px-8 space-y-12 no-scrollbar">
         {navSections.map((section) => (
           <div key={section.label} className="space-y-4">
             {(!collapsed || isMobile) && (

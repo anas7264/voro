@@ -3,17 +3,57 @@
 @import 'tailwindcss/utilities';
 
 :root {
-  --primary: #7C3AED;
-  --primary-light: #A78BFA;
-  --primary-dark: #5B21B6;
-  --secondary: #10B981;
-  --secondary-light: #34D399;
-  --accent: #F59E0B;
-  --danger: #EF4444;
-  --info: #3B82F6;
-  --surface: #080B14;
-  --card: #0A0C14;
-  --border: rgba(255, 255, 255, 0.05);
+  /* ── Surface layers (warm-dark, fixed) ── */
+  --s0: #050403;
+  --s1: #0C0906;
+  --s2: #1A1410;
+  --s3: #251D16;
+
+  /* ── Adaptive brand hue (0–360) ── */
+  --brand-h: 38;
+
+  /* ── Brand spectrum (shifts with --brand-h) ── */
+  --brand-dim:  hsl(var(--brand-h), 70%, 22%);
+  --brand:      hsl(var(--brand-h), 85%, 56%);
+  --brand-glow: hsl(var(--brand-h), 100%, 70%);
+
+  /* ── Typography ── */
+  --text-primary:   rgba(237, 232, 224, 0.95);
+  --text-secondary: rgba(200, 185, 168, 0.65);
+  --text-muted:     rgba(140, 124, 108, 0.45);
+
+  /* ── Voro Tokens (Standardized) ── */
+  --voro-primary: var(--brand);
+  --voro-primary-light: var(--brand-glow);
+  --voro-primary-dark: var(--brand-dim);
+  --voro-secondary: #10B981;
+  --voro-accent: #F59E0B;
+  --voro-danger: #EF4444;
+  --voro-info: #3B82F6;
+  --voro-surface: var(--s0);
+  --voro-card: var(--s1);
+  --voro-border: var(--s3);
+  --voro-elevated: var(--s2);
+
+  /* Compatibility Aliases */
+  --primary: var(--voro-primary);
+  --primary-light: var(--voro-primary-light);
+  --primary-dark: var(--voro-primary-dark);
+  --secondary: var(--voro-secondary);
+  --accent: var(--voro-accent);
+  --danger: var(--voro-danger);
+  --info: var(--voro-info);
+  --surface: var(--voro-surface);
+  --card: var(--voro-card);
+  --border: var(--voro-border);
+
+  /* ── Easing library ── */
+  --ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-expo-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-expo-in:  cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-silk:     cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-snap:     cubic-bezier(0.35, 0, 0.1, 1);
+  --ease-back:     cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
 * {
@@ -152,6 +192,21 @@ body::before {
 
 .animate-kinetic-sweep {
   animation: kinetic-sweep 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Scroll Reveal Utilities */
+.sr-fade-up { opacity: 0; transform: translateY(60px); }
+.sr-slide-left { opacity: 0; transform: translateX(80px); }
+.sr-scale-in { opacity: 0; transform: scale(0.85); }
+.sr-clip { clip-path: inset(0 100% 0 0); }
+.sr-blur-in { opacity: 0; filter: blur(20px); }
+
+.sr-on {
+  opacity: 1 !important;
+  transform: none !important;
+  clip-path: inset(0 0% 0 0) !important;
+  filter: blur(0) !important;
+  transition: all 0.75s var(--ease-expo-out);
 }
 
 .bg-grid-white {
