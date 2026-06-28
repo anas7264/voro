@@ -22,6 +22,7 @@ import LineChartComponent from '@/components/LineChartComponent';
 import Ring from '@/components/Ring';
 import Stat from '@/components/Stat';
 import Button from '@/components/Button';
+import Input from '@/components/Input';
 import Breadcrumb from '@/components/Breadcrumb';
 
 const MACRO_CONFIG = [
@@ -620,59 +621,77 @@ const Dashboard = () => {
 const QuickLogModal = ({ isOpen, onClose, onSubmit }) => {
   const [type, setType] = useState('meal');
   const [value, setValue] = useState('');
-  const magnitudeId = useId();
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Express Manifestation">
-      <div className="p-2 space-y-8">
-        <div className="space-y-2">
-          <label className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-500 ml-1">Type of Entry</label>
-          <div className="grid grid-cols-3 gap-2">
+      <div className="p-2 space-y-12">
+        {/* Classification Node */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="h-px w-6 bg-voro-primary/40" />
+            <span className="text-[0.6rem] font-mono font-black uppercase tracking-[0.4em] text-gray-500">Classification</span>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
             {['meal', 'weight', 'water'].map((t) => (
               <button
                 key={t}
                 onClick={() => setType(t)}
                 aria-pressed={type === t}
-                className={`py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all active:scale-95 ${type === t ? 'bg-voro-primary text-white' : 'bg-white/5 text-gray-500 hover:bg-white/10'}`}
+                className={`
+                  relative py-4 rounded-2xl text-[0.65rem] font-black uppercase tracking-[0.3em] transition-all duration-500 overflow-hidden group/opt
+                  ${type === t
+                    ? 'bg-voro-primary text-white shadow-[0_20px_40px_rgba(124,58,237,0.3)] ring-1 ring-white/20'
+                    : 'bg-white/[0.02] text-gray-600 border border-white/5 hover:border-white/20 hover:text-gray-300'
+                  }
+                `}
               >
-                {t}
+                {type === t && <div className="absolute inset-0 bg-shimmer-gradient bg-[length:200%_100%] animate-shimmer opacity-20" />}
+                <span className="relative z-10">{t}</span>
               </button>
             ))}
           </div>
         </div>
 
-        <div className="space-y-2">
-          <label htmlFor={magnitudeId} className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-500 ml-1">Magnitude</label>
+        {/* Magnitude Entry Node */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="h-px w-6 bg-voro-primary/40" />
+            <span className="text-[0.6rem] font-mono font-black uppercase tracking-[0.4em] text-gray-500">Magnitude Entry</span>
+          </div>
           <div className="relative">
-             <input
-              id={magnitudeId}
+            <Input
               type="number"
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              placeholder={type === 'meal' ? 'Calories' : type === 'weight' ? 'kg' : 'ml'}
+              placeholder={type === 'meal' ? 'Energy intake...' : type === 'weight' ? 'Current mass...' : 'Hydration level...'}
               autoFocus
-              className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-xl font-bold text-white focus:outline-none focus:border-voro-primary focus:ring-1 focus:ring-voro-primary transition-all placeholder:text-gray-700"
+              className="w-full"
             />
-            <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-500">
-               {type === 'meal' ? 'kcal' : type === 'weight' ? 'kg' : 'ml'}
+            <div className="absolute right-8 top-1/2 -translate-y-1/2 flex items-center gap-3 pointer-events-none">
+               <div className="h-4 w-px bg-white/5" />
+               <span className="text-[0.6rem] font-mono font-black uppercase tracking-[0.3em] text-voro-primary/60">
+                 {type === 'meal' ? 'kcal' : type === 'weight' ? 'kg' : 'ml'}
+               </span>
             </div>
           </div>
         </div>
 
-        <div className="flex gap-4 pt-4">
-          <button
+        {/* Execution Sequence */}
+        <div className="flex gap-4 pt-6">
+          <Button
+            variant="secondary"
             onClick={onClose}
-            className="flex-1 py-4 rounded-2xl bg-white/5 text-gray-400 font-bold hover:bg-white/10 transition-all active:scale-95 focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14] outline-none"
+            className="flex-1"
           >
             Abort
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => onSubmit(type, value)}
             disabled={!value || parseFloat(value) <= 0}
-            className="flex-[2] py-4 rounded-2xl bg-voro-primary text-white font-bold hover:bg-voro-primary-dark shadow-lg shadow-voro-primary/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14] outline-none"
+            className="flex-[2]"
           >
             Confirm Entry
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>
