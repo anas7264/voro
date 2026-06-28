@@ -4,7 +4,7 @@ import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
 import { Stat } from '@/components/Stat';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { validateVitals } from '@/utils/validators';
 
@@ -19,7 +19,13 @@ const fullDateFormatter = new Intl.DateTimeFormat('en-US', {
 });
 
 const VitalsTracker = () => {
-  const { setItem, storageData } = useStorage();
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
+   * Subscribe only to the 'vitals' key. By deriving history directly from the
+   * storage snapshot, we eliminate the initial mount-time double-render cycle.
+   */
+  const history = useStorageKey('vitals') || [];
+  const { setItem } = useStorageMethods();
   const { addNotification } = useNotifications();
   const [vitals, setVitals] = useState({
     heartRate: 72,
@@ -36,13 +42,6 @@ const VitalsTracker = () => {
   useEffect(() => {
     document.title = 'VORO | Biometric Vitals';
   }, []);
-
-  /**
-   * ⚡ OPTIMIZATION: Synchronous data derivation using useMemo.
-   * Eliminates the fetch-on-mount double-render cycle and ensures
-   * the history remains reactive to storage updates without local state sync.
-   */
-  const history = useMemo(() => storageData['vitals'] || [], [storageData['vitals']]);
 
   /**
    * ⚡ OPTIMIZATION: Memoized recent history transformation.
@@ -66,7 +65,10 @@ const VitalsTracker = () => {
         ...vitals,
       };
 
-      // ⚡ OPTIMIZATION: Use base storage keys and setItem directly.
+      /**
+       * ⚡ OPTIMIZATION: Perform immutable update on the snapshot and persist.
+       * Component will reactively update via useStorageKey.
+       */
       const updated = [...history, entry];
       await setItem('vitals', updated);
       addNotification('Biometric data synchronized', 'success');
