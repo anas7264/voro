@@ -5,6 +5,19 @@ import Card from '@/components/Card';
 import Badge from '@/components/Badge';
 import { useStorage } from '@/hooks/useStorage';
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted static nutrient metadata.
+ * Prevents redundant object instantiation and useMemo overhead on every render cycle.
+ */
+const NUTRIENTS = [
+  { id: 'vitamin_d', name: 'Vitamin D', unit: 'IU', dailyGoal: 2000, warning: 'Low levels linked to poor mood and immunity', color: '#F59E0B' },
+  { id: 'iron', name: 'Iron', unit: 'mg', dailyGoal: 18, warning: 'Essential for oxygen transport', color: '#EF4444' },
+  { id: 'magnesium', name: 'Magnesium', unit: 'mg', dailyGoal: 420, warning: 'Critical for muscle recovery', color: '#7C3AED' },
+  { id: 'zinc', name: 'Zinc', unit: 'mg', dailyGoal: 11, warning: 'Immune system support', color: '#10B981' },
+  { id: 'b12', name: 'Vitamin B12', unit: 'mcg', dailyGoal: 2.4, warning: 'Energy metabolism', color: '#3B82F6' },
+  { id: 'omega3', name: 'Omega-3', unit: 'g', dailyGoal: 1.1, warning: 'Anti-inflammatory benefits', color: '#EC4899' },
+];
+
 const NutrientTracker = () => {
   const { storageData, setItem } = useStorage();
   const [selectedNutrient, setSelectedNutrient] = useState('vitamin_d');
@@ -13,20 +26,11 @@ const NutrientTracker = () => {
     document.title = 'VORO | Nutrient Tracker';
   }, []);
 
-  const nutrients = useMemo(() => [
-    { id: 'vitamin_d', name: 'Vitamin D', unit: 'IU', dailyGoal: 2000, warning: 'Low levels linked to poor mood and immunity', color: '#F59E0B' },
-    { id: 'iron', name: 'Iron', unit: 'mg', dailyGoal: 18, warning: 'Essential for oxygen transport', color: '#EF4444' },
-    { id: 'magnesium', name: 'Magnesium', unit: 'mg', dailyGoal: 420, warning: 'Critical for muscle recovery', color: '#7C3AED' },
-    { id: 'zinc', name: 'Zinc', unit: 'mg', dailyGoal: 11, warning: 'Immune system support', color: '#10B981' },
-    { id: 'b12', name: 'Vitamin B12', unit: 'mcg', dailyGoal: 2.4, warning: 'Energy metabolism', color: '#3B82F6' },
-    { id: 'omega3', name: 'Omega-3', unit: 'g', dailyGoal: 1.1, warning: 'Anti-inflammatory benefits', color: '#EC4899' },
-  ], []);
-
   const tracker = useMemo(() => {
     return storageData['nutrient_tracker'] || {};
   }, [storageData['nutrient_tracker']]);
 
-  const currentNutrient = nutrients.find(n => n.id === selectedNutrient);
+  const currentNutrient = NUTRIENTS.find(n => n.id === selectedNutrient);
   const currentStatus = tracker[selectedNutrient] || { intake: 0, fromFood: 0 };
 
   return (
@@ -52,7 +56,7 @@ const NutrientTracker = () => {
                 <h3 className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-white">Select Biological Marker</h3>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {nutrients.map(nutrient => (
+                {NUTRIENTS.map(nutrient => (
                   <button
                     key={nutrient.id}
                     onClick={() => setSelectedNutrient(nutrient.id)}
