@@ -1,7 +1,7 @@
 // VORO Storage Manager
 // window.storage abstraction for data persistence with transparent encryption
 import crypto from './crypto';
-import { sanitizeObject, validateCallStack, executeLockdown, getDecoyData, isDeceptionActive } from './security';
+import { sanitizeObject, validateCallStack, executeLockdown, getDecoyData, isDeceptionActive, executeSecurely } from './security';
 
 const STORAGE_PREFIX = "voro_";
 const GHOST_VAULT_KEY = "voro_ghost_vault";

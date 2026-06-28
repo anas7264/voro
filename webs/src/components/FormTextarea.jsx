@@ -7,7 +7,8 @@ export const FormTextarea = ({ name, label, error, required, ...props }) => {
       <Textarea
         id={name}
         name={name}
-        label={required ? `${label} *` : label}
+        label={label}
+        required={required}
         error={error}
         {...props}
       />
