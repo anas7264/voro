@@ -9,6 +9,7 @@ import Card from '@/components/Card';
 import Input from '@/components/Input';
 import Modal from '@/components/Modal';
 import Ring from '@/components/Ring';
+import { NutritionCard } from '@/components/NutritionCard';
 import { foods } from '@/data/foods';
 
 /**
@@ -331,26 +332,16 @@ const FoodDiary = () => {
 
                 <div className="p-6">
                   {Array.isArray(nutritionLog.meals[slot]) && nutritionLog.meals[slot].length > 0 ? (
-                    <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {nutritionLog.meals[slot].map((food, idx) => (
-                        <div key={food.id} className="group relative flex items-center justify-between p-5 rounded-[1.5rem] bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all">
-                          <div className="space-y-1">
-                            <p className="text-sm font-bold text-white tracking-tight uppercase">{food.name}</p>
-                            <p className="text-[0.65rem] font-mono text-gray-500 tracking-widest">
-                               {food.portion}g | P: {food.protein}g | C: {food.carbs}g | F: {food.fat}g
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-6">
-                            <span className="text-sm font-bold text-voro-primary font-mono">{food.calories} kcal</span>
-                            <button
-                              onClick={() => handleRemoveFood(slot, idx)}
-                              className="p-2.5 rounded-xl text-gray-700 hover:text-red-400 hover:bg-red-400/10 transition-all opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-red-500 outline-none"
-                              aria-label={`Remove ${food.name} from ${slot}`}
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </div>
+                        <NutritionCard
+                          key={food.id}
+                          meal={{
+                            ...food,
+                            mealType: slot
+                          }}
+                          onDelete={() => handleRemoveFood(slot, idx)}
+                        />
                       ))}
                     </div>
                   ) : (
