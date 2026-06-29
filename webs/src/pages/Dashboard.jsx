@@ -91,6 +91,17 @@ const Dashboard = () => {
 
   useEffect(() => {
     document.title = 'VORO | Evolution Dashboard';
+
+    const handleKeyDown = (e) => {
+      if (e.key.toLowerCase() === 'q' &&
+          !e.ctrlKey && !e.altKey && !e.metaKey &&
+          !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+        setShowQuickLog(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const today = useMemo(() => new Date().toISOString().split('T')[0], []);
@@ -355,6 +366,8 @@ const Dashboard = () => {
           <div className="flex gap-8 pb-2">
             <Button
               onClick={() => setShowQuickLog(true)}
+              shortcut="Q"
+              aria-keyshortcuts="q"
               className="!bg-white !text-black !rounded-full shadow-2xl shadow-white/10"
             >
               <Plus size={16} aria-hidden="true" />

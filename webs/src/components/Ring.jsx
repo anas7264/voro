@@ -33,6 +33,10 @@ const Ring = memo(({ value, max, size = 180, unit = 'kcal', color = '#7C3AED', l
 
   return (
     <div
+      role="progressbar"
+      aria-valuenow={value}
+      aria-valuemin="0"
+      aria-valuemax={max}
       className="relative flex flex-col items-center justify-center select-none transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
       style={{
         width: size,
@@ -45,6 +49,7 @@ const Ring = memo(({ value, max, size = 180, unit = 'kcal', color = '#7C3AED', l
     >
       {/* Digital Complications - Displaced in 3D space on hover */}
       <div
+        aria-hidden="true"
         className="absolute inset-0 pointer-events-none p-1 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
         style={{
           transformStyle: 'preserve-3d',
@@ -104,6 +109,7 @@ const Ring = memo(({ value, max, size = 180, unit = 'kcal', color = '#7C3AED', l
         {/* Architectural Connector Lines - Bridge the Ring to Complications */}
         {corners.map((corner) => (
           <line
+            aria-hidden="true"
             key={corner.name}
             x1={center + radius * Math.cos(corner.angle)}
             y1={center + radius * Math.sin(corner.angle)}
@@ -117,7 +123,7 @@ const Ring = memo(({ value, max, size = 180, unit = 'kcal', color = '#7C3AED', l
         ))}
 
         {/* Rotated Ticks for Depth */}
-        <g className="transform -rotate-90 origin-center">
+        <g aria-hidden="true" className="transform -rotate-90 origin-center">
           {Array.from({ length: 60 }).map((_, i) => {
             const tickAngle = (i * 6 * Math.PI) / 180;
             const isMajor = i % 5 === 0;

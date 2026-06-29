@@ -13,6 +13,7 @@ const Button = memo(({
   disabled = false,
   isLoading = false,
   fullWidth = false,
+  shortcut,
   onClick,
   className = "",
   ...props
@@ -108,7 +109,11 @@ const Button = memo(({
       />
 
       {/* Coordinate Telemetry Overlay */}
-      <div className="absolute top-2 right-4 pointer-events-none opacity-0 group-hover:opacity-40 transition-opacity duration-500 flex gap-3 font-mono text-[0.4rem] font-bold text-white/40">
+      <div
+        aria-hidden="true"
+        className="absolute top-2 right-4 pointer-events-none opacity-0 group-hover:opacity-40 transition-opacity duration-500 flex gap-3 font-mono text-[0.4rem] font-bold text-white/40"
+      >
+        {shortcut && <span className="text-voro-secondary animate-pulse">[{shortcut}]</span>}
         <span>X_<span ref={txRef}>0.0</span></span>
         <span>Y_<span ref={tyRef}>0.0</span></span>
         <span className="text-voro-primary">[{nodeId}]</span>

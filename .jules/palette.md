@@ -5,3 +5,11 @@
 ## 2025-05-23 - Robust ARIA Tab Pattern Implementation
 **Learning:** Generic tab implementations often lack proper ARIA relationships (`aria-controls`, `aria-labelledby`) and localized focus management. When multiple tab components exist on a page, using global selectors for focus management causes navigation conflicts.
 **Action:** Utilize `useId` to create unique, stable relationships between tab triggers and panels. Scope keyboard navigation logic (Arrow keys) to the specific component instance using refs (e.g., `tabListRef`) to ensure reliable focus shifts without side effects.
+
+## 2025-06-29 - Accessible Gauge and Progress Pattern
+**Learning:** Custom SVG-based progress indicators (like the Metabolic Ring) are often invisible to screen readers without explicit ARIA roles. While visually impressive, they fail to communicate state changes to assistive technology.
+**Action:** Always apply `role="progressbar"` and include `aria-valuenow`, `aria-valuemin`, and `aria-valuemax` to the main container of custom gauge components. Ensure decorative SVG elements and technical complications are marked with `aria-hidden="true"`.
+
+## 2025-06-29 - Integrated Shortcut Hints in Telemetry
+**Learning:** In a system with a 'telemetry' aesthetic, keyboard shortcuts can be elegantly integrated into the technical metadata overlays. This provides a clear visual hint for power users without cluttering the primary UI.
+**Action:** Utilize the `shortcut` prop in `Button` components to inject shortcut keys (e.g., `[Q]`) into the technical telemetry div. Ensure the telemetry overlay is `aria-hidden="true"` to prevent screen reader noise from coordinate data.
