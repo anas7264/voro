@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Calendar, Trophy, Clock, CheckCircle2, Zap, Target, TrendingDown } from 'lucide-react';
 import { Card, Button, Input, Divider, DatePicker } from '@/components';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { isDateInFuture } from '@/utils/validators';
 
@@ -22,7 +22,14 @@ const longDateFormatter = new Intl.DateTimeFormat('en-US', {
  * mathematical whitespace, and a high-end 'Chronos Node' countdown artifact.
  */
 const CompetitionPrep = () => {
-  const { storageData, setItem } = useStorage();
+  /**
+   * ⚡ OPTIMIZATION: Surgical Reactivity.
+   * Subscribe to both legacy and modern keys to maintain backwards compatibility
+   * while ensuring targeted reactivity.
+   */
+  const competitionData = useStorageKey('competition');
+  const legacyCompetitionData = useStorageKey('voro_comp_prep');
+  const { setItem } = useStorageMethods();
   const { addNotification } = useNotifications();
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [newDate, setNewDate] = useState('');
@@ -33,13 +40,13 @@ const CompetitionPrep = () => {
 
   // Standardize on 'competition' key while maintaining backwards compatibility
   const compData = useMemo(() => {
-    return storageData['competition'] || storageData['voro_comp_prep'] || {
+    return competitionData || legacyCompetitionData || {
       date: null,
       phase: 'Preparation',
       protocols: [],
       checklist: []
     };
-  }, [storageData]);
+  }, [competitionData, legacyCompetitionData]);
 
   const daysUntilComp = useMemo(() => {
     if (!compData.date) return null;

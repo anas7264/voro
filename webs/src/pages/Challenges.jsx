@@ -3,7 +3,7 @@ import { Activity } from 'lucide-react';
 import { ChallengeCard } from '@/components/ChallengeCard';
 import Tabs from '@/components/Tabs';
 import { challenges } from '@/data/challenges';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 
 /**
@@ -12,7 +12,13 @@ import { useNotifications } from '@/hooks/useNotifications';
  * and ambient background depth.
  */
 const Challenges = () => {
-  const { storageData, setStorage } = useStorage();
+  /**
+   * ⚡ OPTIMIZATION: Surgical Reactivity.
+   * Subscribe only to 'gamification' data to prevent redundant re-renders
+   * when unrelated storage keys change. useStorageMethods provides stable action refs.
+   */
+  const gamificationData = useStorageKey('gamification');
+  const { setItem } = useStorageMethods();
   const { addNotification } = useNotifications();
   const [activeTab, setActiveTab] = useState('daily');
 
@@ -25,15 +31,15 @@ const Challenges = () => {
    * Eliminates mount-time double-render and ensures instant reactivity.
    */
   const completed = useMemo(() => {
-    const gamification = storageData['gamification'] || {};
+    const gamification = gamificationData || {};
     return gamification.completedChallenges || {};
-  }, [storageData['gamification']]);
+  }, [gamificationData]);
 
   const handleClaimReward = (challenge) => {
-    const gamification = storageData['gamification'] || {};
+    const gamification = gamificationData || {};
     const updated = { ...completed, [challenge.id]: true };
 
-    setStorage('gamification', {
+    setItem('gamification', {
       ...gamification,
       completedChallenges: updated,
       xp: (gamification.xp || 0) + challenge.xpReward

@@ -2,10 +2,26 @@ import React, { useEffect, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Flame, Calendar, RotateCcw, Zap, Target } from 'lucide-react';
 import { Card, Button } from '@/components';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey } from '@/hooks/useStorage';
+
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted fallback data.
+ * Ensures referential stability and prevents redundant object instantiation.
+ */
+const DEFAULT_STREAKS = {
+  trainingDays: 15,
+  nutritionLogging: 8,
+  waterIntake: 12,
+  sleepGoal: 6,
+};
 
 const DailyStreak = () => {
-  const { storageData } = useStorage();
+  /**
+   * ⚡ OPTIMIZATION: Surgical Reactivity.
+   * Subscribe only to 'voro_streaks' data to prevent redundant re-renders
+   * when unrelated storage keys change.
+   */
+  const streaksData = useStorageKey('voro_streaks');
 
   useEffect(() => {
     document.title = 'VORO | Daily Streak';
@@ -17,14 +33,8 @@ const DailyStreak = () => {
    * reactivity to StorageContext updates without manual load calls.
    */
   const streaks = useMemo(() => {
-    const data = storageData['voro_streaks'] || {
-      trainingDays: 15,
-      nutritionLogging: 8,
-      waterIntake: 12,
-      sleepGoal: 6,
-    };
-    return data;
-  }, [storageData['voro_streaks']]);
+    return streaksData || DEFAULT_STREAKS;
+  }, [streaksData]);
 
   const chartData = useMemo(() => [
     { day: 'Mon', completed: 4 },
