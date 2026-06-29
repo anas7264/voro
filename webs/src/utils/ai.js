@@ -17,16 +17,22 @@ const SecretVault = (() => {
 
   const _init = (k) => {
     if (!k || _shards) return;
-    const len = k.length;
+    const encoder = new TextEncoder();
+    const keyBytes = encoder.encode(k);
+    const len = keyBytes.length;
+
     const s1 = Math.floor(len / 3);
     const s2 = Math.floor((2 * len) / 3);
 
-    // Store in shuffled, reversed, and segmented shards
+    // Store in shuffled and segmented Uint8Array shards for heap hygiene
     _shards = [
-      k.slice(0, s1),
-      k.slice(s1, s2).split('').reverse().join(''),
-      k.slice(s2)
+      new Uint8Array(keyBytes.slice(0, s1)),
+      new Uint8Array(keyBytes.slice(s1, s2)).reverse(),
+      new Uint8Array(keyBytes.slice(s2))
     ];
+
+    // Cryptographic shredding of the temporary plain-text key buffer
+    keyBytes.fill(0);
 
     // Attempt to purge from the environment object immediately after capture
     try {
@@ -62,11 +68,27 @@ const SecretVault = (() => {
       }
 
       // JIT reconstruction: Key only exists in full in this transient, ephemeral scope
-      return _shards[0] + _shards[1].split('').reverse().join('') + _shards[2];
+      // We assemble directly into a Uint8Array and then decode once for the fetch header.
+      const totalLen = _shards[0].length + _shards[1].length + _shards[2].length;
+      const assembled = new Uint8Array(totalLen);
+
+      assembled.set(_shards[0], 0);
+      // reverse() on TypedArray is in-place, so we clone to avoid mutating the shard
+      assembled.set(new Uint8Array(_shards[1]).reverse(), _shards[0].length);
+      assembled.set(_shards[2], _shards[0].length + _shards[1].length);
+
+      const apiKey = new TextDecoder().decode(assembled);
+
+      // Forensic Defense: Immediately shred the assembled buffer from memory
+      assembled.fill(0);
+
+      return apiKey;
     },
     purge: () => {
       if (_shards) {
-        _shards.fill(null);
+        _shards.forEach(shard => {
+          if (shard instanceof Uint8Array) shard.fill(0);
+        });
         _shards = null;
       }
     }
