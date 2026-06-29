@@ -153,11 +153,12 @@ class CryptoManager {
 
     await this.init();
     const encoder = new TextEncoder();
+    const infoBuffer = encoder.encode(domain);
     const derivedKey = await window.crypto.subtle.deriveKey(
       {
         name: 'HKDF',
         salt: new Uint8Array(), // Static salt is acceptable in this context as HKDF key is unique
-        info: encoder.encode(domain),
+        info: infoBuffer,
         hash: 'SHA-256'
       },
       this.hkdfKey,
@@ -165,6 +166,9 @@ class CryptoManager {
       false,
       ['encrypt', 'decrypt']
     );
+
+    // Heap Hygiene: Shred the temporary info buffer
+    infoBuffer.fill(0);
 
     this.domainKeyCache.set(domain, derivedKey);
     return derivedKey;
@@ -188,8 +192,10 @@ class CryptoManager {
     await this.init();
 
     const encoder = new TextEncoder();
-    const encodedData = encoder.encode(typeof data === 'string' ? data : JSON.stringify(data));
-    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    const rawString = typeof data === 'string' ? data : JSON.stringify(data);
+    const encodedData = encoder.encode(rawString);
+    const iv = new Uint8Array(12);
+    window.crypto.getRandomValues(iv);
 
     // For v3 (domain isolated), we derive a key specifically for this domain
     // If no domain provided, we fallback to v2/v1 (though storage should always provide domain)
@@ -197,8 +203,10 @@ class CryptoManager {
     const encryptionKey = useV3 ? await this.deriveDomainKey(domain) : this.key;
 
     const algorithm = { name: ALGO, iv };
+    let aadBuffer = null;
     if (domain) {
-      algorithm.additionalData = encoder.encode(domain);
+      aadBuffer = encoder.encode(domain);
+      algorithm.additionalData = aadBuffer;
     }
 
     const ciphertext = await window.crypto.subtle.encrypt(
@@ -206,6 +214,10 @@ class CryptoManager {
       encryptionKey,
       encodedData
     );
+
+    // Heap Hygiene: Shred plain-text and AAD buffers
+    encodedData.fill(0);
+    if (aadBuffer) aadBuffer.fill(0);
 
     const combined = new Uint8Array(iv.length + ciphertext.byteLength);
     combined.set(iv);
@@ -216,6 +228,10 @@ class CryptoManager {
     for (let i = 0; i < bytes.byteLength; i++) {
       binary += String.fromCharCode(bytes[i]);
     }
+
+    // Shred IV and combined buffer
+    iv.fill(0);
+    combined.fill(0);
 
     // v3: HKDF Isolated + AAD Bound
     // v2: Master Key + AAD Bound
@@ -262,17 +278,28 @@ class CryptoManager {
         : this.key;
 
       const algorithm = { name: ALGO, iv };
+      let aadBuffer = null;
       if ((version === 2 || version === 3) && domain) {
-        algorithm.additionalData = new TextEncoder().encode(domain);
+        aadBuffer = new TextEncoder().encode(domain);
+        algorithm.additionalData = aadBuffer;
       }
 
-      const decrypted = await window.crypto.subtle.decrypt(
+      const decryptedBuffer = await window.crypto.subtle.decrypt(
         algorithm,
         decryptionKey,
         ciphertext
       );
 
+      // Heap Hygiene: Shred sensitive buffers
+      bytes.fill(0);
+      iv.fill(0);
+      if (aadBuffer) aadBuffer.fill(0);
+
+      const decrypted = new Uint8Array(decryptedBuffer);
       const decoded = new TextDecoder().decode(decrypted);
+
+      // Final shred of the decrypted plain-text buffer
+      decrypted.fill(0);
       try {
         return JSON.parse(decoded);
       } catch (e) {

@@ -286,9 +286,9 @@ export const validateCallStack = () => {
 export const sanitizeInput = (input) => {
   if (typeof input !== 'string') return input;
 
-  // Strip null bytes and dangerous control characters
+  // Strip null bytes, dangerous control characters, and zero-width markers
   // eslint-disable-next-line no-control-regex
-  input = input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+  input = input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F\u200B-\u200D\uFEFF]/g, '');
 
   // If in a browser environment, use DOMParser for robust sanitization
   if (typeof window !== 'undefined' && window.DOMParser) {
@@ -1260,14 +1260,34 @@ export const maskBiometrics = (d, s = new WeakSet()) => {
 };
 
 /**
+ * Detects potential homoglyph-based URL deception.
+ * Checks for non-ASCII characters in the hostname that look like ASCII.
+ */
+const detectHomoglyphs = (host) => {
+  // Flag any non-ASCII or Punycode-encoded hostname as suspicious in a high-security context.
+  // This mitigates homoglyph attacks where characters like 'а' (Cyrillic)
+  // are used to spoof 'a' (ASCII).
+  return /[^\x00-\x7F]/.test(host) || host.toLowerCase().startsWith('xn--');
+};
+
+/**
  * Validates AI output for nonce leakage and suspicious exfiltration patterns.
  */
 export const validateAIResponse = (c, n = null) => {
   if (!c) return c;
-  // 1. Nonce leakage check (Terminal)
+
+  // 1. Steganographic / Zero-Width Detection (Neural Exfiltration)
+  // These characters are often used to smuggle data or bypass filters in plain-sight.
+  if (/[\u200B-\u200D\uFEFF]/.test(c)) {
+    if (_console.error) _call.call(_console.error, console, "Security Sentinel: Steganographic markers detected in AI output.");
+    executeLockdown();
+    return "[SECURITY_VIOLATION_DETECTED]";
+  }
+
+  // 2. Nonce leakage check (Terminal)
   if (n && c.includes(n)) { executeLockdown(); return "[SECURITY_VIOLATION_DETECTED]"; }
 
-  // 2. Comprehensive Data Exfiltration Check (Detects keywords and high-entropy tokens in URLs)
+  // 3. Comprehensive Data Exfiltration Check (Detects keywords and high-entropy tokens in URLs)
   // Check both markdown links/images and raw URLs for exfiltration patterns
   // Expanded to catch protocol-relative URLs, javascript: URIs, and data: URIs
   const urlRegex = /(?:https?:\/\/|www\.|(?:\s|^)\/\/|javascript:|data:)[^\s)\]]+/gi;
@@ -1287,6 +1307,13 @@ export const validateAIResponse = (c, n = null) => {
 
       // Whitelist: Skip exfiltration check for links to the application's own origin
       if (appOrigin && urlObj.origin === appOrigin) continue;
+
+      // Homoglyph Detection: Block potential punycode spoofs
+      if (detectHomoglyphs(urlObj.hostname)) {
+        if (_console.warn) _call.call(_console.warn, console, `Security Sentinel: AI exfiltration attempt blocked (Homoglyph hostname: ${urlObj.hostname}).`);
+        executeLockdown();
+        return "[SECURITY_VIOLATION_DETECTED]";
+      }
 
       // Deep Decoding: Prevent bypass via percent-encoding (e.g., %74%6F%6B%65%6E for "token")
       let decodedUrl = url;
@@ -1331,7 +1358,18 @@ export const validateAIResponse = (c, n = null) => {
     }
   }
 
-  // 3. Redaction and boundary neutralization
+  // 4. High-Entropy Segment Analysis (Non-URL Smuggling)
+  // Detects high-entropy data blocks smuggled within the text itself (e.g., base64 segments).
+  const words = c.split(/\s+/);
+  for (const word of words) {
+    if (word.length > 32 && calculateEntropy(word) > 4.5) {
+      if (_console.warn) _call.call(_console.warn, console, "Security Sentinel: High-entropy data segment detected in AI body.");
+      executeLockdown();
+      return "[SECURITY_VIOLATION_DETECTED]";
+    }
+  }
+
+  // 5. Redaction and boundary neutralization
   let v = redactData(c.replace(/\[\/?(USER_DATA|SECURITY_PROTOCOL|MESSAGE_HISTORY|USER_INPUT).*?\]/g, '[REDACTED_BOUNDARY]'));
 
   return v;
