@@ -1209,12 +1209,15 @@ export const redactData = (d, s = new WeakSet()) => {
       IPV6: /\b(?:(?:[A-Fa-f0-9]{1,4}:){7}[A-Fa-f0-9]{1,4}|(?:[A-Fa-f0-9]{1,4}:){1,6}:[A-Fa-f0-9]{1,4}|(?:[A-Fa-f0-9]{1,4}:){1,5}(?::[A-Fa-f0-9]{1,4}){1,2}|(?:[A-Fa-f0-9]{1,4}:){1,4}(?::[A-Fa-f0-9]{1,4}){1,3}|(?:[A-Fa-f0-9]{1,4}:){1,3}(?::[A-Fa-f0-9]{1,4}){1,4}|(?:[A-Fa-f0-9]{1,4}:){1,2}(?::[A-Fa-f0-9]{1,4}){1,5}|[A-Fa-f0-9]{1,4}:(?::[A-Fa-f0-9]{1,4}){1,6}|(?::[A-Fa-f0-9]{1,4}){1,7}|(?:[A-Fa-f0-9]{1,4}:){1,7}:|:(?::[A-Fa-f0-9]{1,4}){1,7}|::)\b/g,
       PHONE: /\b(?!\d{13,16}\b)(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g,
       STRIPE: /sk_(?:live|test)_\w{24,34}/g,
+      STRIPE_RESTRICTED: /rk_(?:live|test)_\w{24,34}/g,
       AWS: /AKIA\w{16}/g,
+      BEARER: /Bearer\s+[A-Za-z0-9-._~+/]+=*/g,
       JWT: /eyJ[\w=-]+\.eyJ[\w=-]+\.[\w-_.+/=]*/g,
       GOOGLE: /AIza[0-9A-Za-z-_]{35}/g,
       GITHUB: /\b(?:ghp|gho|ghu|ghs|ghr|github_pat)_[a-zA-Z0-9]{36,255}\b/g,
       OPENAI: /\bsk-(?:proj-)?[a-zA-Z0-9\-_]{20,}\b/g,
       PEM_KEY: /-----BEGIN (?:[\w\s]+)PRIVATE KEY-----[\s\S]+?-----END (?:[\w\s]+)PRIVATE KEY-----|-----BEGIN (?:[\w\s]+)PUBLIC KEY-----[\s\S]+?-----END (?:[\w\s]+)PUBLIC KEY-----/g,
+      SSH_KEY: /-----BEGIN OPENSSH PRIVATE KEY-----[\s\S]+?-----END OPENSSH PRIVATE KEY-----/g,
       CLAUDE: /sk-ant-api03-[a-zA-Z0-9\-_]{93,}/g,
       SLACK: /https:\/\/hooks\.slack\.com\/services\/T\w{8,10}\/B\w{8,10}\/\w{24}/g,
       DISCORD: /https:\/\/discord\.com\/api\/webhooks\/\d+\/[\w-]{68}/g,
@@ -1340,8 +1343,8 @@ export const validateAIResponse = (c, n = null) => {
       }
 
       // High-entropy token check (detects exfiltration even without known keywords)
-      // Check segments of the decoded URL
-      const segments = decodedUrl.split(/[\/\?&%=:._-]/);
+      // Check segments of the decoded URL, including the hash fragment
+      const segments = decodedUrl.split(/[\/\?&%=:._\-#]/);
       for (const segment of segments) {
         if (segment.length >= 24 && calculateEntropy(segment) > 4.2) {
           if (_console.warn) _call.call(_console.warn, console, "Security Sentinel: AI exfiltration attempt blocked (High-entropy token in URL).");
