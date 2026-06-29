@@ -1,11 +1,28 @@
 import React, { useEffect, useMemo } from 'react';
 import { Zap, TrendingUp, Activity, Award } from 'lucide-react';
 import { Card, Button, LineChartComponent, Stat } from '@/components';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey } from '@/hooks/useStorage';
 import { useCalculators } from '@/hooks/useCalculators';
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted fallback data.
+ * Ensures referential stability and prevents redundant object instantiation.
+ */
+const DEFAULT_PERFORMANCE = {
+  avgVolume: 18500,
+  maxBench: 140,
+  maxSquat: 180,
+  maxDeadlift: 200,
+  bodyweight: 80,
+};
+
 const PerformanceMetrics = () => {
-  const { storageData } = useStorage();
+  /**
+   * ⚡ OPTIMIZATION: Surgical Reactivity.
+   * Subscribe only to 'voro_performance' data to prevent redundant re-renders
+   * when unrelated storage keys change.
+   */
+  const performanceData = useStorageKey('voro_performance');
   const { calculateTDEE } = useCalculators();
 
   useEffect(() => {
@@ -18,15 +35,8 @@ const PerformanceMetrics = () => {
    * reactivity to StorageContext updates without manual load calls.
    */
   const metrics = useMemo(() => {
-    const data = storageData['voro_performance'] || {
-      avgVolume: 18500,
-      maxBench: 140,
-      maxSquat: 180,
-      maxDeadlift: 200,
-      bodyweight: 80,
-    };
-    return data;
-  }, [storageData['voro_performance']]);
+    return performanceData || DEFAULT_PERFORMANCE;
+  }, [performanceData]);
 
   const strengthMetrics = useMemo(() => [
     { lift: 'Bench Press', max: metrics.maxBench, unit: 'kg', color: 'voro-primary' },
