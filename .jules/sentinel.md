@@ -180,3 +180,14 @@ Effective RASP must not only detect monkey-patching but also enforce that high-r
 
 **Prevention:**
 Maintain a "Must-Be-Wrapped" list for high-risk sinks. Ensure the integrity check rejects native browser implementations for these specific APIs. Use `configurable: false` on property definitions to prevent the deletion or replacement of security wrappers at runtime.
+
+## 2025-05-27 - Bound Function RASP Bypass & Attestation Completeness
+
+**Vulnerability:**
+Standard `isNative` checks using `toString().includes('[native code]')` are susceptible to bypass via `.bind()`. A bound function's `toString()` output mimics a native function, allowing unauthorized scripts to bypass RASP integrity checks. Furthermore, introducing new security sinks (like `URL.createObjectURL`) without updating all call sites to provide the necessary "Attestation Permits" leads to immediate functional regression and application crashes.
+
+**Learning:**
+Hardening `isNative` requires scrutinizing the function's metadata beyond its string representation; in most modern engines, bound functions carry a `bound ` prefix in their `name` property. Additionally, security architecture must be treated as a holistic contract—any expansion of the restricted sink list (RASP) necessitates a simultaneous "Attestation Audit" across the entire codebase to ensure legitimate features are properly granted capabilities via `executeSecurely`.
+
+**Prevention:**
+Always check for the `bound ` prefix in the `name` property during native-code verification. When adding new APIs to the RASP `mustBeWrapped` list, perform a global search for all occurrences of that API and wrap them in attested execution blocks before deploying the restrictive policy.
