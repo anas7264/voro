@@ -102,3 +102,7 @@
 ## 2025-05-18 - Native Primitive Capture & Binding
 **Learning:** Capturing native browser primitives (like `performance.now`) for security attestation or RASP enforcement can trigger `Illegal invocation` errors if they are not bound to their parent context. This occurs because these methods often rely on internal state tied to the `this` value (the original object).
 **Action:** Always use `.bind(parent)` when capturing native methods (e.g., `performance.now.bind(performance)`) to ensure stability when called within redirected execution contexts.
+
+## 2025-05-18 - Surgical Reactivity for Action-Only Components
+**Learning:** Components that only perform write operations (like 'QuickLog.jsx') should not subscribe to global storage state. Using 'useStorage()' (which includes 'storageData') triggers a re-render on every storage update, even if the component doesn't display any of that data. Switching to 'useStorageMethods()' provides the same action references (setItem, getItem) without the performance cost of a global subscription.
+**Action:** Use 'useStorageMethods()' for components that only need to perform storage actions and do not need to reactively display storage data.
