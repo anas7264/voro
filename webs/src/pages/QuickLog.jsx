@@ -1,27 +1,25 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Share2, Download, Utensils, Dumbbell, Droplets, Zap, CheckCircle2 } from 'lucide-react';
 import { Button, Card, Tabs } from '@/components';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { foods } from '@/data/foods';
 
 const QuickLog = () => {
-  const { storageData, setItem, getItem } = useStorage();
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
+   * Replaced broad useStorage() with useStorageMethods() to obtain stable
+   * action references without subscribing to the entire storage manifest.
+   * By removing the storageData dependency, this component no longer
+   * re-renders when unrelated storage keys (e.g. settings, workout history) change.
+   */
+  const { setItem, getItem, updateItem } = useStorageMethods();
   const { addNotification } = useNotifications();
   const [activeTab, setActiveTab] = useState('food');
 
   useEffect(() => {
     document.title = 'VORO | Express Log';
   }, []);
-
-  /**
-   * ⚡ OPTIMIZATION: Synchronous data derivation using useMemo.
-   * Eliminates the initial mount-time double-render cycle and ensures
-   * reactivity to StorageContext updates without manual load calls.
-   */
-  const logs = useMemo(() => {
-    return storageData['quick_log'] || { food: [], workout: [], water: [] };
-  }, [storageData['quick_log']]);
 
   const handleQuickFoodLog = useCallback(async (foodName) => {
     const today = new Date().toISOString().split('T')[0];
@@ -60,15 +58,18 @@ const QuickLog = () => {
     currentDayLog.totals.carbs += entry.carbs;
     currentDayLog.totals.fat += entry.fat;
 
-    await setItem('nutrition_log', { ...allLogs, [today]: currentDayLog });
+    /**
+     * ⚡ OPTIMIZATION: Use updateItem for atomic, key-level updates.
+     * Prevents manual merging of the entire nutrition manifest.
+     */
+    await updateItem('nutrition_log', { [today]: currentDayLog });
     addNotification(`Express entry: ${foodName} recorded`, 'success');
-  }, [getItem, setItem, addNotification]);
+  }, [getItem, updateItem, addNotification]);
 
   const handleQuickWorkoutLog = useCallback(async (workoutName, type) => {
     const today = new Date().toISOString().split('T')[0];
-    const allWorkouts = getItem('workout_log') || {};
 
-    allWorkouts[today] = {
+    const workoutData = {
       attended: true,
       type: type || 'Strength',
       duration: 45,
@@ -77,9 +78,9 @@ const QuickLog = () => {
       timestamp: new Date().toISOString(),
     };
 
-    await setItem('workout_log', allWorkouts);
+    await updateItem('workout_log', { [today]: workoutData });
     addNotification(`Evolution recorded: ${workoutName}`, 'success');
-  }, [getItem, setItem, addNotification]);
+  }, [updateItem, addNotification]);
 
   const handleQuickWaterLog = useCallback(async (amount) => {
     const today = new Date().toISOString().split('T')[0];
@@ -92,9 +93,9 @@ const QuickLog = () => {
 
     currentDayLog.water += parseInt(amount);
 
-    await setItem('nutrition_log', { ...allLogs, [today]: currentDayLog });
+    await updateItem('nutrition_log', { [today]: currentDayLog });
     addNotification(`Hydration matrix updated: +${amount}ml`, 'success');
-  }, [getItem, setItem, addNotification]);
+  }, [getItem, updateItem, addNotification]);
 
   const quickLogTabs = useMemo(() => [
     {
