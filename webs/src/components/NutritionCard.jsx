@@ -1,5 +1,5 @@
-import React, { memo, useRef, useState, useId, useMemo } from "react";
-import { Trash2, Edit3 } from "lucide-react";
+import React, { memo, useRef, useState, useId, useMemo, useEffect } from "react";
+import { Trash2, Edit3, AlertCircle } from "lucide-react";
 
 /**
  * ⚡ REFINEMENT: Luxury Metabolic Artifact Node (NutritionCard).
@@ -22,7 +22,25 @@ export const NutritionCard = memo(({
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
   const reactId = useId();
+
+  // Reset confirmation state after timeout
+  useEffect(() => {
+    if (isConfirming) {
+      const timer = setTimeout(() => setIsConfirming(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [isConfirming]);
+
+  const handleDeleteClick = () => {
+    if (isConfirming) {
+      onDelete();
+      setIsConfirming(false);
+    } else {
+      setIsConfirming(true);
+    }
+  };
 
   // Generate a stable system ID for the node using useId for SSR safety
   const nodeId = useMemo(() => `MET_NODE_${reactId.replace(/:/g, '').slice(0, 4)}`, [reactId]);
@@ -137,7 +155,7 @@ export const NutritionCard = memo(({
         {onEdit && (
           <button
             onClick={onEdit}
-            className="flex-1 py-3.5 rounded-xl bg-white/[0.02] border border-white/5 text-gray-500 hover:text-white hover:bg-white/5 hover:border-white/10 transition-all flex items-center justify-center gap-2 group/edit"
+            className="flex-1 py-3.5 rounded-xl bg-white/[0.02] border border-white/5 text-gray-500 hover:text-white hover:bg-white/5 hover:border-white/10 transition-all duration-500 flex items-center justify-center gap-2 group/edit focus:outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14] active:scale-95"
             aria-label="Edit entry"
           >
             <Edit3 size={14} className="group-hover/edit:scale-110 transition-transform" />
@@ -146,12 +164,28 @@ export const NutritionCard = memo(({
         )}
         {onDelete && (
           <button
-            onClick={onDelete}
-            className="flex-1 py-3.5 rounded-xl bg-white/[0.02] border border-white/5 text-gray-500 hover:text-red-400 hover:bg-red-400/5 hover:border-red-400/10 transition-all flex items-center justify-center gap-2 group/del"
-            aria-label="Delete entry"
+            onClick={handleDeleteClick}
+            className={`
+              flex-1 py-3.5 rounded-xl border transition-all duration-500 flex items-center justify-center gap-2 group/del
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14] active:scale-95
+              ${isConfirming
+                ? 'bg-red-500/20 border-red-500/40 text-red-400 animate-pulse'
+                : 'bg-white/[0.02] border-white/5 text-gray-500 hover:text-red-400 hover:bg-red-400/5 hover:border-red-400/10'
+              }
+            `}
+            aria-label={isConfirming ? "Confirm purge" : "Delete entry"}
           >
-            <Trash2 size={14} className="group-hover/del:scale-110 transition-transform" />
-            <span className="text-[0.55rem] font-black uppercase tracking-[0.2em]">Purge</span>
+            {isConfirming ? (
+              <>
+                <AlertCircle size={14} className="animate-bounce" />
+                <span className="text-[0.55rem] font-black uppercase tracking-[0.2em]">Confirm?</span>
+              </>
+            ) : (
+              <>
+                <Trash2 size={14} className="group-hover/del:scale-110 transition-transform" />
+                <span className="text-[0.55rem] font-black uppercase tracking-[0.2em]">Purge</span>
+              </>
+            )}
           </button>
         )}
       </div>
