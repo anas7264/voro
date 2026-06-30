@@ -1,8 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Plus, Trash2, Heart, Zap, Target } from 'lucide-react';
-import Button from '@/components/Button';
-import Card from '@/components/Card';
-import Badge from '@/components/Badge';
+import { Button, Card, Badge, Tag } from '@/components';
 import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 
 /**
@@ -52,6 +50,12 @@ const NutrientTracker = () => {
           <h1 className="text-4xl md:text-5xl font-serif italic font-medium text-white tracking-tight">
             Nutritional <span className="text-voro-primary not-italic font-bold">Optimization</span>
           </h1>
+          <div className="flex flex-wrap gap-3 mt-6">
+            <Tag>System_Ready</Tag>
+            <Tag variant="voro-secondary">Bio_Sync_Active</Tag>
+            <Tag variant="voro-accent">Neural_Link</Tag>
+            <Tag variant="gray" onRemove={() => console.log('Removed')}>Diagnostic_Node</Tag>
+          </div>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
