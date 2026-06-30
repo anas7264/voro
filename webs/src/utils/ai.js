@@ -13,7 +13,54 @@ const MODEL = "claude-3-5-sonnet-20241022"; // Latest Claude model
  */
 const SecretVault = (() => {
   let _shards = null;
+  let _masks = null;
   const _v = 'VITE_CLAUDE_API_KEY';
+
+  /**
+   * Generates a random polymorphic mask for XOR operations.
+   */
+  const _generateMask = (len) => {
+    const mask = new Uint8Array(len);
+    if (typeof window !== 'undefined' && window.crypto) {
+      window.crypto.getRandomValues(mask);
+    } else {
+      for (let i = 0; i < len; i++) mask[i] = Math.floor(Math.random() * 256);
+    }
+    return mask;
+  };
+
+  /**
+   * Applies (or removes) a mask to a shard via XOR.
+   */
+  const _applyMask = (shard, mask) => {
+    for (let i = 0; i < shard.length; i++) {
+      shard[i] ^= mask[i % mask.length];
+    }
+  };
+
+  /**
+   * Polymorphic Heap Rotation
+   * Rotates the XOR masks for all shards, ensuring the sensitive bytes in memory
+   * are a "moving target" and never remain static in the heap.
+   */
+  const rotate = () => {
+    if (!_shards || !_masks) return;
+
+    _shards.forEach((shard, i) => {
+      const oldMask = _masks[i];
+      const newMask = _generateMask(shard.length);
+
+      // 1. Remove old mask
+      _applyMask(shard, oldMask);
+      // 2. Apply new mask
+      _applyMask(shard, newMask);
+      // 3. Update mask record
+      _masks[i] = newMask;
+
+      // Heap Hygiene: Shred old mask
+      oldMask.fill(0);
+    });
+  };
 
   const _init = (k) => {
     if (!k || _shards) return;
@@ -31,6 +78,10 @@ const SecretVault = (() => {
       new Uint8Array(keyBytes.slice(s2))
     ];
 
+    // Initialize Polymorphic Shard Masking (PSM)
+    _masks = _shards.map(shard => _generateMask(shard.length));
+    _shards.forEach((shard, i) => _applyMask(shard, _masks[i]));
+
     // Cryptographic shredding of the temporary plain-text key buffer
     keyBytes.fill(0);
 
@@ -40,6 +91,11 @@ const SecretVault = (() => {
         import.meta.env[_v] = '[REDACTED_BY_SENTINEL]';
       }
     } catch (e) { /* ignore */ }
+
+    // Bind to the VORO Integrity Pulse for automatic polymorphic rotations
+    if (typeof window !== 'undefined') {
+      window.addEventListener('voro-integrity-pulse', () => rotate());
+    }
   };
 
   // Initial capture from Vite environment
@@ -49,7 +105,7 @@ const SecretVault = (() => {
 
   return {
     assemble: () => {
-      if (!_shards) return null;
+      if (!_shards || !_masks) return null;
 
       // Double-Attestation Check: Verify environment and execution provenance
       // This prevents unauthorized assembly of the credential.
@@ -72,15 +128,29 @@ const SecretVault = (() => {
       const totalLen = _shards[0].length + _shards[1].length + _shards[2].length;
       const assembled = new Uint8Array(totalLen);
 
-      assembled.set(_shards[0], 0);
-      // reverse() on TypedArray is in-place, so we clone to avoid mutating the shard
-      assembled.set(new Uint8Array(_shards[1]).reverse(), _shards[0].length);
-      assembled.set(_shards[2], _shards[0].length + _shards[1].length);
+      // Unmask, copy, and re-mask each shard to keep memory polymorphic
+      const s0 = new Uint8Array(_shards[0]);
+      _applyMask(s0, _masks[0]);
+      assembled.set(s0, 0);
+      s0.fill(0);
+
+      const s1 = new Uint8Array(_shards[1]).reverse();
+      _applyMask(s1, _masks[1].slice().reverse()); // reverse mask since shard is reversed
+      assembled.set(s1, _shards[0].length);
+      s1.fill(0);
+
+      const s2 = new Uint8Array(_shards[2]);
+      _applyMask(s2, _masks[2]);
+      assembled.set(s2, _shards[0].length + _shards[1].length);
+      s2.fill(0);
 
       const apiKey = new TextDecoder().decode(assembled);
 
       // Forensic Defense: Immediately shred the assembled buffer from memory
       assembled.fill(0);
+
+      // Post-Use Entropy Injection: Rotate masks after every assembly to further randomize heap footprint.
+      rotate();
 
       return apiKey;
     },
@@ -90,6 +160,12 @@ const SecretVault = (() => {
           if (shard instanceof Uint8Array) shard.fill(0);
         });
         _shards = null;
+      }
+      if (_masks) {
+        _masks.forEach(mask => {
+          if (mask instanceof Uint8Array) mask.fill(0);
+        });
+        _masks = null;
       }
     }
   };

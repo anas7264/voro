@@ -1178,6 +1178,17 @@ export const performIntegrityCheck = () => {
   } else {
     // AHLA: Update the integrity pulse timestamp only upon a successful, complete check
     _lastIntegrityPulse = _perfNow ? _perfNow() : Date.now();
+
+    // Signal a successful integrity pulse to the rest of the system
+    // This serves as a secure trigger for polymorphic heap rotations.
+    if (typeof window !== 'undefined') {
+      try {
+        const pulseEvent = new CustomEvent('voro-integrity-pulse', {
+          detail: { timestamp: _lastIntegrityPulse }
+        });
+        window.dispatchEvent(pulseEvent);
+      } catch (e) { /* non-critical */ }
+    }
   }
 
   return !compromised;
