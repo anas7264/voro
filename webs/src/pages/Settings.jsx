@@ -6,6 +6,7 @@ import Select from '@/components/Select';
 import Toggle from '@/components/Toggle';
 import { useStorage } from '@/hooks/useStorage';
 import { useApp } from '@/hooks/useAppContext';
+import { executeSecurely } from '@/utils/security';
 
 const Settings = () => {
   const { storageData, setStorage, exportData, clearAllData } = useStorage();
@@ -44,16 +45,24 @@ const Settings = () => {
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
   };
 
-  const handleExportData = () => {
+  const handleExportData = async () => {
     const backup = exportData();
     if (!backup) return;
     const json = JSON.stringify(backup, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
+
+    const url = await executeSecurely("Export Settings Backup", () => {
+      return URL.createObjectURL(blob);
+    }, ["sink:URL.createObjectURL"]);
+
     const a = document.createElement('a');
     a.href = url;
     a.download = `voro-backup-${new Date().toISOString()}.json`;
     a.click();
+
+    await executeSecurely("Cleanup Settings Backup URL", () => {
+      URL.revokeObjectURL(url);
+    }, ["sink:URL.revokeObjectURL"]);
   };
 
   const handleClearData = () => {

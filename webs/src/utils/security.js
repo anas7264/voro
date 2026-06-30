@@ -697,6 +697,30 @@ const initializeAttestationSinks = () => {
     window.navigator.sendBeacon = beaconWrapper;
   }
 
+  // Wrap URL.createObjectURL
+  if (_createObjectURL && window.URL) {
+    const createObjectURLWrapper = function(obj) {
+      if (!verifyAttestation('URL.createObjectURL')) {
+        throw new _Error("URL.createObjectURL blocked by VORO Neural Shield. No Attestation Permit found.");
+      }
+      return _call.call(_createObjectURL, window.URL, obj);
+    };
+    TRUSTED_WRAPPERS.add(createObjectURLWrapper);
+    window.URL.createObjectURL = createObjectURLWrapper;
+  }
+
+  // Wrap URL.revokeObjectURL
+  if (_revokeObjectURL && window.URL) {
+    const revokeObjectURLWrapper = function(url) {
+      if (!verifyAttestation('URL.revokeObjectURL')) {
+        throw new _Error("URL.revokeObjectURL blocked by VORO Neural Shield. No Attestation Permit found.");
+      }
+      return _call.call(_revokeObjectURL, window.URL, url);
+    };
+    TRUSTED_WRAPPERS.add(revokeObjectURLWrapper);
+    window.URL.revokeObjectURL = revokeObjectURLWrapper;
+  }
+
   // Wrap Storage.prototype (Comprehensive Storage Attestation for local/session)
   if (typeof window !== 'undefined' && typeof Storage !== 'undefined') {
     const storageMethods = [
@@ -1087,10 +1111,11 @@ export const performIntegrityCheck = () => {
     if (!isTestMode()) compromised = true;
   }
 
-  // Robust Native Code Check: Prevents simple toString() overrides
+  // Robust Native Code Check: Prevents simple toString() overrides and bound-function bypass
   const isNative = (fn) => {
     try {
       return typeof fn === 'function' &&
+             !fn.name.startsWith('bound ') &&
              _call.call(_test, /\{\s*\[native code\]\s*\}/, _call.call(_toString, fn));
     } catch (e) {
       return false;
@@ -1105,7 +1130,8 @@ export const performIntegrityCheck = () => {
     const mustBeWrapped = [
       'fetch', 'XMLHttpRequest', 'WebSocket', 'indexedDB.open', 'navigator.sendBeacon',
       'localStorage.getItem', 'localStorage.setItem', 'localStorage.removeItem', 'localStorage.clear',
-      'sessionStorage.getItem', 'sessionStorage.setItem', 'sessionStorage.removeItem', 'sessionStorage.clear'
+      'sessionStorage.getItem', 'sessionStorage.setItem', 'sessionStorage.removeItem', 'sessionStorage.clear',
+      'URL.createObjectURL', 'URL.revokeObjectURL'
     ];
 
     if (mustBeWrapped.includes(name)) return false;

@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useStorage } from "./useStorage";
 import * as pdfExport from "../utils/pdfExport";
+import { executeSecurely } from "../utils/security";
 
 export const useExport = () => {
   const { getItem } = useStorage();
@@ -135,7 +136,10 @@ export const useExport = () => {
       setExportProgress(80);
 
       const blob = new Blob([csv], { type: "text/csv" });
-      const url = window.URL.createObjectURL(blob);
+      const url = await executeSecurely("Export Nutrition Log", () => {
+        return window.URL.createObjectURL(blob);
+      }, ["sink:URL.createObjectURL"]);
+
       const link = document.createElement("a");
       link.href = url;
       const filename = `VORO-Nutrition-Log-${new Date().toISOString().split("T")[0]}.csv`;
@@ -143,6 +147,10 @@ export const useExport = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+
+      await executeSecurely("Cleanup Nutrition Log URL", () => {
+        window.URL.revokeObjectURL(url);
+      }, ["sink:URL.revokeObjectURL"]);
 
       setExportProgress(100);
       setExporting(false);
@@ -176,7 +184,10 @@ export const useExport = () => {
       setExportProgress(80);
 
       const blob = new Blob([csv], { type: "text/csv" });
-      const url = window.URL.createObjectURL(blob);
+      const url = await executeSecurely("Export Workout Log", () => {
+        return window.URL.createObjectURL(blob);
+      }, ["sink:URL.createObjectURL"]);
+
       const link = document.createElement("a");
       link.href = url;
       const filename = `VORO-Workout-Log-${new Date().toISOString().split("T")[0]}.csv`;
@@ -184,6 +195,10 @@ export const useExport = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+
+      await executeSecurely("Cleanup Workout Log URL", () => {
+        window.URL.revokeObjectURL(url);
+      }, ["sink:URL.revokeObjectURL"]);
 
       setExportProgress(100);
       setExporting(false);
@@ -229,7 +244,10 @@ export const useExport = () => {
 
       const json = JSON.stringify(backup, null, 2);
       const blob = new Blob([json], { type: "application/json" });
-      const url = window.URL.createObjectURL(blob);
+      const url = await executeSecurely("Export Backup", () => {
+        return window.URL.createObjectURL(blob);
+      }, ["sink:URL.createObjectURL"]);
+
       const link = document.createElement("a");
       link.href = url;
       const filename = `VORO-Backup-${new Date().toISOString().split("T")[0]}.json`;
@@ -237,6 +255,10 @@ export const useExport = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+
+      await executeSecurely("Cleanup Backup URL", () => {
+        window.URL.revokeObjectURL(url);
+      }, ["sink:URL.revokeObjectURL"]);
 
       setExportProgress(100);
       setExporting(false);
@@ -270,7 +292,10 @@ export const useExport = () => {
       setExportProgress(80);
 
       const blob = new Blob([csv], { type: "text/csv" });
-      const url = window.URL.createObjectURL(blob);
+      const url = await executeSecurely("Export Measurements", () => {
+        return window.URL.createObjectURL(blob);
+      }, ["sink:URL.createObjectURL"]);
+
       const link = document.createElement("a");
       link.href = url;
       const filename = `VORO-Measurements-${new Date().toISOString().split("T")[0]}.csv`;
@@ -278,6 +303,10 @@ export const useExport = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+
+      await executeSecurely("Cleanup Measurements URL", () => {
+        window.URL.revokeObjectURL(url);
+      }, ["sink:URL.revokeObjectURL"]);
 
       setExportProgress(100);
       setExporting(false);
