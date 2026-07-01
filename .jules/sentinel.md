@@ -191,3 +191,14 @@ Hardening `isNative` requires scrutinizing the function's metadata beyond its st
 
 **Prevention:**
 Always check for the `bound ` prefix in the `name` property during native-code verification. When adding new APIs to the RASP `mustBeWrapped` list, perform a global search for all occurrences of that API and wrap them in attested execution blocks before deploying the restrictive policy.
+
+## 2025-05-28 - Universal Console Redaction & Window Name Exfiltration
+
+**Vulnerability:**
+Sensitive data (PII, API keys) logged during development or error handling can persist in the browser's console, where it may be harvested by malicious extensions. Additionally, `window.name` is a persistent property that survives cross-origin navigations and can be used to smuggle data out of the application's origin.
+
+**Learning:**
+Proactive environment neutralization requires intercepting all potential data-leakage sinks. Automatically redacting all console output ensures that even if a developer inadvertently logs a secret, it is neutralized before it becomes persistent in the console history. Furthermore, clearing `window.name` during a security lockdown closes a common cross-origin exfiltration vector that is often overlooked in standard session-clearing procedures.
+
+**Prevention:**
+Always wrap global console methods with a redaction utility during the security initialization phase. Ensure that any system-wide "lockdown" or "logout" procedure includes a reset of the `window.name` property to prevent its use as an exfiltration bridge.
