@@ -126,7 +126,8 @@ const corePrototypes = [
   { name: 'Function', proto: Function.prototype },
   { name: 'String', proto: String.prototype },
   { name: 'Number', proto: Number.prototype },
-  { name: 'Boolean', proto: Boolean.prototype }
+  { name: 'Boolean', proto: Boolean.prototype },
+  { name: 'Error', proto: Error.prototype }
 ];
 
 const TRUSTED_WRAPPERS = new WeakSet();
@@ -1044,7 +1045,8 @@ export const performIntegrityCheck = () => {
     { obj: Object, prop: 'isExtensible', name: 'Object.isExtensible' },
     { obj: window, prop: 'URL', name: 'URL' },
     { obj: window.URL, prop: 'createObjectURL', name: 'URL.createObjectURL' },
-    { obj: window.URL, prop: 'revokeObjectURL', name: 'URL.revokeObjectURL' }
+    { obj: window.URL, prop: 'revokeObjectURL', name: 'URL.revokeObjectURL' },
+    { obj: window, prop: 'Error', name: 'Error' }
   ];
 
   let compromised = false;
@@ -1601,9 +1603,41 @@ if (typeof window !== 'undefined') {
 }
 
 /**
+ * Universal Console Redaction
+ * Wraps all console methods to ensure sensitive data is redacted before being logged.
+ */
+const initializeConsoleProtection = () => {
+  if (typeof window === 'undefined' || typeof console === 'undefined') return;
+
+  const methods = ['log', 'warn', 'error', 'info', 'debug', 'trace'];
+  methods.forEach(method => {
+    const original = _console[method];
+    if (!original) return;
+
+    const wrapper = function(...args) {
+      const redactedArgs = args.map(arg => redactData(arg));
+      return _ReflectApply ? _ReflectApply(original, console, redactedArgs) : _call.call(original, console, ...redactedArgs);
+    };
+
+    TRUSTED_WRAPPERS.add(wrapper);
+    try {
+      _defineProperty(console, method, {
+        value: wrapper,
+        configurable: false,
+        writable: false,
+        enumerable: true
+      });
+    } catch (e) {
+      console[method] = wrapper;
+    }
+  });
+};
+
+/**
  * ⚡ TDZ SAFETY: Initialize orchestration after all dependencies are defined.
  */
 initializeErrorOrchestration();
+initializeConsoleProtection();
 
 if (typeof window !== 'undefined') {
   // Execute VORO Neural Shield: Runtime Integrity Attestation immediately on load

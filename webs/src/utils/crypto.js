@@ -22,6 +22,14 @@ class CryptoManager {
       window.addEventListener('voro-security-lockdown', () => {
         this.shredKeys();
       });
+
+      // Visibility-Based Memory Sanitization
+      // Purge sensitive keys from memory when the tab is backgrounded.
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+          this.shredKeys();
+        }
+      });
     }
   }
 
