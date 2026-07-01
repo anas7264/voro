@@ -846,6 +846,38 @@ const injectHoneyTokens = () => {
 injectHoneyTokens();
 
 /**
+ * Universal Console Redaction
+ * Intercepts and wraps all native console methods with the redactData utility.
+ * This prevents accidental leakage of PII or secrets into the browser console.
+ */
+const initializeConsoleProtection = () => {
+  if (typeof window === 'undefined') return;
+
+  const consoleMethods = ['log', 'warn', 'error', 'info', 'debug', 'trace'];
+
+  consoleMethods.forEach(method => {
+    const original = _console[method];
+    if (!original) return;
+
+    const wrapper = function(...args) {
+      // Redact all arguments before passing to the original console method
+      const redactedArgs = args.map(arg => redactData(arg));
+      return _call.call(original, console, ...redactedArgs);
+    };
+
+    // Register in TRUSTED_WRAPPERS to pass Call Stack Attestation
+    TRUSTED_WRAPPERS.add(wrapper);
+
+    // Replace the global console method
+    try {
+      console[method] = wrapper;
+    } catch (e) {
+      // Fail-safe for frozen console objects
+    }
+  });
+};
+
+/**
  * Privacy-Preserving Global Error Orchestration
  * Intercepts and redacts sensitive data from all global errors and unhandled rejections.
  */
@@ -970,6 +1002,8 @@ export const executeLockdown = (broadcast = true) => {
   // Aggressive Memory Hygiene: Purge session storage and other transient sinks
   try {
     sessionStorage.clear();
+    // Clear window.name as it can be used for cross-origin exfiltration
+    window.name = "";
   } catch (e) {
     // Ignore errors
   }
@@ -1604,6 +1638,7 @@ if (typeof window !== 'undefined') {
  * ⚡ TDZ SAFETY: Initialize orchestration after all dependencies are defined.
  */
 initializeErrorOrchestration();
+initializeConsoleProtection();
 
 if (typeof window !== 'undefined') {
   // Execute VORO Neural Shield: Runtime Integrity Attestation immediately on load
