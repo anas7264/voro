@@ -245,19 +245,26 @@ class VoroAIClient {
       // Neural Command Attestation: Authorize network egress with granular capabilities
       const response = await executeSecurely("Claude API Call", async () => {
         // JIT assembly: The key only exists in full in this transient, ephemeral scope
-        const apiKey = getSecureCredential();
+        let apiKey = getSecureCredential();
         if (!apiKey) throw new Error("Security Sentinel: Access to Claude API blocked. Secure credential assembly failed.");
 
-        return await fetch(this.apiUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": apiKey,
-            "anthropic-version": "2023-06-01"
-          },
-          body: JSON.stringify(payload),
-          signal: abortSignal
-        });
+        try {
+          return await fetch(this.apiUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": apiKey,
+              "anthropic-version": "2023-06-01"
+            },
+            body: JSON.stringify(payload),
+            signal: abortSignal
+          });
+        } finally {
+          // Heap Hygiene: Explicitly nullify the apiKey string reference in a finally block
+          // to ensure it is cleared even if the fetch call fails.
+          // eslint-disable-next-line no-unused-vars
+          apiKey = null;
+        }
       }, ['sink:fetch', 'domain:api.anthropic.com']);
 
       if (!response.ok) {
@@ -308,19 +315,26 @@ class VoroAIClient {
       // Neural Command Attestation: Authorize network egress with granular capabilities
       const response = await executeSecurely("Claude API Stream", async () => {
         // JIT assembly: The key only exists in full in this transient, ephemeral scope
-        const apiKey = getSecureCredential();
+        let apiKey = getSecureCredential();
         if (!apiKey) throw new Error("Security Sentinel: Access to Claude API blocked. Secure credential assembly failed.");
 
-        return await fetch(this.apiUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": apiKey,
-            "anthropic-version": "2023-06-01"
-          },
-          body: JSON.stringify({ ...payload, stream: true }),
-          signal: abortSignal
-        });
+        try {
+          return await fetch(this.apiUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": apiKey,
+              "anthropic-version": "2023-06-01"
+            },
+            body: JSON.stringify({ ...payload, stream: true }),
+            signal: abortSignal
+          });
+        } finally {
+          // Heap Hygiene: Explicitly nullify the apiKey string reference in a finally block
+          // to ensure it is cleared even if the fetch call fails.
+          // eslint-disable-next-line no-unused-vars
+          apiKey = null;
+        }
       }, ['sink:fetch', 'domain:api.anthropic.com']);
 
       if (!response.ok) {

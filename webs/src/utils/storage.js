@@ -65,6 +65,15 @@ class StorageManager {
         this.clearCache();
         this.notify('*', null);
       });
+
+      // Visibility-Based Memory Sanitization
+      // Purge cached data from memory when the tab is backgrounded.
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+          this.clearCache();
+          this.notify('*', null);
+        }
+      });
     }
   }
 
