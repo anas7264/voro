@@ -14,6 +14,8 @@ const _setTimeout = typeof setTimeout !== 'undefined' ? setTimeout : null;
 const _Error = Error;
 const _fetch = typeof window !== 'undefined' ? window.fetch : null;
 const _XHR = typeof window !== 'undefined' ? window.XMLHttpRequest : null;
+const _BroadcastChannel = typeof window !== 'undefined' ? window.BroadcastChannel : null;
+const _BCPostMessage = (typeof window !== 'undefined' && window.BroadcastChannel) ? window.BroadcastChannel.prototype.postMessage : null;
 const _indexedDBOpen = (typeof window !== 'undefined' && window.indexedDB) ? window.indexedDB.open : null;
 const _WebSocket = typeof window !== 'undefined' ? window.WebSocket : null;
 const _sendBeacon = (typeof window !== 'undefined' && window.navigator) ? window.navigator.sendBeacon : null;
@@ -698,6 +700,21 @@ const initializeAttestationSinks = () => {
     window.navigator.sendBeacon = beaconWrapper;
   }
 
+  // Wrap BroadcastChannel
+  if (_BroadcastChannel) {
+    const OriginalBC = _BroadcastChannel;
+    const bcWrapper = function(name) {
+      if (!verifyAttestation('BroadcastChannel')) {
+        throw new _Error("BroadcastChannel creation blocked by VORO Neural Shield. No Attestation Permit found.");
+      }
+      return new OriginalBC(name);
+    };
+    // Re-link prototype
+    bcWrapper.prototype = OriginalBC.prototype;
+    TRUSTED_WRAPPERS.add(bcWrapper);
+    window.BroadcastChannel = bcWrapper;
+  }
+
   // Wrap URL.createObjectURL
   if (_createObjectURL && window.URL) {
     const createObjectURLWrapper = function(obj) {
@@ -894,8 +911,8 @@ const initializeErrorOrchestration = () => {
  * Active Defense Orchestrator
  * Cross-tab security synchronization via BroadcastChannel.
  */
-const securityNexus = (typeof window !== 'undefined' && window.BroadcastChannel)
-  ? new BroadcastChannel('voro-security-nexus')
+const securityNexus = (typeof window !== 'undefined' && _BroadcastChannel)
+  ? new _BroadcastChannel('voro-security-nexus')
   : null;
 
 if (securityNexus) {
@@ -953,8 +970,8 @@ export const executeLockdown = (broadcast = true) => {
   window.VORO_DECEPTION_ACTIVE = true;
 
   // Broadcast to other tabs via the security nexus
-  if (broadcast && securityNexus) {
-    securityNexus.postMessage('VORO_LOCKDOWN');
+  if (broadcast && securityNexus && _BCPostMessage) {
+    _call.call(_BCPostMessage, securityNexus, 'VORO_LOCKDOWN');
   }
 
   // Dispatch system-wide lockdown event
@@ -1025,6 +1042,7 @@ export const performIntegrityCheck = () => {
     { obj: window.indexedDB, prop: 'open', name: 'indexedDB.open' },
     { obj: window, prop: 'WebSocket', name: 'WebSocket' },
     { obj: window.navigator, prop: 'sendBeacon', name: 'navigator.sendBeacon' },
+    { obj: window, prop: 'BroadcastChannel', name: 'BroadcastChannel' },
     { obj: window, prop: 'Proxy', name: 'Proxy' },
     { obj: document, prop: 'createElement', name: 'document.createElement' },
     { obj: document, prop: 'write', name: 'document.write' },
@@ -1133,6 +1151,7 @@ export const performIntegrityCheck = () => {
     // High-risk sinks MUST be wrapped; native primitives are unauthorized for these.
     const mustBeWrapped = [
       'fetch', 'XMLHttpRequest', 'WebSocket', 'indexedDB.open', 'navigator.sendBeacon',
+      'BroadcastChannel',
       'localStorage.getItem', 'localStorage.setItem', 'localStorage.removeItem', 'localStorage.clear',
       'sessionStorage.getItem', 'sessionStorage.setItem', 'sessionStorage.removeItem', 'sessionStorage.clear',
       'URL.createObjectURL', 'URL.revokeObjectURL'
@@ -1162,6 +1181,7 @@ export const performIntegrityCheck = () => {
               'Object.defineProperty': _defineProperty,
               'indexedDB.open': _indexedDBOpen,
               'XMLHttpRequest': _XHR,
+              'BroadcastChannel': _BroadcastChannel,
               'WebSocket': _WebSocket,
               'setInterval': _setInterval,
               'setTimeout': _setTimeout,
