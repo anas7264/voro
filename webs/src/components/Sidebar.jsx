@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Utensils, Dumbbell, Activity, BarChart3,
   Trophy, Bot, Calculator, BookOpen, User, Settings,
@@ -8,6 +8,7 @@ import {
   TrendingUp, Camera, Heart, Star, Clock, BookMarked,
   Layers, Coffee, X, Calendar, ShieldCheck
 } from 'lucide-react';
+import VoroLogo from './VoroLogo';
 
 const navSections = [
   {
@@ -75,6 +76,7 @@ const navSections = [
 
 const Sidebar = ({ collapsed, setCollapsed, isMobile }) => {
   const location = useLocation();
+  const navigate = useNavigate();
 
   return (
     <aside
@@ -92,22 +94,12 @@ const Sidebar = ({ collapsed, setCollapsed, isMobile }) => {
         ${collapsed && !isMobile ? 'justify-center' : 'justify-between'}
         border-b border-voro-border bg-white/[0.01]
       `}>
-        <div className="flex items-center gap-5 group cursor-pointer">
-          <div className="relative">
-            <div className="w-12 h-12 rounded-2xl bg-voro-primary flex items-center justify-center flex-shrink-0 shadow-[0_0_30px_rgba(124,58,237,0.3)] group-hover:shadow-[0_0_50px_rgba(124,58,237,0.5)] transition-all duration-700 overflow-hidden">
-               <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-               <span className="text-white font-serif italic font-bold text-2xl relative z-10">V</span>
-            </div>
-            <div className="absolute -inset-1 bg-voro-primary/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-          </div>
-
-          {(!collapsed || isMobile) && (
-            <div className="flex flex-col">
-              <span className="text-white font-serif italic font-medium text-2xl tracking-tighter leading-none">Voro</span>
-              <span className="text-[0.55rem] font-mono text-voro-primary uppercase tracking-[0.4em] mt-1 opacity-80">Evolution OS</span>
-            </div>
-          )}
-        </div>
+        <VoroLogo
+          size={48}
+          withText={!collapsed || isMobile}
+          className="cursor-pointer"
+          onClick={() => navigate('/dashboard')}
+        />
 
         {isMobile && !collapsed && (
           <button

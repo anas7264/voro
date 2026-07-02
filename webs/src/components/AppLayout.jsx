@@ -3,6 +3,7 @@ import Sidebar from './Sidebar';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { Menu, Activity } from 'lucide-react';
 import SecurityLockdown from './SecurityLockdown';
+import VoroLogo from './VoroLogo';
 
 export const SidebarContext = createContext({ collapsed: false, setCollapsed: () => {} });
 
@@ -70,18 +71,7 @@ const AppLayout = ({ children }) => {
                 >
                   <Menu size={20} />
                 </button>
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <div className="w-10 h-10 rounded-xl bg-voro-primary flex items-center justify-center shadow-lg shadow-voro-primary/20">
-                      <span className="text-white font-serif italic font-bold text-xl">V</span>
-                    </div>
-                    <div className="absolute -inset-1 bg-voro-primary/20 blur-lg rounded-xl" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-white font-serif italic font-medium text-xl tracking-tighter leading-none">Voro</span>
-                    <span className="text-[0.5rem] font-mono text-voro-primary uppercase tracking-[0.4em] mt-1">Matrix Active</span>
-                  </div>
-                </div>
+                <VoroLogo size={40} withText />
               </div>
 
               <div className="w-10 h-10 rounded-full border border-white/5 flex items-center justify-center text-voro-primary">
