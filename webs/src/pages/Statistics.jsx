@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { BarChart3, TrendingUp, Calendar, Zap, Activity, Target, Weight } from 'lucide-react';
-import { Card, Button, Tabs, LineChartComponent, BarChartComponent, Stat } from '@/components';
+import { Card, Button, Tabs, LineChartComponent, BarChartComponent, PieChartComponent, Stat } from '@/components';
 import { useStorageKey } from '@/hooks/useStorage';
 import { useApp } from '@/hooks/useAppContext';
 
@@ -39,6 +39,9 @@ const Statistics = () => {
     let totalVolume = 0;
     let totalKcal = 0;
     let loggedDays = 0;
+    let totalProtein = 0;
+    let totalCarbs = 0;
+    let totalFat = 0;
 
     // Weekly workout distribution
     const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -78,6 +81,9 @@ const Statistics = () => {
 
       if (kcal > 0) {
         totalKcal += kcal;
+        totalProtein += dayData?.totals?.protein || 0;
+        totalCarbs += dayData?.totals?.carbs || 0;
+        totalFat += dayData?.totals?.fat || 0;
         loggedDays++;
       }
 
@@ -87,11 +93,18 @@ const Statistics = () => {
       }
     }
 
+    const macroDistribution = [
+      { name: 'Protein', value: loggedDays > 0 ? Math.round(totalProtein / loggedDays) : 0, color: '#7C3AED' },
+      { name: 'Carbs', value: loggedDays > 0 ? Math.round(totalCarbs / loggedDays) : 0, color: '#10B981' },
+      { name: 'Fats', value: loggedDays > 0 ? Math.round(totalFat / loggedDays) : 0, color: '#F59E0B' },
+    ].filter(m => m.value > 0);
+
     return {
       calorieTrend,
       workoutDays,
       totalVolume,
       weeklyWorkouts,
+      macroDistribution,
       avgCalories: loggedDays > 0 ? Math.round(totalKcal / loggedDays) : 0,
       adherence: Math.round((loggedDays / days) * 100)
     };
@@ -215,6 +228,61 @@ const Statistics = () => {
                   color="#10B981"
                   height={400}
                 />
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Macro Distribution Artifact */}
+        <div className="mt-8">
+          <Card className="p-12 md:p-16 bg-[#0A0C14] border-white/5 rounded-[3rem] shadow-2xl relative overflow-hidden group/macro">
+            <div className="absolute -left-24 -top-24 w-96 h-96 bg-voro-primary/5 rounded-full blur-[120px] group-hover/macro:bg-voro-primary/10 transition-colors duration-1000" />
+            <div className="absolute -right-24 -bottom-24 w-96 h-96 bg-voro-secondary/5 rounded-full blur-[120px]" />
+
+            <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
+              <div className="lg:col-span-5 flex justify-center">
+                <div className="relative w-full max-w-[400px] aspect-square">
+                  <PieChartComponent
+                    data={stats.macroDistribution}
+                    height={400}
+                    colors={['#7C3AED', '#10B981', '#F59E0B']}
+                  />
+                  {/* Neural Core Detail */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+                     <span className="text-[0.55rem] font-mono font-black text-gray-700 uppercase tracking-[0.4em] block mb-2">Matrix</span>
+                     <span className="text-4xl font-serif italic font-medium text-white tracking-tighter">Sync</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="lg:col-span-7 space-y-12">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-px w-8 bg-voro-primary" />
+                    <h3 className="text-[0.7rem] font-mono font-black text-voro-primary uppercase tracking-[0.6em]">Metabolic Balance Matrix</h3>
+                  </div>
+                  <h2 className="text-4xl md:text-5xl font-serif italic font-medium text-white tracking-tight leading-tight">
+                    Average Nutrient <span className="text-gradient not-italic font-bold">Distribution</span>
+                  </h2>
+                  <p className="text-gray-500 font-medium tracking-wide text-sm leading-relaxed max-w-xl">
+                    High-fidelity synthesis of macronutrient allocation over the selected {period} window. This specimen analyzes the structural ratio of protein density, carbohydrate energy, and essential adipose flux.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-8 border-t border-white/5">
+                   {stats.macroDistribution.map((macro, idx) => (
+                     <div key={macro.name} className="space-y-3">
+                        <div className="flex items-center gap-3">
+                           <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: macro.color }} />
+                           <span className="text-[0.55rem] font-mono font-black text-gray-500 uppercase tracking-[0.3em]">{macro.name}</span>
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                           <span className="text-3xl font-serif italic font-bold text-white">{macro.value}</span>
+                           <span className="text-[0.6rem] font-mono font-black text-gray-700 uppercase tracking-widest">g / day</span>
+                        </div>
+                     </div>
+                   ))}
+                </div>
               </div>
             </div>
           </Card>
