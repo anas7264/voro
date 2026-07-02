@@ -164,6 +164,11 @@ body::before {
   to { transform: rotate(360deg); }
 }
 
+@keyframes spin-reverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 5px #7C3AED; }
   50% { box-shadow: 0 0 20px #7C3AED, 0 0 40px #7C3AED55; }
