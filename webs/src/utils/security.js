@@ -23,6 +23,10 @@ const _URL = typeof window !== 'undefined' ? window.URL : null;
 const _createObjectURL = (typeof window !== 'undefined' && window.URL) ? window.URL.createObjectURL : null;
 const _revokeObjectURL = (typeof window !== 'undefined' && window.URL) ? window.URL.revokeObjectURL : null;
 
+// Clipboard API Pinning
+const _writeText = (typeof window !== 'undefined' && window.navigator?.clipboard) ? window.navigator.clipboard.writeText : null;
+const _readText = (typeof window !== 'undefined' && window.navigator?.clipboard) ? window.navigator.clipboard.readText : null;
+
 // Storage Prototype Pinning
 const _StorageGetItem = (typeof window !== 'undefined' && typeof Storage !== 'undefined') ? Storage.prototype.getItem : null;
 const _StorageSetItem = (typeof window !== 'undefined' && typeof Storage !== 'undefined') ? Storage.prototype.setItem : null;
@@ -739,6 +743,26 @@ const initializeAttestationSinks = () => {
     window.URL.revokeObjectURL = revokeObjectURLWrapper;
   }
 
+  // Wrap Clipboard API
+  if (typeof window !== 'undefined' && window.navigator?.clipboard) {
+    if (_writeText) {
+      const writeTextWrapper = function(text) {
+        if (!verifyAttestation('navigator.clipboard.writeText')) throw new _Error("Clipboard write blocked.");
+        return _call.call(_writeText, window.navigator.clipboard, text);
+      };
+      TRUSTED_WRAPPERS.add(writeTextWrapper);
+      window.navigator.clipboard.writeText = writeTextWrapper;
+    }
+    if (_readText) {
+      const readTextWrapper = function() {
+        if (!verifyAttestation('navigator.clipboard.readText')) throw new _Error("Clipboard read blocked.");
+        return _call.call(_readText, window.navigator.clipboard);
+      };
+      TRUSTED_WRAPPERS.add(readTextWrapper);
+      window.navigator.clipboard.readText = readTextWrapper;
+    }
+  }
+
   // Wrap Storage.prototype (Comprehensive Storage Attestation for local/session)
   if (typeof window !== 'undefined' && typeof Storage !== 'undefined') {
     const storageMethods = [
@@ -1066,7 +1090,9 @@ export const performIntegrityCheck = () => {
     { obj: window, prop: 'URL', name: 'URL' },
     { obj: window.URL, prop: 'createObjectURL', name: 'URL.createObjectURL' },
     { obj: window.URL, prop: 'revokeObjectURL', name: 'URL.revokeObjectURL' },
-    { obj: window, prop: 'Error', name: 'Error' }
+    { obj: window, prop: 'Error', name: 'Error' },
+    { obj: window.navigator?.clipboard, prop: 'writeText', name: 'navigator.clipboard.writeText' },
+    { obj: window.navigator?.clipboard, prop: 'readText', name: 'navigator.clipboard.readText' }
   ];
 
   let compromised = false;
@@ -1152,6 +1178,7 @@ export const performIntegrityCheck = () => {
     const mustBeWrapped = [
       'fetch', 'XMLHttpRequest', 'WebSocket', 'indexedDB.open', 'navigator.sendBeacon',
       'BroadcastChannel',
+      'navigator.clipboard.writeText', 'navigator.clipboard.readText',
       'localStorage.getItem', 'localStorage.setItem', 'localStorage.removeItem', 'localStorage.clear',
       'sessionStorage.getItem', 'sessionStorage.setItem', 'sessionStorage.removeItem', 'sessionStorage.clear',
       'URL.createObjectURL', 'URL.revokeObjectURL'
@@ -1197,7 +1224,9 @@ export const performIntegrityCheck = () => {
               'crypto.subtle.importKey': _SubtleImportKey,
               'crypto.subtle.generateKey': _SubtleGenerateKey,
               'URL.createObjectURL': _createObjectURL,
-              'URL.revokeObjectURL': _revokeObjectURL
+              'URL.revokeObjectURL': _revokeObjectURL,
+              'navigator.clipboard.writeText': _writeText,
+              'navigator.clipboard.readText': _readText
             };
 
             const native = capturedMap[name];

@@ -202,3 +202,14 @@ Proactive environment neutralization requires intercepting all potential data-le
 
 **Prevention:**
 Always wrap global console methods with a redaction utility during the security initialization phase. Ensure that any system-wide "lockdown" or "logout" procedure includes a reset of the `window.name` property to prevent its use as an exfiltration bridge.
+
+## 2025-05-29 - Hardening the Clipboard API as an Exfiltration Sink
+
+**Vulnerability:**
+The Clipboard API (`navigator.clipboard.writeText`) provides a stealthy channel for data exfiltration. Malicious scripts can copy sensitive PII or credentials to the user's clipboard without their knowledge, allowing the data to be harvested later or pasted into external applications.
+
+**Learning:**
+Traditional RASP systems often focus on network sinks while ignoring local environment sinks like the clipboard. By pinning the native `writeText` and `readText` primitives and wrapping them in attestation guards, we ensure that clipboard access only occurs within authorized, stack-bound execution contexts.
+
+**Prevention:**
+Include the Clipboard API in the RASP `mustBeWrapped` list. Any API that allows data to leave the application's immediate memory space (network, storage, clipboard, share) should be protected by the Granular Neural Capability Attestation (GNCA) framework.
