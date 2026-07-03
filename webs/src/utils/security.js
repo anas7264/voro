@@ -739,6 +739,42 @@ const initializeAttestationSinks = () => {
     window.URL.revokeObjectURL = revokeObjectURLWrapper;
   }
 
+  // Wrap SubtleCrypto
+  if (typeof window !== 'undefined' && window.crypto?.subtle) {
+    const cryptoMethods = [
+      { name: 'encrypt', native: _SubtleEncrypt, prop: 'crypto.subtle.encrypt' },
+      { name: 'decrypt', native: _SubtleDecrypt, prop: 'crypto.subtle.decrypt' },
+      { name: 'deriveKey', native: _SubtleDeriveKey, prop: 'crypto.subtle.deriveKey' },
+      { name: 'importKey', native: _SubtleImportKey, prop: 'crypto.subtle.importKey' },
+      { name: 'generateKey', native: _SubtleGenerateKey, prop: 'crypto.subtle.generateKey' }
+    ];
+
+    cryptoMethods.forEach(({ name, native, prop }) => {
+      if (!native) return;
+
+      const wrapper = function(...args) {
+        if (!verifyAttestation(prop)) {
+          throw new _Error(`Cryptographic operation [${name}] blocked by VORO Neural Shield. No Attestation Permit found.`);
+        }
+        return _ReflectApply ? _ReflectApply(native, window.crypto.subtle, args) : _call.call(native, window.crypto.subtle, ...args);
+      };
+
+      TRUSTED_WRAPPERS.add(wrapper);
+
+      try {
+        _defineProperty(window.crypto.subtle, name, {
+          value: wrapper,
+          configurable: false,
+          writable: false,
+          enumerable: true
+        });
+      } catch (e) {
+        // Fallback
+        window.crypto.subtle[name] = wrapper;
+      }
+    });
+  }
+
   // Wrap Storage.prototype (Comprehensive Storage Attestation for local/session)
   if (typeof window !== 'undefined' && typeof Storage !== 'undefined') {
     const storageMethods = [
@@ -1154,7 +1190,8 @@ export const performIntegrityCheck = () => {
       'BroadcastChannel',
       'localStorage.getItem', 'localStorage.setItem', 'localStorage.removeItem', 'localStorage.clear',
       'sessionStorage.getItem', 'sessionStorage.setItem', 'sessionStorage.removeItem', 'sessionStorage.clear',
-      'URL.createObjectURL', 'URL.revokeObjectURL'
+      'URL.createObjectURL', 'URL.revokeObjectURL',
+      'crypto.subtle.encrypt', 'crypto.subtle.decrypt', 'crypto.subtle.deriveKey', 'crypto.subtle.importKey', 'crypto.subtle.generateKey'
     ];
 
     if (mustBeWrapped.includes(name)) return false;

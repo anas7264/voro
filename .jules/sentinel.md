@@ -202,3 +202,14 @@ Proactive environment neutralization requires intercepting all potential data-le
 
 **Prevention:**
 Always wrap global console methods with a redaction utility during the security initialization phase. Ensure that any system-wide "lockdown" or "logout" procedure includes a reset of the `window.name` property to prevent its use as an exfiltration bridge.
+
+## 2025-05-29 - Hardened Cryptographic Attestation & RASP Extension
+
+**Vulnerability:**
+Native cryptographic primitives (`crypto.subtle`) are powerful exfiltration sinks if left unmonitored. Even with Authenticated Encryption at Rest, an attacker executing code in the application's origin could use the native browser APIs to decrypt sensitive data or generate unauthorized keys if the RASP system only monitors for monkey-patching and "fails open" to native code.
+
+**Learning:**
+True Zero Trust requires that even native, "safe" primitives be treated as restricted resources. By extending RASP to include `crypto.subtle` in the "Must-Be-Wrapped" list and enforcing Granular Neural Capability Attestation (GNCA), we ensure that cryptographic operations can only occur within authorized, stack-bound execution contexts. This prevents "Cryptographic Side-Loading" and ensures that sensitive data remains protected even if an attacker gains partial execution privileges.
+
+**Prevention:**
+Always include cryptographic primitives in RASP integrity checks. Enforce that high-risk sinks must be wrapped in attested execution blocks (`executeSecurely`) with granular capabilities. Never allow unauthorized contexts to access native cryptographic methods, even if they haven't been monkey-patched.
