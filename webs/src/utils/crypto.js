@@ -140,7 +140,7 @@ class CryptoManager {
 
         request.onerror = () => reject(new Error('Failed to open secure key store'));
       });
-    }, ['sink:indexedDB', 'requirement:user-presence']);
+    }, ['sink:indexedDB', 'requirement:user-presence', 'sink:crypto.subtle.generateKey', 'sink:crypto.subtle.importKey']);
   }
 
   /**
@@ -162,18 +162,21 @@ class CryptoManager {
     await this.init();
     const encoder = new TextEncoder();
     const infoBuffer = encoder.encode(domain);
-    const derivedKey = await window.crypto.subtle.deriveKey(
-      {
-        name: 'HKDF',
-        salt: new Uint8Array(), // Static salt is acceptable in this context as HKDF key is unique
-        info: infoBuffer,
-        hash: 'SHA-256'
-      },
-      this.hkdfKey,
-      { name: ALGO, length: KEY_SIZE },
-      false,
-      ['encrypt', 'decrypt']
-    );
+
+    const derivedKey = await executeSecurely(`Derive Key [${domain}]`, async () => {
+      return await window.crypto.subtle.deriveKey(
+        {
+          name: 'HKDF',
+          salt: new Uint8Array(), // Static salt is acceptable in this context as HKDF key is unique
+          info: infoBuffer,
+          hash: 'SHA-256'
+        },
+        this.hkdfKey,
+        { name: ALGO, length: KEY_SIZE },
+        false,
+        ['encrypt', 'decrypt']
+      );
+    }, ['sink:crypto.subtle.deriveKey']);
 
     // Heap Hygiene: Shred the temporary info buffer
     infoBuffer.fill(0);
@@ -217,11 +220,13 @@ class CryptoManager {
       algorithm.additionalData = aadBuffer;
     }
 
-    const ciphertext = await window.crypto.subtle.encrypt(
-      algorithm,
-      encryptionKey,
-      encodedData
-    );
+    const ciphertext = await executeSecurely(`Encrypt [${domain || 'master'}]`, async () => {
+      return await window.crypto.subtle.encrypt(
+        algorithm,
+        encryptionKey,
+        encodedData
+      );
+    }, ['sink:crypto.subtle.encrypt']);
 
     // Heap Hygiene: Shred plain-text and AAD buffers
     encodedData.fill(0);
@@ -292,11 +297,13 @@ class CryptoManager {
         algorithm.additionalData = aadBuffer;
       }
 
-      const decryptedBuffer = await window.crypto.subtle.decrypt(
-        algorithm,
-        decryptionKey,
-        ciphertext
-      );
+      const decryptedBuffer = await executeSecurely(`Decrypt [${domain || 'master'}]`, async () => {
+        return await window.crypto.subtle.decrypt(
+          algorithm,
+          decryptionKey,
+          ciphertext
+        );
+      }, ['sink:crypto.subtle.decrypt']);
 
       // Heap Hygiene: Shred sensitive buffers
       bytes.fill(0);
