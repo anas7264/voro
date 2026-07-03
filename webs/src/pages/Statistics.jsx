@@ -9,7 +9,17 @@ import { useApp } from '@/hooks/useAppContext';
  * Prevents redundant object instantiation in high-frequency loops.
  */
 const labelFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
-const getISODate = (date) => date.toISOString().slice(0, 10);
+
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Manual date string construction.
+ * Significantly faster than d.toISOString().slice(0, 10) in tight loops.
+ */
+const getFastDateStr = (d) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 const Statistics = () => {
   const nutritionLog = useStorageKey('nutrition_log') || {};
@@ -54,28 +64,29 @@ const Statistics = () => {
     const todayMs = now.getTime();
     const dayMs = 86400000;
 
+    // ⚡ PERFORMANCE OPTIMIZATION: Single-cursor temporal engine.
+    const cursor = new Date();
+
     // Populate weekly distribution (last 7 days)
     for (let i = 6; i >= 0; i--) {
-      const ts = todayMs - (i * dayMs);
-      const d = new Date(ts);
-      const dateStr = getISODate(d);
+      cursor.setTime(todayMs - (i * dayMs));
+      const dateStr = getFastDateStr(cursor);
       weeklyWorkouts.push({
-        day: daysOfWeek[d.getDay()],
+        day: daysOfWeek[cursor.getDay()],
         workouts: workoutLog[dateStr]?.attended ? 1 : 0
       });
     }
 
     // Populate main trend (period days)
     for (let i = days - 1; i >= 0; i--) {
-      const ts = todayMs - (i * dayMs);
-      const d = new Date(ts);
-      const dateStr = getISODate(d);
+      cursor.setTime(todayMs - (i * dayMs));
+      const dateStr = getFastDateStr(cursor);
       const dayData = nutritionLog[dateStr];
       const workoutDay = workoutLog[dateStr];
       const kcal = dayData?.totals?.calories || 0;
 
       calorieTrend.push({
-        date: labelFormatter.format(d),
+        date: labelFormatter.format(cursor),
         calories: kcal,
       });
 

@@ -57,7 +57,15 @@ const longDateFormatter = new Intl.DateTimeFormat('en-US', {
   day: 'numeric'
 });
 
-const getISODate = (date) => date.toISOString().slice(0, 10);
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Fast date string builder.
+ */
+const getFastDateStr = (d) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -104,7 +112,7 @@ const Dashboard = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const today = useMemo(() => getFastDateStr(new Date()), []);
 
   /**
    * ⚡ OPTIMIZATION: Synchronous data derivation using useMemo.
@@ -143,27 +151,23 @@ const Dashboard = () => {
     let loggingActive = true;
     let waterActive = true;
 
-    const todayObj = new Date();
-    todayObj.setHours(0, 0, 0, 0);
-    const todayMs = todayObj.getTime();
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const todayMs = now.getTime();
     const dayMs = 86400000;
 
     /**
      * ⚡ PERFORMANCE OPTIMIZATION: Optimized streak engine.
      * Replaces O(N) Date object instantiation with numeric temporal arithmetic.
-     * Uses a single pre-calculated date string for all lookups in each iteration.
+     * Uses a single pre-allocated date cursor for all lookups in the loop.
      */
+    const cursor = new Date();
+
     for (let i = 0; i < 365; i++) {
       if (!trainingActive && !loggingActive && !waterActive) break;
 
-      const cursorTs = todayMs - (i * dayMs);
-      const d = new Date(cursorTs);
-
-      // Manual date string construction is significantly faster than toISOString().split('T')[0] in tight loops.
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      const dateStr = `${year}-${month}-${day}`;
+      cursor.setTime(todayMs - (i * dayMs));
+      const dateStr = getFastDateStr(cursor);
 
       if (trainingActive) {
         if (workoutLog[dateStr]?.attended) trainingStreak++;
@@ -185,7 +189,7 @@ const Dashboard = () => {
   }, [workoutLog, nutritionLog, user?.waterGoal]);
 
   const handleQuickLog = useCallback(async (type, value) => {
-    const todayStr = getISODate(new Date());
+    const todayStr = getFastDateStr(new Date());
     const numValue = parseFloat(value);
 
     if (isNaN(numValue) || numValue <= 0) {
