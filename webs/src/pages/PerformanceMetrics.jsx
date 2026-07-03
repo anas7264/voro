@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
-import { Zap, TrendingUp, Activity, Award } from 'lucide-react';
-import { Card, Button, LineChartComponent, Stat } from '@/components';
+import { Zap, TrendingUp, Activity, Award, Target as TargetIcon } from 'lucide-react';
+import { Card, Button, LineChartComponent, RadarChartComponent, Stat } from '@/components';
 import { useStorageKey } from '@/hooks/useStorage';
 import { useCalculators } from '@/hooks/useCalculators';
 
@@ -42,6 +42,14 @@ const PerformanceMetrics = () => {
     { lift: 'Bench Press', max: metrics.maxBench, unit: 'kg', color: 'voro-primary' },
     { lift: 'Squat', max: metrics.maxSquat, unit: 'kg', color: 'voro-secondary' },
     { lift: 'Deadlift', max: metrics.maxDeadlift, unit: 'kg', color: 'voro-accent' },
+  ], [metrics]);
+
+  const radarData = useMemo(() => [
+    { subject: 'Bench', A: metrics.maxBench, fullMark: 200 },
+    { subject: 'Squat', A: metrics.maxSquat, fullMark: 300 },
+    { subject: 'Deadlift', A: metrics.maxDeadlift, fullMark: 350 },
+    { subject: 'Press', A: Math.round(metrics.maxBench * 0.65), fullMark: 120 }, // Predicted/Placeholder
+    { subject: 'Row', A: Math.round(metrics.maxBench * 0.9), fullMark: 180 },    // Predicted/Placeholder
   ], [metrics]);
 
   const volumeData = useMemo(() => [
@@ -96,25 +104,48 @@ const PerformanceMetrics = () => {
           />
         </div>
 
-        <Card className="p-10 bg-[#0A0C14] border-white/5 rounded-[2.5rem] shadow-2xl relative overflow-hidden group mb-16">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-voro-primary/5 rounded-full blur-[100px] -mr-32 -mt-32 group-hover:bg-voro-primary/10 transition-colors duration-1000" />
-          <div className="relative">
-            <div className="flex items-center justify-between mb-12">
-              <h3 className="text-[0.65rem] font-black text-gray-500 uppercase tracking-[0.3em]">Volume Trajectory</h3>
-              <TrendingUp size={18} className="text-voro-primary" />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-16">
+          {/* Volume Trajectory */}
+          <Card className="lg:col-span-8 p-10 bg-[#0A0C14] border-white/5 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-voro-primary/5 rounded-full blur-[100px] -mr-32 -mt-32 group-hover:bg-voro-primary/10 transition-colors duration-1000" />
+            <div className="relative">
+              <div className="flex items-center justify-between mb-12">
+                <h3 className="text-[0.65rem] font-black text-gray-500 uppercase tracking-[0.3em]">Volume Trajectory</h3>
+                <TrendingUp size={18} className="text-voro-primary" />
+              </div>
+              <div className="h-[400px] w-full">
+                <LineChartComponent
+                  data={volumeData}
+                  dataKey="volume"
+                  name="Volume (kg)"
+                  color="#7C3AED"
+                  height={400}
+                  strokeWidth={3}
+                />
+              </div>
             </div>
-            <div className="h-[350px] w-full">
-              <LineChartComponent
-                data={volumeData}
-                dataKey="volume"
-                name="Volume (kg)"
-                color="#7C3AED"
-                height={350}
-                strokeWidth={3}
-              />
-            </div>
-          </div>
-        </Card>
+          </Card>
+
+          {/* Kinetic Capability Matrix (Radar) */}
+          <Card className="lg:col-span-4 p-10 bg-[#0A0C14] border-white/5 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
+             <div className="absolute bottom-0 left-0 w-48 h-48 bg-voro-secondary/5 rounded-full blur-[80px] -ml-24 -mb-24 group-hover:bg-voro-secondary/10 transition-colors duration-1000" />
+             <div className="relative">
+                <div className="flex items-center justify-between mb-12">
+                  <h3 className="text-[0.65rem] font-black text-gray-500 uppercase tracking-[0.3em]">Capability Matrix</h3>
+                  <TargetIcon size={18} className="text-voro-secondary" />
+                </div>
+                <div className="h-[400px] w-full">
+                  <RadarChartComponent
+                    data={radarData}
+                    dataKey="A"
+                    name="Force"
+                    fill="#10B981"
+                    height={400}
+                  />
+                </div>
+             </div>
+          </Card>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <Card className="p-10 bg-[#0A0C14] border-white/5 rounded-[2.5rem] shadow-xl">
