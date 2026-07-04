@@ -1,29 +1,41 @@
-import React, { useEffect, useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import React, { useEffect, useMemo } from 'react';
+import { Trash2, BookOpen } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 
 const RecipeLibrary = () => {
-  const { getStorage, setStorage } = useStorage();
-  const [recipes, setRecipes] = useState([]);
+  const navigate = useNavigate();
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
+   * Replaced broad useStorage() with useStorageKey for specific data and
+   * useStorageMethods for stable, non-reactive action references.
+   * This prevents re-rendering when unrelated storage keys change.
+   * Note: We use 'recipes' instead of 'voro_recipes' to ensure the hook
+   * correctly matches notifications from the storage utility.
+   */
+  const recipes = useStorageKey('recipes') || [];
+  const { setItem } = useStorageMethods();
 
   useEffect(() => {
     document.title = 'VORO | Recipe Library';
-    const data = getStorage('voro_recipes') || [];
-    setRecipes(data);
   }, []);
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     const updated = recipes.filter(r => r.id !== id);
-    setRecipes(updated);
-    setStorage('voro_recipes', updated);
+    await setItem('recipes', updated);
   };
 
   return (
     <div className="min-h-screen bg-voro-surface p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold text-white mb-6">Recipe Library</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold text-white">Recipe Library</h1>
+          <Button onClick={() => navigate('/nutrition/recipe-builder')}>
+            Create Recipe
+          </Button>
+        </div>
 
         {recipes.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -31,7 +43,7 @@ const RecipeLibrary = () => {
               <Card key={recipe.id} className="p-6">
                 <h3 className="text-lg font-bold text-white mb-2">{recipe.name}</h3>
                 <div className="text-sm text-gray-400 mb-4">
-                  {recipe.ingredients.length} ingredients • {recipe.servings} serving
+                  {recipe.ingredients?.length || 0} ingredients • {recipe.servings} serving
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 mb-4">
@@ -71,7 +83,7 @@ const RecipeLibrary = () => {
             <div className="text-5xl mb-4">📖</div>
             <h3 className="text-xl font-bold text-white mb-2">No recipes yet</h3>
             <p className="text-gray-400 mb-6">Create your first recipe to get started</p>
-            <Button>Create Recipe</Button>
+            <Button onClick={() => navigate('/nutrition/recipe-builder')}>Create Recipe</Button>
           </Card>
         )}
       </div>

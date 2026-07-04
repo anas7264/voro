@@ -1,85 +1,86 @@
-import React, { useEffect, useState } from 'react';
-import { Plus, Trash2, Edit2 } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Plus, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { validateRecipe } from '@/utils/validators';
 import { foods } from '@/data/foods';
 
 const RecipeBuilder = () => {
-  const { getStorage, setStorage } = useStorage();
+  const navigate = useNavigate();
+  const { setItem } = useStorageMethods();
   const { addNotification } = useNotifications();
+
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
+   * Directly subscribing to 'recipes' key prevents re-renders when other keys change.
+   */
+  const savedRecipes = useStorageKey('recipes') || [];
+
   const [ingredients, setIngredients] = useState([]);
   const [recipeName, setRecipeName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredFoods, setFilteredFoods] = useState([]);
-  const [savedRecipes, setSavedRecipes] = useState([]);
 
-  useEffect(() => {
-    document.title = 'VORO | Recipe Builder';
-    const data = getStorage('voro_recipes') || [];
-    setSavedRecipes(data);
-  }, []);
-
-  const handleSearchFood = (query) => {
-    setSearchQuery(query);
-    if (query.length > 0) {
-      const filtered = foods.filter(f =>
-        f.name.toLowerCase().includes(query.toLowerCase())
-      ).slice(0, 10);
-      setFilteredFoods(filtered);
-    } else {
-      setFilteredFoods([]);
-    }
-  };
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Memoized Filtering.
+   * Replacing state-based filtering with useMemo prevents O(N) operations on
+   * every keystroke from triggering multiple render cycles.
+   */
+  const filteredFoods = useMemo(() => {
+    if (searchQuery.length < 2) return [];
+    const query = searchQuery.toLowerCase();
+    return foods.filter(f =>
+      f.name.toLowerCase().includes(query)
+    ).slice(0, 10);
+  }, [searchQuery]);
 
   const handleAddIngredient = (food) => {
-    setIngredients([...ingredients, { ...food, portion: 100 }]);
+    setIngredients([...ingredients, { ...food, portion: 100, instanceId: Date.now() }]);
     setSearchQuery('');
-    setFilteredFoods([]);
   };
 
-  const handleRemoveIngredient = (idx) => {
-    setIngredients(ingredients.filter((_, i) => i !== idx));
+  const handleRemoveIngredient = (instanceId) => {
+    setIngredients(ingredients.filter(ing => ing.instanceId !== instanceId));
   };
 
-  const calculateTotals = () => {
+  /**
+   * ⚡ OPTIMIZATION: Derived Totals.
+   * Computed during render to ensure perfect synchronicity with ingredient state.
+   */
+  const totals = useMemo(() => {
     return ingredients.reduce((acc, ing) => ({
       calories: acc.calories + (ing.calories * ing.portion / 100),
       protein: acc.protein + (ing.protein * ing.portion / 100),
       carbs: acc.carbs + (ing.carbs * ing.portion / 100),
       fat: acc.fat + (ing.fat * ing.portion / 100),
     }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
-  };
+  }, [ingredients]);
 
-  const handleSaveRecipe = () => {
+  const handleSaveRecipe = async () => {
     const recipe = {
       id: Date.now(),
-      name: recipeName,
+      name: recipeName || 'Unnamed Recipe',
       ingredients,
-      totals: calculateTotals(),
+      totals,
       servings: 1,
     };
 
-    // Security: Validate recipe data before persisting to storage
     const { valid, errors } = validateRecipe(recipe);
     if (!valid) {
-      const errorMsg = Object.values(errors)[0];
-      addNotification(`Validation failed: ${errorMsg}`, 'error');
+      addNotification(Object.values(errors)[0], 'error');
       return;
     }
 
     const updated = [...savedRecipes, recipe];
-    setSavedRecipes(updated);
-    setStorage('voro_recipes', updated);
+    await setItem('recipes', updated);
+
     setRecipeName('');
     setIngredients([]);
     addNotification('Recipe saved successfully', 'success');
   };
-
-  const totals = calculateTotals();
 
   return (
     <div className="min-h-screen bg-voro-surface p-4 md:p-8">
@@ -103,7 +104,7 @@ const RecipeBuilder = () => {
                 <Input
                   placeholder="Search foods..."
                   value={searchQuery}
-                  onChange={(e) => handleSearchFood(e.target.value)}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                 />
                 {filteredFoods.length > 0 && (
                   <div className="absolute bg-voro-elevated rounded-lg mt-1 w-72 max-h-64 overflow-y-auto z-10">
@@ -123,7 +124,7 @@ const RecipeBuilder = () => {
               {ingredients.length > 0 && (
                 <div className="space-y-2">
                   {ingredients.map((ing, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 bg-voro-surface rounded-lg">
+                    <div key={ing.instanceId} className="flex items-center justify-between p-3 bg-voro-surface rounded-lg">
                       <div className="flex-1">
                         <div className="text-white font-medium">{ing.name}</div>
                         <input
@@ -140,7 +141,7 @@ const RecipeBuilder = () => {
                       </div>
                       <Button
                         variant="ghost"
-                        onClick={() => handleRemoveIngredient(idx)}
+                        onClick={() => handleRemoveIngredient(ing.instanceId)}
                         className="text-danger"
                       >
                         <Trash2 size={16} />
@@ -193,7 +194,7 @@ const RecipeBuilder = () => {
                   <div className="text-sm text-gray-400 mb-3">
                     {Math.round(recipe.totals.calories)} kcal • {recipe.ingredients.length} ingredients
                   </div>
-                  <Button variant="secondary" className="w-full">View Recipe</Button>
+                  <Button variant="secondary" className="w-full" onClick={() => navigate('/nutrition/recipes')}>View Archive</Button>
                 </Card>
               ))}
             </div>
