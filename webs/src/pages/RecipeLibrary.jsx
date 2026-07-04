@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, AlertCircle } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import { useStorage } from '@/hooks/useStorage';
@@ -7,6 +7,7 @@ import { useStorage } from '@/hooks/useStorage';
 const RecipeLibrary = () => {
   const { getStorage, setStorage } = useStorage();
   const [recipes, setRecipes] = useState([]);
+  const [confirmingId, setConfirmingId] = useState(null);
 
   useEffect(() => {
     document.title = 'VORO | Recipe Library';
@@ -14,10 +15,22 @@ const RecipeLibrary = () => {
     setRecipes(data);
   }, []);
 
+  useEffect(() => {
+    if (confirmingId) {
+      const timer = setTimeout(() => setConfirmingId(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [confirmingId]);
+
   const handleDelete = (id) => {
-    const updated = recipes.filter(r => r.id !== id);
-    setRecipes(updated);
-    setStorage('voro_recipes', updated);
+    if (confirmingId === id) {
+      const updated = recipes.filter(r => r.id !== id);
+      setRecipes(updated);
+      setStorage('voro_recipes', updated);
+      setConfirmingId(null);
+    } else {
+      setConfirmingId(id);
+    }
   };
 
   return (
@@ -56,11 +69,19 @@ const RecipeLibrary = () => {
                 <div className="flex gap-2">
                   <Button variant="secondary" className="flex-1">Log Recipe</Button>
                   <Button
-                    variant="ghost"
+                    variant={confirmingId === recipe.id ? "danger" : "ghost"}
                     onClick={() => handleDelete(recipe.id)}
-                    className="text-danger"
+                    className={confirmingId === recipe.id ? "" : "text-danger"}
+                    aria-label={confirmingId === recipe.id ? "Confirm deletion" : "Delete recipe"}
                   >
-                    <Trash2 size={18} />
+                    {confirmingId === recipe.id ? (
+                      <div className="flex items-center gap-2 animate-pulse">
+                        <AlertCircle size={16} />
+                        <span className="text-[0.65rem] font-bold uppercase tracking-widest">Confirm?</span>
+                      </div>
+                    ) : (
+                      <Trash2 size={18} />
+                    )}
                   </Button>
                 </div>
               </Card>
