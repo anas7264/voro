@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useMemo, useRef, memo } from 'react';
+import React, { useEffect, useState, useMemo, useRef, memo, useCallback } from 'react';
 import { Play, Pause, RotateCcw, Clock, Zap, Target, Activity, ShieldCheck, Flame } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Select from '@/components/Select';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 
 const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive }) => {
@@ -105,9 +105,19 @@ const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive
   );
 });
 
+MetabolicChronometer.displayName = 'MetabolicChronometer';
+
 const FastingTracker = () => {
-  const { getItem, setItem, storageData } = useStorage();
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
+   * Replaced broad useStorage() with useStorageKey('fasting') for specific data
+   * and useStorageMethods for stable action references.
+   * ESTIMATED IMPACT: Eliminates redundant re-renders and O(N) mount-time syncs.
+   */
+  const fastingDataRaw = useStorageKey('fasting');
+  const { setItem } = useStorageMethods();
   const { addNotification } = useNotifications();
+
   const [elapsed, setElapsed] = useState(0);
   const [isPaused, setIsPaused] = useState(true);
   const timerRef = useRef(null);
@@ -116,17 +126,16 @@ const FastingTracker = () => {
     document.title = 'VORO | Fasting Tracker';
   }, []);
 
-  /**
-   * ⚡ OPTIMIZATION: Surgical Reactivity.
-   * Depend on specific storage keys instead of the 'getItem' accessor
-   * which is redefined on every global storage update.
-   */
   const fastingData = useMemo(() => {
-    return storageData['fasting'] || { window: '16:8', started: null, status: 'idle' };
-  }, [storageData['fasting']]);
+    return fastingDataRaw || { window: '16:8', started: null, status: 'idle' };
+  }, [fastingDataRaw]);
 
-  const [fastHours, breakHours] = fastingData.window.split(':').map(Number);
-  const totalSeconds = fastHours * 3600;
+  const [fastHours, breakHours] = useMemo(() =>
+    fastingData.window.split(':').map(Number),
+    [fastingData.window]
+  );
+
+  const totalSeconds = useMemo(() => fastHours * 3600, [fastHours]);
 
   useEffect(() => {
     if (fastingData.started && fastingData.status === 'active') {
@@ -139,7 +148,7 @@ const FastingTracker = () => {
       setElapsed(0);
       setIsPaused(true);
     }
-  }, [fastingData]);
+  }, [fastingData.started, fastingData.status]);
 
   useEffect(() => {
     if (!isPaused) {
@@ -152,27 +161,27 @@ const FastingTracker = () => {
     return () => clearInterval(timerRef.current);
   }, [isPaused]);
 
-  const handleStart = async () => {
+  const handleStart = useCallback(async () => {
     const now = new Date().toISOString();
     await setItem('fasting', { ...fastingData, started: now, status: 'active' });
     addNotification('Metabolic transition initiated. Autophagy sequence started.', 'success');
-  };
+  }, [fastingData, setItem, addNotification]);
 
-  const handlePause = () => {
-    setIsPaused(!isPaused);
-  };
+  const handlePause = useCallback(() => {
+    setIsPaused(prev => !prev);
+  }, []);
 
-  const handleReset = async () => {
+  const handleReset = useCallback(async () => {
     await setItem('fasting', { ...fastingData, started: null, status: 'idle' });
     setElapsed(0);
     setIsPaused(true);
     addNotification('Fasting cycle reset.', 'info');
-  };
+  }, [fastingData, setItem, addNotification]);
 
-  const handleWindowChange = async (e) => {
+  const handleWindowChange = useCallback(async (e) => {
     const newWindow = e.target.value;
     await setItem('fasting', { ...fastingData, window: newWindow });
-  };
+  }, [fastingData, setItem]);
 
   const progress = Math.min((elapsed / totalSeconds) * 100, 100);
   const hours = Math.floor(elapsed / 3600);

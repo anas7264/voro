@@ -1,4 +1,4 @@
-export { useStorage } from "./useStorage";
+export { useStorage, useStorageKey, useStorageMethods } from "./useStorage";
 export { useAI } from "./useAI";
 export { useCalculators } from "./useCalculators";
 export { useNotifications } from "./useNotifications";
