@@ -1,30 +1,30 @@
 import React, { useEffect, useMemo } from 'react';
-import { Calendar, Plus, Clock, Package, ShoppingCart, ChevronRight, Zap, Download } from 'lucide-react';
+import { Calendar, Plus, Clock, Package, ShoppingCart, ChevronRight, Zap, Download, Activity } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 
 const MealPrepPlanner = () => {
-  const { storageData } = useStorage();
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
+   * Replaced broad useStorage() with useStorageKey('meal_prep') for specific data.
+   * ESTIMATED IMPACT: Eliminates redundant re-renders and O(N) mount-time syncs.
+   */
+  const mealPrepData = useStorageKey('meal_prep') || {};
 
   useEffect(() => {
     document.title = 'VORO | Culinary Logistics';
   }, []);
 
-  /**
-   * ⚡ OPTIMIZATION: Narrow dependency to specific storage key for surgical reactivity.
-   * Redesigned with a premium boutique gallery aesthetic.
-   */
   const prepPlan = useMemo(() => {
-    const data = storageData['meal_prep'] || {};
-    return data.plan || [
+    return mealPrepData.plan || [
       { id: 1, day: 'Sunday', duration: '2 hours', count: 20, recipes: ['Kinetic Chicken & Basmati', 'Atlantic Salmon & Greens', 'Turkey & Sweet Potato Flux'] },
       { id: 2, day: 'Wednesday', duration: '1 hour', count: 10, recipes: ['Egg White Frittata Matrix', 'Overnight Oats Synthesis'] }
     ];
-  }, [storageData['meal_prep']]);
+  }, [mealPrepData]);
 
   return (
-    <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30">
+    <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30 pb-24">
       {/* Ambient Background Logistics */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-voro-primary/5 rounded-full blur-[120px]" />
@@ -166,7 +166,10 @@ const MealPrepPlanner = () => {
             </Card>
 
             <Card className="p-10 space-y-6 border-white/5">
-               <h3 className="text-[0.65rem] font-black text-gray-500 uppercase tracking-[0.3em]">Protocol Advisory</h3>
+               <div className="flex items-center gap-3">
+                 <Activity size={16} className="text-voro-primary opacity-50" />
+                 <h3 className="text-[0.65rem] font-black text-gray-500 uppercase tracking-[0.3em]">Protocol Advisory</h3>
+               </div>
                <p className="text-sm font-medium text-gray-500 leading-relaxed italic">
                  Batch preparation optimizes metabolic adherence by eliminating friction in the provision supply chain.
                </p>

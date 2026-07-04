@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, memo } from 'react';
+import React, { useState, useEffect, useMemo, memo, useCallback } from 'react';
 import { Plus, Droplet, Trash2, TrendingUp, ChevronLeft, ChevronRight, Target, Zap, Waves } from 'lucide-react';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { validateWaterEntry } from '@/utils/validators';
 import Button from '@/components/Button';
@@ -74,9 +74,20 @@ const HydroVessel = memo(({ percentage }) => {
   );
 });
 
+HydroVessel.displayName = 'HydroVessel';
+
 const WaterTracker = () => {
-  const { getItem, setItem, updateItem, storageData } = useStorage();
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
+   * Replaced broad useStorage() with specific useStorageKey calls for specific data
+   * and useStorageMethods for stable action references.
+   * ESTIMATED IMPACT: Eliminates redundant re-renders and O(N) mount-time syncs.
+   */
+  const waterLogsAll = useStorageKey('water_log') || {};
+  const waterHistoryAll = useStorageKey('water_history') || {};
+  const { updateItem } = useStorageMethods();
   const { addNotification } = useNotifications();
+
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const dailyGoal = 2000;
 
@@ -84,31 +95,24 @@ const WaterTracker = () => {
     document.title = 'VORO | Water Tracker';
   }, []);
 
-  /**
-   * ⚡ OPTIMIZATION: Surgical Reactivity.
-   * Depend on specific storage keys instead of the 'getItem' accessor
-   * which is redefined on every global storage update.
-   */
   const dailyLogs = useMemo(() => {
-    const logs = storageData['water_log'] || {};
-    return logs[date] || [];
-  }, [storageData['water_log'], date]);
+    return waterLogsAll[date] || [];
+  }, [waterLogsAll, date]);
 
   const waterHistory = useMemo(() => {
-    const all = storageData['water_history'] || {};
-    return Object.entries(all)
+    return Object.entries(waterHistoryAll)
       .slice(-30)
       .map(([d, amount]) => ({
         date: shortDateFormatter.format(new Date(d)),
         water: amount,
       }));
-  }, [storageData['water_history']]);
+  }, [waterHistoryAll]);
 
   const todayTotal = useMemo(() => {
     return dailyLogs.reduce((sum, log) => sum + (log.amount || 0), 0);
   }, [dailyLogs]);
 
-  const addWater = async (amount) => {
+  const addWater = useCallback(async (amount) => {
     const { valid, errors } = validateWaterEntry({ amount, date });
 
     if (!valid) {
@@ -122,15 +126,8 @@ const WaterTracker = () => {
       time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
     };
 
-    /**
-     * ⚡ OPTIMIZATION: Use updateItem for surgical key-level updates.
-     * Reduces the complexity of reading and spreading entire log objects.
-     */
-    const logsForDate = dailyLogs;
-    const updatedLogs = [...logsForDate, newLog];
-
-    const history = storageData['water_history'] || {};
-    const newTotal = (history[date] || 0) + amount;
+    const updatedLogs = [...dailyLogs, newLog];
+    const newTotal = (waterHistoryAll[date] || 0) + amount;
 
     await updateItem('water_log', { [date]: updatedLogs });
     await updateItem('water_history', { [date]: newTotal });
@@ -138,26 +135,26 @@ const WaterTracker = () => {
     if (newTotal >= dailyGoal && (newTotal - amount) < dailyGoal) {
       addNotification('Hydration threshold achieved. Cellular homeostasis optimized.', 'success');
     }
-  };
+  }, [date, dailyLogs, waterHistoryAll, updateItem, addNotification, dailyGoal]);
 
-  const deleteLog = async (id) => {
-    const currentLogs = dailyLogs;
-    const logToDelete = currentLogs.find(l => l.id === id);
+  const deleteLog = useCallback(async (id) => {
+    const logToDelete = dailyLogs.find(l => l.id === id);
     if (!logToDelete) return;
 
-    const updatedLogs = currentLogs.filter(log => log.id !== id);
-    const history = storageData['water_history'] || {};
-    const newTotal = Math.max(0, (history[date] || 0) - logToDelete.amount);
+    const updatedLogs = dailyLogs.filter(log => log.id !== id);
+    const newTotal = Math.max(0, (waterHistoryAll[date] || 0) - logToDelete.amount);
 
     await updateItem('water_log', { [date]: updatedLogs });
     await updateItem('water_history', { [date]: newTotal });
-  };
+  }, [date, dailyLogs, waterHistoryAll, updateItem]);
 
-  const handleDateChange = (days) => {
-    const newDate = new Date(date);
-    newDate.setDate(newDate.getDate() + days);
-    setDate(newDate.toISOString().split('T')[0]);
-  };
+  const handleDateChange = useCallback((days) => {
+    setDate(prev => {
+      const newDate = new Date(prev);
+      newDate.setDate(newDate.getDate() + days);
+      return newDate.toISOString().split('T')[0];
+    });
+  }, []);
 
   const percentage = Math.min((todayTotal / dailyGoal) * 100, 100);
   const formattedDate = longDateFormatter.format(new Date(date));
