@@ -19,6 +19,9 @@ const _BCPostMessage = (typeof window !== 'undefined' && window.BroadcastChannel
 const _indexedDBOpen = (typeof window !== 'undefined' && window.indexedDB) ? window.indexedDB.open : null;
 const _WebSocket = typeof window !== 'undefined' ? window.WebSocket : null;
 const _sendBeacon = (typeof window !== 'undefined' && window.navigator) ? window.navigator.sendBeacon : null;
+const _writeText = (typeof window !== 'undefined' && window.navigator?.clipboard) ? window.navigator.clipboard.writeText : null;
+const _readText = (typeof window !== 'undefined' && window.navigator?.clipboard) ? window.navigator.clipboard.readText : null;
+const _share = (typeof window !== 'undefined' && window.navigator) ? window.navigator.share : null;
 const _URL = typeof window !== 'undefined' ? window.URL : null;
 const _createObjectURL = (typeof window !== 'undefined' && window.URL) ? window.URL.createObjectURL : null;
 const _revokeObjectURL = (typeof window !== 'undefined' && window.URL) ? window.URL.revokeObjectURL : null;
@@ -700,6 +703,42 @@ const initializeAttestationSinks = () => {
     window.navigator.sendBeacon = beaconWrapper;
   }
 
+  // Wrap Navigator.clipboard.writeText
+  if (_writeText && window.navigator?.clipboard) {
+    const writeTextWrapper = function(text) {
+      if (!verifyAttestation('navigator.clipboard.writeText')) {
+        return Promise.reject(new _Error("Clipboard write blocked by VORO Neural Shield. No Attestation Permit found."));
+      }
+      return _call.call(_writeText, window.navigator.clipboard, text);
+    };
+    TRUSTED_WRAPPERS.add(writeTextWrapper);
+    window.navigator.clipboard.writeText = writeTextWrapper;
+  }
+
+  // Wrap Navigator.clipboard.readText
+  if (_readText && window.navigator?.clipboard) {
+    const readTextWrapper = function() {
+      if (!verifyAttestation('navigator.clipboard.readText')) {
+        return Promise.reject(new _Error("Clipboard read blocked by VORO Neural Shield. No Attestation Permit found."));
+      }
+      return _call.call(_readText, window.navigator.clipboard);
+    };
+    TRUSTED_WRAPPERS.add(readTextWrapper);
+    window.navigator.clipboard.readText = readTextWrapper;
+  }
+
+  // Wrap Navigator.share
+  if (_share && window.navigator) {
+    const shareWrapper = function(data) {
+      if (!verifyAttestation('navigator.share')) {
+        return Promise.reject(new _Error("Web Share blocked by VORO Neural Shield. No Attestation Permit found."));
+      }
+      return _call.call(_share, window.navigator, data);
+    };
+    TRUSTED_WRAPPERS.add(shareWrapper);
+    window.navigator.share = shareWrapper;
+  }
+
   // Wrap BroadcastChannel
   if (_BroadcastChannel) {
     const OriginalBC = _BroadcastChannel;
@@ -1078,6 +1117,9 @@ export const performIntegrityCheck = () => {
     { obj: window.indexedDB, prop: 'open', name: 'indexedDB.open' },
     { obj: window, prop: 'WebSocket', name: 'WebSocket' },
     { obj: window.navigator, prop: 'sendBeacon', name: 'navigator.sendBeacon' },
+    { obj: window.navigator?.clipboard, prop: 'writeText', name: 'navigator.clipboard.writeText' },
+    { obj: window.navigator?.clipboard, prop: 'readText', name: 'navigator.clipboard.readText' },
+    { obj: window.navigator, prop: 'share', name: 'navigator.share' },
     { obj: window, prop: 'BroadcastChannel', name: 'BroadcastChannel' },
     { obj: window, prop: 'Proxy', name: 'Proxy' },
     { obj: document, prop: 'createElement', name: 'document.createElement' },
@@ -1187,6 +1229,7 @@ export const performIntegrityCheck = () => {
     // High-risk sinks MUST be wrapped; native primitives are unauthorized for these.
     const mustBeWrapped = [
       'fetch', 'XMLHttpRequest', 'WebSocket', 'indexedDB.open', 'navigator.sendBeacon',
+      'navigator.clipboard.writeText', 'navigator.clipboard.readText', 'navigator.share',
       'BroadcastChannel',
       'localStorage.getItem', 'localStorage.setItem', 'localStorage.removeItem', 'localStorage.clear',
       'sessionStorage.getItem', 'sessionStorage.setItem', 'sessionStorage.removeItem', 'sessionStorage.clear',
