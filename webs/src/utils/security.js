@@ -19,6 +19,7 @@ const _BCPostMessage = (typeof window !== 'undefined' && window.BroadcastChannel
 const _indexedDBOpen = (typeof window !== 'undefined' && window.indexedDB) ? window.indexedDB.open : null;
 const _WebSocket = typeof window !== 'undefined' ? window.WebSocket : null;
 const _sendBeacon = (typeof window !== 'undefined' && window.navigator) ? window.navigator.sendBeacon : null;
+const _SWRegister = (typeof window !== 'undefined' && window.navigator?.serviceWorker) ? window.navigator.serviceWorker.register : null;
 const _writeText = (typeof window !== 'undefined' && window.navigator?.clipboard) ? window.navigator.clipboard.writeText : null;
 const _readText = (typeof window !== 'undefined' && window.navigator?.clipboard) ? window.navigator.clipboard.readText : null;
 const _share = (typeof window !== 'undefined' && window.navigator) ? window.navigator.share : null;
@@ -703,6 +704,18 @@ const initializeAttestationSinks = () => {
     window.navigator.sendBeacon = beaconWrapper;
   }
 
+  // Wrap Navigator.serviceWorker.register
+  if (_SWRegister && window.navigator?.serviceWorker) {
+    const swWrapper = function(scriptURL, options) {
+      if (!verifyAttestation('navigator.serviceWorker.register', scriptURL)) {
+        return Promise.reject(new _Error("Service Worker registration blocked by VORO Neural Shield. No Attestation Permit found."));
+      }
+      return _call.call(_SWRegister, window.navigator.serviceWorker, scriptURL, options);
+    };
+    TRUSTED_WRAPPERS.add(swWrapper);
+    window.navigator.serviceWorker.register = swWrapper;
+  }
+
   // Wrap Navigator.clipboard.writeText
   if (_writeText && window.navigator?.clipboard) {
     const writeTextWrapper = function(text) {
@@ -1229,6 +1242,7 @@ export const performIntegrityCheck = () => {
     // High-risk sinks MUST be wrapped; native primitives are unauthorized for these.
     const mustBeWrapped = [
       'fetch', 'XMLHttpRequest', 'WebSocket', 'indexedDB.open', 'navigator.sendBeacon',
+      'navigator.serviceWorker.register',
       'navigator.clipboard.writeText', 'navigator.clipboard.readText', 'navigator.share',
       'BroadcastChannel',
       'localStorage.getItem', 'localStorage.setItem', 'localStorage.removeItem', 'localStorage.clear',
@@ -1263,6 +1277,7 @@ export const performIntegrityCheck = () => {
               'XMLHttpRequest': _XHR,
               'BroadcastChannel': _BroadcastChannel,
               'WebSocket': _WebSocket,
+              'navigator.serviceWorker.register': _SWRegister,
               'setInterval': _setInterval,
               'setTimeout': _setTimeout,
               'performance.now': _perfNow,
