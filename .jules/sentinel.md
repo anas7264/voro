@@ -213,3 +213,14 @@ True Zero Trust requires that even native, "safe" primitives be treated as restr
 
 **Prevention:**
 Always include cryptographic primitives in RASP integrity checks. Enforce that high-risk sinks must be wrapped in attested execution blocks (`executeSecurely`) with granular capabilities. Never allow unauthorized contexts to access native cryptographic methods, even if they haven't been monkey-patched.
+
+## 2025-05-30 - Service Worker RASP Integration & Initialization Hardening
+
+**Vulnerability:**
+Native browser APIs like `navigator.serviceWorker.register` provide a powerful vector for persistent compromise, including network request interception and cache poisoning. If these sinks are left unmonitored by RASP, an attacker can bypass origin-based security policies. Furthermore, if the security orchestrator is not the absolute first module loaded in the application entry point, other dependencies may capture references to native primitives before they are pinned or wrapped.
+
+**Learning:**
+Robust security requires both breadth of coverage and precedence of execution. Extending RASP to include Service Worker registration ensures that all background execution contexts are subject to attestation. Simultaneously, enforcing that the security sentinel is the first import in `main.jsx` guarantees the integrity of captured primitives by preventing "Primitive Race Conditions" with other third-party libraries.
+
+**Prevention:**
+Always include background execution and network-interception APIs (`ServiceWorker`, `SharedWorker`) in the RASP `mustBeWrapped` list. Mandatory security initialization must occur as the absolute first line of the application's entry sequence to ensure that all subsequent module loads operate within a protected environment.
