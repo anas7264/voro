@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, memo } from 'react';
 import { Plus, Droplet, Trash2, TrendingUp, ChevronLeft, ChevronRight, Target, Zap, Waves } from 'lucide-react';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { validateWaterEntry } from '@/utils/validators';
 import Button from '@/components/Button';
@@ -75,7 +75,15 @@ const HydroVessel = memo(({ percentage }) => {
 });
 
 const WaterTracker = () => {
-  const { getItem, setItem, updateItem, storageData } = useStorage();
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
+   * Replaced broad useStorage() with useStorageKey for specific data and
+   * useStorageMethods for stable action references.
+   */
+  const waterLog = useStorageKey('water_log') || {};
+  const waterHistoryData = useStorageKey('water_history') || {};
+  const { updateItem } = useStorageMethods();
+
   const { addNotification } = useNotifications();
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const dailyGoal = 2000;
@@ -84,25 +92,18 @@ const WaterTracker = () => {
     document.title = 'VORO | Water Tracker';
   }, []);
 
-  /**
-   * ⚡ OPTIMIZATION: Surgical Reactivity.
-   * Depend on specific storage keys instead of the 'getItem' accessor
-   * which is redefined on every global storage update.
-   */
   const dailyLogs = useMemo(() => {
-    const logs = storageData['water_log'] || {};
-    return logs[date] || [];
-  }, [storageData['water_log'], date]);
+    return waterLog[date] || [];
+  }, [waterLog, date]);
 
   const waterHistory = useMemo(() => {
-    const all = storageData['water_history'] || {};
-    return Object.entries(all)
+    return Object.entries(waterHistoryData)
       .slice(-30)
       .map(([d, amount]) => ({
         date: shortDateFormatter.format(new Date(d)),
         water: amount,
       }));
-  }, [storageData['water_history']]);
+  }, [waterHistoryData]);
 
   const todayTotal = useMemo(() => {
     return dailyLogs.reduce((sum, log) => sum + (log.amount || 0), 0);
@@ -129,8 +130,7 @@ const WaterTracker = () => {
     const logsForDate = dailyLogs;
     const updatedLogs = [...logsForDate, newLog];
 
-    const history = storageData['water_history'] || {};
-    const newTotal = (history[date] || 0) + amount;
+    const newTotal = (waterHistoryData[date] || 0) + amount;
 
     await updateItem('water_log', { [date]: updatedLogs });
     await updateItem('water_history', { [date]: newTotal });
@@ -146,8 +146,7 @@ const WaterTracker = () => {
     if (!logToDelete) return;
 
     const updatedLogs = currentLogs.filter(log => log.id !== id);
-    const history = storageData['water_history'] || {};
-    const newTotal = Math.max(0, (history[date] || 0) - logToDelete.amount);
+    const newTotal = Math.max(0, (waterHistoryData[date] || 0) - logToDelete.amount);
 
     await updateItem('water_log', { [date]: updatedLogs });
     await updateItem('water_history', { [date]: newTotal });
