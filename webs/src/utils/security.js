@@ -47,6 +47,7 @@ const _getOwnPropertySymbols = Object.getOwnPropertySymbols;
 const _getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
 const _getPrototypeOf = Object.getPrototypeOf;
 const _hasOwnProperty = Object.prototype.hasOwnProperty;
+const _values = Object.values;
 const _ReflectApply = typeof Reflect !== 'undefined' ? Reflect.apply : null;
 const _perfNow = (typeof performance !== 'undefined' && performance.now) ? performance.now.bind(performance) : null;
 const _seal = Object.seal;
@@ -115,7 +116,8 @@ const calculateEntropy = (str) => {
     const char = str[i];
     frequencies[char] = (frequencies[char] || 0) + 1;
   }
-  return Object.values(frequencies).reduce((sum, freq) => {
+  const freqValues = _values ? _call.call(_values, Object, frequencies) : Object.values(frequencies);
+  return freqValues.reduce((sum, freq) => {
     const p = freq / len;
     return sum - p * Math.log2(p);
   }, 0);
@@ -137,6 +139,7 @@ const corePrototypes = [
 ];
 
 const TRUSTED_WRAPPERS = new WeakSet();
+const WRAPPERS_REGISTRY = new Map();
 
 const snapshotPrototypes = () => {
   if (typeof window === 'undefined') return;
@@ -262,7 +265,7 @@ export const validateCallStack = () => {
         try {
           // Strip line/column numbers (e.g. :14:2) before parsing
           const cleanUrl = urlMatch[0].replace(/:\d+(?::\d+)?$/, '');
-          const urlObj = new URL(cleanUrl);
+          const urlObj = _URL ? new _URL(cleanUrl) : new URL(cleanUrl);
           if (urlObj.origin !== trustedOrigin) {
             if (_console.error) _call.call(_console.error, console, `Security Sentinel: Cross-origin script provenance detected: ${urlObj.origin}`);
             executeLockdown();
@@ -370,7 +373,7 @@ export const voroPolicy = (typeof window !== 'undefined' && window.trustedTypes)
       },
       createScriptURL: (input) => {
         const allowedDomains = ['self', 'https://fonts.googleapis.com', 'https://fonts.gstatic.com'];
-        const url = new URL(input, window.location.origin);
+        const url = _URL ? new _URL(input, window.location.origin) : new URL(input, window.location.origin);
         if (allowedDomains.includes(url.origin) || url.origin === window.location.origin) {
           return input;
         }
@@ -511,7 +514,7 @@ const verifyAttestation = (sinkName, targetUrl = null) => {
   // 1. Whitelist Verification (Prevents breaking core app functionality)
   if (targetUrl) {
     try {
-      const url = new URL(targetUrl, window.location.origin);
+      const url = _URL ? new _URL(targetUrl, window.location.origin) : new URL(targetUrl, window.location.origin);
       if (ATTESTATION_WHITELIST.includes('self') && url.origin === window.location.origin) return true;
       if (ATTESTATION_WHITELIST.some(allowed => url.origin === allowed)) return true;
     } catch (e) { /* fallback to strict attestation if URL is malformed */ }
@@ -537,7 +540,7 @@ const verifyAttestation = (sinkName, targetUrl = null) => {
         let hasDomainCap = true;
         if (targetUrl) {
           try {
-            const url = new URL(targetUrl, window.location.origin);
+            const url = _URL ? new _URL(targetUrl, window.location.origin) : new URL(targetUrl, window.location.origin);
             const domainCap = `domain:${url.host}`;
             // If domains are specified in capabilities, we must match one
             const restrictedDomains = record.capabilities.filter(c => c.startsWith('domain:'));
@@ -628,6 +631,7 @@ const initializeAttestationSinks = () => {
       return _ReflectApply ? _ReflectApply(_indexedDBOpen, window.indexedDB, arguments) : _call.call(_indexedDBOpen, window.indexedDB, name, version);
     };
     TRUSTED_WRAPPERS.add(idbWrapper);
+    WRAPPERS_REGISTRY.set('indexedDB.open', idbWrapper);
     window.indexedDB.open = idbWrapper;
   }
 
@@ -641,6 +645,7 @@ const initializeAttestationSinks = () => {
       return _ReflectApply ? _ReflectApply(_fetch, window, args) : _call.call(_fetch, window, ...args);
     };
     TRUSTED_WRAPPERS.add(fetchWrapper);
+    WRAPPERS_REGISTRY.set('fetch', fetchWrapper);
     window.fetch = fetchWrapper;
   }
 
@@ -653,6 +658,7 @@ const initializeAttestationSinks = () => {
       }
       return new OriginalXHR();
     };
+    WRAPPERS_REGISTRY.set('XMLHttpRequest', xhrWrapper);
     // Re-link prototype and static properties
     xhrWrapper.prototype = OriginalXHR.prototype;
     _getOwnPropertyNames(OriginalXHR).forEach(prop => {
@@ -677,6 +683,7 @@ const initializeAttestationSinks = () => {
       }
       return new OriginalWS(url, protocols);
     };
+    WRAPPERS_REGISTRY.set('WebSocket', wsWrapper);
     wsWrapper.prototype = OriginalWS.prototype;
     _getOwnPropertyNames(OriginalWS).forEach(prop => {
       if (!wsWrapper[prop]) {
@@ -701,6 +708,7 @@ const initializeAttestationSinks = () => {
       return _ReflectApply ? _ReflectApply(_sendBeacon, window.navigator, args) : _call.call(_sendBeacon, window.navigator, ...args);
     };
     TRUSTED_WRAPPERS.add(beaconWrapper);
+    WRAPPERS_REGISTRY.set('navigator.sendBeacon', beaconWrapper);
     window.navigator.sendBeacon = beaconWrapper;
   }
 
@@ -713,6 +721,7 @@ const initializeAttestationSinks = () => {
       return _call.call(_SWRegister, window.navigator.serviceWorker, scriptURL, options);
     };
     TRUSTED_WRAPPERS.add(swWrapper);
+    WRAPPERS_REGISTRY.set('navigator.serviceWorker.register', swWrapper);
     window.navigator.serviceWorker.register = swWrapper;
   }
 
@@ -725,6 +734,7 @@ const initializeAttestationSinks = () => {
       return _call.call(_writeText, window.navigator.clipboard, text);
     };
     TRUSTED_WRAPPERS.add(writeTextWrapper);
+    WRAPPERS_REGISTRY.set('navigator.clipboard.writeText', writeTextWrapper);
     window.navigator.clipboard.writeText = writeTextWrapper;
   }
 
@@ -737,6 +747,7 @@ const initializeAttestationSinks = () => {
       return _call.call(_readText, window.navigator.clipboard);
     };
     TRUSTED_WRAPPERS.add(readTextWrapper);
+    WRAPPERS_REGISTRY.set('navigator.clipboard.readText', readTextWrapper);
     window.navigator.clipboard.readText = readTextWrapper;
   }
 
@@ -749,6 +760,7 @@ const initializeAttestationSinks = () => {
       return _call.call(_share, window.navigator, data);
     };
     TRUSTED_WRAPPERS.add(shareWrapper);
+    WRAPPERS_REGISTRY.set('navigator.share', shareWrapper);
     window.navigator.share = shareWrapper;
   }
 
@@ -764,6 +776,7 @@ const initializeAttestationSinks = () => {
     // Re-link prototype
     bcWrapper.prototype = OriginalBC.prototype;
     TRUSTED_WRAPPERS.add(bcWrapper);
+    WRAPPERS_REGISTRY.set('BroadcastChannel', bcWrapper);
     window.BroadcastChannel = bcWrapper;
   }
 
@@ -776,6 +789,7 @@ const initializeAttestationSinks = () => {
       return _call.call(_createObjectURL, window.URL, obj);
     };
     TRUSTED_WRAPPERS.add(createObjectURLWrapper);
+    WRAPPERS_REGISTRY.set('URL.createObjectURL', createObjectURLWrapper);
     window.URL.createObjectURL = createObjectURLWrapper;
   }
 
@@ -788,6 +802,7 @@ const initializeAttestationSinks = () => {
       return _call.call(_revokeObjectURL, window.URL, url);
     };
     TRUSTED_WRAPPERS.add(revokeObjectURLWrapper);
+    WRAPPERS_REGISTRY.set('URL.revokeObjectURL', revokeObjectURLWrapper);
     window.URL.revokeObjectURL = revokeObjectURLWrapper;
   }
 
@@ -812,6 +827,7 @@ const initializeAttestationSinks = () => {
       };
 
       TRUSTED_WRAPPERS.add(wrapper);
+      WRAPPERS_REGISTRY.set(prop, wrapper);
 
       try {
         _defineProperty(window.crypto.subtle, name, {
@@ -847,14 +863,16 @@ const initializeAttestationSinks = () => {
           else if (this === (typeof window !== 'undefined' ? window.sessionStorage : null)) instance = 'sessionStorage';
         } catch (e) { /* fail-safe */ }
 
-        if (!verifyAttestation(`${instance}.${name}`)) {
-          if (_console.warn) _call.call(_console.warn, console, `Security Sentinel: Unauthorized ${instance}.${name} blocked.`);
+        const attestationName = instance === 'Storage' ? `Storage.prototype.${name}` : `${instance}.${name}`;
+        if (!verifyAttestation(attestationName)) {
+          if (_console.warn) _call.call(_console.warn, console, `Security Sentinel: Unauthorized ${attestationName} blocked.`);
           return null;
         }
         return _call.call(native, this, ...args);
       };
 
       TRUSTED_WRAPPERS.add(wrapper);
+      WRAPPERS_REGISTRY.set(`Storage.prototype.${name}`, wrapper);
 
       try {
         _defineProperty(Storage.prototype, name, {
@@ -1055,7 +1073,17 @@ export const executeLockdown = (broadcast = true) => {
   }
 
   // Activate deception mode
-  window.VORO_DECEPTION_ACTIVE = true;
+  try {
+    if (!window.VORO_DECEPTION_ACTIVE) {
+      _defineProperty(window, 'VORO_DECEPTION_ACTIVE', {
+        value: true,
+        writable: false,
+        configurable: false
+      });
+    }
+  } catch (e) {
+    window.VORO_DECEPTION_ACTIVE = true;
+  }
 
   // Broadcast to other tabs via the security nexus
   if (broadcast && securityNexus && _BCPostMessage) {
@@ -1266,8 +1294,23 @@ export const performIntegrityCheck = () => {
           if (isTestMode()) return;
           if (_console.error) _call.call(_console.error, console, `Security Sentinel: Integrity Violation! ${name} has been monkey-patched or reverted to native. Executing Self-Healing restore.`);
 
-          // Self-Healing RASP: Attempt to restore native primitives from captured safe references
+          // Self-Healing RASP: Attempt to restore trusted wrappers or native primitives
           try {
+            // First, attempt to restore the authorized security wrapper if it exists
+            const wrapper = WRAPPERS_REGISTRY.get(name) ||
+                           (name.includes('.') ? WRAPPERS_REGISTRY.get(`Storage.prototype.${name.split('.')[1]}`) : null);
+            if (wrapper && obj) {
+              _defineProperty(obj, prop, {
+                value: wrapper,
+                configurable: false,
+                writable: false,
+                enumerable: true
+              });
+              if (_console.info) _call.call(_console.info, console, `Security Sentinel: Successfully restored authorized wrapper for ${name}.`);
+              return;
+            }
+
+            // Fallback: Restore native primitives from captured safe references
             const capturedMap = {
               'fetch': _fetch,
               'JSON.parse': JSON.parse,
@@ -1285,7 +1328,14 @@ export const performIntegrityCheck = () => {
               'localStorage.setItem': _StorageSetItem,
               'localStorage.removeItem': _StorageRemoveItem,
               'localStorage.clear': _StorageClear,
+              'sessionStorage.getItem': _StorageGetItem,
               'sessionStorage.setItem': _StorageSetItem,
+              'sessionStorage.removeItem': _StorageRemoveItem,
+              'sessionStorage.clear': _StorageClear,
+              'Storage.prototype.getItem': _StorageGetItem,
+              'Storage.prototype.setItem': _StorageSetItem,
+              'Storage.prototype.removeItem': _StorageRemoveItem,
+              'Storage.prototype.clear': _StorageClear,
               'crypto.subtle.encrypt': _SubtleEncrypt,
               'crypto.subtle.decrypt': _SubtleDecrypt,
               'crypto.subtle.deriveKey': _SubtleDeriveKey,

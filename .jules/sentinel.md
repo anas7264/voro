@@ -224,3 +224,13 @@ Robust security requires both breadth of coverage and precedence of execution. E
 
 **Prevention:**
 Always include background execution and network-interception APIs (`ServiceWorker`, `SharedWorker`) in the RASP `mustBeWrapped` list. Mandatory security initialization must occur as the absolute first line of the application's entry sequence to ensure that all subsequent module loads operate within a protected environment.
+
+## 2026-07-05 - Wrapper-Aware RASP Self-Healing
+**Vulnerability:**
+Standard RASP self-healing often reverts tampered APIs to their "native" state. While this restores functionality, it removes security instrumentation (attestation guards), allowing an attacker to bypass monitoring by simply triggering a reversion to native code.
+
+**Learning:**
+A robust self-healing mechanism must be "Security-Aware". By maintaining a registry of authorized security wrappers and prioritizing their restoration over native primitives for high-risk sinks (fetch, Storage), the system ensures that it remains under attestation guard even after a tampering attempt.
+
+**Prevention:**
+Always register security wrappers in a trusted, internal registry. During integrity checks, if a sink is found to be tampered with, check the registry for a valid wrapper before falling back to the native browser primitive.
