@@ -1,4 +1,4 @@
-import React, { createContext, useState, useCallback, useEffect } from "react";
+import React, { createContext, useState, useCallback, useEffect, useMemo } from "react";
 import storage from "../utils/storage";
 
 export const ThemeContext = createContext();
@@ -144,7 +144,12 @@ export const ThemeProvider = ({ children }) => {
     });
   }, [applyTheme]);
 
-  const value = {
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Memoized context value.
+   * Prevents redundant re-renders of all ThemeContext consumers
+   * when ThemeProvider re-renders for unrelated reasons.
+   */
+  const value = useMemo(() => ({
     isDark,
     primaryColor,
     secondaryColor,
@@ -154,7 +159,17 @@ export const ThemeProvider = ({ children }) => {
     updateSecondaryColor,
     updateFontFamily,
     resetToDefault
-  };
+  }), [
+    isDark,
+    primaryColor,
+    secondaryColor,
+    fontFamily,
+    toggleDarkMode,
+    updatePrimaryColor,
+    updateSecondaryColor,
+    updateFontFamily,
+    resetToDefault
+  ]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 };

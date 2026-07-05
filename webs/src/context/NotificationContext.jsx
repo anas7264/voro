@@ -1,4 +1,4 @@
-import React, { createContext, useState, useCallback, useRef } from "react";
+import React, { createContext, useState, useCallback, useRef, useMemo } from "react";
 
 export const NotificationContext = createContext();
 
@@ -87,7 +87,12 @@ export const NotificationProvider = ({ children }) => {
     }
   }, [loading, removeNotification, success, error]);
 
-  const value = {
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Memoized context value.
+   * Prevents redundant re-renders of all NotificationContext consumers
+   * (42 occurrences) when NotificationProvider re-renders for unrelated reasons.
+   */
+  const value = useMemo(() => ({
     notifications,
     addNotification,
     removeNotification,
@@ -99,7 +104,19 @@ export const NotificationProvider = ({ children }) => {
     loading,
     updateNotification,
     withNotification
-  };
+  }), [
+    notifications,
+    addNotification,
+    removeNotification,
+    clearAllNotifications,
+    success,
+    error,
+    warning,
+    info,
+    loading,
+    updateNotification,
+    withNotification
+  ]);
 
   return (
     <NotificationContext.Provider value={value}>
