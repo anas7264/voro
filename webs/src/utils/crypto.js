@@ -1,6 +1,11 @@
 // VORO Crypto Utility
 // Authenticated Encryption at Rest (AES-GCM) using Web Crypto API
-import { validateCallStack, executeSecurely } from './security';
+import sentinel from './security';
+const {
+  validateCallStack, executeSecurely,
+  _TEncoderEncode, _TDecoderDecode, _Uint8Fill, _Uint8Set, _Uint8Slice,
+  _call, _slice
+} = sentinel;
 
 const DB_NAME = 'VORO_SECURE_STORAGE';
 const STORE_NAME = 'KEYS';
@@ -161,7 +166,7 @@ class CryptoManager {
 
     await this.init();
     const encoder = new TextEncoder();
-    const infoBuffer = encoder.encode(domain);
+    const infoBuffer = _call.call(_TEncoderEncode, encoder, domain);
 
     const derivedKey = await executeSecurely(`Derive Key [${domain}]`, async () => {
       return await window.crypto.subtle.deriveKey(
@@ -179,7 +184,7 @@ class CryptoManager {
     }, ['sink:crypto.subtle.deriveKey']);
 
     // Heap Hygiene: Shred the temporary info buffer
-    infoBuffer.fill(0);
+    _call.call(_Uint8Fill, infoBuffer, 0);
 
     this.domainKeyCache.set(domain, derivedKey);
     return derivedKey;
@@ -204,7 +209,7 @@ class CryptoManager {
 
     const encoder = new TextEncoder();
     const rawString = typeof data === 'string' ? data : JSON.stringify(data);
-    const encodedData = encoder.encode(rawString);
+    const encodedData = _call.call(_TEncoderEncode, encoder, rawString);
     const iv = new Uint8Array(12);
     window.crypto.getRandomValues(iv);
 
@@ -216,7 +221,7 @@ class CryptoManager {
     const algorithm = { name: ALGO, iv };
     let aadBuffer = null;
     if (domain) {
-      aadBuffer = encoder.encode(domain);
+      aadBuffer = _call.call(_TEncoderEncode, encoder, domain);
       algorithm.additionalData = aadBuffer;
     }
 
@@ -229,12 +234,12 @@ class CryptoManager {
     }, ['sink:crypto.subtle.encrypt']);
 
     // Heap Hygiene: Shred plain-text and AAD buffers
-    encodedData.fill(0);
-    if (aadBuffer) aadBuffer.fill(0);
+    _call.call(_Uint8Fill, encodedData, 0);
+    if (aadBuffer) _call.call(_Uint8Fill, aadBuffer, 0);
 
     const combined = new Uint8Array(iv.length + ciphertext.byteLength);
-    combined.set(iv);
-    combined.set(new Uint8Array(ciphertext), iv.length);
+    _call.call(_Uint8Set, combined, iv);
+    _call.call(_Uint8Set, combined, new Uint8Array(ciphertext), iv.length);
 
     let binary = '';
     const bytes = new Uint8Array(combined);
@@ -243,8 +248,8 @@ class CryptoManager {
     }
 
     // Shred IV and combined buffer
-    iv.fill(0);
-    combined.fill(0);
+    _call.call(_Uint8Fill, iv, 0);
+    _call.call(_Uint8Fill, combined, 0);
 
     // v3: HKDF Isolated + AAD Bound
     // v2: Master Key + AAD Bound
@@ -277,14 +282,14 @@ class CryptoManager {
     await this.init();
 
     try {
-      const binaryString = atob(encryptedData.slice(3));
+      const binaryString = atob(_call.call(_slice, encryptedData, 3));
       const bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
 
-      const iv = bytes.slice(0, 12);
-      const ciphertext = bytes.slice(12);
+      const iv = _call.call(_Uint8Slice, bytes, 0, 12);
+      const ciphertext = _call.call(_Uint8Slice, bytes, 12);
 
       const decryptionKey = (version === 3 && domain)
         ? await this.deriveDomainKey(domain)
@@ -293,7 +298,8 @@ class CryptoManager {
       const algorithm = { name: ALGO, iv };
       let aadBuffer = null;
       if ((version === 2 || version === 3) && domain) {
-        aadBuffer = new TextEncoder().encode(domain);
+        const encoder = new TextEncoder();
+        aadBuffer = _call.call(_TEncoderEncode, encoder, domain);
         algorithm.additionalData = aadBuffer;
       }
 
@@ -306,15 +312,16 @@ class CryptoManager {
       }, ['sink:crypto.subtle.decrypt']);
 
       // Heap Hygiene: Shred sensitive buffers
-      bytes.fill(0);
-      iv.fill(0);
-      if (aadBuffer) aadBuffer.fill(0);
+      _call.call(_Uint8Fill, bytes, 0);
+      _call.call(_Uint8Fill, iv, 0);
+      if (aadBuffer) _call.call(_Uint8Fill, aadBuffer, 0);
 
       const decrypted = new Uint8Array(decryptedBuffer);
-      const decoded = new TextDecoder().decode(decrypted);
+      const decoder = new TextDecoder();
+      const decoded = _call.call(_TDecoderDecode, decoder, decrypted);
 
       // Final shred of the decrypted plain-text buffer
-      decrypted.fill(0);
+      _call.call(_Uint8Fill, decrypted, 0);
       try {
         return JSON.parse(decoded);
       } catch (e) {
