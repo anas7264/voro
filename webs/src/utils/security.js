@@ -9,6 +9,59 @@ const _call = Function.prototype.call;
 const _apply = Function.prototype.apply;
 const _test = RegExp.prototype.test;
 const _exec = RegExp.prototype.exec;
+
+// String Prototype Pinning
+const _split = String.prototype.split;
+const _SIncludes = String.prototype.includes;
+const _match = String.prototype.match;
+const _replace = String.prototype.replace;
+const _toLowerCase = String.prototype.toLowerCase;
+const _startsWith = String.prototype.startsWith;
+const _endsWith = String.prototype.endsWith;
+const _slice = String.prototype.slice;
+const _trim = String.prototype.trim;
+
+// Array Prototype Pinning
+const _forEach = Array.prototype.forEach;
+const _filter = Array.prototype.filter;
+const _map = Array.prototype.map;
+const _reduce = Array.prototype.reduce;
+const _AIncludes = Array.prototype.includes;
+const _join = Array.prototype.join;
+const _push = Array.prototype.push;
+const _reverse = Array.prototype.reverse;
+const _ASlice = Array.prototype.slice;
+const _find = Array.prototype.find;
+const _some = Array.prototype.some;
+const _every = Array.prototype.every;
+
+// Utility and Collection Prototype Pinning
+const _stringify = JSON.stringify;
+const _parse = JSON.parse;
+const _URLSearch = (typeof URL !== 'undefined') ? Object.getOwnPropertyDescriptor(URL.prototype, 'search')?.get : null;
+const _URLHash = (typeof URL !== 'undefined') ? Object.getOwnPropertyDescriptor(URL.prototype, 'hash')?.get : null;
+const _URLHostname = (typeof URL !== 'undefined') ? Object.getOwnPropertyDescriptor(URL.prototype, 'hostname')?.get : null;
+const _URLOrigin = (typeof URL !== 'undefined') ? Object.getOwnPropertyDescriptor(URL.prototype, 'origin')?.get : null;
+const _parseFromString = (typeof DOMParser !== 'undefined') ? DOMParser.prototype.parseFromString : null;
+const _MapGet = Map.prototype.get;
+const _MapSet = Map.prototype.set;
+const _MapHas = Map.prototype.has;
+const _MapDelete = Map.prototype.delete;
+const _MapEntries = Map.prototype.entries;
+const _SetAdd = Set.prototype.add;
+const _SetHas = Set.prototype.has;
+const _SetDelete = Set.prototype.delete;
+const _WeakMapGet = WeakMap.prototype.get;
+const _WeakMapSet = WeakMap.prototype.set;
+const _WeakMapHas = WeakMap.prototype.has;
+const _WeakSetAdd = WeakSet.prototype.add;
+const _WeakSetHas = WeakSet.prototype.has;
+const _Uint8Fill = Uint8Array.prototype.fill;
+const _Uint8Set = Uint8Array.prototype.set;
+const _Uint8Slice = Uint8Array.prototype.slice;
+const _TEncoderEncode = (typeof TextEncoder !== 'undefined') ? TextEncoder.prototype.encode : null;
+const _TDecoderDecode = (typeof TextDecoder !== 'undefined') ? TextDecoder.prototype.decode : null;
+
 const _setInterval = typeof setInterval !== 'undefined' ? setInterval : null;
 const _setTimeout = typeof setTimeout !== 'undefined' ? setTimeout : null;
 const _Error = Error;
@@ -115,7 +168,8 @@ const calculateEntropy = (str) => {
     const char = str[i];
     frequencies[char] = (frequencies[char] || 0) + 1;
   }
-  return Object.values(frequencies).reduce((sum, freq) => {
+  const values = Object.values(frequencies);
+  return _call.call(_reduce, values, (sum, freq) => {
     const p = freq / len;
     return sum - p * Math.log2(p);
   }, 0);
@@ -224,7 +278,7 @@ export const validateCallStack = () => {
     const stack = new _Error().stack;
     if (!stack) return true; // Some browsers might not provide stack, fail-open for UX but logs
 
-    const lines = stack.split('\n');
+    const lines = _call.call(_split, stack, '\n');
     const trustedOrigin = window.location.origin;
 
     // Detection 0: Stack Depth Validation (Prevents recursion/exhaustion attacks)
@@ -238,10 +292,10 @@ export const validateCallStack = () => {
     // and analyze the rest of the provenance.
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i];
-      if (!line || line.includes('validateCallStack')) continue;
+      if (!line || _call.call(_SIncludes, line, 'validateCallStack')) continue;
 
       // Detection 1: Anonymous / Evaluated Code
-      if (line.includes('<anonymous>') || line.includes('eval at') || line.includes('at eval')) {
+      if (_call.call(_SIncludes, line, '<anonymous>') || _call.call(_SIncludes, line, 'eval at') || _call.call(_SIncludes, line, 'at eval')) {
         if (_console.error) _call.call(_console.error, console, "Security Sentinel: Unauthorized execution context (eval/anonymous) detected in call stack.");
         executeLockdown();
         return false;
@@ -249,7 +303,7 @@ export const validateCallStack = () => {
 
       // Detection 2: Protocol Smuggling (blob, data, filesystem, extension)
       const dangerousProtocols = ['blob:', 'data:', 'filesystem:', 'chrome-extension:', 'moz-extension:', 'extension:', 'about:'];
-      if (dangerousProtocols.some(proto => line.includes(proto))) {
+      if (_call.call(_some, dangerousProtocols, proto => _call.call(_SIncludes, line, proto))) {
         if (_console.error) _call.call(_console.error, console, "Security Sentinel: Unauthorized protocol detected in call stack.");
         executeLockdown();
         return false;
@@ -257,14 +311,14 @@ export const validateCallStack = () => {
 
       // Detection 3: Cross-Origin / Third-party script provenance
       // Extract URL and verify it against the trusted application origin
-      const urlMatch = line.match(/(https?:\/\/[^\s)]+)/);
+      const urlMatch = _call.call(_match, line, /(https?:\/\/[^\s)]+)/);
       if (urlMatch) {
         try {
           // Strip line/column numbers (e.g. :14:2) before parsing
-          const cleanUrl = urlMatch[0].replace(/:\d+(?::\d+)?$/, '');
+          const cleanUrl = _call.call(_replace, urlMatch[0], /:\d+(?::\d+)?$/, '');
           const urlObj = new URL(cleanUrl);
-          if (urlObj.origin !== trustedOrigin) {
-            if (_console.error) _call.call(_console.error, console, `Security Sentinel: Cross-origin script provenance detected: ${urlObj.origin}`);
+          if (_call.call(_URLOrigin, urlObj) !== trustedOrigin) {
+            if (_console.error) _call.call(_console.error, console, `Security Sentinel: Cross-origin script provenance detected: ${_call.call(_URLOrigin, urlObj)}`);
             executeLockdown();
             return false;
           }
@@ -295,17 +349,17 @@ export const sanitizeInput = (input) => {
 
   // Strip null bytes, dangerous control characters, and zero-width markers
   // eslint-disable-next-line no-control-regex
-  input = input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F\u200B-\u200D\uFEFF]/g, '');
+  input = _call.call(_replace, input, /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F\u200B-\u200D\uFEFF]/g, '');
 
   // If in a browser environment, use DOMParser for robust sanitization
-  if (typeof window !== 'undefined' && window.DOMParser) {
+  if (typeof window !== 'undefined' && window.DOMParser && _parseFromString) {
     try {
       const parser = new DOMParser();
-      const doc = parser.parseFromString(input, 'text/html');
+      const doc = _call.call(_parseFromString, parser, input, 'text/html');
 
       // Remove scripts, styles, iframes, and other dangerous elements
       const dangerousTags = ['script', 'style', 'iframe', 'object', 'embed', 'link', 'base', 'form', 'meta', 'svg', 'math', 'applet', 'frame', 'frameset', 'video', 'audio', 'canvas', 'details', 'template'];
-      dangerousTags.forEach(tag => {
+      _call.call(_forEach, dangerousTags, tag => {
         const elements = doc.getElementsByTagName(tag);
         while (elements.length > 0) {
           elements[0].parentNode.removeChild(elements[0]);
@@ -314,14 +368,14 @@ export const sanitizeInput = (input) => {
 
       // Remove event handlers and dangerous attributes from all remaining elements
       const allElements = doc.querySelectorAll('*');
-      allElements.forEach(el => {
+      _call.call(_forEach, allElements, el => {
         for (let i = 0; i < el.attributes.length; i++) {
-          const attr = el.attributes[i].name.toLowerCase();
-          const value = el.attributes[i].value.toLowerCase();
-          if (attr.startsWith('on') ||
+          const attr = _call.call(_toLowerCase, el.attributes[i].name);
+          const value = _call.call(_toLowerCase, el.attributes[i].value);
+          if (_call.call(_startsWith, attr, 'on') ||
               attr === 'action' ||
               attr === 'formaction' ||
-              (attr === 'href' || attr === 'src') && value.startsWith('javascript:')) {
+              (attr === 'href' || attr === 'src') && _call.call(_startsWith, value, 'javascript:')) {
             el.removeAttribute(el.attributes[i].name);
             i--; // Adjust index after removal
           }
@@ -330,18 +384,19 @@ export const sanitizeInput = (input) => {
 
       return doc.body.textContent || doc.body.innerText || "";
     } catch (e) {
-      console.warn("DOMParser sanitization failed, falling back to regex", e);
+      if (_console.warn) _call.call(_console.warn, console, "DOMParser sanitization failed, falling back to regex", e);
     }
   }
 
   // Fallback: Robust regex-based sanitization
-  return input
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
-    .replace(/\bon\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-    .replace(/\b(?:form)?action\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-    .replace(/javascript:[^"']*/gi, '')
-    .replace(/<[^>]*>/g, ''); // Strip all remaining HTML tags
+  let r = input;
+  r = _call.call(_replace, r, /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+  r = _call.call(_replace, r, /<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
+  r = _call.call(_replace, r, /\bon\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+  r = _call.call(_replace, r, /\b(?:form)?action\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+  r = _call.call(_replace, r, /javascript:[^"']*/gi, '');
+  r = _call.call(_replace, r, /<[^>]*>/g, ''); // Strip all remaining HTML tags
+  return r;
 };
 
 /**
@@ -476,10 +531,12 @@ export const executeSecurely = async (action, callback, requiredCapabilities = [
   }
 
   const nonce = generateSecurityNonce();
-  const tag = `__VORO_CTX_${nonce}__`;
+  // Opaque Context Tagging: Randomize prefix and suffix to prevent forensic pattern matching
+  const opaquePrefix = _call.call(_slice, generateSecurityNonce(), 0, 8);
+  const tag = `__VORO_${opaquePrefix}_CTX_${nonce}__`;
 
   // Register capabilities for this specific execution context
-  activeCapabilities.set(nonce, {
+  _call.call(_MapSet, activeCapabilities, nonce, {
     action,
     timestamp: _perfNow ? _call.call(_perfNow, performance) : Date.now(),
     capabilities: Array.isArray(requiredCapabilities) ? requiredCapabilities : [requiredCapabilities],
@@ -498,7 +555,7 @@ export const executeSecurely = async (action, callback, requiredCapabilities = [
     return await context[tag]();
   } finally {
     // Cleanup: Ephemeral capabilities expire immediately after execution
-    activeCapabilities.delete(nonce);
+    _call.call(_MapDelete, activeCapabilities, nonce);
   }
 };
 
@@ -1355,7 +1412,9 @@ export const sanitizeObject = (o, s = new WeakSet()) => {
 /**
  * Redacts PII (Emails), Secrets (Stripe, AWS, JWT, Google), and AI markers. Circular reference safe.
  */
-export const redactData = (d, s = new WeakSet()) => {
+export const redactData = (d, s = null) => {
+  const seen = s || (typeof WeakSet !== 'undefined' ? new WeakSet() : null);
+
   if (typeof d === 'string') {
     const p = {
       UUID: /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi,
@@ -1380,21 +1439,24 @@ export const redactData = (d, s = new WeakSet()) => {
       MARKER: /\[(USER_DATA|SECURITY_PROTOCOL|MESSAGE_HISTORY|USER_INPUT)_\w{32}\]/g
     };
     let r = d;
-    Object.entries(p).forEach(([n, g]) => {
-      r = r.replace(g, m => n === 'MARKER' ? `[[${m.slice(1, -1)}]]` : `[REDACTED_${n}]`);
+    const entries = Object.entries(p);
+    _call.call(_forEach, entries, ([n, g]) => {
+      r = _call.call(_replace, r, g, m => n === 'MARKER' ? `[[${_call.call(_slice, m, 1, -1)}]]` : `[REDACTED_${n}]`);
     });
     // Shannon entropy-based catch-all for high-entropy tokens > 24 chars
-    r = r.replace(/\b(?!\d{13,16}\b)[A-Za-z0-9+/=\-_]{24,}\b/g, m => (calculateEntropy(m) > 4.2) ? "[REDACTED_SECRET]" : m);
+    r = _call.call(_replace, r, /\b(?!\d{13,16}\b)[A-Za-z0-9+/=\-_]{24,}\b/g, m => (calculateEntropy(m) > 4.2) ? "[REDACTED_SECRET]" : m);
     return r;
   }
   if (!d || typeof d !== 'object') return d;
-  if (s.has(d)) return "[CIRCULAR_REFERENCE]";
-  s.add(d);
-  if (Array.isArray(d)) return d.map(i => redactData(i, s));
+  if (seen && _call.call(_WeakSetHas, seen, d)) return "[CIRCULAR_REFERENCE]";
+  if (seen) _call.call(_WeakSetAdd, seen, d);
+
+  if (Array.isArray(d)) return _call.call(_map, d, i => redactData(i, seen));
   const r = {};
-  _getOwnPropertyNames(d).forEach(k => {
-    if (!['__proto__', 'constructor', 'prototype'].includes(k)) {
-      r[k] = redactData(d[k], s);
+  const keys = _getOwnPropertyNames(d);
+  _call.call(_forEach, keys, k => {
+    if (!_call.call(_AIncludes, ['__proto__', 'constructor', 'prototype'], k)) {
+      r[k] = redactData(d[k], seen);
     }
   });
   return r;
@@ -1437,20 +1499,20 @@ export const validateAIResponse = (c, n = null) => {
 
   // 1. Steganographic / Zero-Width Detection (Neural Exfiltration)
   // These characters are often used to smuggle data or bypass filters in plain-sight.
-  if (/[\u200B-\u200D\uFEFF]/.test(c)) {
+  if (_call.call(_test, /[\u200B-\u200D\uFEFF]/, c)) {
     if (_console.error) _call.call(_console.error, console, "Security Sentinel: Steganographic markers detected in AI output.");
     executeLockdown();
     return "[SECURITY_VIOLATION_DETECTED]";
   }
 
   // 2. Nonce leakage check (Terminal)
-  if (n && c.includes(n)) { executeLockdown(); return "[SECURITY_VIOLATION_DETECTED]"; }
+  if (n && _call.call(_SIncludes, c, n)) { executeLockdown(); return "[SECURITY_VIOLATION_DETECTED]"; }
 
   // 3. Comprehensive Data Exfiltration Check (Detects keywords and high-entropy tokens in URLs)
   // Check both markdown links/images and raw URLs for exfiltration patterns
   // Expanded to catch protocol-relative URLs, javascript: URIs, and data: URIs
   const urlRegex = /(?:https?:\/\/|www\.|(?:\s|^)\/\/|javascript:|data:)[^\s)\]]+/gi;
-  const urls = c.match(urlRegex) || [];
+  const urls = _call.call(_match, c, urlRegex) || [];
 
   // High-signal keywords that trigger on any match within the URL
   const highSignalKeywords = ['cookie', 'session', 'localstorage', 'voro_', 'token', 'secret', 'credential', 'password'];
@@ -1462,14 +1524,14 @@ export const validateAIResponse = (c, n = null) => {
   for (const url of urls) {
     try {
       if (!_URL) throw new Error("URL constructor not available");
-      const urlObj = new _URL(url.startsWith('www.') ? `https://${url}` : url);
+      const urlObj = new _URL(_call.call(_startsWith, url, 'www.') ? `https://${url}` : url);
 
       // Whitelist: Skip exfiltration check for links to the application's own origin
-      if (appOrigin && urlObj.origin === appOrigin) continue;
+      if (appOrigin && _call.call(_URLOrigin, urlObj) === appOrigin) continue;
 
       // Homoglyph Detection: Block potential punycode spoofs
-      if (detectHomoglyphs(urlObj.hostname)) {
-        if (_console.warn) _call.call(_console.warn, console, `Security Sentinel: AI exfiltration attempt blocked (Homoglyph hostname: ${urlObj.hostname}).`);
+      if (detectHomoglyphs(_call.call(_URLHostname, urlObj))) {
+        if (_console.warn) _call.call(_console.warn, console, `Security Sentinel: AI exfiltration attempt blocked (Homoglyph hostname: ${_call.call(_URLHostname, urlObj)}).`);
         executeLockdown();
         return "[SECURITY_VIOLATION_DETECTED]";
       }
@@ -1480,19 +1542,21 @@ export const validateAIResponse = (c, n = null) => {
         decodedUrl = decodeURIComponent(url);
       } catch (e) { /* fallback to raw url if malformed */ }
 
-      const lowerUrl = decodedUrl.toLowerCase();
-      const lowerQuery = urlObj.search ? decodeURIComponent(urlObj.search).toLowerCase() : "";
-      const lowerHash = urlObj.hash ? decodeURIComponent(urlObj.hash).toLowerCase() : "";
+      const lowerUrl = _call.call(_toLowerCase, decodedUrl);
+      const searchStr = _call.call(_URLSearch, urlObj);
+      const hashStr = _call.call(_URLHash, urlObj);
+      const lowerQuery = searchStr ? _call.call(_toLowerCase, decodeURIComponent(searchStr)) : "";
+      const lowerHash = hashStr ? _call.call(_toLowerCase, decodeURIComponent(hashStr)) : "";
 
       // Check high-signal keywords anywhere in URL
-      if (highSignalKeywords.some(kw => lowerUrl.includes(kw))) {
+      if (_call.call(_some, highSignalKeywords, kw => _call.call(_SIncludes, lowerUrl, kw))) {
         if (_console.warn) _call.call(_console.warn, console, "Security Sentinel: AI exfiltration attempt blocked (High-signal Keyword in URL).");
         executeLockdown();
         return "[SECURITY_VIOLATION_DETECTED]";
       }
 
       // Check low-signal keywords in query string or hash/fragment
-      if (queryOnlyKeywords.some(kw => lowerQuery.includes(kw) || lowerHash.includes(kw))) {
+      if (_call.call(_some, queryOnlyKeywords, kw => _call.call(_SIncludes, lowerQuery, kw) || _call.call(_SIncludes, lowerHash, kw))) {
         if (_console.warn) _call.call(_console.warn, console, "Security Sentinel: AI exfiltration attempt blocked (Sensitive Keyword in Query/Hash).");
         executeLockdown();
         return "[SECURITY_VIOLATION_DETECTED]";
@@ -1500,7 +1564,7 @@ export const validateAIResponse = (c, n = null) => {
 
       // High-entropy token check (detects exfiltration even without known keywords)
       // Check segments of the decoded URL, including the hash fragment
-      const segments = decodedUrl.split(/[\/\?&%=:._\-#]/);
+      const segments = _call.call(_split, decodedUrl, /[\/\?&%=:._\-#]/);
       for (const segment of segments) {
         if (segment.length >= 24 && calculateEntropy(segment) > 4.2) {
           if (_console.warn) _call.call(_console.warn, console, "Security Sentinel: AI exfiltration attempt blocked (High-entropy token in URL).");
@@ -1510,7 +1574,7 @@ export const validateAIResponse = (c, n = null) => {
       }
     } catch (e) {
       // If URL parsing fails, perform a basic keyword check on the raw string
-      if (highSignalKeywords.some(kw => url.toLowerCase().includes(kw))) {
+      if (_call.call(_some, highSignalKeywords, kw => _call.call(_SIncludes, _call.call(_toLowerCase, url), kw))) {
         executeLockdown();
         return "[SECURITY_VIOLATION_DETECTED]";
       }
@@ -1519,7 +1583,7 @@ export const validateAIResponse = (c, n = null) => {
 
   // 4. High-Entropy Segment Analysis (Non-URL Smuggling)
   // Detects high-entropy data blocks smuggled within the text itself (e.g., base64 segments).
-  const words = c.split(/\s+/);
+  const words = _call.call(_split, c, /\s+/);
   for (const word of words) {
     if (word.length > 32 && calculateEntropy(word) > 4.5) {
       if (_console.warn) _call.call(_console.warn, console, "Security Sentinel: High-entropy data segment detected in AI body.");
@@ -1529,7 +1593,7 @@ export const validateAIResponse = (c, n = null) => {
   }
 
   // 5. Redaction and boundary neutralization
-  let v = redactData(c.replace(/\[\/?(USER_DATA|SECURITY_PROTOCOL|MESSAGE_HISTORY|USER_INPUT).*?\]/g, '[REDACTED_BOUNDARY]'));
+  let v = redactData(_call.call(_replace, c, /\[\/?(USER_DATA|SECURITY_PROTOCOL|MESSAGE_HISTORY|USER_INPUT).*?\]/g, '[REDACTED_BOUNDARY]'));
 
   return v;
 };
@@ -1699,7 +1763,30 @@ const sentinelExports = {
   executeSecurely: (action, callback, caps) => executeSecurely(action, callback, caps),
   getDecoyData,
   isDeceptionActive,
-  checkUserPresence
+  checkUserPresence,
+  // Hermetic Primitives for Secret Management
+  _TEncoderEncode,
+  _TDecoderDecode,
+  _Uint8Fill,
+  _Uint8Set,
+  _Uint8Slice,
+  _SIncludes,
+  _split,
+  _replace,
+  _toLowerCase,
+  _AIncludes,
+  _forEach,
+  _MapSet,
+  _MapGet,
+  _MapDelete,
+  _MapHas,
+  _WeakSetAdd,
+  _WeakSetHas,
+  _call,
+  _apply,
+  _reverse,
+  _slice,
+  _forEach
 };
 
 // Deep freeze the exports to prevent tampering

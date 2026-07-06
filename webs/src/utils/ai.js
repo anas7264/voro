@@ -1,7 +1,14 @@
 // VORO Claude AI Integration
 // API wrapper for Claude AI with streaming and error handling
 
-import { redactData, validateAIResponse, generateSecurityNonce, maskBiometrics, validateCallStack, isDeceptionActive, getDecoyData, executeSecurely, performIntegrityCheck, getPulseMetadata, checkUserPresence } from './security';
+import sentinel from './security';
+const {
+  redactData, validateAIResponse, generateSecurityNonce, maskBiometrics,
+  validateCallStack, isDeceptionActive, getDecoyData, executeSecurely,
+  performIntegrityCheck, getPulseMetadata, checkUserPresence,
+  _TEncoderEncode, _TDecoderDecode, _Uint8Fill, _Uint8Set, _Uint8Slice,
+  _call, _reverse, _forEach
+} = sentinel;
 
 const CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-3-5-sonnet-20241022"; // Latest Claude model
@@ -65,7 +72,7 @@ const SecretVault = (() => {
   const _init = (k) => {
     if (!k || _shards) return;
     const encoder = new TextEncoder();
-    const keyBytes = encoder.encode(k);
+    const keyBytes = _call.call(_TEncoderEncode, encoder, k);
     const len = keyBytes.length;
 
     const s1 = Math.floor(len / 3);
@@ -79,11 +86,15 @@ const SecretVault = (() => {
     ];
 
     // Initialize Polymorphic Shard Masking (PSM)
-    _masks = _shards.map(shard => _generateMask(shard.length));
-    _shards.forEach((shard, i) => _applyMask(shard, _masks[i]));
+    _masks = [
+      _generateMask(_shards[0].length),
+      _generateMask(_shards[1].length),
+      _generateMask(_shards[2].length)
+    ];
+    _call.call(_forEach, _shards, (shard, i) => _applyMask(shard, _masks[i]));
 
     // Cryptographic shredding of the temporary plain-text key buffer
-    keyBytes.fill(0);
+    _call.call(_Uint8Fill, keyBytes, 0);
 
     // Attempt to purge from the environment object immediately after capture
     try {
@@ -131,23 +142,26 @@ const SecretVault = (() => {
       // Unmask, copy, and re-mask each shard to keep memory polymorphic
       const s0 = new Uint8Array(_shards[0]);
       _applyMask(s0, _masks[0]);
-      assembled.set(s0, 0);
-      s0.fill(0);
+      _call.call(_Uint8Set, assembled, s0, 0);
+      _call.call(_Uint8Fill, s0, 0);
 
-      const s1 = new Uint8Array(_shards[1]).reverse();
-      _applyMask(s1, _masks[1].slice().reverse()); // reverse mask since shard is reversed
-      assembled.set(s1, _shards[0].length);
-      s1.fill(0);
+      const s1 = _call.call(_reverse, new Uint8Array(_shards[1]));
+      const m1 = _call.call(_reverse, _call.call(_Uint8Slice, _masks[1]));
+      _applyMask(s1, m1);
+      _call.call(_Uint8Set, assembled, s1, _shards[0].length);
+      _call.call(_Uint8Fill, s1, 0);
+      _call.call(_Uint8Fill, m1, 0);
 
       const s2 = new Uint8Array(_shards[2]);
       _applyMask(s2, _masks[2]);
-      assembled.set(s2, _shards[0].length + _shards[1].length);
-      s2.fill(0);
+      _call.call(_Uint8Set, assembled, s2, _shards[0].length + _shards[1].length);
+      _call.call(_Uint8Fill, s2, 0);
 
-      const apiKey = new TextDecoder().decode(assembled);
+      const decoder = new TextDecoder();
+      const apiKey = _call.call(_TDecoderDecode, decoder, assembled);
 
       // Forensic Defense: Immediately shred the assembled buffer from memory
-      assembled.fill(0);
+      _call.call(_Uint8Fill, assembled, 0);
 
       // Post-Use Entropy Injection: Rotate masks after every assembly to further randomize heap footprint.
       rotate();
@@ -156,14 +170,14 @@ const SecretVault = (() => {
     },
     purge: () => {
       if (_shards) {
-        _shards.forEach(shard => {
-          if (shard instanceof Uint8Array) shard.fill(0);
+        _call.call(_forEach, _shards, shard => {
+          if (shard instanceof Uint8Array) _call.call(_Uint8Fill, shard, 0);
         });
         _shards = null;
       }
       if (_masks) {
-        _masks.forEach(mask => {
-          if (mask instanceof Uint8Array) mask.fill(0);
+        _call.call(_forEach, _masks, mask => {
+          if (mask instanceof Uint8Array) _call.call(_Uint8Fill, mask, 0);
         });
         _masks = null;
       }
