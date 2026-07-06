@@ -61,11 +61,14 @@ const _Uint8Set = Uint8Array.prototype.set;
 const _Uint8Slice = Uint8Array.prototype.slice;
 const _TEncoderEncode = (typeof TextEncoder !== 'undefined') ? TextEncoder.prototype.encode : null;
 const _TDecoderDecode = (typeof TextDecoder !== 'undefined') ? TextDecoder.prototype.decode : null;
+const _ArrayFrom = Array.from;
 
 const _setInterval = typeof setInterval !== 'undefined' ? setInterval : null;
 const _setTimeout = typeof setTimeout !== 'undefined' ? setTimeout : null;
 const _Error = Error;
+const _log2 = Math.log2;
 const _fetch = typeof window !== 'undefined' ? window.fetch : null;
+const _open = typeof window !== 'undefined' ? window.open : null;
 const _XHR = typeof window !== 'undefined' ? window.XMLHttpRequest : null;
 const _BroadcastChannel = typeof window !== 'undefined' ? window.BroadcastChannel : null;
 const _BCPostMessage = (typeof window !== 'undefined' && window.BroadcastChannel) ? window.BroadcastChannel.prototype.postMessage : null;
@@ -94,6 +97,8 @@ const _SubtleImportKey = (typeof window !== 'undefined' && window.crypto?.subtle
 const _SubtleGenerateKey = (typeof window !== 'undefined' && window.crypto?.subtle) ? window.crypto.subtle.generateKey : null;
 
 const _freeze = Object.freeze;
+const _values = Object.values;
+const _entries = Object.entries;
 const _defineProperty = Object.defineProperty;
 const _getOwnPropertyNames = Object.getOwnPropertyNames;
 const _getOwnPropertySymbols = Object.getOwnPropertySymbols;
@@ -168,10 +173,10 @@ const calculateEntropy = (str) => {
     const char = str[i];
     frequencies[char] = (frequencies[char] || 0) + 1;
   }
-  const values = Object.values(frequencies);
+  const values = _call.call(_values, Object, frequencies);
   return _call.call(_reduce, values, (sum, freq) => {
     const p = freq / len;
-    return sum - p * Math.log2(p);
+    return sum - p * _log2(p);
   }, 0);
 };
 
@@ -688,6 +693,19 @@ const initializeAttestationSinks = () => {
     window.indexedDB.open = idbWrapper;
   }
 
+  // Wrap window.open
+  if (_open) {
+    const openWrapper = function(url, target, features) {
+      if (!verifyAttestation('window.open', url)) {
+        if (_console.error) _call.call(_console.error, console, "Security Sentinel: window.open blocked. No Attestation Permit found.");
+        return null;
+      }
+      return _ReflectApply ? _ReflectApply(_open, window, arguments) : _call.call(_open, window, url, target, features);
+    };
+    TRUSTED_WRAPPERS.add(openWrapper);
+    window.open = openWrapper;
+  }
+
   // Wrap fetch
   if (_fetch) {
     const fetchWrapper = function(...args) {
@@ -1185,6 +1203,7 @@ export const performIntegrityCheck = () => {
 
   const coreAPIs = [
     { obj: window, prop: 'fetch', name: 'fetch' },
+    { obj: window, prop: 'open', name: 'window.open' },
     { obj: window.crypto, prop: 'getRandomValues', name: 'crypto.getRandomValues' },
     { obj: window.crypto.subtle, prop: 'encrypt', name: 'crypto.subtle.encrypt' },
     { obj: window.crypto.subtle, prop: 'decrypt', name: 'crypto.subtle.decrypt' },
@@ -1323,7 +1342,7 @@ export const performIntegrityCheck = () => {
 
     // High-risk sinks MUST be wrapped; native primitives are unauthorized for these.
     const mustBeWrapped = [
-      'fetch', 'XMLHttpRequest', 'WebSocket', 'indexedDB.open', 'navigator.sendBeacon',
+      'fetch', 'window.open', 'XMLHttpRequest', 'WebSocket', 'indexedDB.open', 'navigator.sendBeacon',
       'navigator.serviceWorker.register',
       'navigator.clipboard.writeText', 'navigator.clipboard.readText', 'navigator.share',
       'BroadcastChannel',
@@ -1464,7 +1483,7 @@ export const redactData = (d, s = null) => {
       MARKER: /\[(USER_DATA|SECURITY_PROTOCOL|MESSAGE_HISTORY|USER_INPUT)_\w{32}\]/g
     };
     let r = d;
-    const entries = Object.entries(p);
+    const entries = _call.call(_entries, Object, p);
     _call.call(_forEach, entries, ([n, g]) => {
       r = _call.call(_replace, r, g, m => n === 'MARKER' ? `[[${_call.call(_slice, m, 1, -1)}]]` : `[REDACTED_${n}]`);
     });
@@ -1535,8 +1554,8 @@ export const validateAIResponse = (c, n = null) => {
 
   // 3. Comprehensive Data Exfiltration Check (Detects keywords and high-entropy tokens in URLs)
   // Check both markdown links/images and raw URLs for exfiltration patterns
-  // Expanded to catch protocol-relative URLs, javascript: URIs, and data: URIs
-  const urlRegex = /(?:https?:\/\/|www\.|(?:\s|^)\/\/|javascript:|data:)[^\s)\]]+/gi;
+  // Expanded to catch protocol-relative URLs, javascript: URIs, data: URIs, and blob: URIs
+  const urlRegex = /(?:https?:\/\/|www\.|(?:\s|^)\/\/|javascript:|data:|blob:)[^\s)\]]+/gi;
   const urls = _call.call(_match, c, urlRegex) || [];
 
   // High-signal keywords that trigger on any match within the URL
@@ -1642,7 +1661,7 @@ const checkStructuralIntegrity = () => {
         if (!el) return '';
         // Capture tag and ID for strict architectural nodes.
         // We exclude 'class' and 'role' as they can be dynamic in complex SPAs.
-        const attrStr = Array.from(el.attributes)
+        const attrStr = _call.call(_ArrayFrom, Array, el.attributes)
           .filter(a => ['id'].includes(a.name.toLowerCase()))
           .map(a => `${a.name}=${a.value}`)
           .sort()
@@ -1652,12 +1671,12 @@ const checkStructuralIntegrity = () => {
 
       // Structural snapshot of head (immediate children) and root (architectural depth 2)
       let backbone = serialize(head) + '{';
-      Array.from(head.children).forEach(c => backbone += serialize(c) + ',');
+      _call.call(_forEach, _call.call(_ArrayFrom, Array, head.children), c => backbone += serialize(c) + ',');
       backbone += '};' + serialize(root) + '{';
       if (root) {
-        Array.from(root.children).forEach(c => {
+        _call.call(_forEach, _call.call(_ArrayFrom, Array, root.children), c => {
           backbone += serialize(c) + '[';
-          Array.from(c.children).forEach(gc => backbone += serialize(gc) + ',');
+          _call.call(_forEach, _call.call(_ArrayFrom, Array, c.children), gc => backbone += serialize(gc) + ',');
           backbone += '],';
         });
       }
