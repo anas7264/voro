@@ -224,3 +224,14 @@ Robust security requires both breadth of coverage and precedence of execution. E
 
 **Prevention:**
 Always include background execution and network-interception APIs (`ServiceWorker`, `SharedWorker`) in the RASP `mustBeWrapped` list. Mandatory security initialization must occur as the absolute first line of the application's entry sequence to ensure that all subsequent module loads operate within a protected environment.
+
+## 2026-06-11 - Window.open RASP Integration & Intrinsic Sentinel Hardening
+
+**Vulnerability:**
+The `window.open` API is a high-risk exfiltration sink that can be used for unauthorized cross-origin data smuggling (via URL parameters) or phishing attacks. Furthermore, security-critical logic within the RASP system (entropy calculation, structural attestation) remains vulnerable to monkey-patching if it relies on unpinned global methods like `Object.values` or `Array.from`.
+
+**Learning:**
+Effective RASP requires protecting not only network and storage sinks but also navigation sinks like `window.open`. Furthermore, a security sentinel must be "intrinsically hardened" by ensuring that its own internal logic is decoupled from the mutable global environment. Pinning fundamental JavaScript primitives (`Object.values`, `Object.entries`, `Array.from`) at module load and using them via `.call()` creates a hermetic execution environment that is resilient to prototype pollution attacks.
+
+**Prevention:**
+Always include navigation and window-management APIs in the RASP `mustBeWrapped` list. Practice "Intrinsic Hardening" by pinning all global primitives used within security-critical modules to prevent an attacker from neutralizing the security system by monkey-patching its own dependencies.
