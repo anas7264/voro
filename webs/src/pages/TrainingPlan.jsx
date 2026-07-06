@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { Plus, Trash2, Calendar, Target, Zap, Activity, ChevronRight, Download, Share2 } from 'lucide-react';
-import { useStorage } from '@/hooks/useStorage';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { Plus, Trash2, Target, Zap, Activity, ChevronRight, Download } from 'lucide-react';
+import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -12,8 +12,68 @@ const CONFIG = {
   focus: ['Balanced', 'Strength', 'Hypertrophy', 'Endurance']
 };
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted static mock blueprint generator.
+ */
+const generateMockBlueprint = (selections) => {
+  return {
+    id: Date.now(),
+    name: `${selections.focus} Evolution Blueprint`,
+    ...selections,
+    createdAt: new Date().toISOString(),
+    days: [
+      {
+        day: 'Monday',
+        type: 'Kinetic Push (Primary)',
+        exercises: [
+          { name: 'Barbell Bench Press', sets: 4, reps: '6-8', rest: '120s', intensity: 'RPE 8' },
+          { name: 'Incline Dumbbell Press', sets: 3, reps: '8-10', rest: '90s', intensity: 'RPE 7' },
+          { name: 'Overhead Press', sets: 3, reps: '8-10', rest: '90s', intensity: 'RPE 8' },
+          { name: 'Lateral Raises', sets: 4, reps: '12-15', rest: '60s', intensity: 'To Failure' },
+        ]
+      },
+      {
+        day: 'Tuesday',
+        type: 'Posterior Chain Evolution',
+        exercises: [
+          { name: 'Deadlift (Conventional)', sets: 3, reps: '5', rest: '180s', intensity: 'RPE 9' },
+          { name: 'Weighted Pull-Ups', sets: 3, reps: '6-8', rest: '120s', intensity: 'RPE 8' },
+          { name: 'Seated Cable Rows', sets: 3, reps: '10-12', rest: '90s', intensity: 'RPE 8' },
+          { name: 'Face Pulls', sets: 3, reps: '15-20', rest: '60s', intensity: 'Contraction Focus' },
+        ]
+      },
+      {
+        day: 'Thursday',
+        type: 'Anterior Chain / Quad Dominant',
+        exercises: [
+          { name: 'High Bar Back Squat', sets: 4, reps: '6-8', rest: '150s', intensity: 'RPE 8' },
+          { name: 'Bulgarian Split Squats', sets: 3, reps: '10 (Per Leg)', rest: '90s', intensity: 'RPE 9' },
+          { name: 'Leg Extensions', sets: 3, reps: '12-15', rest: '60s', intensity: 'Burn-out' },
+          { name: 'Standing Calf Raises', sets: 4, reps: '15', rest: '60s', intensity: 'Paused' },
+        ]
+      },
+      {
+        day: 'Friday',
+        type: 'Metabolic Optimization',
+        exercises: [
+          { name: 'Weighted Dips', sets: 3, reps: '8-10', rest: '90s', intensity: 'RPE 8' },
+          { name: 'Barbell Curls', sets: 3, reps: '10-12', rest: '60s', intensity: 'Slow Eccentric' },
+          { name: 'Skull Crushers', sets: 3, reps: '10-12', rest: '60s', intensity: 'Squeeze' },
+          { name: 'Hanging Leg Raises', sets: 3, reps: '15', rest: '60s', intensity: 'Strict' },
+        ]
+      }
+    ]
+  };
+};
+
 const TrainingPlan = () => {
-  const { storageData, setStorage } = useStorage();
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
+   * Replaced broad useStorage() with useStorageKey('plans') for reactive data
+   * and useStorageMethods for stable action references.
+   */
+  const plansData = useStorageKey('plans') || {};
+  const { updateItem } = useStorageMethods();
   const { addNotification } = useNotifications();
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -29,82 +89,27 @@ const TrainingPlan = () => {
   }, []);
 
   /**
-   * ⚡ OPTIMIZATION: Synchronous data derivation for the active training plan.
-   * Eliminates mount-time double-render and ensures instant reactivity.
+   * ⚡ OPTIMIZATION: Synchronous data derivation.
    */
-  const currentPlan = useMemo(() => {
-    const data = storageData['plans'] || {};
-    return data.currentPlan || null;
-  }, [storageData['plans']]);
+  const currentPlan = useMemo(() => plansData.currentPlan || null, [plansData.currentPlan]);
 
-  const handleGeneratePlan = () => {
+  const handleGeneratePlan = useCallback(async () => {
     setIsGenerating(true);
 
     // Simulate deep synthesis
-    setTimeout(() => {
-      const plan = {
-        id: Date.now(),
-        name: `${selections.focus} Evolution Blueprint`,
-        ...selections,
-        createdAt: new Date().toISOString(),
-        days: [
-          {
-            day: 'Monday',
-            type: 'Kinetic Push (Primary)',
-            exercises: [
-              { name: 'Barbell Bench Press', sets: 4, reps: '6-8', rest: '120s', intensity: 'RPE 8' },
-              { name: 'Incline Dumbbell Press', sets: 3, reps: '8-10', rest: '90s', intensity: 'RPE 7' },
-              { name: 'Overhead Press', sets: 3, reps: '8-10', rest: '90s', intensity: 'RPE 8' },
-              { name: 'Lateral Raises', sets: 4, reps: '12-15', rest: '60s', intensity: 'To Failure' },
-            ]
-          },
-          {
-            day: 'Tuesday',
-            type: 'Posterior Chain Evolution',
-            exercises: [
-              { name: 'Deadlift (Conventional)', sets: 3, reps: '5', rest: '180s', intensity: 'RPE 9' },
-              { name: 'Weighted Pull-Ups', sets: 3, reps: '6-8', rest: '120s', intensity: 'RPE 8' },
-              { name: 'Seated Cable Rows', sets: 3, reps: '10-12', rest: '90s', intensity: 'RPE 8' },
-              { name: 'Face Pulls', sets: 3, reps: '15-20', rest: '60s', intensity: 'Contraction Focus' },
-            ]
-          },
-          {
-            day: 'Thursday',
-            type: 'Anterior Chain / Quad Dominant',
-            exercises: [
-              { name: 'High Bar Back Squat', sets: 4, reps: '6-8', rest: '150s', intensity: 'RPE 8' },
-              { name: 'Bulgarian Split Squats', sets: 3, reps: '10 (Per Leg)', rest: '90s', intensity: 'RPE 9' },
-              { name: 'Leg Extensions', sets: 3, reps: '12-15', rest: '60s', intensity: 'Burn-out' },
-              { name: 'Standing Calf Raises', sets: 4, reps: '15', rest: '60s', intensity: 'Paused' },
-            ]
-          },
-          {
-            day: 'Friday',
-            type: 'Metabolic Optimization',
-            exercises: [
-              { name: 'Weighted Dips', sets: 3, reps: '8-10', rest: '90s', intensity: 'RPE 8' },
-              { name: 'Barbell Curls', sets: 3, reps: '10-12', rest: '60s', intensity: 'Slow Eccentric' },
-              { name: 'Skull Crushers', sets: 3, reps: '10-12', rest: '60s', intensity: 'Squeeze' },
-              { name: 'Hanging Leg Raises', sets: 3, reps: '15', rest: '60s', intensity: 'Strict' },
-            ]
-          }
-        ]
-      };
-
-      const data = storageData['plans'] || {};
-      const updatedData = { ...data, currentPlan: plan };
-      setStorage('plans', updatedData);
+    setTimeout(async () => {
+      const plan = generateMockBlueprint(selections);
+      await updateItem('plans', { currentPlan: plan });
       setIsGenerating(false);
       addNotification('Kinetic Blueprint synthesized successfully.', 'success');
     }, 1500);
-  };
+  }, [selections, updateItem, addNotification]);
 
-  const clearPlan = () => {
-    const data = storageData['plans'] || {};
-    const { currentPlan, ...rest } = data;
-    setStorage('plans', rest);
+  const clearPlan = useCallback(async () => {
+    // Efficiently remove only the currentPlan from the 'plans' object
+    await updateItem('plans', { currentPlan: null });
     addNotification('Blueprint archived.', 'info');
-  };
+  }, [updateItem, addNotification]);
 
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30">

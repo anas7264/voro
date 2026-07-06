@@ -1,11 +1,18 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useCallback } from 'react';
 import { Calendar, Plus, Clock, Package, ShoppingCart, ChevronRight, Zap, Download } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
+import { useNotifications } from '@/hooks/useNotifications';
 
 const MealPrepPlanner = () => {
-  const { storageData } = useStorage();
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
+   * Replaced broad useStorage() with useStorageKey('meal_prep') for reactive data.
+   */
+  const mealPrepData = useStorageKey('meal_prep') || {};
+  const { updateItem } = useStorageMethods();
+  const { addNotification } = useNotifications();
 
   useEffect(() => {
     document.title = 'VORO | Culinary Logistics';
@@ -13,15 +20,30 @@ const MealPrepPlanner = () => {
 
   /**
    * ⚡ OPTIMIZATION: Narrow dependency to specific storage key for surgical reactivity.
-   * Redesigned with a premium boutique gallery aesthetic.
    */
   const prepPlan = useMemo(() => {
-    const data = storageData['meal_prep'] || {};
-    return data.plan || [
+    return mealPrepData.plan || [
       { id: 1, day: 'Sunday', duration: '2 hours', count: 20, recipes: ['Kinetic Chicken & Basmati', 'Atlantic Salmon & Greens', 'Turkey & Sweet Potato Flux'] },
       { id: 2, day: 'Wednesday', duration: '1 hour', count: 10, recipes: ['Egg White Frittata Matrix', 'Overnight Oats Synthesis'] }
     ];
-  }, [storageData['meal_prep']]);
+  }, [mealPrepData.plan]);
+
+  const toggleProvision = useCallback(async (index) => {
+    const provisions = mealPrepData.provisions || [
+      { item: 'Kinetic Chicken Breast', qty: '3.0 kg', checked: false },
+      { item: 'Atlantic Salmon Fillet', qty: '2.0 kg', checked: true },
+      { item: 'Basmati Grains (Bulk)', qty: '5.0 kg', checked: false },
+      { item: 'Sweet Potato Tuber', qty: '2.5 kg', checked: false },
+      { item: 'Organic Spinach Matrix', qty: '1.0 kg', checked: true },
+      { item: 'Liquid Hydration (Oils)', qty: '500 ml', checked: false }
+    ];
+
+    const updated = [...provisions];
+    updated[index] = { ...updated[index], checked: !updated[index].checked };
+
+    await updateItem('meal_prep', { provisions: updated });
+    addNotification('Provisions matrix synchronized', 'success');
+  }, [mealPrepData.provisions, updateItem, addNotification]);
 
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30">
@@ -138,15 +160,19 @@ const MealPrepPlanner = () => {
                   </div>
 
                   <div className="space-y-4 mb-12">
-                    {[
+                    {(mealPrepData.provisions || [
                       { item: 'Kinetic Chicken Breast', qty: '3.0 kg', checked: false },
                       { item: 'Atlantic Salmon Fillet', qty: '2.0 kg', checked: true },
                       { item: 'Basmati Grains (Bulk)', qty: '5.0 kg', checked: false },
                       { item: 'Sweet Potato Tuber', qty: '2.5 kg', checked: false },
                       { item: 'Organic Spinach Matrix', qty: '1.0 kg', checked: true },
                       { item: 'Liquid Hydration (Oils)', qty: '500 ml', checked: false }
-                    ].map((item, i) => (
-                      <div key={i} className="flex items-center justify-between p-5 rounded-2xl bg-white/[0.02] border border-white/5 group/prov hover:bg-white/[0.04] transition-all">
+                    ]).map((item, i) => (
+                      <button
+                        key={i}
+                        onClick={() => toggleProvision(i)}
+                        className="w-full flex items-center justify-between p-5 rounded-2xl bg-white/[0.02] border border-white/5 group/prov hover:bg-white/[0.04] transition-all"
+                      >
                         <div className="flex items-center gap-4">
                           <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${item.checked ? 'bg-voro-secondary border-voro-secondary shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'border-white/10 group-hover/prov:border-white/20'}`}>
                              {item.checked && <Plus size={12} className="text-white rotate-45" />}
@@ -154,7 +180,7 @@ const MealPrepPlanner = () => {
                           <span className={`text-sm font-serif italic transition-all ${item.checked ? 'text-gray-600 line-through' : 'text-gray-300'}`}>{item.item}</span>
                         </div>
                         <span className="text-[0.6rem] font-mono font-bold text-voro-secondary opacity-60">{item.qty}</span>
-                      </div>
+                      </button>
                     ))}
                   </div>
 
