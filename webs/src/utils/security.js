@@ -1060,13 +1060,38 @@ const securityNexus = (typeof window !== 'undefined' && _BroadcastChannel)
   ? new _BroadcastChannel('voro-security-nexus')
   : null;
 
+/**
+ * Distributed Peer Attestation (DPA) State
+ * Tracks the health of other application tabs to detect component neutralization.
+ */
+const _tabId = Math.random().toString(36).substring(2, 15);
+const _peerRegistry = new Map();
+const PEER_TIMEOUT_THRESHOLD = PULSE_DRIFT_THRESHOLD + 20000; // 60s
+
 if (securityNexus) {
   securityNexus.onmessage = (event) => {
-    if (event.data === 'VORO_LOCKDOWN' && !window.VORO_COMPROMISED) {
+    const data = event.data;
+    if (data === 'VORO_LOCKDOWN' && !window.VORO_COMPROMISED) {
       console.warn("Security Sentinel: Received lockdown signal from peer tab.");
       executeLockdown(false);
+    } else if (data && data.type === 'VORO_HEALTH_PULSE' && data.tabId !== _tabId) {
+      // Record health pulse from peers
+      _call.call(_MapSet, _peerRegistry, data.tabId, data.timestamp);
+    } else if (data && data.type === 'VORO_PEER_UNLOAD' && data.tabId !== _tabId) {
+      // Gracefully remove peer from registry
+      _call.call(_MapDelete, _peerRegistry, data.tabId);
     }
   };
+
+  // Lifecycle monitoring for graceful peer disconnection
+  window.addEventListener('beforeunload', () => {
+    if (securityNexus && _BCPostMessage) {
+      _call.call(_BCPostMessage, securityNexus, {
+        type: 'VORO_PEER_UNLOAD',
+        tabId: _tabId
+      });
+    }
+  });
 }
 
 // Active CSP Enforcement: Transforms CSP from a passive blocker into an active security sink.
@@ -1733,6 +1758,30 @@ const startAutonomousPulse = () => {
       if (window.VORO_COMPROMISED) return;
 
       performIntegrityCheck();
+
+      // Distributed Peer Attestation: Broadcast health and monitor peers
+      const now = Date.now();
+      if (securityNexus && _BCPostMessage) {
+        _call.call(_BCPostMessage, securityNexus, {
+          type: 'VORO_HEALTH_PULSE',
+          tabId: _tabId,
+          timestamp: now
+        });
+      }
+
+      // Detect neutralized peers (Dead Man's Switch for components)
+      if (_peerRegistry.size > 0) {
+        const entries = _call.call(_MapEntries, _peerRegistry);
+        let next;
+        while (!(next = entries.next()).done) {
+          const [peerId, lastSeen] = next.value;
+          if (now - lastSeen > PEER_TIMEOUT_THRESHOLD) {
+            if (_console.error) _call.call(_console.error, console, `Security Sentinel: Peer neutralization detected for tab [${peerId}]. Executing Distributed Lockdown.`);
+            executeLockdown();
+            return;
+          }
+        }
+      }
 
       // Schedule next pulse recursively to prevent interval-piling and make tracking harder
       _call.call(_setTimeout, window, pulse, PULSE_INTERVAL);
