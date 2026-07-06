@@ -2,26 +2,25 @@ import React, { useEffect, useMemo } from 'react';
 import { Calendar, Plus, Clock, Package, ShoppingCart, ChevronRight, Zap, Download } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey } from '@/hooks/useStorage';
 
 const MealPrepPlanner = () => {
-  const { storageData } = useStorage();
+  const mealPrepData = useStorageKey('meal_prep') || {};
 
   useEffect(() => {
     document.title = 'VORO | Culinary Logistics';
   }, []);
 
   /**
-   * ⚡ OPTIMIZATION: Narrow dependency to specific storage key for surgical reactivity.
-   * Redesigned with a premium boutique gallery aesthetic.
+   * ⚡ OPTIMIZATION: Surgical Reactivity.
+   * Derived from targeted storage key subscription to isolate re-renders.
    */
   const prepPlan = useMemo(() => {
-    const data = storageData['meal_prep'] || {};
-    return data.plan || [
+    return mealPrepData.plan || [
       { id: 1, day: 'Sunday', duration: '2 hours', count: 20, recipes: ['Kinetic Chicken & Basmati', 'Atlantic Salmon & Greens', 'Turkey & Sweet Potato Flux'] },
       { id: 2, day: 'Wednesday', duration: '1 hour', count: 10, recipes: ['Egg White Frittata Matrix', 'Overnight Oats Synthesis'] }
     ];
-  }, [storageData['meal_prep']]);
+  }, [mealPrepData]);
 
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30">

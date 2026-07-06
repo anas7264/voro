@@ -4,11 +4,11 @@ import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Select from '@/components/Select';
 import Textarea from '@/components/Textarea';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageMethods } from '@/hooks/useStorage';
 import { useApp } from '@/hooks/useAppContext';
 
 const MealPlanner = () => {
-  const { getItem, setItem } = useStorage();
+  const { getItem, setItem } = useStorageMethods();
   const { user } = useApp();
   const [loading, setLoading] = useState(false);
   const [mealPlan, setMealPlan] = useState(null);

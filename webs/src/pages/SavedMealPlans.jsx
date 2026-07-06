@@ -1,18 +1,36 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Plus, Download } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey } from '@/hooks/useStorage';
 
 const SavedMealPlans = () => {
-  const { getStorage } = useStorage();
-  const [plans, setPlans] = useState([]);
+  const plansData = useStorageKey('plans') || {};
 
   useEffect(() => {
     document.title = 'VORO | Saved Meal Plans';
-    const data = getStorage('voro_plans') || {};
-    setPlans(data.savedMealPlans || []);
   }, []);
+
+  /**
+   * ⚡ OPTIMIZATION: Surgical Reactivity.
+   * Derived synchronously from targeted 'plans' storage key to eliminate
+   * the fetch-on-mount double-render cycle.
+   */
+  const plans = useMemo(() => {
+    // Migration: Support legacy 'voro_plans' key until all users are migrated
+    if (!plansData.savedMealPlans) {
+      const legacy = localStorage.getItem('voro_plans');
+      if (legacy) {
+        try {
+          const parsed = JSON.parse(legacy);
+          return parsed.savedMealPlans || [];
+        } catch (e) {
+          return [];
+        }
+      }
+    }
+    return plansData.savedMealPlans || [];
+  }, [plansData]);
 
   return (
     <div className="min-h-screen bg-voro-surface p-4 md:p-8">
