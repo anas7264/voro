@@ -26,6 +26,7 @@ import Stat from '@/components/Stat';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import Breadcrumb from '@/components/Breadcrumb';
+import Card from '@/components/Card';
 
 const MACRO_CONFIG = [
   { label: 'Protein', macro: 'protein', color: '#7C3AED', bg: 'bg-[#7C3AED]/10', text: 'text-[#A78BFA]', icon: '🍗' },
@@ -538,7 +539,7 @@ const Dashboard = () => {
               </div>
             </section>
 
-            <section className="bg-[#0A0C14] border border-white/5 p-8 rounded-[2.5rem] space-y-8 shadow-xl">
+            <Card variant="premium" nodeId="CNS_MTX" className="space-y-8">
               <h3 className="text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em]">Consistency Matrix</h3>
 
               <div className="space-y-5">
@@ -557,9 +558,9 @@ const Dashboard = () => {
                   </div>
                 ))}
               </div>
-            </section>
+            </Card>
 
-            <section className="bg-[#0A0C14] border border-white/5 p-8 rounded-[2.5rem] shadow-xl">
+            <Card variant="premium" nodeId="DLY_ENG" className="p-8">
               <div className="flex items-center justify-between mb-10">
                 <h3 className="text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em]">Daily Engagement</h3>
                 <Calendar size={18} className="text-gray-700" />
@@ -606,7 +607,7 @@ const Dashboard = () => {
                   </button>
                 </div>
               )}
-            </section>
+            </Card>
 
             <section className="grid grid-cols-2 gap-5">
               {NAV_LINKS.map((link) => (
