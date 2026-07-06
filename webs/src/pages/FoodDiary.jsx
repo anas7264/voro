@@ -301,8 +301,13 @@ const FoodDiary = () => {
           </div>
 
           <div className="lg:col-span-8 space-y-6">
-            {mealSlots.map((slot) => (
-              <Card key={slot} className="p-0 overflow-hidden group/slot">
+            {mealSlots.map((slot, sIdx) => (
+              <Card
+                key={slot}
+                variant="premium"
+                nodeId={`MEAL_0${sIdx + 1}`}
+                className="p-0 overflow-hidden group/slot"
+              >
                 <div className="p-8 flex items-center justify-between border-b border-white/5 bg-white/[0.01]">
                   <div className="flex items-center gap-6">
                     <div className="w-1.5 h-1.5 rounded-full bg-voro-primary shadow-[0_0_10px_rgba(124,58,237,0.5)]" />
@@ -341,6 +346,7 @@ const FoodDiary = () => {
                             mealType: slot
                           }}
                           onDelete={() => handleRemoveFood(slot, idx)}
+                          className="animate-slide-up"
                         />
                       ))}
                     </div>
