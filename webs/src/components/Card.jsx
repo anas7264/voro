@@ -6,7 +6,7 @@ import React, { memo, useRef, useState } from "react";
  * magnetic mouse tracking, and industrial telemetry markers.
  * 'premium' variant implements Surgical Reactivity via direct DOM manipulation.
  */
-export const Card = memo(({
+const Card = memo(({
   children,
   className = "",
   hover = false,
