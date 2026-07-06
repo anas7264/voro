@@ -3,7 +3,7 @@ import { Play, Pause, RotateCcw, Clock, Zap, Target, Activity, ShieldCheck, Flam
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Select from '@/components/Select';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 
 const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive }) => {
@@ -106,7 +106,14 @@ const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive
 });
 
 const FastingTracker = () => {
-  const { getItem, setItem, storageData } = useStorage();
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
+   * Replaced broad useStorage() with useStorageKey for specific data and
+   * useStorageMethods for stable action references.
+   */
+  const fastingDataRaw = useStorageKey('fasting');
+  const { setItem } = useStorageMethods();
+
   const { addNotification } = useNotifications();
   const [elapsed, setElapsed] = useState(0);
   const [isPaused, setIsPaused] = useState(true);
@@ -116,14 +123,9 @@ const FastingTracker = () => {
     document.title = 'VORO | Fasting Tracker';
   }, []);
 
-  /**
-   * ⚡ OPTIMIZATION: Surgical Reactivity.
-   * Depend on specific storage keys instead of the 'getItem' accessor
-   * which is redefined on every global storage update.
-   */
   const fastingData = useMemo(() => {
-    return storageData['fasting'] || { window: '16:8', started: null, status: 'idle' };
-  }, [storageData['fasting']]);
+    return fastingDataRaw || { window: '16:8', started: null, status: 'idle' };
+  }, [fastingDataRaw]);
 
   const [fastHours, breakHours] = fastingData.window.split(':').map(Number);
   const totalSeconds = fastHours * 3600;
