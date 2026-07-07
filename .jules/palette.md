@@ -13,3 +13,7 @@
 ## 2025-06-29 - Integrated Shortcut Hints in Telemetry
 **Learning:** In a system with a 'telemetry' aesthetic, keyboard shortcuts can be elegantly integrated into the technical metadata overlays. This provides a clear visual hint for power users without cluttering the primary UI.
 **Action:** Utilize the `shortcut` prop in `Button` components to inject shortcut keys (e.g., `[Q]`) into the technical telemetry div. Ensure the telemetry overlay is `aria-hidden="true"` to prevent screen reader noise from coordinate data.
+
+## 2025-06-30 - Standardized Accessible Accordion Pattern
+**Learning:** Complex interactive components like accordions require a combination of stable ID associations (`useId`), semantic roles (`region`), and manual keyboard focus management (Arrow keys, Home/End) to be truly accessible. Relying on native focus flow is often insufficient for high-fidelity custom UI components.
+**Action:** Always wrap the accordion items in a container with a keydown handler that manages focus between header buttons. Use `aria-controls` and `aria-labelledby` with stable `useId` hooks to ensure screen readers can navigate and announce relationships correctly.
