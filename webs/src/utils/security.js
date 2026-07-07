@@ -82,6 +82,7 @@ const _share = (typeof window !== 'undefined' && window.navigator) ? window.navi
 const _URL = typeof window !== 'undefined' ? window.URL : null;
 const _createObjectURL = (typeof window !== 'undefined' && window.URL) ? window.URL.createObjectURL : null;
 const _revokeObjectURL = (typeof window !== 'undefined' && window.URL) ? window.URL.revokeObjectURL : null;
+const _RTCPeerConnection = (typeof window !== 'undefined') ? (window.RTCPeerConnection || window.webkitRTCPeerConnection) : null;
 
 const _Request = typeof Request !== 'undefined' ? Request : null;
 const _Response = typeof Response !== 'undefined' ? Response : null;
@@ -933,6 +934,30 @@ const initializeAttestationSinks = () => {
     window.URL.revokeObjectURL = revokeObjectURLWrapper;
   }
 
+  // Wrap RTCPeerConnection
+  if (_RTCPeerConnection) {
+    const OriginalRTC = _RTCPeerConnection;
+    const rtcWrapper = function(configuration) {
+      if (!verifyAttestation('RTCPeerConnection')) {
+        throw new _Error("WebRTC connection blocked by VORO Neural Shield. No Attestation Permit found.");
+      }
+      return new OriginalRTC(configuration);
+    };
+    rtcWrapper.prototype = OriginalRTC.prototype;
+    // Re-link static methods if any
+    _getOwnPropertyNames(OriginalRTC).forEach(prop => {
+      if (!rtcWrapper[prop]) {
+        try {
+          const descriptor = _getOwnPropertyDescriptor(OriginalRTC, prop);
+          if (descriptor) _defineProperty(rtcWrapper, prop, descriptor);
+        } catch (e) { /* ignore */ }
+      }
+    });
+    TRUSTED_WRAPPERS.add(rtcWrapper);
+    window.RTCPeerConnection = rtcWrapper;
+    if (window.webkitRTCPeerConnection) window.webkitRTCPeerConnection = rtcWrapper;
+  }
+
   // Wrap Request
   if (_Request) {
     const OriginalRequest = _Request;
@@ -1373,6 +1398,7 @@ export const performIntegrityCheck = () => {
     { obj: window, prop: 'URL', name: 'URL' },
     { obj: window.URL, prop: 'createObjectURL', name: 'URL.createObjectURL' },
     { obj: window.URL, prop: 'revokeObjectURL', name: 'URL.revokeObjectURL' },
+    { obj: window, prop: 'RTCPeerConnection', name: 'RTCPeerConnection' },
     { obj: window, prop: 'Error', name: 'Error' }
   ];
 
@@ -1464,6 +1490,7 @@ export const performIntegrityCheck = () => {
       'localStorage.getItem', 'localStorage.setItem', 'localStorage.removeItem', 'localStorage.clear',
       'sessionStorage.getItem', 'sessionStorage.setItem', 'sessionStorage.removeItem', 'sessionStorage.clear',
       'URL.createObjectURL', 'URL.revokeObjectURL',
+      'RTCPeerConnection',
       'Request', 'Response.json', 'Response.text', 'Response.blob',
       'crypto.subtle.encrypt', 'crypto.subtle.decrypt', 'crypto.subtle.deriveKey', 'crypto.subtle.importKey', 'crypto.subtle.generateKey'
     ];
@@ -1490,6 +1517,7 @@ export const performIntegrityCheck = () => {
             'localStorage.getItem', 'localStorage.setItem', 'localStorage.removeItem', 'localStorage.clear',
             'sessionStorage.getItem', 'sessionStorage.setItem', 'sessionStorage.removeItem', 'sessionStorage.clear',
             'URL.createObjectURL', 'URL.revokeObjectURL',
+            'RTCPeerConnection',
             'Request', 'Response.json', 'Response.text', 'Response.blob',
             'crypto.subtle.encrypt', 'crypto.subtle.decrypt', 'crypto.subtle.deriveKey', 'crypto.subtle.importKey', 'crypto.subtle.generateKey'
           ];
