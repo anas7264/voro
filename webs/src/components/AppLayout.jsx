@@ -1,4 +1,4 @@
-import React, { useState, createContext, useContext, useEffect, useMemo } from 'react';
+import React, { useState, createContext, useContext, useEffect, useMemo, useRef } from 'react';
 import Sidebar from './Sidebar';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { Menu, Activity } from 'lucide-react';
@@ -11,6 +11,34 @@ export const useSidebar = () => useContext(SidebarContext);
 
 const AppLayout = ({ children }) => {
   const isMobile = useMediaQuery('(max-width: 1024px)');
+  const layoutRef = useRef(null);
+
+  /**
+   * ⚡ OPTIMIZATION: Global Neural Ambient Engine.
+   * Tracks mouse movement to drive background atmospheric displacement.
+   * Uses direct DOM manipulation of CSS variables to bypass React render cycle.
+   */
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!layoutRef.current) return;
+
+      const { clientX, clientY } = e;
+      const { innerWidth, innerHeight } = window;
+
+      // Calculate normalized coordinates (-50 to 50)
+      const nx = (clientX / innerWidth) * 100;
+      const ny = (clientY / innerHeight) * 100;
+
+      // Update CSS variables on the container
+      layoutRef.current.style.setProperty('--bg-x1', `${nx * 0.4}%`);
+      layoutRef.current.style.setProperty('--bg-y1', `${ny * 0.4}%`);
+      layoutRef.current.style.setProperty('--bg-x2', `${(100 - nx) * 0.3}%`);
+      layoutRef.current.style.setProperty('--bg-y2', `${(100 - ny) * 0.3}%`);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
 
   /**
    * ⚡ OPTIMIZATION: Initialize state from source of truth.
@@ -44,7 +72,34 @@ const AppLayout = ({ children }) => {
         Skip to Content
       </a>
 
-      <div className="flex h-full bg-[#080B14] relative selection:bg-voro-primary/30">
+      <div
+        ref={layoutRef}
+        className="flex h-full bg-[#080B14] relative selection:bg-voro-primary/30 overflow-hidden"
+      >
+        {/* 🛰️ GLOBAL NEURAL AMBIENT ENGINE */}
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+          {/* Primary Neural Fog: Luminous Primary Hub */}
+          <div
+            className="absolute w-[60vw] h-[60vw] rounded-full bg-voro-primary/5 blur-[120px] transition-all duration-[3s] ease-out"
+            style={{
+              left: 'var(--bg-x1, -10%)',
+              top: 'var(--bg-y1, -10%)',
+              transform: 'translate3d(-50%, -50%, 0)',
+            }}
+          />
+          {/* Secondary Neural Fog: Biometric Secondary Hub */}
+          <div
+            className="absolute w-[50vw] h-[50vw] rounded-full bg-voro-secondary/5 blur-[100px] transition-all duration-[4s] ease-out"
+            style={{
+              right: 'var(--bg-x2, -5%)',
+              bottom: 'var(--bg-y2, 10%)',
+              transform: 'translate3d(50%, 50%, 0)',
+            }}
+          />
+          {/* Tertiary Depth Layer: Sub-pixel Grain */}
+          <div className="absolute inset-0 bg-boutique-grain opacity-[0.015]" />
+        </div>
+
         <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} isMobile={isMobile} />
 
         {isMobile && !collapsed && (
