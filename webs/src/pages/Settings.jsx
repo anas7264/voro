@@ -4,7 +4,7 @@ import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Select from '@/components/Select';
 import Toggle from '@/components/Toggle';
-import { useStorageKey, useStorageMethods, useStorage } from '@/hooks/useStorage';
+import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useAppContext as useApp } from '@/hooks/useAppContext';
 import { executeSecurely } from '@/utils/security';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -16,11 +16,13 @@ const Settings = () => {
    * useStorageMethods provides stable references for write operations.
    */
   const settings = useStorageKey('settings') || {};
-  const { setItem, deleteItem } = useStorageMethods();
-  // We still need exportData and clearAllData which might only be in useStorage
-  // However, useStorage() returns everything from context.
-  // Let's check useStorage.js again.
-  const { exportData, clearAllData } = useStorage();
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Stable storage methods.
+   * By extracting exportData and clearAllData from useStorageMethods instead
+   * of useStorage, we eliminate the broad subscription to the global storage
+   * manifest, preventing redundant re-renders on unrelated data updates.
+   */
+  const { setItem, deleteItem, exportData, clearAllData } = useStorageMethods();
 
   const { user } = useApp();
   const { addNotification } = useNotifications();
