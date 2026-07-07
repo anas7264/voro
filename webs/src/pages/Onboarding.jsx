@@ -2,7 +2,7 @@ import React, { useState, useId } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, ChevronLeft, Check } from 'lucide-react';
 import { useApp } from '@/hooks/useAppContext';
-import { useStorage } from '@/hooks/useStorage';
+import { useStorageMethods } from '@/hooks/useStorage';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
@@ -16,7 +16,7 @@ import { calculateBMI, calculateBMR } from '@/utils/calculators';
 const Onboarding = () => {
   const navigate = useNavigate();
   const { updateUser: setUser } = useApp();
-  const { setStorage } = useStorage();
+  const { setItem } = useStorageMethods();
   const [step, setStep] = useState(1);
   const [showConfetti, setShowConfetti] = useState(false);
   const confettiRef = React.useRef(null);
@@ -157,7 +157,12 @@ const Onboarding = () => {
     if (step === 2 && (!formData.age || !formData.heightCm || !formData.weightKg)) return;
     if (step === 5) {
       const profileData = calculateProfileData();
-      setStorage('voro_profile', profileData);
+      /**
+       * ⚡ OPTIMIZATION: Direct storage write.
+       * Standardize storage key usage by using the base 'profile' key.
+       * The storage utility automatically handles the 'voro_' prefix.
+       */
+      setItem('profile', profileData);
       setUser(profileData);
       setShowConfetti(true);
       setTimeout(() => navigate('/dashboard'), 2000);
