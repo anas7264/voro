@@ -1,7 +1,10 @@
 // VORO Storage Manager
 // window.storage abstraction for data persistence with transparent encryption
 import crypto from './crypto';
-import { sanitizeObject, validateCallStack, executeLockdown, getDecoyData, isDeceptionActive, executeSecurely } from './security';
+import {
+  sanitizeObject, validateCallStack, executeLockdown, getDecoyData,
+  isDeceptionActive, executeSecurely, createSecureProxy
+} from './security';
 
 const STORAGE_PREFIX = "voro_";
 const GHOST_VAULT_KEY = "voro_ghost_vault";
@@ -191,7 +194,8 @@ class StorageManager {
 
       // Update cache
       this.cache.set(baseKey, processedItem);
-      return processedItem;
+      // Neural Synapse Cloaking: Wrap all retrieved data in a lockdown-aware proxy
+      return createSecureProxy(processedItem, baseKey);
     } catch (error) {
       console.error("Storage get error:", error);
       return null;
@@ -227,10 +231,10 @@ class StorageManager {
     try {
       const parsed = JSON.parse(item);
       this.cache.set(baseKey, parsed);
-      return parsed;
+      return createSecureProxy(parsed, baseKey);
     } catch (e) {
       this.cache.set(baseKey, item);
-      return item;
+      return typeof item === 'object' ? createSecureProxy(item, baseKey) : item;
     }
   }
 

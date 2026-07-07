@@ -115,5 +115,4 @@ const Card = memo(({
 
 Card.displayName = "Card";
 
-export { Card };
 export default Card;

@@ -83,6 +83,12 @@ const _URL = typeof window !== 'undefined' ? window.URL : null;
 const _createObjectURL = (typeof window !== 'undefined' && window.URL) ? window.URL.createObjectURL : null;
 const _revokeObjectURL = (typeof window !== 'undefined' && window.URL) ? window.URL.revokeObjectURL : null;
 
+const _Request = typeof Request !== 'undefined' ? Request : null;
+const _Response = typeof Response !== 'undefined' ? Response : null;
+const _ResponseJSON = (typeof Response !== 'undefined' && Response.prototype) ? Response.prototype.json : null;
+const _ResponseText = (typeof Response !== 'undefined' && Response.prototype) ? Response.prototype.text : null;
+const _ResponseBlob = (typeof Response !== 'undefined' && Response.prototype) ? Response.prototype.blob : null;
+
 // Storage Prototype Pinning
 const _StorageGetItem = (typeof window !== 'undefined' && typeof Storage !== 'undefined') ? Storage.prototype.getItem : null;
 const _StorageSetItem = (typeof window !== 'undefined' && typeof Storage !== 'undefined') ? Storage.prototype.setItem : null;
@@ -212,6 +218,67 @@ const snapshotPrototypes = () => {
 
 // Initial snapshot
 snapshotPrototypes();
+
+/**
+ * Neural Synapse Cloaking
+ * Wraps sensitive data in a lockdown-aware Proxy that neutralizes or
+ * deactivates upon system compromise, preventing post-compromise memory exfiltration.
+ */
+const _cloakingCache = new WeakMap();
+
+export const createSecureProxy = (target, key = null) => {
+  if (!target || typeof target !== 'object' || _isFrozen(target)) return target;
+
+  if (_call.call(_WeakMapHas, _cloakingCache, target)) {
+    return _call.call(_WeakMapGet, _cloakingCache, target);
+  }
+
+  const proxy = new Proxy(target, {
+    get(obj, prop) {
+      if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || isDeceptionActive()) {
+        if (key) {
+          const decoy = getDecoyData(key);
+          if (decoy && typeof decoy === 'object') return decoy[prop];
+        }
+        return undefined;
+      }
+
+      const value = obj[prop];
+      // Recursively cloak nested objects to ensure deep protection
+      if (value && typeof value === 'object' && !_isFrozen(value)) {
+        return createSecureProxy(value, key ? `${key}.${String(prop)}` : null);
+      }
+      return value;
+    },
+    set(obj, prop, value) {
+      if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || isDeceptionActive()) {
+        if (_console.warn) _call.call(_console.warn, console, "Security Sentinel: Blocked write attempt to cloaked memory during lockdown.");
+        return false;
+      }
+      obj[prop] = value;
+      return true;
+    },
+    defineProperty(obj, prop, descriptor) {
+      if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || isDeceptionActive()) return false;
+      return Reflect.defineProperty(obj, prop, descriptor);
+    },
+    deleteProperty(obj, prop) {
+      if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || isDeceptionActive()) return false;
+      return Reflect.deleteProperty(obj, prop);
+    },
+    ownKeys(obj) {
+      if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || isDeceptionActive()) return [];
+      return Reflect.ownKeys(obj);
+    },
+    getPrototypeOf(obj) {
+      if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || isDeceptionActive()) return null;
+      return Reflect.getPrototypeOf(obj);
+    }
+  });
+
+  _call.call(_WeakMapSet, _cloakingCache, target, proxy);
+  return proxy;
+};
 
 /**
  * Verifies and repairs the integrity of core prototypes against snapshots.
@@ -866,6 +933,50 @@ const initializeAttestationSinks = () => {
     window.URL.revokeObjectURL = revokeObjectURLWrapper;
   }
 
+  // Wrap Request
+  if (_Request) {
+    const OriginalRequest = _Request;
+    const requestWrapper = function(input, init) {
+      if (!verifyAttestation('Request', typeof input === 'string' ? input : input?.url)) {
+        throw new _Error("Request construction blocked by VORO Neural Shield. No Attestation Permit found.");
+      }
+      return new OriginalRequest(input, init);
+    };
+    requestWrapper.prototype = OriginalRequest.prototype;
+    TRUSTED_WRAPPERS.add(requestWrapper);
+    window.Request = requestWrapper;
+  }
+
+  // Wrap Response methods
+  if (_Response && _Response.prototype) {
+    const responseMethods = [
+      { name: 'json', native: _ResponseJSON },
+      { name: 'text', native: _ResponseText },
+      { name: 'blob', native: _ResponseBlob }
+    ];
+
+    responseMethods.forEach(({ name, native }) => {
+      if (!native) return;
+      const wrapper = function() {
+        if (!verifyAttestation(`Response.${name}`)) {
+          throw new _Error(`Response.${name} blocked by VORO Neural Shield. No Attestation Permit found.`);
+        }
+        return _call.call(native, this);
+      };
+      TRUSTED_WRAPPERS.add(wrapper);
+      try {
+        _defineProperty(Response.prototype, name, {
+          value: wrapper,
+          configurable: false,
+          writable: false,
+          enumerable: true
+        });
+      } catch (e) {
+        Response.prototype[name] = wrapper;
+      }
+    });
+  }
+
   // Wrap SubtleCrypto
   if (typeof window !== 'undefined' && window.crypto?.subtle) {
     const cryptoMethods = [
@@ -1235,6 +1346,10 @@ export const performIntegrityCheck = () => {
     { obj: window.navigator?.clipboard, prop: 'readText', name: 'navigator.clipboard.readText' },
     { obj: window.navigator, prop: 'share', name: 'navigator.share' },
     { obj: window, prop: 'BroadcastChannel', name: 'BroadcastChannel' },
+    { obj: window, prop: 'Request', name: 'Request' },
+    { obj: window.Response?.prototype, prop: 'json', name: 'Response.json' },
+    { obj: window.Response?.prototype, prop: 'text', name: 'Response.text' },
+    { obj: window.Response?.prototype, prop: 'blob', name: 'Response.blob' },
     { obj: window, prop: 'Proxy', name: 'Proxy' },
     { obj: document, prop: 'createElement', name: 'document.createElement' },
     { obj: document, prop: 'write', name: 'document.write' },
@@ -1349,6 +1464,7 @@ export const performIntegrityCheck = () => {
       'localStorage.getItem', 'localStorage.setItem', 'localStorage.removeItem', 'localStorage.clear',
       'sessionStorage.getItem', 'sessionStorage.setItem', 'sessionStorage.removeItem', 'sessionStorage.clear',
       'URL.createObjectURL', 'URL.revokeObjectURL',
+      'Request', 'Response.json', 'Response.text', 'Response.blob',
       'crypto.subtle.encrypt', 'crypto.subtle.decrypt', 'crypto.subtle.deriveKey', 'crypto.subtle.importKey', 'crypto.subtle.generateKey'
     ];
 
@@ -1365,51 +1481,58 @@ export const performIntegrityCheck = () => {
       if (obj && obj[prop]) {
         if (!isAuthorized(obj[prop], name)) {
           if (isTestMode()) return;
-          if (_console.error) _call.call(_console.error, console, `Security Sentinel: Integrity Violation! ${name} has been monkey-patched or reverted to native. Executing Self-Healing restore.`);
 
-          // Self-Healing RASP: Attempt to restore native primitives from captured safe references
-          try {
-            const capturedMap = {
-              'fetch': _fetch,
-              'JSON.parse': JSON.parse,
-              'JSON.stringify': JSON.stringify,
-              'Object.defineProperty': _defineProperty,
-              'indexedDB.open': _indexedDBOpen,
-              'XMLHttpRequest': _XHR,
-              'BroadcastChannel': _BroadcastChannel,
-              'WebSocket': _WebSocket,
-              'navigator.serviceWorker.register': _SWRegister,
-              'setInterval': _setInterval,
-              'setTimeout': _setTimeout,
-              'performance.now': _perfNow,
-              'localStorage.getItem': _StorageGetItem,
-              'localStorage.setItem': _StorageSetItem,
-              'localStorage.removeItem': _StorageRemoveItem,
-              'localStorage.clear': _StorageClear,
-              'sessionStorage.setItem': _StorageSetItem,
-              'crypto.subtle.encrypt': _SubtleEncrypt,
-              'crypto.subtle.decrypt': _SubtleDecrypt,
-              'crypto.subtle.deriveKey': _SubtleDeriveKey,
-              'crypto.subtle.importKey': _SubtleImportKey,
-              'crypto.subtle.generateKey': _SubtleGenerateKey,
-              'URL.createObjectURL': _createObjectURL,
-              'URL.revokeObjectURL': _revokeObjectURL
-            };
+          const mustBeWrapped = [
+            'fetch', 'window.open', 'XMLHttpRequest', 'WebSocket', 'indexedDB.open', 'navigator.sendBeacon',
+            'navigator.serviceWorker.register',
+            'navigator.clipboard.writeText', 'navigator.clipboard.readText', 'navigator.share',
+            'BroadcastChannel',
+            'localStorage.getItem', 'localStorage.setItem', 'localStorage.removeItem', 'localStorage.clear',
+            'sessionStorage.getItem', 'sessionStorage.setItem', 'sessionStorage.removeItem', 'sessionStorage.clear',
+            'URL.createObjectURL', 'URL.revokeObjectURL',
+            'Request', 'Response.json', 'Response.text', 'Response.blob',
+            'crypto.subtle.encrypt', 'crypto.subtle.decrypt', 'crypto.subtle.deriveKey', 'crypto.subtle.importKey', 'crypto.subtle.generateKey'
+          ];
 
-            const native = capturedMap[name];
-            if (native && obj) {
-              _defineProperty(obj, prop, {
-                value: native,
-                configurable: true,
-                writable: true,
-                enumerable: true
-              });
-              if (_console.info) _call.call(_console.info, console, `Security Sentinel: Successfully restored native primitive for ${name}.`);
-            } else {
+          if (mustBeWrapped.includes(name)) {
+            // CRITICAL: High-risk sinks MUST remain wrapped.
+            // Reverting to native is considered a neutralization attempt.
+            if (_console.error) _call.call(_console.error, console, `Security Sentinel: CRITICAL Integrity Violation! High-risk sink ${name} has been neutralized (reverted to native or monkey-patched). Triggering immediate lockdown.`);
+            compromised = true;
+          } else {
+            if (_console.error) _call.call(_console.error, console, `Security Sentinel: Integrity Violation! ${name} has been monkey-patched. Executing Self-Healing restore.`);
+
+            // Self-Healing RASP: Attempt to restore native primitives for non-critical helpers
+            try {
+              const capturedMap = {
+                'JSON.parse': JSON.parse,
+                'JSON.stringify': JSON.stringify,
+                'Object.defineProperty': _defineProperty,
+                'setInterval': _setInterval,
+                'setTimeout': _setTimeout,
+                'performance.now': _perfNow,
+                'Object.freeze': _freeze,
+                'Object.seal': _seal,
+                'Object.preventExtensions': _preventExtensions,
+                'Error': _Error,
+                'URL': _URL
+              };
+
+              const native = capturedMap[name];
+              if (native && obj) {
+                _defineProperty(obj, prop, {
+                  value: native,
+                  configurable: true,
+                  writable: true,
+                  enumerable: true
+                });
+                if (_console.info) _call.call(_console.info, console, `Security Sentinel: Successfully restored native primitive for ${name}.`);
+              } else {
+                compromised = true;
+              }
+            } catch (restoreError) {
               compromised = true;
             }
-          } catch (restoreError) {
-            compromised = true;
           }
         }
       }
@@ -1826,6 +1949,7 @@ const sentinelExports = {
   validateAIResponse,
   validateCallStack,
   generateSecurityNonce,
+  createSecureProxy,
   performIntegrityCheck,
   executeLockdown,
   executeSecurely: (action, callback, caps) => executeSecurely(action, callback, caps),
