@@ -2,7 +2,7 @@
 // Authenticated Encryption at Rest (AES-GCM) using Web Crypto API
 import sentinel from './security';
 const {
-  validateCallStack, executeSecurely,
+  validateCallStack, executeSecurely, createSecureProxy,
   _TEncoderEncode, _TDecoderDecode, _Uint8Fill, _Uint8Set, _Uint8Slice,
   _call, _slice
 } = sentinel;
@@ -323,7 +323,9 @@ class CryptoManager {
       // Final shred of the decrypted plain-text buffer
       _call.call(_Uint8Fill, decrypted, 0);
       try {
-        return JSON.parse(decoded);
+        const parsed = JSON.parse(decoded);
+        // Neural Synapse Cloaking: Wrap the sensitive decrypted object in a lockdown-aware proxy
+        return createSecureProxy(parsed, domain);
       } catch (e) {
         return decoded;
       }
