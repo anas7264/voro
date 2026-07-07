@@ -1,4 +1,4 @@
-import React, { createContext, useState, useCallback, useEffect } from "react";
+import React, { createContext, useState, useCallback, useEffect, useMemo } from "react";
 import storage from "../utils/storage";
 
 export const AppContext = createContext();
@@ -124,7 +124,13 @@ export const AppProvider = ({ children }) => {
     setError(null);
   }, []);
 
-  const value = {
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Memoized context value.
+   * Prevents redundant re-renders of all AppContext consumers (13 direct pages/components)
+   * when AppProvider re-renders for unrelated reason or during hydration.
+   * Also ensures referential stability of action callbacks.
+   */
+  const value = useMemo(() => ({
     user,
     profile,
     loading,
@@ -135,7 +141,18 @@ export const AppProvider = ({ children }) => {
     completeOnboarding,
     resetAppState,
     clearError
-  };
+  }), [
+    user,
+    profile,
+    loading,
+    error,
+    isOnboarded,
+    updateProfile,
+    updateUser,
+    completeOnboarding,
+    resetAppState,
+    clearError
+  ]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
