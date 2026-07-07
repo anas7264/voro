@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, memo } from "react";
+import React, { useState, useRef, useMemo, memo, useId } from "react";
 import { ChevronDown } from "lucide-react";
 
 /**
@@ -14,9 +14,42 @@ import { ChevronDown } from "lucide-react";
  */
 export const Accordion = memo(({ items = [], className = "" }) => {
   const [openIndex, setOpenIndex] = useState(null);
+  const accordionRef = useRef(null);
+
+  const handleKeyDown = (e) => {
+    const buttons = Array.from(accordionRef.current?.querySelectorAll('button') || []);
+    const currentIndex = buttons.indexOf(document.activeElement);
+
+    if (currentIndex === -1) return;
+
+    let nextIndex;
+    switch (e.key) {
+      case 'ArrowDown':
+        nextIndex = (currentIndex + 1) % buttons.length;
+        break;
+      case 'ArrowUp':
+        nextIndex = (currentIndex - 1 + buttons.length) % buttons.length;
+        break;
+      case 'Home':
+        nextIndex = 0;
+        break;
+      case 'End':
+        nextIndex = buttons.length - 1;
+        break;
+      default:
+        return;
+    }
+
+    e.preventDefault();
+    buttons[nextIndex]?.focus();
+  };
 
   return (
-    <div className={`space-y-6 ${className}`}>
+    <div
+      ref={accordionRef}
+      onKeyDown={handleKeyDown}
+      className={`space-y-6 ${className}`}
+    >
       {items.map((item, index) => (
         <AccordionItem
           key={index}
@@ -31,6 +64,9 @@ export const Accordion = memo(({ items = [], className = "" }) => {
 });
 
 const AccordionItem = memo(({ item, isOpen, onToggle, index }) => {
+  const id = useId();
+  const buttonId = `accordion-button-${id}`;
+  const regionId = `accordion-region-${id}`;
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
@@ -87,9 +123,11 @@ const AccordionItem = memo(({ item, isOpen, onToggle, index }) => {
       />
 
       <button
+        id={buttonId}
         onClick={onToggle}
-        className="relative z-10 w-full px-10 py-8 flex items-center justify-between group outline-none"
+        className="relative z-10 w-full px-10 py-8 flex items-center justify-between group outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14] rounded-[2.5rem]"
         aria-expanded={isOpen}
+        aria-controls={regionId}
       >
         <div className="flex flex-col items-start text-left gap-2">
           <div className="flex items-center gap-3">
@@ -114,6 +152,9 @@ const AccordionItem = memo(({ item, isOpen, onToggle, index }) => {
 
       {/* Kinetic Expansion: CSS Grid Transition */}
       <div
+        id={regionId}
+        role="region"
+        aria-labelledby={buttonId}
         className={`grid transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}
       >
         <div className="overflow-hidden">
