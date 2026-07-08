@@ -7,6 +7,7 @@
 const _toString = Function.prototype.toString;
 const _call = Function.prototype.call;
 const _apply = Function.prototype.apply;
+const _bind = Function.prototype.bind;
 const _test = RegExp.prototype.test;
 const _exec = RegExp.prototype.exec;
 
@@ -63,6 +64,20 @@ const _TEncoderEncode = (typeof TextEncoder !== 'undefined') ? TextEncoder.proto
 const _TDecoderDecode = (typeof TextDecoder !== 'undefined') ? TextDecoder.prototype.decode : null;
 const _ArrayFrom = Array.from;
 
+// Global Object Pinning for Identity Attestation
+const _Object = Object;
+const _Array = Array;
+const _Function = Function;
+const _Reflect = typeof Reflect !== 'undefined' ? Reflect : null;
+const _JSON = JSON;
+const _Promise = Promise;
+const _Proxy = Proxy;
+const _Map = Map;
+const _Set = Set;
+const _WeakMap = WeakMap;
+const _WeakSet = WeakSet;
+const _Uint8Array = Uint8Array;
+
 const _setInterval = typeof setInterval !== 'undefined' ? setInterval : null;
 const _setTimeout = typeof setTimeout !== 'undefined' ? setTimeout : null;
 const _Error = Error;
@@ -113,7 +128,13 @@ const _getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
 const _getPrototypeOf = Object.getPrototypeOf;
 const _hasOwnProperty = Object.prototype.hasOwnProperty;
 const _ReflectApply = typeof Reflect !== 'undefined' ? Reflect.apply : null;
-const _perfNow = (typeof performance !== 'undefined' && performance.now) ? performance.now.bind(performance) : null;
+const _ReflectConstruct = typeof Reflect !== 'undefined' ? Reflect.construct : null;
+const _ReflectGet = typeof Reflect !== 'undefined' ? Reflect.get : null;
+const _ReflectSet = typeof Reflect !== 'undefined' ? Reflect.set : null;
+const _ReflectDefineProperty = typeof Reflect !== 'undefined' ? Reflect.defineProperty : null;
+const _ReflectGetOwnPropertyDescriptor = typeof Reflect !== 'undefined' ? Reflect.getOwnPropertyDescriptor : null;
+const _ReflectOwnKeys = typeof Reflect !== 'undefined' ? Reflect.ownKeys : null;
+const _perfNow = (typeof performance !== 'undefined' && performance.now) ? (_ReflectApply ? _ReflectApply(_bind, performance.now, [performance]) : performance.now.bind(performance)) : null;
 const _seal = Object.seal;
 const _preventExtensions = Object.preventExtensions;
 const _isFrozen = Object.isFrozen;
@@ -1351,6 +1372,16 @@ export const performIntegrityCheck = () => {
     { obj: window.indexedDB, prop: 'open', name: 'indexedDB.open' },
     { obj: JSON, prop: 'parse', name: 'JSON.parse' },
     { obj: JSON, prop: 'stringify', name: 'JSON.stringify' },
+    { obj: typeof Reflect !== 'undefined' ? Reflect : null, prop: 'apply', name: 'Reflect.apply' },
+    { obj: typeof Reflect !== 'undefined' ? Reflect : null, prop: 'construct', name: 'Reflect.construct' },
+    { obj: typeof Reflect !== 'undefined' ? Reflect : null, prop: 'defineProperty', name: 'Reflect.defineProperty' },
+    { obj: typeof Reflect !== 'undefined' ? Reflect : null, prop: 'get', name: 'Reflect.get' },
+    { obj: typeof Reflect !== 'undefined' ? Reflect : null, prop: 'set', name: 'Reflect.set' },
+    { obj: Function.prototype, prop: 'call', name: 'Function.prototype.call' },
+    { obj: Function.prototype, prop: 'apply', name: 'Function.prototype.apply' },
+    { obj: Function.prototype, prop: 'bind', name: 'Function.prototype.bind' },
+    { obj: Object.prototype, prop: 'toString', name: 'Object.prototype.toString' },
+    { obj: Object.prototype, prop: 'hasOwnProperty', name: 'Object.prototype.hasOwnProperty' },
     { obj: Object, prop: 'defineProperty', name: 'Object.defineProperty' },
     { obj: window, prop: 'eval', name: 'eval' },
     { obj: window, prop: 'Function', name: 'Function' },
@@ -1403,6 +1434,31 @@ export const performIntegrityCheck = () => {
   ];
 
   let compromised = false;
+
+  // 1. Global Object Identity Attestation
+  // Verifies that core global objects haven't been replaced or shadowed.
+  if (typeof window !== 'undefined') {
+    const globals = [
+      { actual: window.Object, expected: _Object, name: 'Object' },
+      { actual: window.Array, expected: _Array, name: 'Array' },
+      { actual: window.Function, expected: _Function, name: 'Function' },
+      { actual: window.JSON, expected: _JSON, name: 'JSON' },
+      { actual: window.Promise, expected: _Promise, name: 'Promise' },
+      { actual: window.Proxy, expected: _Proxy, name: 'Proxy' },
+      { actual: window.Map, expected: _Map, name: 'Map' },
+      { actual: window.Set, expected: _Set, name: 'Set' },
+      { actual: window.Uint8Array, expected: _Uint8Array, name: 'Uint8Array' }
+    ];
+
+    if (_Reflect) globals.push({ actual: window.Reflect, expected: _Reflect, name: 'Reflect' });
+
+    for (const { actual, expected, name } of globals) {
+      if (actual !== expected) {
+        if (_console.error) _call.call(_console.error, console, `Security Sentinel: Global Identity Violation! window.${name} has been replaced.`);
+        compromised = true;
+      }
+    }
+  }
 
   // Environment Attestation: Detect automation frameworks
   if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
@@ -1469,9 +1525,28 @@ export const performIntegrityCheck = () => {
   // Robust Native Code Check: Prevents simple toString() overrides and bound-function bypass
   const isNative = (fn) => {
     try {
-      return typeof fn === 'function' &&
-             !fn.name.startsWith('bound ') &&
-             _call.call(_test, /\{\s*\[native code\]\s*\}/, _call.call(_toString, fn));
+      if (typeof fn !== 'function') return false;
+
+      // Detection 1: toString() override attempt
+      const str = _call.call(_toString, fn);
+      if (!_call.call(_test, /\{\s*\[native code\]\s*\}/, str)) return false;
+
+      // Detection 2: name mimicry for bound functions
+      if (fn.name.startsWith('bound ')) return false;
+
+      // Detection 3: Advanced mimicry via property descriptor tampering
+      // Native functions usually have non-enumerable, non-configurable, non-writable prototypes (or none)
+      // and their own properties are strictly controlled.
+      const desc = _ReflectGetOwnPropertyDescriptor ? _ReflectGetOwnPropertyDescriptor(fn, 'prototype') : null;
+      if (desc && desc.configurable) return false;
+
+      // Detection 4: Integrity check on toString itself (to prevent recursive deception)
+      if (fn !== _toString) {
+        const toStringStr = _call.call(_toString, fn.toString);
+        if (!_call.call(_test, /\{\s*\[native code\]\s*\}/, toStringStr)) return false;
+      }
+
+      return true;
     } catch (e) {
       return false;
     }
