@@ -106,3 +106,10 @@
 ## 2025-05-18 - Surgical Reactivity for Action-Only Components
 **Learning:** Components that only perform write operations (like 'QuickLog.jsx') should not subscribe to global storage state. Using 'useStorage()' (which includes 'storageData') triggers a re-render on every storage update, even if the component doesn't display any of that data. Switching to 'useStorageMethods()' provides the same action references (setItem, getItem) without the performance cost of a global subscription.
 **Action:** Use 'useStorageMethods()' for components that only need to perform storage actions and do not need to reactively display storage data.
+
+## 2026-07-08 - Parallel Storage & Crypto Collapsing
+**Learning:** The application's encrypted storage layer forced sequential 'await' cycles during boot in 'ensureInitialized', creating an O(N) startup bottleneck where N is the number of storage keys. Furthermore, concurrent parallel requests to 'init()' in 'crypto.js' could trigger race conditions or redundant IndexedDB operations. Using 'Promise.all' for storage loading and an 'initPromise' singleton for crypto collapsing reduces startup latency to O(1) decryption cycles.
+
+**Action:**
+1. Use 'Promise.all' when initializing or fetching multiple keys from 'StorageManager'.
+2. Implement 'initPromise' patterns in singleton utility modules to collapse concurrent async initialization calls.

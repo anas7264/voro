@@ -20,6 +20,7 @@ class CryptoManager {
     this.hkdfKey = null;
     this.domainKeyCache = new Map();
     this.initialized = false;
+    this.initPromise = null;
 
     // Security: High-priority listener for system-wide lockdown
     // Performs atomic cryptographic shredding of master keys from memory.
@@ -47,22 +48,34 @@ class CryptoManager {
     this.hkdfKey = null;
     this.domainKeyCache.clear();
     this.initialized = false;
+    this.initPromise = null;
     console.warn("Security Sentinel: Cryptographic keys have been shredded from memory.");
   }
 
   // Initialize the crypto manager (load or generate keys)
   async init() {
     if (this.initialized) return;
+    if (this.initPromise) return this.initPromise;
 
-    try {
-      const keys = await this.getOrGenerateKeys();
-      this.key = keys.masterKey;
-      this.hkdfKey = keys.hkdfKey;
-      this.initialized = true;
-    } catch (error) {
-      console.error('Failed to initialize VORO Crypto:', error);
-      throw error;
-    }
+    /**
+     * ⚡ PERFORMANCE OPTIMIZATION: Singleton Initialization Promise.
+     * Prevents race conditions and redundant IndexedDB/HKDF operations
+     * when multiple storage keys are initialized in parallel.
+     */
+    this.initPromise = (async () => {
+      try {
+        const keys = await this.getOrGenerateKeys();
+        this.key = keys.masterKey;
+        this.hkdfKey = keys.hkdfKey;
+        this.initialized = true;
+      } catch (error) {
+        this.initPromise = null; // Allow retry on failure
+        console.error('Failed to initialize VORO Crypto:', error);
+        throw error;
+      }
+    })();
+
+    return this.initPromise;
   }
 
   // Get keys from IndexedDB or generate new ones
