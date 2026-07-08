@@ -74,22 +74,33 @@ const HabitTracker = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newHabit, setNewHabit] = useState({ name: '', icon: '✓', color: 'voro-primary' });
 
+  /**
+   * ⚡ OPTIMISTIC UI: Local shadow state for instant reactivity.
+   * Initialized directly from storage to eliminate mount-time flickering.
+   */
+  const [optimisticList, setOptimisticList] = useState(() => {
+    const data = storageHabits || { list: [], log: {} };
+    return data.list && data.list.length > 0 ? data.list : defaultHabits;
+  });
+  const [optimisticLog, setOptimisticLog] = useState(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return storageHabits?.log?.[today] || {};
+  });
+
   useEffect(() => {
     document.title = 'VORO | Habit Tracker';
   }, []);
 
-  /**
-   * ⚡ OPTIMIZATION: Synchronous data derivation using useMemo.
-   * Eliminates the initial mount-time double-render cycle and ensures
-   * reactivity to StorageContext updates without manual load calls.
-   */
-  const { habits, todayHabits } = useMemo(() => {
+  // Synchronize optimistic state with storage data
+  useEffect(() => {
     const data = storageHabits || { list: [], log: {} };
-    const list = data.list && data.list.length > 0 ? data.list : defaultHabits;
+    setOptimisticList(data.list && data.list.length > 0 ? data.list : defaultHabits);
     const today = new Date().toISOString().split('T')[0];
-    const log = data.log?.[today] || {};
-    return { habits: list, todayHabits: log };
+    setOptimisticLog(data.log?.[today] || {});
   }, [storageHabits]);
+
+  const habits = optimisticList;
+  const todayHabits = optimisticLog;
 
   const addHabit = useCallback(async () => {
     const { valid, errors } = validateHabit(newHabit);
@@ -119,29 +130,49 @@ const HabitTracker = () => {
   }, [newHabit, addNotification, getItemAsync, setItem]);
 
   const toggleHabit = useCallback(async (habitId) => {
-    const data = await getItemAsync('habits') || { list: [], log: {} };
     const today = new Date().toISOString().split('T')[0];
+    const isDone = !!todayHabits[habitId];
 
+    /**
+     * ⚡ OPTIMISTIC UI: Immediate toggle.
+     */
+    setOptimisticLog(prev => ({
+      ...prev,
+      [habitId]: !isDone
+    }));
+
+    /**
+     * ⚡ PERSISTENCE: Background synchronization.
+     */
+    const data = await getItemAsync('habits') || { list: [], log: {} };
     const updatedLog = {
       ...(data.log || {}),
       [today]: {
         ...(data.log?.[today] || {}),
-        [habitId]: !data.log?.[today]?.[habitId]
+        [habitId]: !isDone
       }
     };
 
     const updatedData = { ...data, log: updatedLog };
     await setItem('habits', updatedData);
-  }, [getItemAsync, setItem]);
+  }, [getItemAsync, setItem, todayHabits]);
 
   const removeHabit = useCallback(async (habitId) => {
+    /**
+     * ⚡ OPTIMISTIC UI: Immediate removal.
+     */
+    setOptimisticList(prev => (prev || habits).filter(h => h.id !== habitId));
+
+    /**
+     * ⚡ PERSISTENCE: Background synchronization.
+     */
     const data = await getItemAsync('habits') || { list: [], log: {} };
     const updatedData = {
       ...data,
       list: (data.list || []).filter(h => h.id !== habitId)
     };
     await setItem('habits', updatedData);
-  }, [getItemAsync, setItem]);
+  }, [getItemAsync, setItem, habits]);
 
   /**
    * ⚡ PERFORMANCE OPTIMIZATION: Stabilized Header action.

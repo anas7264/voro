@@ -86,10 +86,10 @@ class StorageManager {
 
     this.initPromise = (async () => {
       const keys = this.list();
-      for (const key of keys) {
+      await Promise.all(keys.map(async (key) => {
         const value = await this.getAsync(key);
         this.cache.set(key, value);
-      }
+      }));
       this.initialized = true;
       this.memoizedData = null; // Ensure cache is invalidated
       this.notify('*', this.getAllSync());
@@ -392,11 +392,14 @@ class StorageManager {
     }
 
     try {
-      const data = {};
       const keys = this.list();
-      for (const key of keys) {
-        data[key] = await this.getAsync(key);
-      }
+      const values = await Promise.all(keys.map(key => this.getAsync(key)));
+
+      const data = {};
+      keys.forEach((key, index) => {
+        data[key] = values[index];
+      });
+
       return data;
     } catch (error) {
       console.error("Storage getAll error:", error);

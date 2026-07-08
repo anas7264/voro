@@ -86,28 +86,44 @@ const WaterTracker = () => {
 
   const { addNotification } = useNotifications();
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+
+  /**
+   * ⚡ OPTIMISTIC UI: Local shadow state.
+   * Initialized directly from storage to eliminate mount-time flickering.
+   * Synchronized via useEffect to maintain consistency with external updates.
+   */
+  const [optimisticLogs, setOptimisticLogs] = useState(() => waterLog[date] || []);
+  const [optimisticHistory, setOptimisticHistory] = useState(() => waterHistoryData);
+
   const dailyGoal = 2000;
 
   useEffect(() => {
     document.title = 'VORO | Water Tracker';
   }, []);
 
-  const dailyLogs = useMemo(() => {
-    return waterLog[date] || [];
+  // Synchronize optimistic state with storage data
+  useEffect(() => {
+    setOptimisticLogs(waterLog[date] || []);
   }, [waterLog, date]);
 
+  useEffect(() => {
+    setOptimisticHistory(waterHistoryData);
+  }, [waterHistoryData]);
+
+  const dailyLogs = optimisticLogs;
+
   const waterHistory = useMemo(() => {
-    return Object.entries(waterHistoryData)
+    return Object.entries(optimisticHistory)
       .slice(-30)
       .map(([d, amount]) => ({
         date: shortDateFormatter.format(new Date(d)),
         water: amount,
       }));
-  }, [waterHistoryData]);
+  }, [optimisticHistory]);
 
   const todayTotal = useMemo(() => {
-    return dailyLogs.reduce((sum, log) => sum + (log.amount || 0), 0);
-  }, [dailyLogs]);
+    return optimisticLogs.reduce((sum, log) => sum + (log.amount || 0), 0);
+  }, [optimisticLogs]);
 
   const addWater = async (amount) => {
     const { valid, errors } = validateWaterEntry({ amount, date });
@@ -124,14 +140,16 @@ const WaterTracker = () => {
     };
 
     /**
-     * ⚡ OPTIMIZATION: Use updateItem for surgical key-level updates.
-     * Reduces the complexity of reading and spreading entire log objects.
+     * ⚡ OPTIMISTIC UI: Immediate local state update.
      */
-    const logsForDate = dailyLogs;
-    const updatedLogs = [...logsForDate, newLog];
+    const updatedLogs = [...optimisticLogs, newLog];
+    const newTotal = (optimisticHistory[date] || 0) + amount;
 
-    const newTotal = (waterHistoryData[date] || 0) + amount;
-
+    setOptimisticLogs(updatedLogs);
+    setOptimisticHistory(prev => ({ ...prev, [date]: newTotal }));
+    /**
+     * ⚡ PERSISTENCE: Background storage synchronization.
+     */
     await updateItem('water_log', { [date]: updatedLogs });
     await updateItem('water_history', { [date]: newTotal });
 
@@ -141,13 +159,21 @@ const WaterTracker = () => {
   };
 
   const deleteLog = async (id) => {
-    const currentLogs = dailyLogs;
-    const logToDelete = currentLogs.find(l => l.id === id);
+    const logToDelete = optimisticLogs.find(l => l.id === id);
     if (!logToDelete) return;
 
-    const updatedLogs = currentLogs.filter(log => log.id !== id);
-    const newTotal = Math.max(0, (waterHistoryData[date] || 0) - logToDelete.amount);
+    const updatedLogs = optimisticLogs.filter(log => log.id !== id);
+    const newTotal = Math.max(0, (optimisticHistory[date] || 0) - logToDelete.amount);
 
+    /**
+     * ⚡ OPTIMISTIC UI: Immediate removal.
+     */
+    setOptimisticLogs(updatedLogs);
+    setOptimisticHistory(prev => ({ ...prev, [date]: newTotal }));
+
+    /**
+     * ⚡ PERSISTENCE: Background storage synchronization.
+     */
     await updateItem('water_log', { [date]: updatedLogs });
     await updateItem('water_history', { [date]: newTotal });
   };

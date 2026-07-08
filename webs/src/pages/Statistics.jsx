@@ -67,23 +67,25 @@ const Statistics = () => {
     // ⚡ PERFORMANCE OPTIMIZATION: Single-cursor temporal engine.
     const cursor = new Date();
 
-    // Populate weekly distribution (last 7 days)
-    for (let i = 6; i >= 0; i--) {
-      cursor.setTime(todayMs - (i * dayMs));
-      const dateStr = getFastDateStr(cursor);
-      weeklyWorkouts.push({
-        day: daysOfWeek[cursor.getDay()],
-        workouts: workoutLog[dateStr]?.attended ? 1 : 0
-      });
-    }
-
-    // Populate main trend (period days)
+    /**
+     * ⚡ OPTIMIZATION: O(N) Single-Pass Synthesis.
+     * Consolidates weekly distribution and main trend calculation into a
+     * single chronological loop. Reduces Date object mutations and lookups.
+     */
     for (let i = days - 1; i >= 0; i--) {
       cursor.setTime(todayMs - (i * dayMs));
       const dateStr = getFastDateStr(cursor);
       const dayData = nutritionLog[dateStr];
       const workoutDay = workoutLog[dateStr];
       const kcal = dayData?.totals?.calories || 0;
+
+      // Weekly workout distribution (last 7 days)
+      if (i < 7) {
+        weeklyWorkouts.push({
+          day: daysOfWeek[cursor.getDay()],
+          workouts: workoutDay?.attended ? 1 : 0
+        });
+      }
 
       calorieTrend.push({
         date: labelFormatter.format(cursor),
