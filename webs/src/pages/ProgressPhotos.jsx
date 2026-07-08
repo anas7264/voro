@@ -253,12 +253,7 @@ const ProgressPhotos = () => {
   }, [sortedPhotos]);
 
   return (
-    <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30">
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-voro-primary/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[10%] -right-[5%] w-[30%] h-[30%] bg-voro-secondary/5 rounded-full blur-[100px]" />
-      </div>
-
+    <div className="min-h-screen bg-transparent text-[#F0F4FF] selection:bg-voro-primary/30">
       <div className="relative max-w-[1440px] mx-auto px-6 py-12 md:px-12 lg:px-20">
         <Breadcrumb
           items={[{ label: 'System', href: '/dashboard' }, { label: 'Neural Matrix', href: '/dashboard' }, { label: 'Progress Photos' }]}
