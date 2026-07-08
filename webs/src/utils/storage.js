@@ -84,12 +84,17 @@ class StorageManager {
     if (this.initialized) return;
     if (this.initPromise) return this.initPromise;
 
+    /**
+     * ⚡ PERFORMANCE OPTIMIZATION: Parallel Storage Initialization.
+     * Replaces sequential decryption with Promise.all to significantly
+     * reduce app startup latency.
+     */
     this.initPromise = (async () => {
       const keys = this.list();
-      for (const key of keys) {
+      await Promise.all(keys.map(async (key) => {
         const value = await this.getAsync(key);
         this.cache.set(key, value);
-      }
+      }));
       this.initialized = true;
       this.memoizedData = null; // Ensure cache is invalidated
       this.notify('*', this.getAllSync());
@@ -394,9 +399,15 @@ class StorageManager {
     try {
       const data = {};
       const keys = this.list();
-      for (const key of keys) {
+
+      /**
+       * ⚡ PERFORMANCE OPTIMIZATION: Parallel Data Retrieval.
+       * Decrypts all requested keys in parallel rather than sequentially.
+       */
+      await Promise.all(keys.map(async (key) => {
         data[key] = await this.getAsync(key);
-      }
+      }));
+
       return data;
     } catch (error) {
       console.error("Storage getAll error:", error);
