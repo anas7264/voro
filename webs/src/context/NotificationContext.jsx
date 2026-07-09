@@ -1,6 +1,8 @@
 import React, { createContext, useState, useCallback, useRef, useMemo } from "react";
 
-export const NotificationContext = createContext();
+export const NotificationStateContext = createContext();
+export const NotificationMethodsContext = createContext();
+export const NotificationContext = NotificationMethodsContext;
 
 export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
@@ -88,12 +90,12 @@ export const NotificationProvider = ({ children }) => {
   }, [loading, removeNotification, success, error]);
 
   /**
-   * ⚡ PERFORMANCE OPTIMIZATION: Memoized context value.
-   * Prevents redundant re-renders of all NotificationContext consumers
-   * (42 occurrences) when NotificationProvider re-renders for unrelated reasons.
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
+   * Splits notification state from stable action methods. This ensures that
+   * the 40+ pages that only trigger notifications do not re-render when the
+   * global notification list changes.
    */
-  const value = useMemo(() => ({
-    notifications,
+  const methodsValue = useMemo(() => ({
     addNotification,
     removeNotification,
     clearAllNotifications,
@@ -105,7 +107,6 @@ export const NotificationProvider = ({ children }) => {
     updateNotification,
     withNotification
   }), [
-    notifications,
     addNotification,
     removeNotification,
     clearAllNotifications,
@@ -119,9 +120,11 @@ export const NotificationProvider = ({ children }) => {
   ]);
 
   return (
-    <NotificationContext.Provider value={value}>
-      {children}
-    </NotificationContext.Provider>
+    <NotificationMethodsContext.Provider value={methodsValue}>
+      <NotificationStateContext.Provider value={notifications}>
+        {children}
+      </NotificationStateContext.Provider>
+    </NotificationMethodsContext.Provider>
   );
 };
 
