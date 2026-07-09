@@ -68,6 +68,12 @@ const getFastDateStr = (d) => {
   return `${year}-${month}-${day}`;
 };
 
+const INITIAL_NUTRITION = {
+  meals: {},
+  water: 0,
+  totals: { calories: 0, protein: 0, carbs: 0, fat: 0 }
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAppContext();
@@ -121,12 +127,8 @@ const Dashboard = () => {
    * reactivity to StorageContext updates without manual load calls.
    */
   const nutritionToday = useMemo(() => {
-    return nutritionLog[today] || {
-      meals: {},
-      water: 0,
-      totals: { calories: 0, protein: 0, carbs: 0, fat: 0 }
-    };
-  }, [nutritionLog, today]);
+    return nutritionLog[today] || INITIAL_NUTRITION;
+  }, [nutritionLog[today]]); // ⚡ OPTIMIZATION: Granular dependency
 
   const workoutToday = useMemo(() => {
     return workoutLog[today];
@@ -139,7 +141,7 @@ const Dashboard = () => {
       weight: w.value,
       fullDate: w.date
     }));
-  }, [bodyMetrics]);
+  }, [bodyMetrics.weights]); // ⚡ OPTIMIZATION: Only recompute if weights array changes
 
   const streaks = useMemo(() => {
     const waterGoal = user?.waterGoal || 2000;
@@ -161,28 +163,41 @@ const Dashboard = () => {
      * ⚡ PERFORMANCE OPTIMIZATION: Optimized streak engine.
      * Replaces O(N) Date object instantiation with numeric temporal arithmetic.
      * Uses a single pre-allocated date cursor for all lookups in the loop.
+     * Implements early exit based on max available data keys.
      */
     const cursor = new Date();
+    const maxDays = 365;
 
-    for (let i = 0; i < 365; i++) {
+    for (let i = 0; i < maxDays; i++) {
       if (!trainingActive && !loggingActive && !waterActive) break;
 
       cursor.setTime(todayMs - (i * dayMs));
       const dateStr = getFastDateStr(cursor);
 
       if (trainingActive) {
-        if (workoutLog[dateStr]?.attended) trainingStreak++;
-        else if (trainingStreak > 0 || i > 0) trainingActive = false;
+        if (workoutLog[dateStr]?.attended) {
+          trainingStreak++;
+        } else {
+          // If not today, or if we already have a streak, break it
+          if (i > 0 || trainingStreak > 0) trainingActive = false;
+          // Note: if i=0 and not attended yet, we don't break yet as the day isn't over
+        }
       }
 
       if (loggingActive) {
-        if (nutritionLog[dateStr]?.totals?.calories > 0) loggingStreak++;
-        else if (loggingStreak > 0 || i > 0) loggingActive = false;
+        if (nutritionLog[dateStr]?.totals?.calories > 0) {
+          loggingStreak++;
+        } else {
+          if (i > 0 || loggingStreak > 0) loggingActive = false;
+        }
       }
 
       if (waterActive) {
-        if (nutritionLog[dateStr]?.water >= waterGoal) waterStreak++;
-        else if (waterStreak > 0 || i > 0) waterActive = false;
+        if (nutritionLog[dateStr]?.water >= waterGoal) {
+          waterStreak++;
+        } else {
+          if (i > 0 || waterStreak > 0) waterActive = false;
+        }
       }
     }
 

@@ -15,6 +15,15 @@ const fullDateFormatter = new Intl.DateTimeFormat('en-US', {
   year: 'numeric'
 });
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted static exercise map.
+ * Prevents O(N) reduction of the exercises data on every PR history update.
+ */
+const EXERCISE_MAP = exercises.reduce((acc, e) => {
+  acc[e.id] = e.name;
+  return acc;
+}, {});
+
 const PRRecords = () => {
   const prHistory = useStorageKey('pr_history');
 
@@ -30,15 +39,9 @@ const PRRecords = () => {
   const prs = useMemo(() => {
     const data = prHistory || {};
 
-    // ⚡ OPTIMIZATION: O(1) exercise lookup map to avoid O(N) searches inside the loop.
-    const exerciseMap = exercises.reduce((acc, e) => {
-      acc[e.id] = e.name;
-      return acc;
-    }, {});
-
     return Object.entries(data).map(([exerciseId, records]) => ({
       exerciseId,
-      exerciseName: exerciseMap[exerciseId] || 'Unknown',
+      exerciseName: EXERCISE_MAP[exerciseId] || 'Unknown',
       records: Array.isArray(records) ? [...records].sort((a, b) => new Date(b.date) - new Date(a.date)) : [],
     })).filter(pr => pr.records.length > 0);
   }, [prHistory]);

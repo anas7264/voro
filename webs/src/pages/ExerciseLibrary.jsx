@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useDeferredValue } from 'react';
 import { Search, Activity } from 'lucide-react';
 import { exercises } from '@/data/exercises';
 import { ExerciseCard } from '@/components/ExerciseCard';
@@ -13,24 +13,17 @@ const CATEGORIES = ['All', ...new Set(exercises.map(e => e.category))];
 
 const ExerciseLibrary = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [deferredSearchQuery, setDeferredSearchQuery] = useState('');
+  /**
+   * ⚡ OPTIMIZATION: Concurrent Rendering with useDeferredValue.
+   * Eliminates the mandatory 200ms debounce delay.
+   */
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
     document.title = 'VORO | Exercise Library';
   }, []);
-
-  /**
-   * ⚡ OPTIMIZATION: Debounced search term.
-   * Prevents expensive filtering operations on every keystroke.
-   */
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDeferredSearchQuery(searchQuery);
-    }, 200);
-    return () => clearTimeout(handler);
-  }, [searchQuery]);
 
   /**
    * ⚡ OPTIMIZATION: Reset visible count when filters change to maintain performance.

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useDeferredValue } from 'react';
 import { Search, Filter, Heart, Utensils, ChevronRight, Sparkles, Zap, Info, ShieldCheck, Leaf, Wheat } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
 import { foods } from '@/data/foods';
@@ -14,7 +14,12 @@ const CATEGORIES = ['All', ...new Set(foods.map(f => f.category))];
 const FoodLibrary = () => {
   const { addNotification } = useNotifications();
   const [searchQuery, setSearchQuery] = useState('');
-  const [deferredSearchQuery, setDeferredSearchQuery] = useState('');
+  /**
+   * ⚡ OPTIMIZATION: Concurrent Rendering with useDeferredValue.
+   * Replaced legacy 200ms debounce with useDeferredValue for "Optimistic Filtering".
+   * This allows the UI to remain responsive while React handles the filtering as a low-priority transition.
+   */
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [favorites, setFavorites] = useState([]);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -22,17 +27,6 @@ const FoodLibrary = () => {
   useEffect(() => {
     document.title = 'VORO | Gastronomy Archive';
   }, []);
-
-  /**
-   * ⚡ OPTIMIZATION: Debounced search term.
-   * Prevents expensive filtering operations on every keystroke.
-   */
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDeferredSearchQuery(searchQuery);
-    }, 200);
-    return () => clearTimeout(handler);
-  }, [searchQuery]);
 
   /**
    * ⚡ OPTIMIZATION: Reset visible count when filters change to maintain performance.

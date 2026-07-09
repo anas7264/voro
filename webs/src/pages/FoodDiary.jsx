@@ -45,11 +45,23 @@ const FoodDiary = () => {
   }, []);
 
   const nutritionLog = useMemo(() => {
-    return nutritionLogs[date] || {
+    const log = nutritionLogs[date] || {
       meals: Object.fromEntries(mealSlots.map(slot => [slot, []])),
       water: 0,
       totals: { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }
     };
+
+    /**
+     * ⚡ PERFORMANCE OPTIMIZATION: Pre-calculate meal slot energy totals.
+     * This eliminates O(N) reductions inside the render loop for each meal card,
+     * providing an O(1) lookup during the render pass.
+     */
+    const mealTotals = {};
+    mealSlots.forEach(slot => {
+      mealTotals[slot] = (log.meals[slot] || []).reduce((sum, food) => sum + (food.calories || 0), 0);
+    });
+
+    return { ...log, mealTotals };
   }, [nutritionLogs, date, mealSlots]);
 
   const handleDateChange = (days) => {
@@ -316,9 +328,7 @@ const FoodDiary = () => {
                   <div className="flex items-center gap-6">
                     <div className="text-right">
                       <p className="text-xl font-mono font-bold text-white">
-                        {Array.isArray(nutritionLog.meals[slot])
-                          ? nutritionLog.meals[slot].reduce((sum, food) => sum + food.calories, 0)
-                          : 0}
+                        {nutritionLog.mealTotals[slot] || 0}
                       </p>
                       <p className="text-[0.55rem] font-black text-gray-600 uppercase tracking-[0.2em]">Energy kcal</p>
                     </div>
