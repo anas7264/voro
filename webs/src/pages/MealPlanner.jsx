@@ -131,6 +131,7 @@ const MealPlanner = () => {
                 onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                 placeholder="Any preferences, foods to include/avoid..."
                 rows={4}
+                maxLength={500}
               />
 
               <Button
