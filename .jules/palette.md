@@ -17,3 +17,7 @@
 ## 2025-06-30 - Standardized Accessible Accordion Pattern
 **Learning:** Complex interactive components like accordions require a combination of stable ID associations (`useId`), semantic roles (`region`), and manual keyboard focus management (Arrow keys, Home/End) to be truly accessible. Relying on native focus flow is often insufficient for high-fidelity custom UI components.
 **Action:** Always wrap the accordion items in a container with a keydown handler that manages focus between header buttons. Use `aria-controls` and `aria-labelledby` with stable `useId` hooks to ensure screen readers can navigate and announce relationships correctly.
+
+## 2025-05-15 - Forge Standard Character Telemetry
+**Learning:** For inputs with character limits, providing real-time visual and accessible feedback is crucial for UX. Passive limits (like maxLength without counters) can be frustrating for users who reach the limit without warning.
+**Action:** Always implement the Forge-standard character telemetry (`// current/max`) in `Input` and `Textarea` components when `maxLength` is provided. Use `aria-live="polite"` and `aria-atomic="true"` to ensure screen readers announce updates, and apply visual red indicators when the limit is reached.

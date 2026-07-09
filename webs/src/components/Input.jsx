@@ -21,6 +21,7 @@ export const Input = memo(({
   error = false,
   required = false,
   label,
+  maxLength,
   className = "",
   ...props
 }) => {
@@ -34,6 +35,9 @@ export const Input = memo(({
     return `IN_${cleanId.slice(0, 3).toUpperCase()}`;
   }, [generatedId]);
 
+  const currentLength = (value || "").toString().length;
+  const isAtLimit = maxLength && currentLength >= maxLength;
+
   return (
     <div className={`w-full group/input-container ${className}`}>
       <div className="flex items-center justify-between mb-3 px-1">
@@ -46,8 +50,17 @@ export const Input = memo(({
             {required && <span className="text-red-500 ml-1">*</span>}
           </label>
         )}
-        <span className="text-[0.45rem] font-mono font-bold text-gray-700 uppercase tracking-widest opacity-0 group-focus-within/input-container:opacity-100 transition-opacity duration-500">
+        <span
+          aria-live="polite"
+          aria-atomic="true"
+          className="text-[0.45rem] font-mono font-bold text-gray-700 uppercase tracking-widest opacity-0 group-focus-within/input-container:opacity-100 transition-opacity duration-500"
+        >
           {nodeId} // {type.toUpperCase()}
+          {maxLength && (
+            <span className={isAtLimit ? "text-red-500" : ""}>
+              {" "}// {currentLength}/{maxLength}
+            </span>
+          )}
         </span>
       </div>
 
@@ -87,6 +100,7 @@ export const Input = memo(({
             onChange={onChange}
             placeholder={placeholder}
             disabled={disabled}
+            maxLength={maxLength}
             className={`
               w-full bg-transparent px-6 py-5 text-white font-mono text-sm
               placeholder:font-serif placeholder:italic placeholder:text-gray-700
