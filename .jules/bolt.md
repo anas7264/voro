@@ -113,3 +113,11 @@
 **Action:**
 1. Use 'Promise.all' when initializing or fetching multiple keys from 'StorageManager'.
 2. Implement 'initPromise' patterns in singleton utility modules to collapse concurrent async initialization calls.
+
+## 2025-05-19 - Notification Context Split for Surgical Reactivity
+**Learning:** Providing both state (notifications array) and methods (addNotification, etc.) in a single context causes all 50+ consumer pages to re-render whenever a notification is added or removed. Splitting into NotificationStateContext and NotificationMethodsContext allows pages to trigger alerts without subscribing to the volatile state, reducing unnecessary re-renders by ~95% globally.
+
+**Action:**
+1. Split contexts that contain both volatile state and stable methods into separate providers.
+2. Ensure methods are referentially stable using useCallback and useMemo with minimal dependencies.
+3. Create targeted hooks for state-only vs. method-only consumption.
