@@ -235,3 +235,13 @@ Effective RASP requires protecting not only network and storage sinks but also n
 
 **Prevention:**
 Always include navigation and window-management APIs in the RASP `mustBeWrapped` list. Practice "Intrinsic Hardening" by pinning all global primitives used within security-critical modules to prevent an attacker from neutralizing the security system by monkey-patching its own dependencies.
+
+## 2026-07-09 - Worker & SharedWorker RASP Integration
+**Vulnerability:**
+Background execution contexts like `Worker` and `SharedWorker` can be used to bypass main-thread security monitoring, execute computationally expensive or malicious logic in isolation, and potentially exfiltrate data if they are not subject to the same attestation guards as `fetch` or `ServiceWorker`.
+
+**Learning:**
+RASP coverage must be exhaustive across all execution-capable sinks. While `ServiceWorker` was protected, the absence of `Worker` and `SharedWorker` in the "Must-Be-Wrapped" list created an attestation gap. Hardening these constructors requires not just wrapping them but also ensuring that prototypes and static properties are correctly re-linked to maintain functional parity with native implementations.
+
+**Prevention:**
+Always include all variants of background workers (`Worker`, `SharedWorker`, `ServiceWorker`) in RASP integrity checks and GNCA attestation. Enforce that these constructors must be wrapped to prevent "shadow" execution and ensure that any script loaded into a worker context has been explicitly authorized via an attestation permit.

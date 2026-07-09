@@ -77,6 +77,8 @@ const _Set = Set;
 const _WeakMap = WeakMap;
 const _WeakSet = WeakSet;
 const _Uint8Array = Uint8Array;
+const _Worker = typeof Worker !== 'undefined' ? Worker : null;
+const _SharedWorker = typeof SharedWorker !== 'undefined' ? SharedWorker : null;
 
 const _setInterval = typeof setInterval !== 'undefined' ? setInterval : null;
 const _setTimeout = typeof setTimeout !== 'undefined' ? setTimeout : null;
@@ -979,6 +981,50 @@ const initializeAttestationSinks = () => {
     if (window.webkitRTCPeerConnection) window.webkitRTCPeerConnection = rtcWrapper;
   }
 
+  // Wrap Worker
+  if (_Worker) {
+    const OriginalWorker = _Worker;
+    const workerWrapper = function(scriptURL, options) {
+      if (!verifyAttestation('Worker', scriptURL)) {
+        throw new _Error("Worker execution blocked by VORO Neural Shield. No Attestation Permit found.");
+      }
+      return _ReflectConstruct ? _ReflectConstruct(OriginalWorker, arguments) : new OriginalWorker(scriptURL, options);
+    };
+    workerWrapper.prototype = OriginalWorker.prototype;
+    _getOwnPropertyNames(OriginalWorker).forEach(prop => {
+      if (!workerWrapper[prop]) {
+        try {
+          const descriptor = _getOwnPropertyDescriptor(OriginalWorker, prop);
+          if (descriptor) _defineProperty(workerWrapper, prop, descriptor);
+        } catch (e) { /* ignore */ }
+      }
+    });
+    TRUSTED_WRAPPERS.add(workerWrapper);
+    window.Worker = workerWrapper;
+  }
+
+  // Wrap SharedWorker
+  if (_SharedWorker) {
+    const OriginalSharedWorker = _SharedWorker;
+    const sharedWorkerWrapper = function(scriptURL, options) {
+      if (!verifyAttestation('SharedWorker', scriptURL)) {
+        throw new _Error("SharedWorker execution blocked by VORO Neural Shield. No Attestation Permit found.");
+      }
+      return _ReflectConstruct ? _ReflectConstruct(OriginalSharedWorker, arguments) : new OriginalSharedWorker(scriptURL, options);
+    };
+    sharedWorkerWrapper.prototype = OriginalSharedWorker.prototype;
+    _getOwnPropertyNames(OriginalSharedWorker).forEach(prop => {
+      if (!sharedWorkerWrapper[prop]) {
+        try {
+          const descriptor = _getOwnPropertyDescriptor(OriginalSharedWorker, prop);
+          if (descriptor) _defineProperty(sharedWorkerWrapper, prop, descriptor);
+        } catch (e) { /* ignore */ }
+      }
+    });
+    TRUSTED_WRAPPERS.add(sharedWorkerWrapper);
+    window.SharedWorker = sharedWorkerWrapper;
+  }
+
   // Wrap Request
   if (_Request) {
     const OriginalRequest = _Request;
@@ -1565,7 +1611,7 @@ export const performIntegrityCheck = () => {
       'localStorage.getItem', 'localStorage.setItem', 'localStorage.removeItem', 'localStorage.clear',
       'sessionStorage.getItem', 'sessionStorage.setItem', 'sessionStorage.removeItem', 'sessionStorage.clear',
       'URL.createObjectURL', 'URL.revokeObjectURL',
-      'RTCPeerConnection',
+      'RTCPeerConnection', 'Worker', 'SharedWorker',
       'Request', 'Response.json', 'Response.text', 'Response.blob',
       'crypto.subtle.encrypt', 'crypto.subtle.decrypt', 'crypto.subtle.deriveKey', 'crypto.subtle.importKey', 'crypto.subtle.generateKey'
     ];
@@ -1592,7 +1638,7 @@ export const performIntegrityCheck = () => {
             'localStorage.getItem', 'localStorage.setItem', 'localStorage.removeItem', 'localStorage.clear',
             'sessionStorage.getItem', 'sessionStorage.setItem', 'sessionStorage.removeItem', 'sessionStorage.clear',
             'URL.createObjectURL', 'URL.revokeObjectURL',
-            'RTCPeerConnection',
+            'RTCPeerConnection', 'Worker', 'SharedWorker',
             'Request', 'Response.json', 'Response.text', 'Response.blob',
             'crypto.subtle.encrypt', 'crypto.subtle.decrypt', 'crypto.subtle.deriveKey', 'crypto.subtle.importKey', 'crypto.subtle.generateKey'
           ];
