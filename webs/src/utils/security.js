@@ -48,6 +48,7 @@ const _MapGet = Map.prototype.get;
 const _MapSet = Map.prototype.set;
 const _MapHas = Map.prototype.has;
 const _MapDelete = Map.prototype.delete;
+const _MapClear = Map.prototype.clear;
 const _MapEntries = Map.prototype.entries;
 const _SetAdd = Set.prototype.add;
 const _SetHas = Set.prototype.has;
@@ -1040,7 +1041,20 @@ const initializeAttestationSinks = () => {
         if (!verifyAttestation(prop)) {
           throw new _Error(`Cryptographic operation [${name}] blocked by VORO Neural Shield. No Attestation Permit found.`);
         }
-        return _ReflectApply ? _ReflectApply(native, window.crypto.subtle, args) : _call.call(native, window.crypto.subtle, ...args);
+
+        /**
+         * Enclave Handle Resolution (Just-In-Time)
+         * Automatically resolves opaque handles to real CryptoKey objects
+         * only at the point of native execution within a verified context.
+         */
+        const resolvedArgs = _call.call(_map, args, arg => {
+          if (typeof arg === 'string' && _call.call(_startsWith, arg, 'voro_key_')) {
+            return _call.call(_MapGet, _keyEnclave, arg) || arg;
+          }
+          return arg;
+        });
+
+        return _ReflectApply ? _ReflectApply(native, window.crypto.subtle, resolvedArgs) : _call.call(native, window.crypto.subtle, ...resolvedArgs);
       };
 
       TRUSTED_WRAPPERS.add(wrapper);
@@ -1313,6 +1327,11 @@ export const executeLockdown = (broadcast = true) => {
 
   // Activate deception mode
   window.VORO_DECEPTION_ACTIVE = true;
+
+  // Cryptographic Shredding: Purge the Key Enclave
+  if (_MapClear && _keyEnclave) {
+    _call.call(_MapClear, _keyEnclave);
+  }
 
   // Broadcast to other tabs via the security nexus
   if (broadcast && securityNexus && _BCPostMessage) {
@@ -1990,6 +2009,24 @@ export const startMutationShield = () => {
 };
 
 /**
+ * Cryptographic Key Enclave (CKE)
+ * Isolates raw CryptoKey objects from the application heap.
+ * Only opaque handles are returned to callers.
+ */
+const _keyEnclave = new _Map();
+
+const registerSecureKey = (key) => {
+  if (!key || typeof key !== 'object') return key;
+  // We only enclave CryptoKey objects
+  const isKey = key.constructor && (key.constructor.name === 'CryptoKey' || _call.call(_toString, key) === '[object CryptoKey]');
+  if (!isKey) return key;
+
+  const handle = `voro_key_${generateSecurityNonce()}`;
+  _call.call(_MapSet, _keyEnclave, handle, key);
+  return handle;
+};
+
+/**
  * Autonomous Heartbeat-Linked Attestation (AHLA)
  * Implements a recursive, hardened heartbeat that serves as the system's "Dead Man's Switch".
  * If the heartbeat is neutralized, all sensitive security sinks immediately expire.
@@ -2056,6 +2093,7 @@ const sentinelExports = {
   performIntegrityCheck,
   executeLockdown,
   executeSecurely: (action, callback, caps) => executeSecurely(action, callback, caps),
+  registerSecureKey,
   getDecoyData,
   isDeceptionActive,
   checkUserPresence,
@@ -2099,6 +2137,7 @@ const deepFreeze = (obj) => {
 
 if (typeof window !== 'undefined') {
   deepFreeze(sentinelExports);
+  window.voro_sentinel = sentinelExports;
 }
 
 /**

@@ -2,7 +2,7 @@
 // Authenticated Encryption at Rest (AES-GCM) using Web Crypto API
 import sentinel from './security';
 const {
-  validateCallStack, executeSecurely, createSecureProxy,
+  validateCallStack, executeSecurely, createSecureProxy, registerSecureKey,
   _TEncoderEncode, _TDecoderDecode, _Uint8Fill, _Uint8Set, _Uint8Slice,
   _call, _slice
 } = sentinel;
@@ -108,7 +108,11 @@ class CryptoManager {
               hkdfKey = getHKDF.result;
 
               if (masterKey && hkdfKey) {
-                resolve({ masterKey, hkdfKey });
+                // Enclave: Register retrieved keys and resolve handles
+                resolve({
+                  masterKey: registerSecureKey(masterKey),
+                  hkdfKey: registerSecureKey(hkdfKey)
+                });
               } else {
                 // Generate missing keys
                 try {
@@ -145,7 +149,11 @@ class CryptoManager {
                     });
                   }
 
-                  resolve({ masterKey, hkdfKey });
+                  // Enclave: Register generated keys and resolve handles
+                  resolve({
+                    masterKey: registerSecureKey(masterKey),
+                    hkdfKey: registerSecureKey(hkdfKey)
+                  });
                 } catch (err) {
                   reject(err);
                 }
@@ -158,7 +166,7 @@ class CryptoManager {
 
         request.onerror = () => reject(new Error('Failed to open secure key store'));
       });
-    }, ['sink:indexedDB', 'requirement:user-presence', 'sink:crypto.subtle.generateKey', 'sink:crypto.subtle.importKey']);
+    }, ['sink:indexedDB.open', 'requirement:user-presence', 'sink:crypto.subtle.generateKey', 'sink:crypto.subtle.importKey', 'sink:crypto.subtle.encrypt', 'sink:crypto.subtle.decrypt', 'sink:crypto.subtle.deriveKey']);
   }
 
   /**
@@ -199,8 +207,10 @@ class CryptoManager {
     // Heap Hygiene: Shred the temporary info buffer
     _call.call(_Uint8Fill, infoBuffer, 0);
 
-    this.domainKeyCache.set(domain, derivedKey);
-    return derivedKey;
+    // Enclave: Register derived key and store handle
+    const handle = registerSecureKey(derivedKey);
+    this.domainKeyCache.set(domain, handle);
+    return handle;
   }
 
   /**
