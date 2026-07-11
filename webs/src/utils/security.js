@@ -99,6 +99,7 @@ const _URL = typeof window !== 'undefined' ? window.URL : null;
 const _createObjectURL = (typeof window !== 'undefined' && window.URL) ? window.URL.createObjectURL : null;
 const _revokeObjectURL = (typeof window !== 'undefined' && window.URL) ? window.URL.revokeObjectURL : null;
 const _RTCPeerConnection = (typeof window !== 'undefined') ? (window.RTCPeerConnection || window.webkitRTCPeerConnection) : null;
+const _EventSource = typeof window !== 'undefined' ? window.EventSource : null;
 
 const _Request = typeof Request !== 'undefined' ? Request : null;
 const _Response = typeof Response !== 'undefined' ? Response : null;
@@ -980,6 +981,29 @@ const initializeAttestationSinks = () => {
     if (window.webkitRTCPeerConnection) window.webkitRTCPeerConnection = rtcWrapper;
   }
 
+  // Wrap EventSource
+  if (_EventSource) {
+    const OriginalES = _EventSource;
+    const esWrapper = function(url, configuration) {
+      if (!verifyAttestation('EventSource', url)) {
+        throw new _Error("EventSource connection blocked by VORO Neural Shield. No Attestation Permit found.");
+      }
+      return new OriginalES(url, configuration);
+    };
+    esWrapper.prototype = OriginalES.prototype;
+    // Re-link static properties if any (CONNECTING, OPEN, CLOSED)
+    _getOwnPropertyNames(OriginalES).forEach(prop => {
+      if (!esWrapper[prop]) {
+        try {
+          const descriptor = _getOwnPropertyDescriptor(OriginalES, prop);
+          if (descriptor) _defineProperty(esWrapper, prop, descriptor);
+        } catch (e) { /* ignore */ }
+      }
+    });
+    TRUSTED_WRAPPERS.add(esWrapper);
+    window.EventSource = esWrapper;
+  }
+
   // Wrap Request
   if (_Request) {
     const OriginalRequest = _Request;
@@ -1449,6 +1473,7 @@ export const performIntegrityCheck = () => {
     { obj: window.URL, prop: 'createObjectURL', name: 'URL.createObjectURL' },
     { obj: window.URL, prop: 'revokeObjectURL', name: 'URL.revokeObjectURL' },
     { obj: window, prop: 'RTCPeerConnection', name: 'RTCPeerConnection' },
+    { obj: window, prop: 'EventSource', name: 'EventSource' },
     { obj: window, prop: 'Error', name: 'Error' }
   ];
 
@@ -1585,6 +1610,7 @@ export const performIntegrityCheck = () => {
       'sessionStorage.getItem', 'sessionStorage.setItem', 'sessionStorage.removeItem', 'sessionStorage.clear',
       'URL.createObjectURL', 'URL.revokeObjectURL',
       'RTCPeerConnection',
+      'EventSource',
       'Request', 'Response.json', 'Response.text', 'Response.blob',
       'crypto.subtle.encrypt', 'crypto.subtle.decrypt', 'crypto.subtle.deriveKey', 'crypto.subtle.importKey', 'crypto.subtle.generateKey'
     ];
@@ -1612,6 +1638,7 @@ export const performIntegrityCheck = () => {
             'sessionStorage.getItem', 'sessionStorage.setItem', 'sessionStorage.removeItem', 'sessionStorage.clear',
             'URL.createObjectURL', 'URL.revokeObjectURL',
             'RTCPeerConnection',
+            'EventSource',
             'Request', 'Response.json', 'Response.text', 'Response.blob',
             'crypto.subtle.encrypt', 'crypto.subtle.decrypt', 'crypto.subtle.deriveKey', 'crypto.subtle.importKey', 'crypto.subtle.generateKey'
           ];
