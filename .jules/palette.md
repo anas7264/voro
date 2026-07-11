@@ -21,3 +21,7 @@
 ## 2025-05-15 - Forge Standard Character Telemetry
 **Learning:** For inputs with character limits, providing real-time visual and accessible feedback is crucial for UX. Passive limits (like maxLength without counters) can be frustrating for users who reach the limit without warning.
 **Action:** Always implement the Forge-standard character telemetry (`// current/max`) in `Input` and `Textarea` components when `maxLength` is provided. Use `aria-live="polite"` and `aria-atomic="true"` to ensure screen readers announce updates, and apply visual red indicators when the limit is reached.
+
+## 2025-07-02 - Accessible 3D Interaction Pattern
+**Learning:** High-fidelity interactive components (like Stat cards with 3D tilt) are often inaccessible to keyboard users because their interaction logic is tied exclusively to mouse events. By mapping focus states to the same CSS variables used for hover/mouse effects, we can provide a rich, tactile experience for all users.
+**Action:** When implementing direct DOM manipulation for performance-heavy 3D effects, ensure they are also triggered by `onFocus` and `onBlur`. Set meaningful default tilt values on focus to provide immediate visual confirmation of keyboard selection.
