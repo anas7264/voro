@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, Trash2, CheckCircle, Dumbbell, Calendar, Clock, Activity, Zap, TrendingUp } from 'lucide-react';
+import { Plus, Trash2, CheckCircle, Dumbbell, Calendar, Clock, Activity, Zap, TrendingUp, AlertCircle } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
@@ -24,6 +24,7 @@ const WorkoutLog = () => {
   const { addNotification } = useNotifications();
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [confirmingRemoveIdx, setConfirmingRemoveIdx] = useState(null);
 
   // Use local state for drafting to avoid excessive writes to storage
   const [sessionType, setSessionType] = useState('Strength');
@@ -31,6 +32,13 @@ const WorkoutLog = () => {
   const [selectedExercises, setSelectedExercises] = useState([]);
   const [showExerciseSearch, setShowExerciseSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    if (confirmingRemoveIdx !== null) {
+      const timer = setTimeout(() => setConfirmingRemoveIdx(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [confirmingRemoveIdx]);
 
   useEffect(() => {
     document.title = 'VORO | Workout Log';
@@ -68,8 +76,13 @@ const WorkoutLog = () => {
   }, [addNotification]);
 
   const removeExercise = useCallback((index) => {
-    setSelectedExercises(prev => prev.filter((_, i) => i !== index));
-  }, []);
+    if (confirmingRemoveIdx === index) {
+      setSelectedExercises(prev => prev.filter((_, i) => i !== index));
+      setConfirmingRemoveIdx(null);
+    } else {
+      setConfirmingRemoveIdx(index);
+    }
+  }, [confirmingRemoveIdx]);
 
   const updateSet = useCallback((exerciseIdx, setIdx, field, value) => {
     setSelectedExercises(prev => {
@@ -236,10 +249,16 @@ const WorkoutLog = () => {
                   </div>
                   <button
                     onClick={() => removeExercise(idx)}
-                    aria-label={`Remove ${exercise.name} from session`}
-                    className="p-3 rounded-xl hover:bg-red-500/10 text-gray-700 hover:text-red-400 transition-all opacity-0 group-hover/ex:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-red-500 outline-none"
+                    aria-label={confirmingRemoveIdx === idx ? `Confirm purge of ${exercise.name}` : `Remove ${exercise.name} from session`}
+                    className={`
+                      p-3 rounded-xl transition-all outline-none focus-visible:ring-2 focus-visible:ring-red-500
+                      ${confirmingRemoveIdx === idx
+                        ? 'bg-red-500/20 text-red-400 animate-pulse opacity-100'
+                        : 'hover:bg-red-500/10 text-gray-700 hover:text-red-400 opacity-0 group-hover/ex:opacity-100 focus-visible:opacity-100'
+                      }
+                    `}
                   >
-                    <Trash2 size={20} />
+                    {confirmingRemoveIdx === idx ? <AlertCircle size={20} className="animate-bounce" /> : <Trash2 size={20} />}
                   </button>
                 </div>
 

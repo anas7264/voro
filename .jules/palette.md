@@ -21,3 +21,7 @@
 ## 2025-05-15 - Forge Standard Character Telemetry
 **Learning:** For inputs with character limits, providing real-time visual and accessible feedback is crucial for UX. Passive limits (like maxLength without counters) can be frustrating for users who reach the limit without warning.
 **Action:** Always implement the Forge-standard character telemetry (`// current/max`) in `Input` and `Textarea` components when `maxLength` is provided. Use `aria-live="polite"` and `aria-atomic="true"` to ensure screen readers announce updates, and apply visual red indicators when the limit is reached.
+
+## 2025-07-12 - Two-Step Confirmation for Destructive Actions
+**Learning:** In high-fidelity mobile-first interfaces, accidental taps on small 'delete' icons are common. A simple 'double-tap' confirmation pattern with clear visual state changes (pulsing, icon swaps) and an auto-reset timer provides a frictionless safety net without requiring a disruptive modal.
+**Action:** Implement two-step confirmation for destructive actions using local component state (e.g., `confirmingIdx`). Use a `useEffect` hook to automatically reset the confirmation state after a short duration (e.g., 3 seconds) to ensure the UI remains predictable if the user aborts the action.
