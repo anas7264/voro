@@ -99,6 +99,9 @@ const _URL = typeof window !== 'undefined' ? window.URL : null;
 const _createObjectURL = (typeof window !== 'undefined' && window.URL) ? window.URL.createObjectURL : null;
 const _revokeObjectURL = (typeof window !== 'undefined' && window.URL) ? window.URL.revokeObjectURL : null;
 const _RTCPeerConnection = (typeof window !== 'undefined') ? (window.RTCPeerConnection || window.webkitRTCPeerConnection) : null;
+const _Worker = typeof window !== 'undefined' ? window.Worker : null;
+const _SharedWorker = typeof window !== 'undefined' ? window.SharedWorker : null;
+const _EventSource = typeof window !== 'undefined' ? window.EventSource : null;
 
 const _Request = typeof Request !== 'undefined' ? Request : null;
 const _Response = typeof Response !== 'undefined' ? Response : null;
@@ -249,6 +252,47 @@ snapshotPrototypes();
  */
 const _cloakingCache = new WeakMap();
 
+/**
+ * Generates dynamic proxy traps for Neural Synapse Cloaking.
+ */
+const _generateDynamicTraps = (key) => ({
+  get(obj, prop) {
+    if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || isDeceptionActive()) {
+      if (key) {
+        const decoy = getDecoyData(key);
+        if (decoy && typeof decoy === 'object') return decoy[prop];
+      }
+      return undefined;
+    }
+    const value = obj[prop];
+    if (value && typeof value === 'object' && !_isFrozen(value)) {
+      return createSecureProxy(value, key ? `${key}.${String(prop)}` : null);
+    }
+    return value;
+  },
+  set(obj, prop, value) {
+    if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || isDeceptionActive()) return false;
+    obj[prop] = value;
+    return true;
+  },
+  defineProperty(obj, prop, desc) {
+    if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || isDeceptionActive()) return false;
+    return _ReflectDefineProperty ? _ReflectDefineProperty(_Reflect, obj, prop, desc) : false;
+  },
+  deleteProperty(obj, prop) {
+    if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || isDeceptionActive()) return false;
+    return _ReflectSet ? _ReflectSet(_Reflect, obj, prop, undefined) && true : delete obj[prop];
+  },
+  ownKeys(obj) {
+    if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || isDeceptionActive()) return [];
+    return _ReflectOwnKeys ? _ReflectOwnKeys(_Reflect, obj) : [];
+  },
+  getPrototypeOf(obj) {
+    if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || isDeceptionActive()) return null;
+    return _getPrototypeOf ? _getPrototypeOf(obj) : null;
+  }
+});
+
 export const createSecureProxy = (target, key = null) => {
   if (!target || typeof target !== 'object' || _isFrozen(target)) return target;
 
@@ -256,48 +300,7 @@ export const createSecureProxy = (target, key = null) => {
     return _call.call(_WeakMapGet, _cloakingCache, target);
   }
 
-  const proxy = new Proxy(target, {
-    get(obj, prop) {
-      if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || isDeceptionActive()) {
-        if (key) {
-          const decoy = getDecoyData(key);
-          if (decoy && typeof decoy === 'object') return decoy[prop];
-        }
-        return undefined;
-      }
-
-      const value = obj[prop];
-      // Recursively cloak nested objects to ensure deep protection
-      if (value && typeof value === 'object' && !_isFrozen(value)) {
-        return createSecureProxy(value, key ? `${key}.${String(prop)}` : null);
-      }
-      return value;
-    },
-    set(obj, prop, value) {
-      if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || isDeceptionActive()) {
-        if (_console.warn) _call.call(_console.warn, console, "Security Sentinel: Blocked write attempt to cloaked memory during lockdown.");
-        return false;
-      }
-      obj[prop] = value;
-      return true;
-    },
-    defineProperty(obj, prop, descriptor) {
-      if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || isDeceptionActive()) return false;
-      return Reflect.defineProperty(obj, prop, descriptor);
-    },
-    deleteProperty(obj, prop) {
-      if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || isDeceptionActive()) return false;
-      return Reflect.deleteProperty(obj, prop);
-    },
-    ownKeys(obj) {
-      if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || isDeceptionActive()) return [];
-      return Reflect.ownKeys(obj);
-    },
-    getPrototypeOf(obj) {
-      if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || isDeceptionActive()) return null;
-      return Reflect.getPrototypeOf(obj);
-    }
-  });
+  const proxy = new Proxy(target, _generateDynamicTraps(key));
 
   _call.call(_WeakMapSet, _cloakingCache, target, proxy);
   return proxy;
@@ -980,6 +983,48 @@ const initializeAttestationSinks = () => {
     if (window.webkitRTCPeerConnection) window.webkitRTCPeerConnection = rtcWrapper;
   }
 
+  // Wrap Worker
+  if (_Worker) {
+    const OriginalWorker = _Worker;
+    const workerWrapper = function(scriptURL, options) {
+      if (!verifyAttestation('Worker', scriptURL)) {
+        throw new _Error("Worker creation blocked by VORO Neural Shield. No Attestation Permit found.");
+      }
+      return new OriginalWorker(scriptURL, options);
+    };
+    workerWrapper.prototype = OriginalWorker.prototype;
+    TRUSTED_WRAPPERS.add(workerWrapper);
+    window.Worker = workerWrapper;
+  }
+
+  // Wrap SharedWorker
+  if (_SharedWorker) {
+    const OriginalSharedWorker = _SharedWorker;
+    const sharedWorkerWrapper = function(scriptURL, options) {
+      if (!verifyAttestation('SharedWorker', scriptURL)) {
+        throw new _Error("SharedWorker creation blocked by VORO Neural Shield. No Attestation Permit found.");
+      }
+      return new OriginalSharedWorker(scriptURL, options);
+    };
+    sharedWorkerWrapper.prototype = OriginalSharedWorker.prototype;
+    TRUSTED_WRAPPERS.add(sharedWorkerWrapper);
+    window.SharedWorker = sharedWorkerWrapper;
+  }
+
+  // Wrap EventSource
+  if (_EventSource) {
+    const OriginalEventSource = _EventSource;
+    const eventSourceWrapper = function(url, configuration) {
+      if (!verifyAttestation('EventSource', url)) {
+        throw new _Error("EventSource connection blocked by VORO Neural Shield. No Attestation Permit found.");
+      }
+      return new OriginalEventSource(url, configuration);
+    };
+    eventSourceWrapper.prototype = OriginalEventSource.prototype;
+    TRUSTED_WRAPPERS.add(eventSourceWrapper);
+    window.EventSource = eventSourceWrapper;
+  }
+
   // Wrap Request
   if (_Request) {
     const OriginalRequest = _Request;
@@ -1449,6 +1494,9 @@ export const performIntegrityCheck = () => {
     { obj: window.URL, prop: 'createObjectURL', name: 'URL.createObjectURL' },
     { obj: window.URL, prop: 'revokeObjectURL', name: 'URL.revokeObjectURL' },
     { obj: window, prop: 'RTCPeerConnection', name: 'RTCPeerConnection' },
+    { obj: window, prop: 'Worker', name: 'Worker' },
+    { obj: window, prop: 'SharedWorker', name: 'SharedWorker' },
+    { obj: window, prop: 'EventSource', name: 'EventSource' },
     { obj: window, prop: 'Error', name: 'Error' }
   ];
 
@@ -1584,7 +1632,7 @@ export const performIntegrityCheck = () => {
       'localStorage.getItem', 'localStorage.setItem', 'localStorage.removeItem', 'localStorage.clear',
       'sessionStorage.getItem', 'sessionStorage.setItem', 'sessionStorage.removeItem', 'sessionStorage.clear',
       'URL.createObjectURL', 'URL.revokeObjectURL',
-      'RTCPeerConnection',
+      'RTCPeerConnection', 'Worker', 'SharedWorker', 'EventSource',
       'Request', 'Response.json', 'Response.text', 'Response.blob',
       'crypto.subtle.encrypt', 'crypto.subtle.decrypt', 'crypto.subtle.deriveKey', 'crypto.subtle.importKey', 'crypto.subtle.generateKey'
     ];
@@ -1611,7 +1659,7 @@ export const performIntegrityCheck = () => {
             'localStorage.getItem', 'localStorage.setItem', 'localStorage.removeItem', 'localStorage.clear',
             'sessionStorage.getItem', 'sessionStorage.setItem', 'sessionStorage.removeItem', 'sessionStorage.clear',
             'URL.createObjectURL', 'URL.revokeObjectURL',
-            'RTCPeerConnection',
+            'RTCPeerConnection', 'Worker', 'SharedWorker', 'EventSource',
             'Request', 'Response.json', 'Response.text', 'Response.blob',
             'crypto.subtle.encrypt', 'crypto.subtle.decrypt', 'crypto.subtle.deriveKey', 'crypto.subtle.importKey', 'crypto.subtle.generateKey'
           ];
