@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Trash2, Droplets, Target, Utensils, Zap } from 'lucide-react';
-import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
+import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useAppContext as useApp } from '@/hooks/useAppContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import { validateFoodDiaryEntry, validateWaterEntry } from '@/utils/validators';
@@ -23,15 +23,6 @@ const dateFormatter = new Intl.DateTimeFormat('en-US', {
 });
 
 const FoodDiary = () => {
-  /**
-   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
-   * Replaced broad useStorage() with useStorageKey for specific data and
-   * useStorageMethods for stable, non-reactive action references.
-   * ESTIMATED IMPACT: Reduces component re-renders by ~85% (only re-renders on nutrition updates).
-   */
-  const nutritionLogs = useStorageKey('nutrition_log') || {};
-  const { setItem, getItem } = useStorageMethods();
-
   const { user } = useApp();
   const { addNotification } = useNotifications();
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -40,29 +31,37 @@ const FoodDiary = () => {
 
   const mealSlots = useMemo(() => ['Breakfast', 'Morning Snack', 'Lunch', 'Afternoon Snack', 'Dinner', 'Late Snack'], []);
 
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
+   * Subscribe only to the data for the currently selected date.
+   * ESTIMATED IMPACT: Eliminates re-renders when data for other dates is updated.
+   */
+  const nutritionLog = useStorageKeySelector(
+    'nutrition_log',
+    useCallback((logs) => {
+      const log = (logs || {})[date] || {
+        meals: Object.fromEntries(mealSlots.map(slot => [slot, []])),
+        water: 0,
+        totals: { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }
+      };
+
+      /**
+       * ⚡ PERFORMANCE OPTIMIZATION: Pre-calculate meal slot energy totals.
+       */
+      const mealTotals = {};
+      mealSlots.forEach(slot => {
+        mealTotals[slot] = (log.meals[slot] || []).reduce((sum, food) => sum + (food.calories || 0), 0);
+      });
+
+      return { ...log, mealTotals };
+    }, [date, mealSlots])
+  );
+
+  const { setItem, getItem } = useStorageMethods();
+
   useEffect(() => {
     document.title = 'VORO | Food Diary';
   }, []);
-
-  const nutritionLog = useMemo(() => {
-    const log = nutritionLogs[date] || {
-      meals: Object.fromEntries(mealSlots.map(slot => [slot, []])),
-      water: 0,
-      totals: { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }
-    };
-
-    /**
-     * ⚡ PERFORMANCE OPTIMIZATION: Pre-calculate meal slot energy totals.
-     * This eliminates O(N) reductions inside the render loop for each meal card,
-     * providing an O(1) lookup during the render pass.
-     */
-    const mealTotals = {};
-    mealSlots.forEach(slot => {
-      mealTotals[slot] = (log.meals[slot] || []).reduce((sum, food) => sum + (food.calories || 0), 0);
-    });
-
-    return { ...log, mealTotals };
-  }, [nutritionLogs, date, mealSlots]);
 
   const handleDateChange = (days) => {
     const newDate = new Date(date);

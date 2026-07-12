@@ -7,22 +7,30 @@ import Modal from '@/components/Modal';
 import Checkbox from '@/components/Checkbox';
 import Confetti from '@/components/Confetti';
 import DatePicker from '@/components/DatePicker';
-import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
+import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { validateWorkoutEntry } from '@/utils/validators';
 import { exercises } from '@/data/exercises';
 
 const WorkoutLog = () => {
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+
   /**
    * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
-   * Replaced broad useStorage() with useStorageKey for specific data and
-   * useStorageMethods for stable action references.
-   * ESTIMATED IMPACT: Reduces component re-renders by ~95% (only re-renders on workout log updates).
+   * Subscribe only to the data for the currently selected date.
    */
-  const workoutLog = useStorageKey('workout_log') || {};
+  const dayWorkout = useStorageKeySelector(
+    'workout_log',
+    useCallback((log) => (log || {})[date] || {
+      attended: false,
+      type: 'Strength',
+      duration: 60,
+      exercises: [],
+    }, [date])
+  );
+
   const { getItem, updateItem } = useStorageMethods();
   const { addNotification } = useNotifications();
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [showConfetti, setShowConfetti] = useState(false);
 
   // Use local state for drafting to avoid excessive writes to storage
@@ -37,18 +45,12 @@ const WorkoutLog = () => {
 
     /**
      * ⚡ OPTIMIZATION: Reactive initialization.
-     * Use the surgically reactive workoutLog to initialize the local draft state.
+     * Use the surgically reactive dayWorkout to initialize the local draft state.
      */
-    const dayWorkout = workoutLog[date] || {
-      attended: false,
-      type: 'Strength',
-      duration: 60,
-      exercises: [],
-    };
     setSessionType(dayWorkout.type);
     setSessionDuration(dayWorkout.duration);
     setSelectedExercises(dayWorkout.exercises || []);
-  }, [date, workoutLog]);
+  }, [dayWorkout]);
 
   const addExercise = useCallback((exercise) => {
     const newExercise = {

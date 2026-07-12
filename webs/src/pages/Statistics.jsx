@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { BarChart3, TrendingUp, Calendar, Zap, Activity, Target, Weight } from 'lucide-react';
 import { Card, Button, Tabs, LineChartComponent, BarChartComponent, PieChartComponent, Stat } from '@/components';
-import { useStorageKey } from '@/hooks/useStorage';
+import { useStorageKeySelector } from '@/hooks/useStorage';
 import { useApp } from '@/hooks/useAppContext';
 
 /**
@@ -22,8 +22,6 @@ const getFastDateStr = (d) => {
 };
 
 const Statistics = () => {
-  const nutritionLog = useStorageKey('nutrition_log') || {};
-  const workoutLog = useStorageKey('workout_log') || {};
   const { user } = useApp();
   const [period, setPeriod] = useState('30D');
 
@@ -31,20 +29,68 @@ const Statistics = () => {
     document.title = 'VORO | Evolution Analytics';
   }, []);
 
-  const stats = useMemo(() => {
+  const getPeriodDays = useCallback(() => {
+    switch (period) {
+      case '7D': return 7;
+      case '30D': return 30;
+      case '90D': return 90;
+      case '1Y': return 365;
+      default: return 30;
+    }
+  }, [period]);
 
-    const getPeriodDays = () => {
-      switch (period) {
-        case '7D': return 7;
-        case '30D': return 30;
-        case '90D': return 90;
-        case '1Y': return 365;
-        default: return 30;
+  const nutritionTrendData = useStorageKeySelector(
+    'nutrition_log',
+    useCallback((logs) => {
+      const days = getPeriodDays();
+      const trend = [];
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      const todayMs = now.getTime();
+      const dayMs = 86400000;
+      const cursor = new Date();
+
+      for (let i = days - 1; i >= 0; i--) {
+        cursor.setTime(todayMs - (i * dayMs));
+        const dateStr = getFastDateStr(cursor);
+        const dayData = (logs || {})[dateStr];
+        trend.push({
+          date: labelFormatter.format(cursor),
+          totals: dayData?.totals || { calories: 0, protein: 0, carbs: 0, fat: 0 }
+        });
       }
-    };
+      return trend;
+    }, [getPeriodDays])
+  );
 
+  const workoutTrendData = useStorageKeySelector(
+    'workout_log',
+    useCallback((logs) => {
+      const days = getPeriodDays();
+      const trend = [];
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      const todayMs = now.getTime();
+      const dayMs = 86400000;
+      const cursor = new Date();
+
+      for (let i = days - 1; i >= 0; i--) {
+        cursor.setTime(todayMs - (i * dayMs));
+        const dateStr = getFastDateStr(cursor);
+        const workoutDay = (logs || {})[dateStr];
+        trend.push({
+          date: labelFormatter.format(cursor),
+          dayOfWeek: cursor.getDay(),
+          attended: !!workoutDay?.attended,
+          volume: workoutDay?.volume || 0
+        });
+      }
+      return trend;
+    }, [getPeriodDays])
+  );
+
+  const stats = useMemo(() => {
     const days = getPeriodDays();
-    const calorieTrend = [];
     let workoutDays = 0;
     let totalVolume = 0;
     let totalKcal = 0;
@@ -53,56 +99,33 @@ const Statistics = () => {
     let totalCarbs = 0;
     let totalFat = 0;
 
-    // Weekly workout distribution
-    const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const weeklyWorkouts = [];
+    const calorieTrend = nutritionTrendData.map(d => ({
+      date: d.date,
+      calories: d.totals.calories
+    }));
 
-    // ⚡ OPTIMIZATION: Use a single cursor and temporal arithmetic to avoid O(N) Date instantiation.
-    // We pre-calculate timestamps to minimize object creation overhead in high-frequency loops.
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    const todayMs = now.getTime();
-    const dayMs = 86400000;
-
-    // ⚡ PERFORMANCE OPTIMIZATION: Single-cursor temporal engine.
-    const cursor = new Date();
-
-    // Populate weekly distribution (last 7 days)
-    for (let i = 6; i >= 0; i--) {
-      cursor.setTime(todayMs - (i * dayMs));
-      const dateStr = getFastDateStr(cursor);
-      weeklyWorkouts.push({
-        day: daysOfWeek[cursor.getDay()],
-        workouts: workoutLog[dateStr]?.attended ? 1 : 0
-      });
-    }
-
-    // Populate main trend (period days)
-    for (let i = days - 1; i >= 0; i--) {
-      cursor.setTime(todayMs - (i * dayMs));
-      const dateStr = getFastDateStr(cursor);
-      const dayData = nutritionLog[dateStr];
-      const workoutDay = workoutLog[dateStr];
-      const kcal = dayData?.totals?.calories || 0;
-
-      calorieTrend.push({
-        date: labelFormatter.format(cursor),
-        calories: kcal,
-      });
-
-      if (kcal > 0) {
-        totalKcal += kcal;
-        totalProtein += dayData?.totals?.protein || 0;
-        totalCarbs += dayData?.totals?.carbs || 0;
-        totalFat += dayData?.totals?.fat || 0;
+    nutritionTrendData.forEach(d => {
+      if (d.totals.calories > 0) {
+        totalKcal += d.totals.calories;
+        totalProtein += d.totals.protein || 0;
+        totalCarbs += d.totals.carbs || 0;
+        totalFat += d.totals.fat || 0;
         loggedDays++;
       }
+    });
 
-      if (workoutDay?.attended) {
+    workoutTrendData.forEach(d => {
+      if (d.attended) {
         workoutDays++;
-        totalVolume += workoutDay.volume || 0;
+        totalVolume += d.volume;
       }
-    }
+    });
+
+    const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const weeklyWorkouts = workoutTrendData.slice(-7).map(d => ({
+      day: daysOfWeek[d.dayOfWeek],
+      workouts: d.attended ? 1 : 0
+    }));
 
     const macroDistribution = [
       { name: 'Protein', value: loggedDays > 0 ? Math.round(totalProtein / loggedDays) : 0, color: '#7C3AED' },
@@ -119,7 +142,7 @@ const Statistics = () => {
       avgCalories: loggedDays > 0 ? Math.round(totalKcal / loggedDays) : 0,
       adherence: Math.round((loggedDays / days) * 100)
     };
-  }, [period, nutritionLog, workoutLog]);
+  }, [getPeriodDays, nutritionTrendData, workoutTrendData]);
 
   const periodTabs = useMemo(() => [
     { id: '7D', label: '7D' },
