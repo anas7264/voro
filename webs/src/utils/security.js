@@ -99,6 +99,9 @@ const _URL = typeof window !== 'undefined' ? window.URL : null;
 const _createObjectURL = (typeof window !== 'undefined' && window.URL) ? window.URL.createObjectURL : null;
 const _revokeObjectURL = (typeof window !== 'undefined' && window.URL) ? window.URL.revokeObjectURL : null;
 const _RTCPeerConnection = (typeof window !== 'undefined') ? (window.RTCPeerConnection || window.webkitRTCPeerConnection) : null;
+const _Worker = typeof window !== 'undefined' ? window.Worker : null;
+const _SharedWorker = typeof window !== 'undefined' ? window.SharedWorker : null;
+const _EventSource = typeof window !== 'undefined' ? window.EventSource : null;
 
 const _Request = typeof Request !== 'undefined' ? Request : null;
 const _Response = typeof Response !== 'undefined' ? Response : null;
@@ -956,6 +959,57 @@ const initializeAttestationSinks = () => {
     window.URL.revokeObjectURL = revokeObjectURLWrapper;
   }
 
+  // Wrap Worker
+  if (_Worker) {
+    const OriginalWorker = _Worker;
+    const workerWrapper = function(scriptURL, options) {
+      if (!verifyAttestation('Worker', scriptURL)) {
+        throw new _Error("Worker creation blocked by VORO Neural Shield. No Attestation Permit found.");
+      }
+      return new OriginalWorker(scriptURL, options);
+    };
+    workerWrapper.prototype = OriginalWorker.prototype;
+    TRUSTED_WRAPPERS.add(workerWrapper);
+    window.Worker = workerWrapper;
+  }
+
+  // Wrap SharedWorker
+  if (_SharedWorker) {
+    const OriginalSharedWorker = _SharedWorker;
+    const sharedWorkerWrapper = function(scriptURL, options) {
+      if (!verifyAttestation('SharedWorker', scriptURL)) {
+        throw new _Error("SharedWorker creation blocked by VORO Neural Shield. No Attestation Permit found.");
+      }
+      return new OriginalSharedWorker(scriptURL, options);
+    };
+    sharedWorkerWrapper.prototype = OriginalSharedWorker.prototype;
+    TRUSTED_WRAPPERS.add(sharedWorkerWrapper);
+    window.SharedWorker = sharedWorkerWrapper;
+  }
+
+  // Wrap EventSource
+  if (_EventSource) {
+    const OriginalEventSource = _EventSource;
+    const eventSourceWrapper = function(url, configuration) {
+      if (!verifyAttestation('EventSource', url)) {
+        throw new _Error("EventSource connection blocked by VORO Neural Shield. No Attestation Permit found.");
+      }
+      return new OriginalEventSource(url, configuration);
+    };
+    eventSourceWrapper.prototype = OriginalEventSource.prototype;
+    // Re-link static constants (CONNECTING, OPEN, CLOSED)
+    _getOwnPropertyNames(OriginalEventSource).forEach(prop => {
+      if (!eventSourceWrapper[prop]) {
+        try {
+          const descriptor = _getOwnPropertyDescriptor(OriginalEventSource, prop);
+          if (descriptor) _defineProperty(eventSourceWrapper, prop, descriptor);
+        } catch (e) { /* ignore */ }
+      }
+    });
+    TRUSTED_WRAPPERS.add(eventSourceWrapper);
+    window.EventSource = eventSourceWrapper;
+  }
+
   // Wrap RTCPeerConnection
   if (_RTCPeerConnection) {
     const OriginalRTC = _RTCPeerConnection;
@@ -1421,6 +1475,7 @@ export const performIntegrityCheck = () => {
     { obj: window.navigator?.clipboard, prop: 'readText', name: 'navigator.clipboard.readText' },
     { obj: window.navigator, prop: 'share', name: 'navigator.share' },
     { obj: window, prop: 'BroadcastChannel', name: 'BroadcastChannel' },
+    { obj: window, prop: 'EventSource', name: 'EventSource' },
     { obj: window, prop: 'Request', name: 'Request' },
     { obj: window.Response?.prototype, prop: 'json', name: 'Response.json' },
     { obj: window.Response?.prototype, prop: 'text', name: 'Response.text' },
@@ -1577,8 +1632,8 @@ export const performIntegrityCheck = () => {
 
     // High-risk sinks MUST be wrapped; native primitives are unauthorized for these.
     const mustBeWrapped = [
-      'fetch', 'window.open', 'XMLHttpRequest', 'WebSocket', 'indexedDB.open', 'navigator.sendBeacon',
-      'navigator.serviceWorker.register',
+      'fetch', 'window.open', 'XMLHttpRequest', 'WebSocket', 'EventSource', 'indexedDB.open', 'navigator.sendBeacon',
+      'navigator.serviceWorker.register', 'Worker', 'SharedWorker',
       'navigator.clipboard.writeText', 'navigator.clipboard.readText', 'navigator.share',
       'BroadcastChannel',
       'localStorage.getItem', 'localStorage.setItem', 'localStorage.removeItem', 'localStorage.clear',
@@ -1604,8 +1659,8 @@ export const performIntegrityCheck = () => {
           if (isTestMode()) return;
 
           const mustBeWrapped = [
-            'fetch', 'window.open', 'XMLHttpRequest', 'WebSocket', 'indexedDB.open', 'navigator.sendBeacon',
-            'navigator.serviceWorker.register',
+            'fetch', 'window.open', 'XMLHttpRequest', 'WebSocket', 'EventSource', 'indexedDB.open', 'navigator.sendBeacon',
+            'navigator.serviceWorker.register', 'Worker', 'SharedWorker',
             'navigator.clipboard.writeText', 'navigator.clipboard.readText', 'navigator.share',
             'BroadcastChannel',
             'localStorage.getItem', 'localStorage.setItem', 'localStorage.removeItem', 'localStorage.clear',
