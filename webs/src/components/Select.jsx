@@ -46,7 +46,11 @@ export const Select = memo(({
             {required && <span className="text-red-500 ml-1">*</span>}
           </label>
         )}
-        <span className="text-[0.45rem] font-mono font-bold text-gray-700 uppercase tracking-widest opacity-0 group-focus-within/select-container:opacity-100 transition-opacity duration-500">
+        <span
+          aria-live="polite"
+          aria-atomic="true"
+          className="text-[0.45rem] font-mono font-bold text-gray-700 uppercase tracking-widest opacity-0 group-focus-within/select-container:opacity-100 transition-opacity duration-500"
+        >
           {nodeId} // OPTION_MATRIX
         </span>
       </div>
