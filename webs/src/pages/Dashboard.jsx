@@ -16,7 +16,7 @@ import {
   Zap
 } from 'lucide-react';
 import { useAppContext } from '@/hooks/useAppContext';
-import { useStorageMethods, useStorageKey } from '@/hooks/useStorage';
+import { useStorageMethods, useStorageKey, useStorageKeySelector } from '@/hooks/useStorage';
 import { useAI } from '@/hooks/useAI';
 import { useNotifications } from '@/hooks/useNotifications';
 import Modal from '@/components/Modal';
@@ -77,16 +77,33 @@ const INITIAL_NUTRITION = {
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAppContext();
-  const { setItem } = useStorageMethods();
 
   /**
    * ⚡ OPTIMIZATION: Surgical Reactivity.
-   * Subscribe only to relevant storage keys to avoid redundant re-renders
-   * when unrelated data (e.g., settings, habits) is updated.
+   * Subscribe only to relevant data slices to avoid redundant re-renders
+   * when unrelated data (e.g., past logs, other metrics) is updated.
    */
+  const today = useMemo(() => getFastDateStr(new Date()), []);
+
+  const nutritionToday = useStorageKeySelector(
+    'nutrition_log',
+    useCallback((log) => (log || {})[today] || INITIAL_NUTRITION, [today])
+  );
+
+  const workoutToday = useStorageKeySelector(
+    'workout_log',
+    useCallback((log) => (log || {})[today], [today])
+  );
+
+  const weights30D = useStorageKeySelector(
+    'body_metrics',
+    useCallback((metrics) => (metrics?.weights || []).slice(-30), [])
+  );
+
+  // We still need full logs for streaks, but we'll use useStorageKey for them
+  // to keep the logic simple, as they naturally depend on the full history.
   const nutritionLog = useStorageKey('nutrition_log') || {};
   const workoutLog = useStorageKey('workout_log') || {};
-  const bodyMetrics = useStorageKey('body_metrics') || {};
 
   const { response: aiInsight } = useAI();
   const { addNotification } = useNotifications();
@@ -119,29 +136,13 @@ const Dashboard = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const today = useMemo(() => getFastDateStr(new Date()), []);
-
-  /**
-   * ⚡ OPTIMIZATION: Synchronous data derivation using useMemo.
-   * Eliminates the initial mount-time double-render cycle and ensures
-   * reactivity to StorageContext updates without manual load calls.
-   */
-  const nutritionToday = useMemo(() => {
-    return nutritionLog[today] || INITIAL_NUTRITION;
-  }, [nutritionLog[today]]); // ⚡ OPTIMIZATION: Granular dependency
-
-  const workoutToday = useMemo(() => {
-    return workoutLog[today];
-  }, [workoutLog, today]);
-
   const weightTrend = useMemo(() => {
-    const weights = bodyMetrics.weights || [];
-    return weights.slice(-30).map(w => ({
+    return weights30D.map(w => ({
       date: shortDateFormatter.format(new Date(w.date)),
       weight: w.value,
       fullDate: w.date
     }));
-  }, [bodyMetrics.weights]); // ⚡ OPTIMIZATION: Only recompute if weights array changes
+  }, [weights30D]); // ⚡ OPTIMIZATION: Only recompute if 30D weights change
 
   const streaks = useMemo(() => {
     const waterGoal = user?.waterGoal || 2000;
@@ -204,6 +205,8 @@ const Dashboard = () => {
     return { training: trainingStreak, logging: loggingStreak, water: waterStreak };
   }, [workoutLog, nutritionLog, user?.waterGoal]);
 
+  const { setItem, getItem } = useStorageMethods();
+
   const handleQuickLog = useCallback(async (type, value) => {
     const todayStr = getFastDateStr(new Date());
     const numValue = parseFloat(value);
@@ -220,7 +223,7 @@ const Dashboard = () => {
     setShowQuickLog(false);
 
     if (type === 'weight') {
-      const metrics = { ...bodyMetrics };
+      const metrics = { ...(getItem('body_metrics') || {}) };
       if (!metrics.weights) metrics.weights = [];
 
       const updated = {
@@ -230,7 +233,7 @@ const Dashboard = () => {
       setItem('body_metrics', updated);
       addNotification('Body transformation record synthesized', 'success');
     } else if (type === 'water') {
-      const log = { ...nutritionLog };
+      const log = { ...(getItem('nutrition_log') || {}) };
       const dayData = log[todayStr] || { meals: {}, water: 0, totals: { calories: 0, protein: 0, carbs: 0, fat: 0 } };
 
       log[todayStr] = {
@@ -241,7 +244,7 @@ const Dashboard = () => {
       setItem('nutrition_log', log);
       addNotification('Hydration matrix updated', 'success');
     } else if (type === 'meal') {
-      const log = { ...nutritionLog };
+      const log = { ...(getItem('nutrition_log') || {}) };
       const dayData = log[todayStr] || { meals: {}, water: 0, totals: { calories: 0, protein: 0, carbs: 0, fat: 0 } };
       const mealId = `express_${Date.now()}`;
 
@@ -260,7 +263,7 @@ const Dashboard = () => {
       setItem('nutrition_log', log);
       addNotification('Energy dynamics logged', 'success');
     }
-  }, [bodyMetrics, nutritionLog, setItem, addNotification]);
+  }, [getItem, setItem, addNotification]);
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();

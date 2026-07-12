@@ -1,6 +1,44 @@
-import { useContext, useSyncExternalStore, useCallback } from "react";
+import { useContext, useSyncExternalStore, useCallback, useRef } from "react";
 import { StorageContext } from "../context/StorageContext";
 import storage from "../utils/storage";
+
+/**
+ * ⚡ OPTIMIZATION: Granular Reactivity Hook.
+ * Enables surgical reactivity by allowing components to subscribe to specific
+ * data slices from storage keys using a custom selector and equality check.
+ */
+export const useStorageKeySelector = (key, selector, equalityFn = (a, b) => JSON.stringify(a) === JSON.stringify(b)) => {
+  const lastStateRef = useRef();
+  const lastSelectedStateRef = useRef();
+
+  const getSnapshot = useCallback(() => {
+    const fullState = storage.get(key);
+
+    if (fullState === lastStateRef.current) {
+      return lastSelectedStateRef.current;
+    }
+
+    const selectedState = selector(fullState);
+    if (lastSelectedStateRef.current !== undefined && equalityFn(lastSelectedStateRef.current, selectedState)) {
+      lastStateRef.current = fullState;
+      return lastSelectedStateRef.current;
+    }
+
+    lastStateRef.current = fullState;
+    lastSelectedStateRef.current = selectedState;
+    return selectedState;
+  }, [key, selector, equalityFn]);
+
+  const subscribe = useCallback((callback) => {
+    return storage.subscribe((updatedKey) => {
+      if (updatedKey === '*' || updatedKey === key) {
+        callback();
+      }
+    });
+  }, [key]);
+
+  return useSyncExternalStore(subscribe, getSnapshot);
+};
 
 /**
  * ⚡ OPTIMIZATION: Surgical Reactivity.
