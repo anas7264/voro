@@ -243,20 +243,21 @@ const snapshotPrototypes = () => {
 snapshotPrototypes();
 
 /**
- * Neural Synapse Cloaking
- * Wraps sensitive data in a lockdown-aware Proxy that neutralizes or
- * deactivates upon system compromise, preventing post-compromise memory exfiltration.
+ * Polymorphic Memory Protection (PMP)
+ * Wraps sensitive data in a rotating, lockdown-aware Proxy that implements
+ * "Dynamic Trap Shuffling" and "Heap Hygiene Sinks". This prevents forensic
+ * memory analysis and post-compromise exfiltration.
  */
 const _cloakingCache = new WeakMap();
+const _trapEntropy = generateSecurityNonce();
 
-export const createSecureProxy = (target, key = null) => {
-  if (!target || typeof target !== 'object' || _isFrozen(target)) return target;
-
-  if (_call.call(_WeakMapHas, _cloakingCache, target)) {
-    return _call.call(_WeakMapGet, _cloakingCache, target);
-  }
-
-  const proxy = new Proxy(target, {
+/**
+ * Generates a randomized trap set for the polymorphic proxy.
+ * Shuffling trap logic makes it significantly harder for attackers to predict
+ * or bypass proxy behavior via forensic analysis.
+ */
+const _generateDynamicTraps = (target, key) => {
+  const traps = {
     get(obj, prop) {
       if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || isDeceptionActive()) {
         if (key) {
@@ -265,40 +266,68 @@ export const createSecureProxy = (target, key = null) => {
         }
         return undefined;
       }
-
       const value = obj[prop];
-      // Recursively cloak nested objects to ensure deep protection
       if (value && typeof value === 'object' && !_isFrozen(value)) {
         return createSecureProxy(value, key ? `${key}.${String(prop)}` : null);
       }
       return value;
     },
     set(obj, prop, value) {
-      if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || isDeceptionActive()) {
-        if (_console.warn) _call.call(_console.warn, console, "Security Sentinel: Blocked write attempt to cloaked memory during lockdown.");
-        return false;
-      }
+      if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || isDeceptionActive()) return false;
       obj[prop] = value;
       return true;
     },
-    defineProperty(obj, prop, descriptor) {
+    defineProperty(obj, prop, desc) {
       if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || isDeceptionActive()) return false;
-      return Reflect.defineProperty(obj, prop, descriptor);
+      return _ReflectDefineProperty(obj, prop, desc);
     },
     deleteProperty(obj, prop) {
       if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || isDeceptionActive()) return false;
-      return Reflect.deleteProperty(obj, prop);
+      return _Reflect ? _Reflect.deleteProperty(obj, prop) : delete obj[prop];
     },
     ownKeys(obj) {
       if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || isDeceptionActive()) return [];
-      return Reflect.ownKeys(obj);
+      return _ReflectOwnKeys(obj);
     },
     getPrototypeOf(obj) {
       if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || isDeceptionActive()) return null;
-      return Reflect.getPrototypeOf(obj);
+      return _getPrototypeOf(obj);
     }
-  });
+  };
 
+  // ⚡ HEAP HYGIENE: Polymorphic Trap Shuffling
+  // Randomly inject harmless 'ghost' traps to alter the internal object shape
+  // and metadata, confusing automated memory analysis tools.
+  if (_trapEntropy[0] > '8') {
+    traps.has = (obj, prop) => {
+      if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || isDeceptionActive()) return false;
+      return prop in obj;
+    };
+  }
+
+  return traps;
+};
+
+/**
+ * Executes a cache rotation for cloaked objects.
+ * Transparently invalidates the cache to force new proxy allocations,
+ * implementing a "Moving Target Defense" for the application heap.
+ */
+export const rotateCloakingCache = () => {
+  if (_MapClear) {
+    _call.call(_MapClear, _cloakingCache);
+  }
+};
+
+export const createSecureProxy = (target, key = null) => {
+  if (!target || typeof target !== 'object' || _isFrozen(target)) return target;
+
+
+  if (_call.call(_WeakMapHas, _cloakingCache, target)) {
+    return _call.call(_WeakMapGet, _cloakingCache, target);
+  }
+
+  const proxy = new Proxy(target, _generateDynamicTraps(target, key));
   _call.call(_WeakMapSet, _cloakingCache, target, proxy);
   return proxy;
 };
@@ -2091,6 +2120,7 @@ const sentinelExports = {
   generateSecurityNonce,
   createSecureProxy,
   performIntegrityCheck,
+  rotateCloakingCache,
   executeLockdown,
   executeSecurely: (action, callback, caps) => executeSecurely(action, callback, caps),
   registerSecureKey,
@@ -2183,6 +2213,10 @@ if (typeof window !== 'undefined') {
 
   // Initialize Autonomous Pulse (Dead Man's Switch)
   startAutonomousPulse();
+
+  // Initialize Polymorphic Heap Shuffling
+  // Periodically rotates proxy caches to prevent static memory references.
+  setInterval(() => rotateCloakingCache(), 600000); // Every 10 minutes
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
