@@ -5,7 +5,7 @@ import sentinel from './security';
 const {
   redactData, validateAIResponse, generateSecurityNonce, maskBiometrics,
   validateCallStack, isDeceptionActive, getDecoyData, executeSecurely,
-  performIntegrityCheck, getPulseMetadata, checkUserPresence,
+  performIntegrityCheck, getPulseMetadata, checkUserPresence, registerSecureKey,
   _TEncoderEncode, _TDecoderDecode, _Uint8Fill, _Uint8Set, _Uint8Slice,
   _call, _reverse, _forEach
 } = sentinel;
@@ -163,10 +163,18 @@ const SecretVault = (() => {
       // Forensic Defense: Immediately shred the assembled buffer from memory
       _call.call(_Uint8Fill, assembled, 0);
 
+      /**
+       * Universal Secret Isolation
+       * Instead of returning the raw API key string to the application heap,
+       * we immediately wrap it in an opaque handle. The handle is JIT-resolved
+       * only within the attested fetch sink.
+       */
+      const handle = registerSecureKey(apiKey);
+
       // Post-Use Entropy Injection: Rotate masks after every assembly to further randomize heap footprint.
       rotate();
 
-      return apiKey;
+      return handle;
     },
     purge: () => {
       if (_shards) {
