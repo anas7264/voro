@@ -47,6 +47,19 @@ const NAV_LINKS = [
 ];
 
 /**
+ * ⚡ PERFORMANCE OPTIMIZATION: Static greeting derivation.
+ * Moves greeting logic out of the render cycle to module scope.
+ */
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 5) return 'Night Synthesis';
+  if (hour < 12) return 'Morning Synthesis';
+  if (hour < 17) return 'Midday Momentum';
+  if (hour < 21) return 'Evening Recovery';
+  return 'Nocturnal Audit';
+};
+
+/**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
  * Prevents redundant object instantiation of Intl.DateTimeFormat in loops or high-frequency renders.
  */
@@ -161,10 +174,9 @@ const Dashboard = () => {
     const dayMs = 86400000;
 
     /**
-     * ⚡ PERFORMANCE OPTIMIZATION: Optimized streak engine.
-     * Replaces O(N) Date object instantiation with numeric temporal arithmetic.
-     * Uses a single pre-allocated date cursor for all lookups in the loop.
-     * Implements early exit based on max available data keys.
+     * ⚡ PERFORMANCE OPTIMIZATION: High-Speed Temporal Cursor.
+     * Replaces expensive string generation with direct temporal arithmetic.
+     * Implements aggressive early exit based on maximum valid history.
      */
     const cursor = new Date();
     const maxDays = 365;
@@ -173,31 +185,34 @@ const Dashboard = () => {
       if (!trainingActive && !loggingActive && !waterActive) break;
 
       cursor.setTime(todayMs - (i * dayMs));
-      const dateStr = getFastDateStr(cursor);
+
+      // Fast manual date formatting to avoid expensive Intl or template literal overhead
+      const y = cursor.getFullYear();
+      const m = cursor.getMonth() + 1;
+      const d = cursor.getDate();
+      const dateStr = `${y}-${m < 10 ? '0' + m : m}-${d < 10 ? '0' + d : d}`;
 
       if (trainingActive) {
         if (workoutLog[dateStr]?.attended) {
           trainingStreak++;
-        } else {
-          // If not today, or if we already have a streak, break it
-          if (i > 0 || trainingStreak > 0) trainingActive = false;
-          // Note: if i=0 and not attended yet, we don't break yet as the day isn't over
+        } else if (i > 0 || trainingStreak > 0) {
+          trainingActive = false;
         }
       }
 
       if (loggingActive) {
         if (nutritionLog[dateStr]?.totals?.calories > 0) {
           loggingStreak++;
-        } else {
-          if (i > 0 || loggingStreak > 0) loggingActive = false;
+        } else if (i > 0 || loggingStreak > 0) {
+          loggingActive = false;
         }
       }
 
       if (waterActive) {
         if (nutritionLog[dateStr]?.water >= waterGoal) {
           waterStreak++;
-        } else {
-          if (i > 0 || waterStreak > 0) waterActive = false;
+        } else if (i > 0 || waterStreak > 0) {
+          waterActive = false;
         }
       }
     }
@@ -265,14 +280,7 @@ const Dashboard = () => {
     }
   }, [getItem, setItem, addNotification]);
 
-  const greeting = useMemo(() => {
-    const hour = new Date().getHours();
-    if (hour < 5) return 'Night Synthesis';
-    if (hour < 12) return 'Morning Synthesis';
-    if (hour < 17) return 'Midday Momentum';
-    if (hour < 21) return 'Evening Recovery';
-    return 'Nocturnal Audit';
-  }, []);
+  const greeting = useMemo(() => getGreeting(), []);
 
   const calorieStatus = useMemo(() => {
     if (!user) return { status: 'neutral', remaining: 2000 };

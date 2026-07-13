@@ -22,6 +22,18 @@ const dateFormatter = new Intl.DateTimeFormat('en-US', {
   day: 'numeric'
 });
 
+const MEAL_SLOTS = ['Breakfast', 'Morning Snack', 'Lunch', 'Afternoon Snack', 'Dinner', 'Late Snack'];
+
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted log template.
+ * Prevents O(N) object and array creation on every render of a new date.
+ */
+const INITIAL_LOG_TEMPLATE = {
+  meals: Object.fromEntries(MEAL_SLOTS.map(slot => [slot, []])),
+  water: 0,
+  totals: { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }
+};
+
 const FoodDiary = () => {
   const { user } = useApp();
   const { addNotification } = useNotifications();
@@ -29,7 +41,7 @@ const FoodDiary = () => {
   const [showFoodSearch, setShowFoodSearch] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
 
-  const mealSlots = useMemo(() => ['Breakfast', 'Morning Snack', 'Lunch', 'Afternoon Snack', 'Dinner', 'Late Snack'], []);
+  const mealSlots = MEAL_SLOTS;
 
   /**
    * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
@@ -39,11 +51,7 @@ const FoodDiary = () => {
   const nutritionLog = useStorageKeySelector(
     'nutrition_log',
     useCallback((logs) => {
-      const log = (logs || {})[date] || {
-        meals: Object.fromEntries(mealSlots.map(slot => [slot, []])),
-        water: 0,
-        totals: { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }
-      };
+      const log = (logs || {})[date] || INITIAL_LOG_TEMPLATE;
 
       /**
        * ⚡ PERFORMANCE OPTIMIZATION: Pre-calculate meal slot energy totals.

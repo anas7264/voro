@@ -11,6 +11,16 @@ const PAGE_SIZE = 24;
  */
 const CATEGORIES = ['All', ...new Set(foods.map(f => f.category))];
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted Category Map.
+ * Provides O(1) lookup for category filtering, avoiding O(N) array scans.
+ */
+const FOOD_BY_CATEGORY = foods.reduce((acc, food) => {
+  if (!acc[food.category]) acc[food.category] = [];
+  acc[food.category].push(food);
+  return acc;
+}, {});
+
 const FoodLibrary = () => {
   const { addNotification } = useNotifications();
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,11 +50,11 @@ const FoodLibrary = () => {
    * This eliminates the double-render cycle and provides cleaner data derivation.
    */
   const filteredFoods = useMemo(() => {
-    let filtered = foods;
-
-    if (selectedCategory !== 'All') {
-      filtered = filtered.filter(f => f.category === selectedCategory);
-    }
+    /**
+     * ⚡ PERFORMANCE OPTIMIZATION: Category-First Filtering.
+     * Uses pre-calculated map for O(1) initial slice if a category is selected.
+     */
+    let filtered = selectedCategory === 'All' ? foods : (FOOD_BY_CATEGORY[selectedCategory] || []);
 
     if (deferredSearchQuery.trim()) {
       const query = deferredSearchQuery.toLowerCase();
