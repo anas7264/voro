@@ -130,8 +130,14 @@ const Dashboard = () => {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
+    // Volumetric tilt calculation
+    const tiltY = ((x / rect.width) - 0.5) * 15;
+    const tiltX = (0.5 - (y / rect.height)) * 15;
+
     metabolicCardRef.current.style.setProperty('--mouse-x', `${x}px`);
     metabolicCardRef.current.style.setProperty('--mouse-y', `${y}px`);
+    metabolicCardRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+    metabolicCardRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
   }, []);
 
   useEffect(() => {
@@ -415,10 +421,25 @@ const Dashboard = () => {
             <section
               ref={metabolicCardRef}
               onMouseMove={handleMouseMove}
-              className="relative overflow-hidden rounded-[4rem] bg-[#0A0C14] border border-white/5 p-20 md:p-24 shadow-[0_80px_160px_-40px_rgba(0,0,0,0.8),inset_0_1px_1px_0_rgba(255,255,255,0.05)] transition-all duration-1000 hover:border-white/10 group/card bg-boutique-grain"
+              onMouseLeave={(e) => {
+                metabolicCardRef.current.style.setProperty('--tilt-x', '0deg');
+                metabolicCardRef.current.style.setProperty('--tilt-y', '0deg');
+              }}
+              style={{
+                transform: 'perspective(2000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg))',
+                transformStyle: 'preserve-3d',
+                transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)'
+              }}
+              className="relative overflow-hidden rounded-[4rem] bg-[#0A0C14] border border-white/5 p-20 md:p-24 shadow-[0_80px_160px_-40px_rgba(0,0,0,0.8),inset_0_1px_1px_0_rgba(255,255,255,0.05)] hover:border-white/10 group/card bg-boutique-grain"
             >
               <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-voro-primary/5 rounded-full blur-[140px] -mr-64 -mt-64 group-hover/card:bg-voro-primary/10 transition-colors duration-1000" />
               <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-voro-secondary/5 rounded-full blur-[120px] -ml-48 -mb-48" />
+
+              {/* Architectural Connector Lines */}
+              <div className="absolute inset-0 pointer-events-none opacity-0 group-hover/card:opacity-20 transition-opacity duration-1000">
+                <div className="absolute top-1/2 left-[30%] right-[30%] h-px bg-gradient-to-r from-transparent via-voro-primary to-transparent" />
+                <div className="absolute top-[40%] bottom-[40%] left-[40%] w-px bg-gradient-to-b from-transparent via-voro-primary to-transparent" />
+              </div>
 
               {/* Dynamic Light Lens */}
               <div
@@ -430,8 +451,8 @@ const Dashboard = () => {
 
               <div className="kinetic-sweep opacity-30 group-hover/card:opacity-50 transition-opacity duration-1000" />
 
-              <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-20 lg:gap-32 items-center">
-                <div className="lg:col-span-5 flex justify-center">
+              <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-20 lg:gap-32 items-center" style={{ transformStyle: 'preserve-3d' }}>
+                <div className="lg:col-span-5 flex justify-center" style={{ transform: 'translateZ(100px)' }}>
                   <div className="relative p-4 rounded-full bg-black/40 backdrop-blur-3xl border border-white/10 shadow-[0_40px_80px_rgba(0,0,0,0.6),inset_0_2px_2px_0_rgba(255,255,255,0.05)]">
                     <div className="absolute inset-[-20px] rounded-full bg-voro-primary/10 animate-pulse-slow blur-3xl" />
                     <Ring
@@ -448,7 +469,7 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                <div className="lg:col-span-7 space-y-16">
+                <div className="lg:col-span-7 space-y-16" style={{ transform: 'translateZ(60px)' }}>
                   <div>
                     <div className="flex items-center gap-3 mb-6">
                       <div className="h-px w-8 bg-voro-primary" />
@@ -463,7 +484,7 @@ const Dashboard = () => {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                    <div className="flex flex-col gap-4 p-8 rounded-[2rem] bg-white/[0.03] border border-white/5 backdrop-blur-xl transition-all hover:bg-white/[0.05]">
+                    <div className="flex flex-col gap-4 p-8 rounded-[2rem] bg-white/[0.03] border border-white/5 backdrop-blur-xl transition-all hover:bg-white/[0.05]" style={{ transform: 'translateZ(30px)' }}>
                       <div className="flex items-center justify-between">
                          <span className="text-[0.6rem] font-mono font-black uppercase tracking-[0.4em] text-gray-500">Allowance</span>
                          <div className={`p-2 rounded-lg ${calorieStatus.status === 'under' ? 'text-voro-secondary bg-voro-secondary/10' : 'text-voro-danger bg-voro-danger/10'}`}>
@@ -478,6 +499,7 @@ const Dashboard = () => {
 
                     <button
                       onClick={() => navigate('/nutrition/diary')}
+                      style={{ transform: 'translateZ(40px)' }}
                       className="relative h-full flex flex-col justify-center items-center gap-4 px-10 py-8 rounded-[2rem] bg-voro-primary text-white font-black uppercase tracking-[0.4em] text-[0.7rem] transition-all duration-700 hover:scale-[1.02] active:scale-[0.98] group/btn shadow-[0_30px_60px_rgba(124,58,237,0.3)] hover:shadow-[0_40px_80px_rgba(124,58,237,0.5)] overflow-hidden"
                     >
                       <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity duration-700" />

@@ -43,6 +43,10 @@ export const Stat = memo(({
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+
+    // Direct update for Prismatic Refraction displacement
+    containerRef.current.style.setProperty('--refract-x', `${tiltY * 0.5}px`);
+    containerRef.current.style.setProperty('--refract-y', `${-tiltX * 0.5}px`);
   };
 
   const handleFocus = () => {
@@ -57,6 +61,9 @@ export const Stat = memo(({
       // Update telemetry text for focus state
       if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
+
+      containerRef.current.style.setProperty('--refract-x', '-2px');
+      containerRef.current.style.setProperty('--refract-y', '-2px');
     }
   };
 
@@ -84,19 +91,40 @@ export const Stat = memo(({
       aria-label={`${label}: ${value}${unit ? ` ${unit}` : ''}`}
       style={{
         transform: interactionActive
-          ? `perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-8px)`
-          : `perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)`,
-        transition: isHovered ? 'none' : 'transform 1s var(--ease-expo-out)',
+          ? `perspective(2000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-12px)`
+          : `perspective(2000px) rotateX(0deg) rotateY(0deg) translateY(0px)`,
+        transition: isHovered ? 'none' : 'transform 1.2s var(--ease-expo-out)',
         transformStyle: 'preserve-3d'
       }}
-      className={`Stat group relative bg-voro-card border border-voro-border p-10 rounded-[3rem] hover:border-white/20 hover:shadow-[0_40px_80px_rgba(0,0,0,0.8)] focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#080B14] outline-none transition-all duration-500 ${className}`}
+      className={`Stat group relative bg-[#0C0906] border border-white/5 p-10 rounded-[3.5rem] hover:border-white/20 hover:shadow-[0_60px_120px_rgba(0,0,0,0.9)] focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#080B14] outline-none transition-all duration-500 ${className}`}
     >
       {/* Container clipping mask (individually applied to internal layers to preserve 3D) */}
-      <div className="absolute inset-0 rounded-[3rem] overflow-hidden pointer-events-none">
+      <div className="absolute inset-0 rounded-[3.5rem] overflow-hidden pointer-events-none">
+        {/* Neural Data Stream: Scrolling procedural telemetry */}
+        <div
+          className="absolute inset-0 opacity-0 group-hover:opacity-[0.04] transition-opacity duration-1000 font-mono text-[0.4rem] text-white whitespace-pre leading-none select-none p-4"
+          style={{ transform: 'translateZ(5px)' }}
+        >
+          {Array.from({ length: 20 }).map((_, i) => (
+            <div key={i} className="animate-pulse" style={{ animationDelay: `${i * 150}ms` }}>
+              0x{Math.random().toString(16).slice(2, 10).toUpperCase()} // SYNCHRONIZING_CORE_HEURISTICS_{i} // STABLE
+            </div>
+          ))}
+        </div>
+
         {/* Precision Grid Background - Emerges on Interaction */}
         <div
-          className="absolute inset-0 bg-grid-white opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-1000"
+          className="absolute inset-0 bg-grid-white opacity-0 group-hover:opacity-[0.15] group-focus-visible:opacity-[0.15] transition-opacity duration-1000"
           style={{ transform: 'translateZ(10px)' }}
+        />
+
+        {/* Prismatic Refraction: Spectrum edge shear */}
+        <div
+          className="absolute -inset-2 opacity-0 group-hover:opacity-40 transition-opacity duration-700 blur-[2px] mix-blend-overlay"
+          style={{
+            background: `linear-gradient(var(--tilt-x, 0deg), transparent, rgba(255,0,0,0.1), rgba(0,255,0,0.1), rgba(0,0,255,0.1), transparent)`,
+            transform: `translate3d(var(--refract-x, 0), var(--refract-y, 0), 15px)`
+          }}
         />
 
         {/* Volumetric Gloss Reflection Layer */}
@@ -151,11 +179,11 @@ export const Stat = memo(({
 
       {/* Ambient Glow Detail */}
       <div
-        className="absolute -right-12 -top-12 w-48 h-48 rounded-full blur-[100px] opacity-0 group-hover:opacity-10 group-focus-visible:opacity-10 transition-opacity duration-1000"
+        className="absolute -right-24 -top-24 w-64 h-64 rounded-full blur-[120px] opacity-0 group-hover:opacity-20 group-focus-visible:opacity-20 transition-opacity duration-1000"
         style={{ backgroundColor: activeColor }}
       />
 
-      <div className="relative flex flex-col h-full z-10" style={{ transform: 'translateZ(30px)' }}>
+      <div className="relative flex flex-col h-full z-10" style={{ transform: 'translateZ(60px)' }}>
         <div className="flex items-start justify-between mb-8">
           <div className="space-y-1.5">
             <p className="text-[0.55rem] font-mono font-bold text-gray-600 uppercase tracking-[0.4em] group-hover:text-gray-400 group-focus-visible:text-gray-400 transition-colors duration-500">
@@ -173,7 +201,9 @@ export const Stat = memo(({
           </div>
 
           {Icon && (
-            <div className={`
+            <div
+              style={{ transform: 'translateZ(40px)' }}
+              className={`
               p-4 rounded-2xl bg-white/[0.02] border border-white/5
               text-gray-600 group-hover:text-white group-focus-visible:text-white group-hover:bg-white/5 group-focus-visible:bg-white/5
               group-hover:scale-110 group-focus-visible:scale-110 group-hover:border-white/10 group-focus-visible:border-white/10
@@ -190,7 +220,7 @@ export const Stat = memo(({
         </div>
 
         <div className="flex items-end justify-between gap-4 mt-auto">
-          <div className="flex items-baseline gap-2">
+          <div className="flex items-baseline gap-2" style={{ transform: 'translateZ(80px)' }}>
             <p className="text-5xl md:text-6xl font-serif italic font-medium text-white tracking-tighter leading-none">
               {value}
             </p>
