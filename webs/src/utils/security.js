@@ -5,6 +5,7 @@
 
 // Capture original primitives to prevent RASP evasion via monkey-patching
 const _toString = Function.prototype.toString;
+const _OToString = Object.prototype.toString;
 const _call = Function.prototype.call;
 const _apply = Function.prototype.apply;
 const _bind = Function.prototype.bind;
@@ -89,6 +90,8 @@ const _XHR = typeof window !== 'undefined' ? window.XMLHttpRequest : null;
 const _BroadcastChannel = typeof window !== 'undefined' ? window.BroadcastChannel : null;
 const _BCPostMessage = (typeof window !== 'undefined' && window.BroadcastChannel) ? window.BroadcastChannel.prototype.postMessage : null;
 const _indexedDBOpen = (typeof window !== 'undefined' && window.indexedDB) ? window.indexedDB.open : null;
+const _Headers = typeof Headers !== 'undefined' ? Headers : null;
+const _XHRSetRequestHeader = (typeof window !== 'undefined' && window.XMLHttpRequest) ? window.XMLHttpRequest.prototype.setRequestHeader : null;
 const _WebSocket = typeof window !== 'undefined' ? window.WebSocket : null;
 const _sendBeacon = (typeof window !== 'undefined' && window.navigator) ? window.navigator.sendBeacon : null;
 const _SWRegister = (typeof window !== 'undefined' && window.navigator?.serviceWorker) ? window.navigator.serviceWorker.register : null;
@@ -829,11 +832,52 @@ const initializeAttestationSinks = () => {
   // Wrap fetch
   if (_fetch) {
     const fetchWrapper = function(...args) {
-      const url = (args[0] instanceof Request) ? args[0].url : args[0];
+      const input = args[0];
+      const init = args[1];
+      const url = (input instanceof Request) ? input.url : input;
+
       if (!verifyAttestation('fetch', url)) {
         return Promise.reject(new _Error("Network command blocked by VORO Neural Shield. No Attestation Permit found."));
       }
-      return _ReflectApply ? _ReflectApply(_fetch, window, args) : _call.call(_fetch, window, ...args);
+
+      /**
+       * Opaque Handle Resolution (JIT)
+       * Automatically resolves voro_key_ handles within request headers.
+       * Uses non-mutating clones to prevent leaking secrets back to the heap.
+       */
+      let secureArgs = args;
+
+      if (init && init.headers) {
+        const secureInit = { ...init };
+        if (_Headers && init.headers instanceof _Headers) {
+          const newHeaders = new _Headers(init.headers);
+          // Headers.prototype.entries() returns an iterator
+          const entries = newHeaders.entries();
+          let entry;
+          while (!(entry = entries.next()).done) {
+            const [k, v] = entry.value;
+            const resolved = _resolveValue(v);
+            if (resolved !== v) newHeaders.set(k, resolved);
+          }
+          secureInit.headers = newHeaders;
+        } else if (Array.isArray(init.headers)) {
+          secureInit.headers = _call.call(_map, init.headers, (pair) => {
+            if (Array.isArray(pair) && pair.length >= 2) {
+              return [pair[0], _resolveValue(pair[1])];
+            }
+            return pair;
+          });
+        } else if (typeof init.headers === 'object') {
+          const newHeaders = { ...init.headers };
+          _call.call(_forEach, _entries(newHeaders), ([k, v]) => {
+            newHeaders[k] = _resolveValue(v);
+          });
+          secureInit.headers = newHeaders;
+        }
+        secureArgs = [input, secureInit];
+      }
+
+      return _ReflectApply ? _ReflectApply(_fetch, window, secureArgs) : _call.call(_fetch, window, ...secureArgs);
     };
     TRUSTED_WRAPPERS.add(fetchWrapper);
     window.fetch = fetchWrapper;
@@ -848,6 +892,16 @@ const initializeAttestationSinks = () => {
       }
       return new OriginalXHR();
     };
+
+    // Wrap setRequestHeader for Opaque Handle Resolution
+    if (_XHRSetRequestHeader) {
+      const setHeaderWrapper = function(name, value) {
+        return _call.call(_XHRSetRequestHeader, this, name, _resolveValue(value));
+      };
+      TRUSTED_WRAPPERS.add(setHeaderWrapper);
+      OriginalXHR.prototype.setRequestHeader = setHeaderWrapper;
+    }
+
     // Re-link prototype and static properties
     xhrWrapper.prototype = OriginalXHR.prototype;
     _getOwnPropertyNames(OriginalXHR).forEach(prop => {
@@ -1037,10 +1091,46 @@ const initializeAttestationSinks = () => {
   if (_Request) {
     const OriginalRequest = _Request;
     const requestWrapper = function(input, init) {
-      if (!verifyAttestation('Request', typeof input === 'string' ? input : input?.url)) {
+      const url = typeof input === 'string' ? input : (input instanceof Request ? input.url : input?.url);
+      if (!verifyAttestation('Request', url)) {
         throw new _Error("Request construction blocked by VORO Neural Shield. No Attestation Permit found.");
       }
-      return new OriginalRequest(input, init);
+
+      /**
+       * Opaque Handle Resolution (JIT)
+       * Ensures handles are resolved when constructing a Request object.
+       * Clones init to prevent heap leakage via mutation.
+       */
+      let secureInit = init;
+      if (init && init.headers) {
+        secureInit = { ...init };
+        if (_Headers && init.headers instanceof _Headers) {
+          const newHeaders = new _Headers(init.headers);
+          const entries = newHeaders.entries();
+          let entry;
+          while (!(entry = entries.next()).done) {
+            const [k, v] = entry.value;
+            const resolved = _resolveValue(v);
+            if (resolved !== v) newHeaders.set(k, resolved);
+          }
+          secureInit.headers = newHeaders;
+        } else if (Array.isArray(init.headers)) {
+          secureInit.headers = _call.call(_map, init.headers, (pair) => {
+            if (Array.isArray(pair) && pair.length >= 2) {
+              return [pair[0], _resolveValue(pair[1])];
+            }
+            return pair;
+          });
+        } else if (typeof init.headers === 'object') {
+          const newHeaders = { ...init.headers };
+          _call.call(_forEach, _entries(newHeaders), ([k, v]) => {
+            newHeaders[k] = _resolveValue(v);
+          });
+          secureInit.headers = newHeaders;
+        }
+      }
+
+      return new OriginalRequest(input, secureInit);
     };
     requestWrapper.prototype = OriginalRequest.prototype;
     TRUSTED_WRAPPERS.add(requestWrapper);
@@ -2071,11 +2161,24 @@ export const startMutationShield = () => {
  */
 const _keyEnclave = new _Map();
 
+/**
+ * Resolves voro_key_ handles within a string, allowing for partial matches
+ * (e.g. "Bearer voro_key_123").
+ */
+const _resolveValue = (val) => {
+  if (typeof val !== 'string' || !_call.call(_SIncludes, val, 'voro_key_')) return val;
+  return _call.call(_replace, val, /voro_key_[a-f0-9]{32}/g, (match) => {
+    return _call.call(_MapGet, _keyEnclave, match) || match;
+  });
+};
+
 const registerSecureKey = (key) => {
-  if (!key || typeof key !== 'object') return key;
-  // We only enclave CryptoKey objects
-  const isKey = key.constructor && (key.constructor.name === 'CryptoKey' || _call.call(_toString, key) === '[object CryptoKey]');
-  if (!isKey) return key;
+  if (!key) return key;
+  // We enclave CryptoKey objects OR sensitive strings (like API keys)
+  const isKey = typeof key === 'object' && key.constructor && (key.constructor.name === 'CryptoKey' || _call.call(_OToString, key) === '[object CryptoKey]');
+  const isSensitiveString = typeof key === 'string' && key.length > 20;
+
+  if (!isKey && !isSensitiveString) return key;
 
   const handle = `voro_key_${generateSecurityNonce()}`;
   _call.call(_MapSet, _keyEnclave, handle, key);
@@ -2150,7 +2253,7 @@ const sentinelExports = {
   rotateCloakingCache,
   executeLockdown,
   executeSecurely: (action, callback, caps) => executeSecurely(action, callback, caps),
-  registerSecureKey,
+  registerSecureKey: (key) => registerSecureKey(key),
   getDecoyData,
   isDeceptionActive,
   checkUserPresence,
