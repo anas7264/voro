@@ -56,6 +56,7 @@ class StorageManager {
     this.encryptedKeys = new Set(Object.values(STORAGE_KEYS));
     this.listeners = new Set();
     this.cache = new Map();
+    this._lastUpdate = new Map(); // Track timestamps for optimistic rollbacks
     this.memoizedData = null;
     this.memoizedDecoyData = null;
     this.initialized = false;
@@ -174,6 +175,14 @@ class StorageManager {
       return getDecoyData(baseKey);
     }
 
+    /**
+     * ⚡ PERFORMANCE OPTIMIZATION: Cache-First Retrieval.
+     * Prevents redundant decryption and I/O if the value is already in memory.
+     */
+    if (this.cache.has(baseKey)) {
+      return createSecureProxy(this.cache.get(baseKey), baseKey);
+    }
+
     try {
       const fullKey = key.startsWith(STORAGE_PREFIX) ? key : this.getFullKey(key);
 
@@ -243,12 +252,18 @@ class StorageManager {
     }
   }
 
-  // Set item in storage
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: "Instant Flux" Optimistic UI.
+   * Updates cache and notifies subscribers immediately (zero-latency)
+   * before initiating background persistence (encryption and disk I/O).
+   * Features a robust rollback mechanism for data integrity.
+   */
   async set(key, value) {
+    const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
+    const fullKey = key.startsWith(STORAGE_PREFIX) ? key : this.getFullKey(key);
+
     // Cyber Deception: Redirect to Ghost Vault if compromised or unauthorized provenance
     if (window.VORO_COMPROMISED || !validateCallStack() || this._checkCanary(key)) {
-      const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
-      const fullKey = key.startsWith(STORAGE_PREFIX) ? key : this.getFullKey(key);
       this._ghostSet(fullKey, value);
       this.cache.set(baseKey, value);
       return true;
@@ -260,10 +275,16 @@ class StorageManager {
       return false;
     }
 
-    try {
-      const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
-      const fullKey = key.startsWith(STORAGE_PREFIX) ? key : this.getFullKey(key);
+    // Capture state for potential rollback
+    const previousValue = this.cache.get(baseKey);
+    const updateTimestamp = Date.now();
+    this._lastUpdate.set(baseKey, updateTimestamp);
 
+    // Optimistic Update
+    this.cache.set(baseKey, value);
+    this.notify(baseKey, value);
+
+    try {
       // Security: Sanitize all data before it touches storage or encryption
       const sanitizedValue = sanitizeObject(value);
 
@@ -279,13 +300,24 @@ class StorageManager {
         localStorage.setItem(fullKey, serialized);
       }, ['sink:localStorage.setItem']);
 
-      // Update cache and notify listeners
-      this.cache.set(baseKey, value);
-      this.notify(baseKey, value);
-
       return true;
     } catch (error) {
       console.error("Storage set error:", error);
+
+      /**
+       * ⚡ ROLLBACK MECHANISM:
+       * Only reverts the cache if a more recent update hasn't already occurred,
+       * preventing race conditions in high-frequency update scenarios.
+       */
+      if (this._lastUpdate.get(baseKey) === updateTimestamp) {
+        if (previousValue === undefined) {
+          this.cache.delete(baseKey);
+        } else {
+          this.cache.set(baseKey, previousValue);
+        }
+        this.notify(baseKey, previousValue || null);
+      }
+
       return false;
     }
   }

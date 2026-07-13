@@ -7,9 +7,31 @@ import storage from "../utils/storage";
  * Enables surgical reactivity by allowing components to subscribe to specific
  * data slices from storage keys using a custom selector and equality check.
  */
-export const useStorageKeySelector = (key, selector, equalityFn = (a, b) => JSON.stringify(a) === JSON.stringify(b)) => {
+export const useStorageKeySelector = (key, selector, equalityFn) => {
   const lastStateRef = useRef();
   const lastSelectedStateRef = useRef();
+
+  /**
+   * ⚡ OPTIMIZATION: High-performance shallow equality check.
+   * Drastically faster than JSON.stringify for large objects and arrays.
+   */
+  const defaultEquality = useCallback((a, b) => {
+    if (a === b) return true;
+    if (typeof a !== 'object' || a === null || typeof b !== 'object' || b === null) return false;
+
+    const keysA = Object.keys(a);
+    const keysB = Object.keys(b);
+    if (keysA.length !== keysB.length) return false;
+
+    for (let i = 0; i < keysA.length; i++) {
+      if (!Object.prototype.hasOwnProperty.call(b, keysA[i]) || a[keysA[i]] !== b[keysA[i]]) {
+        return false;
+      }
+    }
+    return true;
+  }, []);
+
+  const effectiveEqualityFn = equalityFn || defaultEquality;
 
   const getSnapshot = useCallback(() => {
     const fullState = storage.get(key);
@@ -19,7 +41,7 @@ export const useStorageKeySelector = (key, selector, equalityFn = (a, b) => JSON
     }
 
     const selectedState = selector(fullState);
-    if (lastSelectedStateRef.current !== undefined && equalityFn(lastSelectedStateRef.current, selectedState)) {
+    if (lastSelectedStateRef.current !== undefined && effectiveEqualityFn(lastSelectedStateRef.current, selectedState)) {
       lastStateRef.current = fullState;
       return lastSelectedStateRef.current;
     }
@@ -27,7 +49,7 @@ export const useStorageKeySelector = (key, selector, equalityFn = (a, b) => JSON
     lastStateRef.current = fullState;
     lastSelectedStateRef.current = selectedState;
     return selectedState;
-  }, [key, selector, equalityFn]);
+  }, [key, selector, effectiveEqualityFn]);
 
   const subscribe = useCallback((callback) => {
     return storage.subscribe((updatedKey) => {
