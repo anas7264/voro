@@ -22,6 +22,7 @@ const Button = memo(({
   const txRef = useRef(null);
   const tyRef = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
 
   // Generate a stable system ID for the node
   const nodeId = useMemo(() => `BTN_${Math.floor(Math.random() * 0x1000).toString(16).toUpperCase().padStart(3, '0')}`, []);
@@ -56,13 +57,45 @@ const Button = memo(({
     setIsHovered(false);
     if (!buttonRef.current) return;
 
-    buttonRef.current.style.setProperty('--move-x', '0px');
-    buttonRef.current.style.setProperty('--move-y', '0px');
-    buttonRef.current.style.setProperty('--rotate-x', '0deg');
-    buttonRef.current.style.setProperty('--rotate-y', '0deg');
+    if (isFocused) {
+      // Return to focus state tilt
+      buttonRef.current.style.setProperty('--move-x', '0px');
+      buttonRef.current.style.setProperty('--move-y', '0px');
+      buttonRef.current.style.setProperty('--rotate-x', '4deg');
+      buttonRef.current.style.setProperty('--rotate-y', '-4deg');
+      if (txRef.current) txRef.current.innerText = "4.0";
+      if (tyRef.current) tyRef.current.innerText = "-4.0";
+    } else {
+      buttonRef.current.style.setProperty('--move-x', '0px');
+      buttonRef.current.style.setProperty('--move-y', '0px');
+      buttonRef.current.style.setProperty('--rotate-x', '0deg');
+      buttonRef.current.style.setProperty('--rotate-y', '0deg');
+    }
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    if (!buttonRef.current) return;
+
+    // Static 4-degree tilt for focus feedback
+    buttonRef.current.style.setProperty('--rotate-x', '4deg');
+    buttonRef.current.style.setProperty('--rotate-y', '-4deg');
+    if (txRef.current) txRef.current.innerText = "4.0";
+    if (tyRef.current) tyRef.current.innerText = "-4.0";
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    if (!buttonRef.current) return;
+
+    if (!isHovered) {
+      buttonRef.current.style.setProperty('--rotate-x', '0deg');
+      buttonRef.current.style.setProperty('--rotate-y', '0deg');
+    }
   };
 
   const activeColor = variant === 'secondary' ? '#7C3AED' : variant === 'danger' ? '#EF4444' : '#7C3AED';
+  const interactionActive = isHovered || isFocused;
 
   return (
     <button
@@ -70,6 +103,8 @@ const Button = memo(({
       onMouseMove={handleMouseMove}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={handleMouseLeave}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
       onClick={onClick}
       disabled={disabled || isLoading}
       className={`
@@ -84,34 +119,37 @@ const Button = memo(({
         ${className}
       `}
       style={{
-        transform: isHovered
+        transform: interactionActive
           ? 'translate3d(var(--move-x, 0), var(--move-y, 0), 0) rotateX(var(--rotate-x, 0)) rotateY(var(--rotate-y, 0))'
           : 'translate3d(0, 0, 0) rotateX(0) rotateY(0)',
         transformStyle: 'preserve-3d',
-        perspective: '1000px'
+        perspective: '1000px',
+        transition: isHovered ? 'none' : 'all 0.7s cubic-bezier(0.16,1,0.3,1)'
       }}
       aria-busy={isLoading}
       {...props}
     >
       {/* Precision Grid & Grain */}
-      <div className="absolute inset-0 bg-grid-white opacity-0 group-hover:opacity-[0.03] transition-opacity duration-1000 pointer-events-none" />
+      <div className="absolute inset-0 bg-grid-white opacity-0 group-hover:opacity-[0.03] group-focus-visible:opacity-[0.03] transition-opacity duration-1000 pointer-events-none" />
       <div className="absolute inset-0 bg-boutique-grain opacity-[0.02] pointer-events-none" />
 
       {/* Kinetic Sweep Animation */}
-      <div className="kinetic-sweep opacity-0 group-hover:opacity-20 transition-opacity duration-1000" />
+      <div className="kinetic-sweep opacity-0 group-hover:opacity-20 group-focus-visible:opacity-20 transition-opacity duration-1000" />
 
       {/* Luminous Lens Effect */}
       <div
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-500 pointer-events-none"
         style={{
-          background: `radial-gradient(120px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), ${activeColor}25, transparent 70%)`,
+          background: isHovered
+            ? `radial-gradient(120px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), ${activeColor}25, transparent 70%)`
+            : `radial-gradient(120px circle at 50% 50%, ${activeColor}25, transparent 70%)`,
         }}
       />
 
       {/* Coordinate Telemetry Overlay */}
       <div
         aria-hidden="true"
-        className="absolute top-2 right-4 pointer-events-none opacity-0 group-hover:opacity-40 transition-opacity duration-500 flex gap-3 font-mono text-[0.4rem] font-bold text-white/40"
+        className="absolute top-2 right-4 pointer-events-none opacity-0 group-hover:opacity-40 group-focus-visible:opacity-40 transition-opacity duration-500 flex gap-3 font-mono text-[0.4rem] font-bold text-white/40"
       >
         {shortcut && <span className="text-voro-secondary animate-pulse">[{shortcut}]</span>}
         <span>X_<span ref={txRef}>0.0</span></span>
@@ -129,7 +167,7 @@ const Button = memo(({
       </div>
 
       {/* Gloss Reflection Overlay */}
-      <div className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-700 pointer-events-none bg-gradient-to-tr from-transparent via-white/20 to-transparent" />
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-10 group-focus-visible:opacity-10 transition-opacity duration-700 pointer-events-none bg-gradient-to-tr from-transparent via-white/20 to-transparent" />
     </button>
   );
 });
