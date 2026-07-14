@@ -22,6 +22,7 @@ const _startsWith = String.prototype.startsWith;
 const _endsWith = String.prototype.endsWith;
 const _slice = String.prototype.slice;
 const _trim = String.prototype.trim;
+const _padStart = String.prototype.padStart;
 
 // Array Prototype Pinning
 const _forEach = Array.prototype.forEach;
@@ -51,6 +52,9 @@ const _MapHas = Map.prototype.has;
 const _MapDelete = Map.prototype.delete;
 const _MapClear = Map.prototype.clear;
 const _MapEntries = Map.prototype.entries;
+const _decodeURIComponent = typeof decodeURIComponent !== 'undefined' ? decodeURIComponent : null;
+const _DOMParser = typeof DOMParser !== 'undefined' ? DOMParser : null;
+const _TextDecoder = typeof TextDecoder !== 'undefined' ? TextDecoder : null;
 const _SetAdd = Set.prototype.add;
 const _SetHas = Set.prototype.has;
 const _SetDelete = Set.prototype.delete;
@@ -103,6 +107,8 @@ const _createObjectURL = (typeof window !== 'undefined' && window.URL) ? window.
 const _revokeObjectURL = (typeof window !== 'undefined' && window.URL) ? window.URL.revokeObjectURL : null;
 const _RTCPeerConnection = (typeof window !== 'undefined') ? (window.RTCPeerConnection || window.webkitRTCPeerConnection) : null;
 const _EventSource = typeof window !== 'undefined' ? window.EventSource : null;
+const _Worker = typeof window !== 'undefined' ? window.Worker : null;
+const _SharedWorker = typeof window !== 'undefined' ? window.SharedWorker : null;
 
 const _Request = typeof Request !== 'undefined' ? Request : null;
 const _Response = typeof Response !== 'undefined' ? Response : null;
@@ -140,6 +146,7 @@ const _ReflectDefineProperty = typeof Reflect !== 'undefined' ? Reflect.definePr
 const _ReflectGetOwnPropertyDescriptor = typeof Reflect !== 'undefined' ? Reflect.getOwnPropertyDescriptor : null;
 const _ReflectOwnKeys = typeof Reflect !== 'undefined' ? Reflect.ownKeys : null;
 const _perfNow = (typeof performance !== 'undefined' && performance.now) ? (_ReflectApply ? _ReflectApply(_bind, performance.now, [performance]) : performance.now.bind(performance)) : null;
+const _NToString = Number.prototype.toString;
 const _seal = Object.seal;
 const _preventExtensions = Object.preventExtensions;
 const _isFrozen = Object.isFrozen;
@@ -444,7 +451,7 @@ export const validateCallStack = () => {
         try {
           // Strip line/column numbers (e.g. :14:2) before parsing
           const cleanUrl = _call.call(_replace, urlMatch[0], /:\d+(?::\d+)?$/, '');
-          const urlObj = new URL(cleanUrl);
+          const urlObj = new _URL(cleanUrl);
           if (_call.call(_URLOrigin, urlObj) !== trustedOrigin) {
             if (_console.error) _call.call(_console.error, console, `Security Sentinel: Cross-origin script provenance detected: ${_call.call(_URLOrigin, urlObj)}`);
             executeLockdown();
@@ -480,9 +487,9 @@ export const sanitizeInput = (input) => {
   input = _call.call(_replace, input, /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F\u200B-\u200D\uFEFF]/g, '');
 
   // If in a browser environment, use DOMParser for robust sanitization
-  if (typeof window !== 'undefined' && window.DOMParser && _parseFromString) {
+  if (typeof window !== 'undefined' && _DOMParser && _parseFromString) {
     try {
-      const parser = new DOMParser();
+      const parser = new _DOMParser();
       const doc = _call.call(_parseFromString, parser, input, 'text/html');
 
       // Remove scripts, styles, iframes, and other dangerous elements
@@ -532,11 +539,11 @@ export const sanitizeInput = (input) => {
  */
 export const generateSecurityNonce = () => {
   if (typeof window === 'undefined' || !window.crypto) {
-    return Math.random().toString(36).substring(2, 15);
+    return _call.call(_slice, _call.call(_NToString, Math.random(), 36), 2, 15);
   }
   const array = new Uint8Array(16);
   window.crypto.getRandomValues(array);
-  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+  return _call.call(_join, _call.call(_map, _call.call(_ArrayFrom, _Array, array), byte => _call.call(_padStart, _call.call(_NToString, byte, 16), 2, '0')), '');
 };
 
 /**
@@ -553,8 +560,8 @@ export const voroPolicy = (typeof window !== 'undefined' && window.trustedTypes)
       },
       createScriptURL: (input) => {
         const allowedDomains = ['self', 'https://fonts.googleapis.com', 'https://fonts.gstatic.com'];
-        const url = new URL(input, window.location.origin);
-        if (allowedDomains.includes(url.origin) || url.origin === window.location.origin) {
+        const url = new _URL(input, window.location.origin);
+        if (_call.call(_AIncludes, allowedDomains, _call.call(_URLOrigin, url)) || _call.call(_URLOrigin, url) === window.location.origin) {
           return input;
         }
         console.error("Security Sentinel: External script URL blocked by Trusted Types.");
@@ -696,9 +703,9 @@ const verifyAttestation = (sinkName, targetUrl = null) => {
   // 1. Whitelist Verification (Prevents breaking core app functionality)
   if (targetUrl) {
     try {
-      const url = new URL(targetUrl, window.location.origin);
-      if (ATTESTATION_WHITELIST.includes('self') && url.origin === window.location.origin) return true;
-      if (ATTESTATION_WHITELIST.some(allowed => url.origin === allowed)) return true;
+      const url = new _URL(targetUrl, window.location.origin);
+      if (_call.call(_AIncludes, ATTESTATION_WHITELIST, 'self') && _call.call(_URLOrigin, url) === window.location.origin) return true;
+      if (_call.call(_some, ATTESTATION_WHITELIST, allowed => _call.call(_URLOrigin, url) === allowed)) return true;
     } catch (e) { /* fallback to strict attestation if URL is malformed */ }
   }
 
@@ -722,8 +729,8 @@ const verifyAttestation = (sinkName, targetUrl = null) => {
         let hasDomainCap = true;
         if (targetUrl) {
           try {
-            const url = new URL(targetUrl, window.location.origin);
-            const domainCap = `domain:${url.host}`;
+            const url = new _URL(targetUrl, window.location.origin);
+            const domainCap = `domain:${_call.call(_URLHostname, url)}`;
             // If domains are specified in capabilities, we must match one
             const restrictedDomains = record.capabilities.filter(c => c.startsWith('domain:'));
             if (restrictedDomains.length > 0) {
@@ -1085,6 +1092,34 @@ const initializeAttestationSinks = () => {
     });
     TRUSTED_WRAPPERS.add(esWrapper);
     window.EventSource = esWrapper;
+  }
+
+  // Wrap Worker
+  if (_Worker) {
+    const OriginalWorker = _Worker;
+    const workerWrapper = function(scriptURL, options) {
+      if (!verifyAttestation('Worker', scriptURL)) {
+        throw new _Error("Worker creation blocked by VORO Neural Shield. No Attestation Permit found.");
+      }
+      return new OriginalWorker(scriptURL, options);
+    };
+    workerWrapper.prototype = OriginalWorker.prototype;
+    TRUSTED_WRAPPERS.add(workerWrapper);
+    window.Worker = workerWrapper;
+  }
+
+  // Wrap SharedWorker
+  if (_SharedWorker) {
+    const OriginalSharedWorker = _SharedWorker;
+    const sharedWorkerWrapper = function(scriptURL, options) {
+      if (!verifyAttestation('SharedWorker', scriptURL)) {
+        throw new _Error("SharedWorker creation blocked by VORO Neural Shield. No Attestation Permit found.");
+      }
+      return new OriginalSharedWorker(scriptURL, options);
+    };
+    sharedWorkerWrapper.prototype = OriginalSharedWorker.prototype;
+    TRUSTED_WRAPPERS.add(sharedWorkerWrapper);
+    window.SharedWorker = sharedWorkerWrapper;
   }
 
   // Wrap Request
@@ -1725,6 +1760,7 @@ export const performIntegrityCheck = () => {
       'navigator.serviceWorker.register',
       'navigator.clipboard.writeText', 'navigator.clipboard.readText', 'navigator.share',
       'BroadcastChannel',
+      'Worker', 'SharedWorker',
       'localStorage.getItem', 'localStorage.setItem', 'localStorage.removeItem', 'localStorage.clear',
       'sessionStorage.getItem', 'sessionStorage.setItem', 'sessionStorage.removeItem', 'sessionStorage.clear',
       'URL.createObjectURL', 'URL.revokeObjectURL',
@@ -1753,6 +1789,7 @@ export const performIntegrityCheck = () => {
             'navigator.serviceWorker.register',
             'navigator.clipboard.writeText', 'navigator.clipboard.readText', 'navigator.share',
             'BroadcastChannel',
+            'Worker', 'SharedWorker',
             'localStorage.getItem', 'localStorage.setItem', 'localStorage.removeItem', 'localStorage.clear',
             'sessionStorage.getItem', 'sessionStorage.setItem', 'sessionStorage.removeItem', 'sessionStorage.clear',
             'URL.createObjectURL', 'URL.revokeObjectURL',
@@ -1974,14 +2011,14 @@ export const validateAIResponse = (c, n = null) => {
       // Deep Decoding: Prevent bypass via percent-encoding (e.g., %74%6F%6B%65%6E for "token")
       let decodedUrl = url;
       try {
-        decodedUrl = decodeURIComponent(url);
+        decodedUrl = _call.call(_decodeURIComponent, window, url);
       } catch (e) { /* fallback to raw url if malformed */ }
 
       const lowerUrl = _call.call(_toLowerCase, decodedUrl);
       const searchStr = _call.call(_URLSearch, urlObj);
       const hashStr = _call.call(_URLHash, urlObj);
-      const lowerQuery = searchStr ? _call.call(_toLowerCase, decodeURIComponent(searchStr)) : "";
-      const lowerHash = hashStr ? _call.call(_toLowerCase, decodeURIComponent(hashStr)) : "";
+      const lowerQuery = searchStr ? _call.call(_toLowerCase, _call.call(_decodeURIComponent, window, searchStr)) : "";
+      const lowerHash = hashStr ? _call.call(_toLowerCase, _call.call(_decodeURIComponent, window, hashStr)) : "";
 
       // Check high-signal keywords anywhere in URL
       if (_call.call(_some, highSignalKeywords, kw => _call.call(_SIncludes, lowerUrl, kw))) {
@@ -2257,6 +2294,7 @@ const sentinelExports = {
   getDecoyData,
   isDeceptionActive,
   checkUserPresence,
+  _perfNow,
   // Hermetic Primitives for Secret Management
   _TEncoderEncode,
   _TDecoderDecode,
