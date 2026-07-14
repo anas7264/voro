@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Activity, Target, Zap, Ruler } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
 import { Stat } from '@/components/Stat';
 import LineChartComponent from '@/components/LineChartComponent';
-import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
+import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useApp } from '@/hooks/useAppContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import { calculateBMI, calculateFFMI } from '@/utils/calculators';
@@ -18,13 +18,6 @@ import { isValidWeight, isValidBodyFat, isPositiveNumber } from '@/utils/validat
 const shortDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
 
 const BodyMetrics = () => {
-  /**
-   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
-   * Replaced broad useStorage() with useStorageKey for specific data and
-   * useStorageMethods for stable action references.
-   * ESTIMATED IMPACT: Reduces component re-renders by ~90% (only re-renders on metric updates).
-   */
-  const metricsData = useStorageKey('body_metrics');
   const { updateItem } = useStorageMethods();
   const { user } = useApp();
   const { addNotification } = useNotifications();
@@ -44,18 +37,24 @@ const BodyMetrics = () => {
   }, []);
 
   /**
-   * ⚡ OPTIMIZATION: Synchronous data derivation using useMemo.
-   * Eliminates the mount-time double-render cycle and ensures
-   * reactivity to StorageContext updates without manual load calls.
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
+   * Replaced broad body_metrics subscription with useStorageKeySelector to isolate
+   * weights, body fat, and measurements.
    */
-  const metrics = useMemo(() => {
-    return metricsData || {
-      weights: [],
-      measurements: [],
-      bodyFat: [],
-      photos: [],
-    };
-  }, [metricsData]);
+  const weights = useStorageKeySelector(
+    'body_metrics',
+    useCallback((metrics) => metrics?.weights || [], [])
+  );
+
+  const bodyFatRecords = useStorageKeySelector(
+    'body_metrics',
+    useCallback((metrics) => metrics?.bodyFat || [], [])
+  );
+
+  const measurementsRecord = useStorageKeySelector(
+    'body_metrics',
+    useCallback((metrics) => metrics?.measurements || [], [])
+  );
 
   const addWeight = async () => {
     if (!weight) return;
@@ -75,7 +74,7 @@ const BodyMetrics = () => {
      * Prevents full object read-spread-write cycles.
      */
     await updateItem('body_metrics', {
-      weights: [...(metrics.weights || []), newWeight]
+      weights: [...weights, newWeight]
     });
 
     setWeight('');
@@ -103,7 +102,7 @@ const BodyMetrics = () => {
      * ⚡ OPTIMIZATION: Atomic update for anatomical dimensions.
      */
     await updateItem('body_metrics', {
-      measurements: [...(metrics.measurements || []), newMeasurement]
+      measurements: [...measurementsRecord, newMeasurement]
     });
 
     setMeasurements({
@@ -134,7 +133,7 @@ const BodyMetrics = () => {
      * ⚡ OPTIMIZATION: Atomic update for adipose index.
      */
     await updateItem('body_metrics', {
-      bodyFat: [...(metrics.bodyFat || []), newBodyFat]
+      bodyFat: [...bodyFatRecords, newBodyFat]
     });
 
     setBodyFat('');
@@ -145,23 +144,23 @@ const BodyMetrics = () => {
    * ⚡ OPTIMIZATION: Memoized derived data with surgical reactivity.
    * Hoisted formatters eliminate object churn in the trend loop.
    */
-  const weightData = useMemo(() => (metrics.weights || []).slice(-30).map(w => ({
+  const weightData = useMemo(() => weights.slice(-30).map(w => ({
     date: shortDateFormatter.format(new Date(w.date)),
     weight: w.value,
-  })), [metrics.weights]);
+  })), [weights]);
 
-  const bodyFatData = useMemo(() => (metrics.bodyFat || []).slice(-30).map(b => ({
+  const bodyFatData = useMemo(() => bodyFatRecords.slice(-30).map(b => ({
     date: shortDateFormatter.format(new Date(b.date)),
     bodyFat: b.value,
-  })), [metrics.bodyFat]);
+  })), [bodyFatRecords]);
 
   const { latestWeight, latestBodyFat, bmi, ffmi } = useMemo(() => {
-    const lw = metrics.weights[metrics.weights.length - 1]?.value;
-    const lbf = metrics.bodyFat[metrics.bodyFat.length - 1]?.value;
+    const lw = weights[weights.length - 1]?.value;
+    const lbf = bodyFatRecords[bodyFatRecords.length - 1]?.value;
     const b = lw && user ? calculateBMI(lw, user.heightCm) : null;
     const f = lw && lbf && user ? calculateFFMI(lw, lbf, user.heightCm) : null;
     return { latestWeight: lw, latestBodyFat: lbf, bmi: b, ffmi: f };
-  }, [metrics, user]);
+  }, [weights, bodyFatRecords, user]);
 
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30">

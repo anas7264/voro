@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, memo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Plus, Droplet, Trash2, TrendingUp, ChevronLeft, ChevronRight, Target, Zap, Waves } from 'lucide-react';
-import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
+import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { validateWaterEntry } from '@/utils/validators';
 import Button from '@/components/Button';
@@ -75,39 +75,41 @@ const HydroVessel = memo(({ percentage }) => {
 });
 
 const WaterTracker = () => {
-  /**
-   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
-   * Replaced broad useStorage() with useStorageKey for specific data and
-   * useStorageMethods for stable action references.
-   */
-  const waterLog = useStorageKey('water_log') || {};
-  const waterHistoryData = useStorageKey('water_history') || {};
-  const { updateItem } = useStorageMethods();
-
+  const { updateItem, getItem } = useStorageMethods();
   const { addNotification } = useNotifications();
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const dailyGoal = 2000;
 
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
+   * Replaced useStorageKey with useStorageKeySelector for granular data subscription.
+   * Subscribes only to the specific date being viewed and the relevant history window.
+   */
+  const dailyLogs = useStorageKeySelector(
+    'water_log',
+    useCallback((logs) => (logs || {})[date] || [], [date])
+  );
+
+  const todayTotal = useStorageKeySelector(
+    'water_history',
+    useCallback((history) => (history || {})[date] || 0, [date])
+  );
+
+  const waterHistory = useStorageKeySelector(
+    'water_history',
+    useCallback((history) => {
+      return Object.entries(history || {})
+        .slice(-30)
+        .map(([d, amount]) => ({
+          date: shortDateFormatter.format(new Date(d)),
+          water: amount,
+        }));
+    }, [])
+  );
+
   useEffect(() => {
     document.title = 'VORO | Water Tracker';
   }, []);
-
-  const dailyLogs = useMemo(() => {
-    return waterLog[date] || [];
-  }, [waterLog, date]);
-
-  const waterHistory = useMemo(() => {
-    return Object.entries(waterHistoryData)
-      .slice(-30)
-      .map(([d, amount]) => ({
-        date: shortDateFormatter.format(new Date(d)),
-        water: amount,
-      }));
-  }, [waterHistoryData]);
-
-  const todayTotal = useMemo(() => {
-    return dailyLogs.reduce((sum, log) => sum + (log.amount || 0), 0);
-  }, [dailyLogs]);
 
   const addWater = async (amount) => {
     const { valid, errors } = validateWaterEntry({ amount, date });
@@ -127,10 +129,10 @@ const WaterTracker = () => {
      * ⚡ OPTIMIZATION: Use updateItem for surgical key-level updates.
      * Reduces the complexity of reading and spreading entire log objects.
      */
-    const logsForDate = dailyLogs;
-    const updatedLogs = [...logsForDate, newLog];
+    const updatedLogs = [...dailyLogs, newLog];
 
-    const newTotal = (waterHistoryData[date] || 0) + amount;
+    const history = getItem('water_history') || {};
+    const newTotal = (history[date] || 0) + amount;
 
     await updateItem('water_log', { [date]: updatedLogs });
     await updateItem('water_history', { [date]: newTotal });
@@ -141,12 +143,12 @@ const WaterTracker = () => {
   };
 
   const deleteLog = async (id) => {
-    const currentLogs = dailyLogs;
-    const logToDelete = currentLogs.find(l => l.id === id);
+    const logToDelete = dailyLogs.find(l => l.id === id);
     if (!logToDelete) return;
 
-    const updatedLogs = currentLogs.filter(log => log.id !== id);
-    const newTotal = Math.max(0, (waterHistoryData[date] || 0) - logToDelete.amount);
+    const updatedLogs = dailyLogs.filter(log => log.id !== id);
+    const history = getItem('water_history') || {};
+    const newTotal = Math.max(0, (history[date] || 0) - logToDelete.amount);
 
     await updateItem('water_log', { [date]: updatedLogs });
     await updateItem('water_history', { [date]: newTotal });

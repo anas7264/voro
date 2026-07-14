@@ -17,6 +17,7 @@ const _split = String.prototype.split;
 const _SIncludes = String.prototype.includes;
 const _match = String.prototype.match;
 const _replace = String.prototype.replace;
+const _padStart = String.prototype.padStart;
 const _toLowerCase = String.prototype.toLowerCase;
 const _startsWith = String.prototype.startsWith;
 const _endsWith = String.prototype.endsWith;
@@ -87,6 +88,7 @@ const _Set = Set;
 const _WeakMap = WeakMap;
 const _WeakSet = WeakSet;
 const _Uint8Array = Uint8Array;
+const _NToString = Number.prototype.toString;
 
 const _setInterval = typeof setInterval !== 'undefined' ? setInterval : null;
 const _setTimeout = typeof setTimeout !== 'undefined' ? setTimeout : null;

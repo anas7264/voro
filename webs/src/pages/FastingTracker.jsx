@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useMemo, useRef, memo } from 'react';
+import React, { useEffect, useState, useMemo, useRef, useCallback, memo } from 'react';
 import { Play, Pause, RotateCcw, Clock, Zap, Target, Activity, ShieldCheck, Flame } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Select from '@/components/Select';
-import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
+import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 
 const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive }) => {
@@ -106,15 +106,19 @@ const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive
 });
 
 const FastingTracker = () => {
+  const { setItem } = useStorageMethods();
+  const { addNotification } = useNotifications();
+
   /**
    * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
-   * Replaced broad useStorage() with useStorageKey for specific data and
-   * useStorageMethods for stable action references.
+   * Replaced broad useStorageKey with useStorageKeySelector to subscribe only to
+   * the 'fasting' state.
    */
-  const fastingDataRaw = useStorageKey('fasting');
-  const { setItem } = useStorageMethods();
+  const fastingData = useStorageKeySelector(
+    'fasting',
+    useCallback((data) => data || { window: '16:8', started: null, status: 'idle' }, []),
+  );
 
-  const { addNotification } = useNotifications();
   const [elapsed, setElapsed] = useState(0);
   const [isPaused, setIsPaused] = useState(true);
   const timerRef = useRef(null);
@@ -122,10 +126,6 @@ const FastingTracker = () => {
   useEffect(() => {
     document.title = 'VORO | Fasting Tracker';
   }, []);
-
-  const fastingData = useMemo(() => {
-    return fastingDataRaw || { window: '16:8', started: null, status: 'idle' };
-  }, [fastingDataRaw]);
 
   const [fastHours, breakHours] = fastingData.window.split(':').map(Number);
   const totalSeconds = fastHours * 3600;
