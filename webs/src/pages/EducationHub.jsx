@@ -1,9 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { BookOpen, Clock, ArrowUpRight, Search, Bookmark, Share2, Sparkles, Filter, Newspaper } from 'lucide-react';
-import Card from '@/components/Card';
-import Button from '@/components/Button';
-import Badge from '@/components/Badge';
-import Accordion from '@/components/Accordion';
+import { Card, Button, Badge, Accordion, DossierHero } from '@/components';
 
 const EducationHub = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -154,52 +151,11 @@ const EducationHub = () => {
 
         {/* Featured Intelligence Hero */}
         {!searchQuery && activeCategory === 'All' && featuredArticle && (
-          <section className="mb-24 group">
-            <Card className="p-0 relative h-[600px] w-full overflow-hidden rounded-[3rem] border border-white/5 shadow-2xl">
-              <img
-                src={featuredArticle.image}
-                alt={featuredArticle.title}
-                className="absolute inset-0 w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#020408] via-[#020408]/40 to-transparent" />
-
-              <div className="absolute bottom-0 left-0 p-10 md:p-16 max-w-4xl space-y-8">
-                <div className="flex items-center gap-6">
-                  <Badge variant="voro-primary" dot className="px-4 py-1.5 font-black tracking-widest">
-                    Featured Insight
-                  </Badge>
-                  <div className="flex items-center gap-2 text-gray-400 font-mono text-[0.6rem] uppercase tracking-widest">
-                    <Clock size={12} />
-                    <span>{featuredArticle.readTime} reading depth</span>
-                  </div>
-                </div>
-
-                <h2 className="text-4xl md:text-6xl font-serif italic font-medium text-white tracking-tight leading-tight">
-                  {featuredArticle.title}
-                </h2>
-
-                <p className="text-gray-300 text-lg md:text-xl font-light leading-relaxed max-w-2xl opacity-80">
-                  {featuredArticle.excerpt}
-                </p>
-
-                <div className="flex items-center gap-8 pt-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-voro-primary flex items-center justify-center font-bold text-white text-xs">
-                      {featuredArticle.author.split(' ').map(n => n[0]).join('')}
-                    </div>
-                    <div>
-                      <p className="text-[0.65rem] font-black uppercase tracking-widest text-white">{featuredArticle.author}</p>
-                      <p className="text-[0.55rem] font-mono text-gray-500 uppercase tracking-widest">{featuredArticle.date} Edition</p>
-                    </div>
-                  </div>
-
-                  <button className="flex items-center gap-3 px-8 py-4 bg-white text-black rounded-full text-[0.65rem] font-black uppercase tracking-[0.4em] transition-all hover:scale-105 active:scale-95 shadow-xl shadow-white/10">
-                    Access Dossier
-                    <ArrowUpRight size={14} />
-                  </button>
-                </div>
-              </div>
-            </Card>
+          <section className="mb-24">
+            <DossierHero
+              article={featuredArticle}
+              onAction={() => console.log('Accessing Dossier:', featuredArticle.id)}
+            />
           </section>
         )}
 

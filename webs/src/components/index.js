@@ -40,3 +40,4 @@ export { default as ErrorBoundary } from "./ErrorBoundary";
 export { default as Header } from "./Header";
 export { default as NotificationContainer } from "./NotificationContainer";
 export { default as Ring } from "./Ring";
+export { default as DossierHero } from "./DossierHero";
