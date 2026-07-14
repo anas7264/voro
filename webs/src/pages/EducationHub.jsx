@@ -1,9 +1,147 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef, memo } from 'react';
 import { BookOpen, Clock, ArrowUpRight, Search, Bookmark, Share2, Sparkles, Filter, Newspaper } from 'lucide-react';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Badge from '@/components/Badge';
 import Accordion from '@/components/Accordion';
+
+/**
+ * ⚡ REFINEMENT: Cinematic Dossier Hero Component.
+ * Features multi-layered parallax, volumetric 3D transforms, and industrial telemetry.
+ * Utilizes 'Surgical Reactivity' via direct DOM manipulation for 60fps performance.
+ */
+const DossierHero = memo(({ article }) => {
+  const containerRef = useRef(null);
+  const imageRef = useRef(null);
+  const contentRef = useRef(null);
+
+  const handleMouseMove = (e) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Normalize coordinates (-0.5 to 0.5)
+    const nx = (x / rect.width) - 0.5;
+    const ny = (y / rect.height) - 0.5;
+
+    // Direct DOM manipulation for buttery performance
+    if (imageRef.current) {
+      imageRef.current.style.transform = `scale(1.1) translate3d(${nx * 40}px, ${ny * 40}px, 0)`;
+    }
+    if (contentRef.current) {
+      contentRef.current.style.transform = `translate3d(${nx * -25}px, ${ny * -25}px, 60px) rotateX(${ny * -12}deg) rotateY(${nx * 12}deg)`;
+    }
+
+    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
+    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
+  };
+
+  const handleMouseLeave = () => {
+    if (imageRef.current) {
+      imageRef.current.style.transform = `scale(1) translate3d(0, 0, 0)`;
+    }
+    if (contentRef.current) {
+      contentRef.current.style.transform = `translate3d(0, 0, 0) rotateX(0) rotateY(0)`;
+    }
+  };
+
+  return (
+    <section
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      className="relative h-[750px] w-full overflow-hidden rounded-[4rem] border border-white/5 shadow-[0_80px_160px_-40px_rgba(0,0,0,0.8)] group/hero perspective-[2000px] mb-24"
+    >
+      {/* Cinematic Background Layer with Parallax */}
+      <div className="absolute inset-0 bg-[#020408]">
+        <img
+          ref={imageRef}
+          src={article.image}
+          alt={article.title}
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 ease-out opacity-60 grayscale group-hover/hero:grayscale-0 group-hover/hero:opacity-80"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#020408] via-[#020408]/40 to-transparent" />
+      </div>
+
+      {/* Luminous Scanner Aura */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-0 group-hover/hero:opacity-100 transition-opacity duration-700"
+        style={{
+          background: `radial-gradient(1000px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(124, 58, 237, 0.12), transparent 60%)`
+        }}
+      />
+
+      {/* Architectural Framing Brackets */}
+      <div className="absolute inset-16 pointer-events-none border border-white/5 rounded-[3rem] transition-all duration-1000 group-hover/hero:inset-12">
+        <div className="absolute top-0 left-0 w-16 h-16 border-t-2 border-l-2 border-voro-primary/40 rounded-tl-[2.5rem] -translate-x-2 -translate-y-2" />
+        <div className="absolute top-0 right-0 w-16 h-16 border-t-2 border-r-2 border-voro-primary/40 rounded-tr-[2.5rem] translate-x-2 -translate-y-2" />
+        <div className="absolute bottom-0 left-0 w-16 h-16 border-b-2 border-l-2 border-voro-primary/40 rounded-bl-[2.5rem] -translate-x-2 translate-y-2" />
+        <div className="absolute bottom-0 right-0 w-16 h-16 border-b-2 border-r-2 border-voro-primary/40 rounded-br-[2.5rem] translate-x-2 translate-y-2" />
+      </div>
+
+      {/* Volumetric Hero Content */}
+      <div
+        ref={contentRef}
+        className="absolute bottom-24 left-24 right-24 z-10 transition-transform duration-700 ease-out preserve-3d pointer-events-none"
+      >
+        <div className="max-w-5xl space-y-12">
+          <div className="space-y-8">
+            <div className="flex items-center gap-8">
+              <Badge variant="voro-primary" dot className="px-8 py-2.5 font-black tracking-[0.4em] backdrop-blur-3xl bg-voro-primary/20 border-white/10 pointer-events-auto">
+                Priority Dossier
+              </Badge>
+              <div className="flex items-center gap-4 text-gray-400 font-mono text-[0.75rem] uppercase tracking-[0.5em]">
+                <Clock size={16} className="text-voro-primary animate-pulse" />
+                <span>Archive Depth: {article.readTime}</span>
+              </div>
+            </div>
+
+            <h2 className="text-6xl md:text-[6.5rem] font-serif italic font-medium text-white tracking-tighter leading-[0.85] drop-shadow-[0_20px_40px_rgba(0,0,0,0.8)]">
+              {article.title}
+            </h2>
+
+            <p className="text-gray-300 text-xl md:text-2xl font-light leading-relaxed max-w-4xl opacity-90 drop-shadow-lg">
+              {article.excerpt}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-12 pt-6">
+            <div className="flex items-center gap-6 pointer-events-auto group/author">
+              <div className="w-16 h-16 rounded-full bg-voro-primary/20 backdrop-blur-xl border border-white/10 flex items-center justify-center font-serif italic text-white text-2xl shadow-2xl transition-all duration-500 group-hover/author:border-voro-primary/40 group-hover/author:scale-110">
+                {article.author.split(' ').map(n => n[0]).join('')}
+              </div>
+              <div className="flex flex-col">
+                <p className="text-[0.85rem] font-black uppercase tracking-[0.4em] text-white">{article.author}</p>
+                <p className="text-[0.65rem] font-mono text-voro-primary/60 uppercase tracking-[0.5em]">{article.date} Publication</p>
+              </div>
+            </div>
+
+            <button className="group/btn relative flex items-center gap-6 px-14 py-7 bg-white text-black rounded-full text-[0.8rem] font-black uppercase tracking-[0.6em] transition-all duration-700 hover:scale-110 hover:shadow-[0_60px_100px_rgba(255,255,255,0.25)] active:scale-95 pointer-events-auto overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-tr from-voro-primary/30 via-transparent to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity duration-1000" />
+              <span className="relative z-10">Access Dossier</span>
+              <ArrowUpRight size={20} className="relative z-10 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform duration-500" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Industrial Telemetry Feed */}
+      <div className="absolute top-20 right-20 pointer-events-none flex flex-col items-end gap-3 font-mono text-[0.55rem] font-black text-white/20 uppercase tracking-[0.6em]">
+        <div className="flex items-center gap-3">
+          <div className="w-1.5 h-1.5 rounded-full bg-voro-primary shadow-[0_0_8px_#7C3AED] animate-pulse" />
+          <span>Specimen_Ref: 0x{article.id.toString().padStart(4, '0')}</span>
+        </div>
+        <span>Neural_Sync: Nominal</span>
+        <span>Provenance: Verified</span>
+      </div>
+
+      <div className="absolute inset-0 bg-boutique-grain opacity-[0.05] pointer-events-none" />
+    </section>
+  );
+});
+
+DossierHero.displayName = 'DossierHero';
 
 const EducationHub = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -152,55 +290,9 @@ const EducationHub = () => {
           </div>
         </header>
 
-        {/* Featured Intelligence Hero */}
+        {/* Cinematic Dossier Hero */}
         {!searchQuery && activeCategory === 'All' && featuredArticle && (
-          <section className="mb-24 group">
-            <Card className="p-0 relative h-[600px] w-full overflow-hidden rounded-[3rem] border border-white/5 shadow-2xl">
-              <img
-                src={featuredArticle.image}
-                alt={featuredArticle.title}
-                className="absolute inset-0 w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#020408] via-[#020408]/40 to-transparent" />
-
-              <div className="absolute bottom-0 left-0 p-10 md:p-16 max-w-4xl space-y-8">
-                <div className="flex items-center gap-6">
-                  <Badge variant="voro-primary" dot className="px-4 py-1.5 font-black tracking-widest">
-                    Featured Insight
-                  </Badge>
-                  <div className="flex items-center gap-2 text-gray-400 font-mono text-[0.6rem] uppercase tracking-widest">
-                    <Clock size={12} />
-                    <span>{featuredArticle.readTime} reading depth</span>
-                  </div>
-                </div>
-
-                <h2 className="text-4xl md:text-6xl font-serif italic font-medium text-white tracking-tight leading-tight">
-                  {featuredArticle.title}
-                </h2>
-
-                <p className="text-gray-300 text-lg md:text-xl font-light leading-relaxed max-w-2xl opacity-80">
-                  {featuredArticle.excerpt}
-                </p>
-
-                <div className="flex items-center gap-8 pt-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-voro-primary flex items-center justify-center font-bold text-white text-xs">
-                      {featuredArticle.author.split(' ').map(n => n[0]).join('')}
-                    </div>
-                    <div>
-                      <p className="text-[0.65rem] font-black uppercase tracking-widest text-white">{featuredArticle.author}</p>
-                      <p className="text-[0.55rem] font-mono text-gray-500 uppercase tracking-widest">{featuredArticle.date} Edition</p>
-                    </div>
-                  </div>
-
-                  <button className="flex items-center gap-3 px-8 py-4 bg-white text-black rounded-full text-[0.65rem] font-black uppercase tracking-[0.4em] transition-all hover:scale-105 active:scale-95 shadow-xl shadow-white/10">
-                    Access Dossier
-                    <ArrowUpRight size={14} />
-                  </button>
-                </div>
-              </div>
-            </Card>
-          </section>
+          <DossierHero article={featuredArticle} />
         )}
 
         {/* Intelligence Grid */}
