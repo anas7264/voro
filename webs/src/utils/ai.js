@@ -6,6 +6,7 @@ const {
   redactData, validateAIResponse, generateSecurityNonce, maskBiometrics,
   validateCallStack, isDeceptionActive, getDecoyData, executeSecurely,
   performIntegrityCheck, getPulseMetadata, checkUserPresence, registerSecureKey,
+  _perfNow,
   _TEncoderEncode, _TDecoderDecode, _Uint8Fill, _Uint8Set, _Uint8Slice,
   _call, _reverse, _forEach
 } = sentinel;
@@ -125,7 +126,7 @@ const SecretVault = (() => {
 
       // Pulse-Binding: Ensure the security heartbeat is active and fresh
       const pulse = typeof getPulseMetadata === 'function' ? getPulseMetadata() : null;
-      const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+      const now = _perfNow ? _call.call(_perfNow, performance) : Date.now();
       const isPulseSafe = !pulse || (now - pulse.lastPulse < pulse.driftThreshold);
       const isUserPresent = typeof checkUserPresence === 'function' ? checkUserPresence() : true;
 
