@@ -22,6 +22,7 @@ const _startsWith = String.prototype.startsWith;
 const _endsWith = String.prototype.endsWith;
 const _slice = String.prototype.slice;
 const _trim = String.prototype.trim;
+const _padStart = String.prototype.padStart;
 
 // Array Prototype Pinning
 const _forEach = Array.prototype.forEach;
@@ -66,6 +67,13 @@ const _TEncoderEncode = (typeof TextEncoder !== 'undefined') ? TextEncoder.proto
 const _TDecoderDecode = (typeof TextDecoder !== 'undefined') ? TextDecoder.prototype.decode : null;
 const _ArrayFrom = Array.from;
 
+// Async Context Ribbon Pinning
+const _PromiseThen = Promise.prototype.then;
+const _PromiseCatch = Promise.prototype.catch;
+const _PromiseFinally = Promise.prototype.finally;
+const _rAF = typeof window !== 'undefined' ? window.requestAnimationFrame : null;
+const _rIC = typeof window !== 'undefined' ? window.requestIdleCallback : null;
+
 // Global Object Pinning for Identity Attestation
 const _Object = Object;
 const _Array = Array;
@@ -84,6 +92,7 @@ const _setInterval = typeof setInterval !== 'undefined' ? setInterval : null;
 const _setTimeout = typeof setTimeout !== 'undefined' ? setTimeout : null;
 const _Error = Error;
 const _log2 = Math.log2;
+const _NToString = Number.prototype.toString;
 const _fetch = typeof window !== 'undefined' ? window.fetch : null;
 const _open = typeof window !== 'undefined' ? window.open : null;
 const _XHR = typeof window !== 'undefined' ? window.XMLHttpRequest : null;
@@ -150,6 +159,12 @@ const _isExtensible = Object.isExtensible;
 const PULSE_INTERVAL = 30000; // 30s
 const PULSE_DRIFT_THRESHOLD = PULSE_INTERVAL + 10000; // 40s (10s tolerance for background throttling)
 let _lastIntegrityPulse = 0;
+
+/**
+ * Neural Context Ribbon (NCR)
+ * Tracking variable for asynchronous execution attestation.
+ */
+let _activeContext = null;
 
 // User Presence Attestation (UPA) Constants
 let _lastUserInteraction = 0;
@@ -236,7 +251,24 @@ const snapshotPrototypes = () => {
     try {
       const keys = _getOwnPropertyNames(proto);
       const symbols = _getOwnPropertySymbols ? _getOwnPropertySymbols(proto) : [];
-      prototypeSnapshots.set(name, new Set([...keys, ...symbols]));
+      const currentKeys = [...keys, ...symbols];
+      prototypeSnapshots.set(name, new Set(currentKeys));
+
+      /**
+       * Proactive Prototype Hardening (PPH)
+       * Lock established methods to prevent runtime monkey-patching.
+       * Surgically handles data vs accessor descriptors to prevent TypeErrors.
+       */
+      _call.call(_forEach, currentKeys, (key) => {
+        try {
+          const desc = _getOwnPropertyDescriptor(proto, key);
+          if (desc && desc.configurable) {
+            const hardenedDesc = { configurable: false };
+            if (_call.call(_hasOwnProperty, desc, 'writable')) hardenedDesc.writable = false;
+            _defineProperty(proto, key, hardenedDesc);
+          }
+        } catch (e) { /* non-critical hardening failure */ }
+      });
     } catch (e) {
       // Ignore errors during snapshotting
     }
@@ -245,6 +277,69 @@ const snapshotPrototypes = () => {
 
 // Initial snapshot
 snapshotPrototypes();
+
+/**
+ * Async Execution Attestation - Neural Context Ribbon (NCR)
+ * Propagates security context across async boundaries (Promises, Timers).
+ */
+const initializeContextRibbon = () => {
+  if (typeof window === 'undefined') return;
+
+  const wrapAsync = (native, name) => {
+    return function(...args) {
+      const capturedContext = _activeContext;
+      const wrappedArgs = _call.call(_map, args, arg => {
+        if (typeof arg === 'function') {
+          return function(...fnArgs) {
+            const prevContext = _activeContext;
+            _activeContext = capturedContext;
+            try {
+              return _ReflectApply ? _ReflectApply(arg, this, fnArgs) : _call.call(arg, this, ...fnArgs);
+            } finally {
+              _activeContext = prevContext;
+            }
+          };
+        }
+        return arg;
+      });
+      return _ReflectApply ? _ReflectApply(native, this, wrappedArgs) : _call.call(native, this, ...wrappedArgs);
+    };
+  };
+
+  // Wrap Promise prototype methods
+  if (_PromiseThen) {
+    Promise.prototype.then = wrapAsync(_PromiseThen, 'Promise.then');
+    TRUSTED_WRAPPERS.add(Promise.prototype.then);
+  }
+  if (_PromiseCatch) {
+    Promise.prototype.catch = wrapAsync(_PromiseCatch, 'Promise.catch');
+    TRUSTED_WRAPPERS.add(Promise.prototype.catch);
+  }
+  if (_PromiseFinally) {
+    Promise.prototype.finally = wrapAsync(_PromiseFinally, 'Promise.finally');
+    TRUSTED_WRAPPERS.add(Promise.prototype.finally);
+  }
+
+  // Wrap scheduling sinks
+  if (_setTimeout) {
+    window.setTimeout = wrapAsync(_setTimeout, 'setTimeout');
+    TRUSTED_WRAPPERS.add(window.setTimeout);
+  }
+  if (_setInterval) {
+    window.setInterval = wrapAsync(_setInterval, 'setInterval');
+    TRUSTED_WRAPPERS.add(window.setInterval);
+  }
+  if (_rAF) {
+    window.requestAnimationFrame = wrapAsync(_rAF, 'requestAnimationFrame');
+    TRUSTED_WRAPPERS.add(window.requestAnimationFrame);
+  }
+  if (_rIC) {
+    window.requestIdleCallback = wrapAsync(_rIC, 'requestIdleCallback');
+    TRUSTED_WRAPPERS.add(window.requestIdleCallback);
+  }
+};
+
+initializeContextRibbon();
 
 /**
  * Polymorphic Memory Protection (PMP)
@@ -530,14 +625,14 @@ export const sanitizeInput = (input) => {
 /**
  * Generates a cryptographically secure ephemeral nonce for request isolation.
  */
-export const generateSecurityNonce = () => {
+export function generateSecurityNonce() {
   if (typeof window === 'undefined' || !window.crypto) {
     return Math.random().toString(36).substring(2, 15);
   }
   const array = new Uint8Array(16);
   window.crypto.getRandomValues(array);
-  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
-};
+  return _call.call(_join, _call.call(_map, _ArrayFrom(array), byte => _call.call(_padStart, _call.call(_NToString, byte, 16), 2, '0')), '');
+}
 
 /**
  * Trusted Types Policy
@@ -677,7 +772,14 @@ export const executeSecurely = async (action, callback, requiredCapabilities = [
     // to bind the call stack to this specific authorized context and its capabilities.
     const context = {
       [tag]: async () => {
-        return await callback();
+        const prevContext = _activeContext;
+        // Bind the NCR to this capability record
+        _activeContext = { nonce, tag };
+        try {
+          return await callback();
+        } finally {
+          _activeContext = prevContext;
+        }
       }
     };
     return await context[tag]();
@@ -712,9 +814,14 @@ const verifyAttestation = (sinkName, targetUrl = null) => {
     let authorized = false;
     let authorizedNonce = null;
 
-    // Iterate active capabilities and verify if any match the current stack
+    // Iterate active capabilities and verify if any match the current stack or NCR
     for (const [nonce, record] of activeCapabilities.entries()) {
-      if (stack.includes(record.tag)) {
+      // 2a. Physical Stack Attestation (PSA)
+      const inStack = stack.includes(record.tag);
+      // 2b. Neural Context Ribbon (NCR) Attestation
+      const inRibbon = _activeContext && _activeContext.nonce === nonce;
+
+      if (inStack || inRibbon) {
         // Verification: Does this context have the specific capability for this sink?
         // Granular check: 'sink:fetch', 'sink:indexedDB', 'domain:api.anthropic.com', etc.
         const hasSinkCap = record.capabilities.includes(`sink:${sinkName}`);
