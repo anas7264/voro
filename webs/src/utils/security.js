@@ -17,6 +17,7 @@ const _split = String.prototype.split;
 const _SIncludes = String.prototype.includes;
 const _match = String.prototype.match;
 const _replace = String.prototype.replace;
+const _padStart = String.prototype.padStart;
 const _toLowerCase = String.prototype.toLowerCase;
 const _startsWith = String.prototype.startsWith;
 const _endsWith = String.prototype.endsWith;
@@ -79,6 +80,7 @@ const _Set = Set;
 const _WeakMap = WeakMap;
 const _WeakSet = WeakSet;
 const _Uint8Array = Uint8Array;
+const _NToString = Number.prototype.toString;
 
 const _setInterval = typeof setInterval !== 'undefined' ? setInterval : null;
 const _setTimeout = typeof setTimeout !== 'undefined' ? setTimeout : null;
@@ -530,14 +532,14 @@ export const sanitizeInput = (input) => {
 /**
  * Generates a cryptographically secure ephemeral nonce for request isolation.
  */
-export const generateSecurityNonce = () => {
+export function generateSecurityNonce() {
   if (typeof window === 'undefined' || !window.crypto) {
     return Math.random().toString(36).substring(2, 15);
   }
   const array = new Uint8Array(16);
   window.crypto.getRandomValues(array);
-  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
-};
+  return _call.call(_join, _call.call(_map, _ArrayFrom(array), byte => _call.call(_padStart, _call.call(_NToString, byte, 16), 2, '0')), '');
+}
 
 /**
  * Trusted Types Policy

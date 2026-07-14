@@ -113,10 +113,62 @@ const Dashboard = () => {
     useCallback((metrics) => (metrics?.weights || []).slice(-30), [])
   );
 
-  // We still need full logs for streaks, but we'll use useStorageKey for them
-  // to keep the logic simple, as they naturally depend on the full history.
-  const nutritionLog = useStorageKey('nutrition_log') || {};
-  const workoutLog = useStorageKey('workout_log') || {};
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Memoized Streak Aggregation.
+   * Streaks are derived via useStorageKeySelector, ensuring the O(N) calculation
+   * only occurs when the relevant logs actually change.
+   */
+  const streaks = useStorageKeySelector(
+    '*', // Selector across multiple keys (this requires storage support for multi-key or '*' as used here)
+    useCallback((allData) => {
+      const nLog = allData.nutrition_log || {};
+      const wLog = allData.workout_log || {};
+      const waterGoal = user?.waterGoal || 2000;
+
+      let trainingStreak = 0;
+      let loggingStreak = 0;
+      let waterStreak = 0;
+
+      let trainingActive = true;
+      let loggingActive = true;
+      let waterActive = true;
+
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      const todayMs = now.getTime();
+      const dayMs = 86400000;
+      const cursor = new Date();
+
+      for (let i = 0; i < 365; i++) {
+        if (!trainingActive && !loggingActive && !waterActive) break;
+
+        cursor.setTime(todayMs - (i * dayMs));
+        const y = cursor.getFullYear();
+        const m = cursor.getMonth() + 1;
+        const d = cursor.getDate();
+        const dateStr = `${y}-${m < 10 ? '0' + m : m}-${d < 10 ? '0' + d : d}`;
+
+        if (trainingActive) {
+          if (wLog[dateStr]?.attended) trainingStreak++;
+          else if (i > 0 || trainingStreak > 0) trainingActive = false;
+        }
+
+        if (loggingActive) {
+          if (nLog[dateStr]?.totals?.calories > 0) loggingStreak++;
+          else if (i > 0 || loggingStreak > 0) loggingActive = false;
+        }
+
+        if (waterActive) {
+          if (nLog[dateStr]?.water >= waterGoal) waterStreak++;
+          else if (i > 0 || waterStreak > 0) waterActive = false;
+        }
+      }
+
+      return { training: trainingStreak, logging: loggingStreak, water: waterStreak };
+    }, [user?.waterGoal]),
+    // Custom equality to prevent re-renders if streaks haven't changed
+    useCallback((a, b) => a.training === b.training && a.logging === b.logging && a.water === b.water, [])
+  );
 
   const { response: aiInsight } = useAI();
   const { addNotification } = useNotifications();
@@ -157,68 +209,6 @@ const Dashboard = () => {
     }));
   }, [weights30D]); // ⚡ OPTIMIZATION: Only recompute if 30D weights change
 
-  const streaks = useMemo(() => {
-    const waterGoal = user?.waterGoal || 2000;
-
-    let trainingStreak = 0;
-    let loggingStreak = 0;
-    let waterStreak = 0;
-
-    let trainingActive = true;
-    let loggingActive = true;
-    let waterActive = true;
-
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    const todayMs = now.getTime();
-    const dayMs = 86400000;
-
-    /**
-     * ⚡ PERFORMANCE OPTIMIZATION: High-Speed Temporal Cursor.
-     * Replaces expensive string generation with direct temporal arithmetic.
-     * Implements aggressive early exit based on maximum valid history.
-     */
-    const cursor = new Date();
-    const maxDays = 365;
-
-    for (let i = 0; i < maxDays; i++) {
-      if (!trainingActive && !loggingActive && !waterActive) break;
-
-      cursor.setTime(todayMs - (i * dayMs));
-
-      // Fast manual date formatting to avoid expensive Intl or template literal overhead
-      const y = cursor.getFullYear();
-      const m = cursor.getMonth() + 1;
-      const d = cursor.getDate();
-      const dateStr = `${y}-${m < 10 ? '0' + m : m}-${d < 10 ? '0' + d : d}`;
-
-      if (trainingActive) {
-        if (workoutLog[dateStr]?.attended) {
-          trainingStreak++;
-        } else if (i > 0 || trainingStreak > 0) {
-          trainingActive = false;
-        }
-      }
-
-      if (loggingActive) {
-        if (nutritionLog[dateStr]?.totals?.calories > 0) {
-          loggingStreak++;
-        } else if (i > 0 || loggingStreak > 0) {
-          loggingActive = false;
-        }
-      }
-
-      if (waterActive) {
-        if (nutritionLog[dateStr]?.water >= waterGoal) {
-          waterStreak++;
-        } else if (i > 0 || waterStreak > 0) {
-          waterActive = false;
-        }
-      }
-    }
-
-    return { training: trainingStreak, logging: loggingStreak, water: waterStreak };
-  }, [workoutLog, nutritionLog, user?.waterGoal]);
 
   const { setItem, getItem } = useStorageMethods();
 
