@@ -53,7 +53,11 @@ export const useStorageKeySelector = (key, selector, equalityFn) => {
 
   const subscribe = useCallback((callback) => {
     return storage.subscribe((updatedKey) => {
-      if (updatedKey === '*' || updatedKey === key) {
+      if (updatedKey === '*') {
+        callback();
+      } else if (Array.isArray(key)) {
+        if (key.includes(updatedKey)) callback();
+      } else if (updatedKey === key) {
         callback();
       }
     });

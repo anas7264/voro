@@ -19,6 +19,7 @@ import { useAppContext } from '@/hooks/useAppContext';
 import { useStorageMethods, useStorageKey, useStorageKeySelector } from '@/hooks/useStorage';
 import { useAI } from '@/hooks/useAI';
 import { useNotifications } from '@/hooks/useNotifications';
+import { getFastDateStr } from '@/utils/formatters';
 import Modal from '@/components/Modal';
 import LineChartComponent from '@/components/LineChartComponent';
 import Ring from '@/components/Ring';
@@ -71,21 +72,13 @@ const longDateFormatter = new Intl.DateTimeFormat('en-US', {
   day: 'numeric'
 });
 
-/**
- * ⚡ PERFORMANCE OPTIMIZATION: Fast date string builder.
- */
-const getFastDateStr = (d) => {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
 const INITIAL_NUTRITION = {
   meals: {},
   water: 0,
   totals: { calories: 0, protein: 0, carbs: 0, fat: 0 }
 };
+
+const STREAK_KEYS = ['nutrition_log', 'workout_log'];
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -119,10 +112,10 @@ const Dashboard = () => {
    * only occurs when the relevant logs actually change.
    */
   const streaks = useStorageKeySelector(
-    '*', // Selector across multiple keys (this requires storage support for multi-key or '*' as used here)
+    STREAK_KEYS, // Narrowed subscription to relevant keys (hoisted for referential stability)
     useCallback((allData) => {
-      const nLog = allData.nutrition_log || {};
-      const wLog = allData.workout_log || {};
+      const nLog = allData['nutrition_log'] || {};
+      const wLog = allData['workout_log'] || {};
       const waterGoal = user?.waterGoal || 2000;
 
       let trainingStreak = 0;
@@ -143,10 +136,7 @@ const Dashboard = () => {
         if (!trainingActive && !loggingActive && !waterActive) break;
 
         cursor.setTime(todayMs - (i * dayMs));
-        const y = cursor.getFullYear();
-        const m = cursor.getMonth() + 1;
-        const d = cursor.getDate();
-        const dateStr = `${y}-${m < 10 ? '0' + m : m}-${d < 10 ? '0' + d : d}`;
+        const dateStr = getFastDateStr(cursor);
 
         if (trainingActive) {
           if (wLog[dateStr]?.attended) trainingStreak++;

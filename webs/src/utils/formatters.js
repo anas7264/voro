@@ -25,6 +25,17 @@ const getFormatter = (cache, FormatterClass, locale, options) => {
   return cache.get(cacheKey);
 };
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Manual date string construction.
+ * Significantly faster than d.toISOString().slice(0, 10) in tight loops.
+ */
+export const getFastDateStr = (d) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // Format date to readable string
 export const formatDate = (date, format = "short") => {
   const dateObj = typeof date === "string" ? new Date(date) : date;
@@ -258,6 +269,7 @@ export const formatUnits = (value, unit) => {
 };
 
 export default {
+  getFastDateStr,
   formatDate,
   formatNumber,
   formatWeight,
