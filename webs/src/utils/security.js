@@ -92,6 +92,8 @@ const _NToString = Number.prototype.toString;
 const _setInterval = typeof setInterval !== 'undefined' ? setInterval : null;
 const _setTimeout = typeof setTimeout !== 'undefined' ? setTimeout : null;
 const _Error = Error;
+const _RegExp = RegExp;
+const _Date = Date;
 const _log2 = Math.log2;
 const _fetch = typeof window !== 'undefined' ? window.fetch : null;
 const _open = typeof window !== 'undefined' ? window.open : null;
@@ -100,6 +102,7 @@ const _BroadcastChannel = typeof window !== 'undefined' ? window.BroadcastChanne
 const _BCPostMessage = (typeof window !== 'undefined' && window.BroadcastChannel) ? window.BroadcastChannel.prototype.postMessage : null;
 const _indexedDBOpen = (typeof window !== 'undefined' && window.indexedDB) ? window.indexedDB.open : null;
 const _Headers = typeof Headers !== 'undefined' ? Headers : null;
+const _XHROpen = (typeof window !== 'undefined' && window.XMLHttpRequest) ? window.XMLHttpRequest.prototype.open : null;
 const _XHRSetRequestHeader = (typeof window !== 'undefined' && window.XMLHttpRequest) ? window.XMLHttpRequest.prototype.setRequestHeader : null;
 const _WebSocket = typeof window !== 'undefined' ? window.WebSocket : null;
 const _sendBeacon = (typeof window !== 'undefined' && window.navigator) ? window.navigator.sendBeacon : null;
@@ -347,7 +350,7 @@ initializeContextRibbon();
  * "Dynamic Trap Shuffling" and "Heap Hygiene Sinks". This prevents forensic
  * memory analysis and post-compromise exfiltration.
  */
-const _cloakingCache = new WeakMap();
+let _cloakingCache = new WeakMap();
 const _trapEntropy = generateSecurityNonce();
 
 /**
@@ -413,9 +416,7 @@ const _generateDynamicTraps = (target, key) => {
  * implementing a "Moving Target Defense" for the application heap.
  */
 export const rotateCloakingCache = () => {
-  if (_MapClear) {
-    _call.call(_MapClear, _cloakingCache);
-  }
+  _cloakingCache = new WeakMap();
 };
 
 export const createSecureProxy = (target, key = null) => {
@@ -999,6 +1000,18 @@ const initializeAttestationSinks = () => {
       }
       return new OriginalXHR();
     };
+
+    // Wrap open for attestation
+    if (_XHROpen) {
+      const openWrapper = function(method, url, async, user, password) {
+        if (!verifyAttestation('XMLHttpRequest.open', url)) {
+          throw new _Error("XHR.open blocked by VORO Neural Shield. No Attestation Permit found.");
+        }
+        return _ReflectApply ? _ReflectApply(_XHROpen, this, arguments) : _call.call(_XHROpen, this, method, url, async, user, password);
+      };
+      TRUSTED_WRAPPERS.add(openWrapper);
+      OriginalXHR.prototype.open = openWrapper;
+    }
 
     // Wrap setRequestHeader for Opaque Handle Resolution
     if (_XHRSetRequestHeader) {
@@ -1664,6 +1677,7 @@ export const performIntegrityCheck = () => {
     { obj: window.sessionStorage, prop: 'removeItem', name: 'sessionStorage.removeItem' },
     { obj: window.sessionStorage, prop: 'clear', name: 'sessionStorage.clear' },
     { obj: window, prop: 'XMLHttpRequest', name: 'XMLHttpRequest' },
+    { obj: window.XMLHttpRequest?.prototype, prop: 'open', name: 'XMLHttpRequest.open' },
     { obj: window.indexedDB, prop: 'open', name: 'indexedDB.open' },
     { obj: window, prop: 'WebSocket', name: 'WebSocket' },
     { obj: window.navigator, prop: 'sendBeacon', name: 'navigator.sendBeacon' },
@@ -1717,7 +1731,10 @@ export const performIntegrityCheck = () => {
       { actual: window.Proxy, expected: _Proxy, name: 'Proxy' },
       { actual: window.Map, expected: _Map, name: 'Map' },
       { actual: window.Set, expected: _Set, name: 'Set' },
-      { actual: window.Uint8Array, expected: _Uint8Array, name: 'Uint8Array' }
+      { actual: window.Uint8Array, expected: _Uint8Array, name: 'Uint8Array' },
+      { actual: window.RegExp, expected: _RegExp, name: 'RegExp' },
+      { actual: window.Date, expected: _Date, name: 'Date' },
+      { actual: window.Error, expected: _Error, name: 'Error' }
     ];
 
     if (_Reflect) globals.push({ actual: window.Reflect, expected: _Reflect, name: 'Reflect' });
@@ -1802,7 +1819,7 @@ export const performIntegrityCheck = () => {
       if (!_call.call(_test, /\{\s*\[native code\]\s*\}/, str)) return false;
 
       // Detection 2: name mimicry for bound functions
-      if (fn.name.startsWith('bound ')) return false;
+      if (_call.call(_startsWith, fn.name, 'bound ')) return false;
 
       // Detection 3: Advanced mimicry via property descriptor tampering
       // Native functions usually have non-enumerable, non-configurable, non-writable prototypes (or none)
@@ -1832,6 +1849,7 @@ export const performIntegrityCheck = () => {
       'navigator.serviceWorker.register',
       'navigator.clipboard.writeText', 'navigator.clipboard.readText', 'navigator.share',
       'BroadcastChannel',
+      'XMLHttpRequest.open',
       'localStorage.getItem', 'localStorage.setItem', 'localStorage.removeItem', 'localStorage.clear',
       'sessionStorage.getItem', 'sessionStorage.setItem', 'sessionStorage.removeItem', 'sessionStorage.clear',
       'URL.createObjectURL', 'URL.revokeObjectURL',
@@ -1841,7 +1859,7 @@ export const performIntegrityCheck = () => {
       'crypto.subtle.encrypt', 'crypto.subtle.decrypt', 'crypto.subtle.deriveKey', 'crypto.subtle.importKey', 'crypto.subtle.generateKey'
     ];
 
-    if (mustBeWrapped.includes(name)) return false;
+    if (_call.call(_AIncludes, mustBeWrapped, name)) return false;
 
     // For non-functions (objects like navigator.geolocation), we allow them if not in mustBeWrapped.
     if (typeof val !== 'function') return true;
@@ -1849,7 +1867,7 @@ export const performIntegrityCheck = () => {
     return isNative(val);
   };
 
-  coreAPIs.forEach(({ obj, prop, name }) => {
+  _call.call(_forEach, coreAPIs, ({ obj, prop, name }) => {
     try {
       if (obj && obj[prop]) {
         if (!isAuthorized(obj[prop], name)) {
@@ -1860,6 +1878,7 @@ export const performIntegrityCheck = () => {
             'navigator.serviceWorker.register',
             'navigator.clipboard.writeText', 'navigator.clipboard.readText', 'navigator.share',
             'BroadcastChannel',
+            'XMLHttpRequest.open',
             'localStorage.getItem', 'localStorage.setItem', 'localStorage.removeItem', 'localStorage.clear',
             'sessionStorage.getItem', 'sessionStorage.setItem', 'sessionStorage.removeItem', 'sessionStorage.clear',
             'URL.createObjectURL', 'URL.revokeObjectURL',
@@ -1869,7 +1888,7 @@ export const performIntegrityCheck = () => {
             'crypto.subtle.encrypt', 'crypto.subtle.decrypt', 'crypto.subtle.deriveKey', 'crypto.subtle.importKey', 'crypto.subtle.generateKey'
           ];
 
-          if (mustBeWrapped.includes(name)) {
+          if (_call.call(_AIncludes, mustBeWrapped, name)) {
             // CRITICAL: High-risk sinks MUST remain wrapped.
             // Reverting to native is considered a neutralization attempt.
             if (_console.error) _call.call(_console.error, console, `Security Sentinel: CRITICAL Integrity Violation! High-risk sink ${name} has been neutralized (reverted to native or monkey-patched). Triggering immediate lockdown.`);
