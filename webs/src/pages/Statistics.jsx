@@ -3,23 +3,13 @@ import { BarChart3, TrendingUp, Calendar, Zap, Activity, Target, Weight } from '
 import { Card, Button, Tabs, LineChartComponent, BarChartComponent, PieChartComponent, Stat } from '@/components';
 import { useStorageKeySelector } from '@/hooks/useStorage';
 import { useApp } from '@/hooks/useAppContext';
+import { getFastDateStr } from '@/utils/formatters';
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters and key generators.
  * Prevents redundant object instantiation in high-frequency loops.
  */
 const labelFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
-
-/**
- * ⚡ PERFORMANCE OPTIMIZATION: Manual date string construction.
- * Significantly faster than d.toISOString().slice(0, 10) in tight loops.
- */
-const getFastDateStr = (d) => {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
 
 const Statistics = () => {
   const { user } = useApp();

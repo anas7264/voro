@@ -216,8 +216,21 @@ class StorageManager {
     }
   }
 
-  // Synchronous get (returns from cache)
+  /**
+   * Synchronous get (returns from cache).
+   * ⚡ PERFORMANCE OPTIMIZATION: Supports '*' wildcard and key arrays for bulk retrieval.
+   */
   get(key) {
+    if (key === '*') return this.getAllSync();
+
+    if (Array.isArray(key)) {
+      const result = {};
+      key.forEach(k => {
+        result[k] = this.get(k);
+      });
+      return result;
+    }
+
     if (this._checkCanary(key)) return null;
 
     const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
