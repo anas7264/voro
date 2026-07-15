@@ -23,7 +23,6 @@ const _startsWith = String.prototype.startsWith;
 const _endsWith = String.prototype.endsWith;
 const _slice = String.prototype.slice;
 const _trim = String.prototype.trim;
-const _padStart = String.prototype.padStart;
 
 // Array Prototype Pinning
 const _forEach = Array.prototype.forEach;
@@ -94,7 +93,6 @@ const _setInterval = typeof setInterval !== 'undefined' ? setInterval : null;
 const _setTimeout = typeof setTimeout !== 'undefined' ? setTimeout : null;
 const _Error = Error;
 const _log2 = Math.log2;
-const _NToString = Number.prototype.toString;
 const _fetch = typeof window !== 'undefined' ? window.fetch : null;
 const _open = typeof window !== 'undefined' ? window.open : null;
 const _XHR = typeof window !== 'undefined' ? window.XMLHttpRequest : null;

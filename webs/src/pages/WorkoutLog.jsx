@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, Trash2, CheckCircle, Dumbbell, Calendar, Clock, Activity, Zap, TrendingUp } from 'lucide-react';
+import { Plus, Trash2, CheckCircle, Dumbbell, Calendar, Clock, Activity, Zap, TrendingUp, AlertCircle } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
@@ -32,6 +32,7 @@ const WorkoutLog = () => {
   const { getItem, updateItem } = useStorageMethods();
   const { addNotification } = useNotifications();
   const [showConfetti, setShowConfetti] = useState(false);
+  const [confirmingRemoveId, setConfirmingRemoveId] = useState(null);
 
   // Use local state for drafting to avoid excessive writes to storage
   const [sessionType, setSessionType] = useState('Strength');
@@ -52,6 +53,14 @@ const WorkoutLog = () => {
     setSelectedExercises(dayWorkout.exercises || []);
   }, [dayWorkout]);
 
+  // Reset confirmation state after timeout
+  useEffect(() => {
+    if (confirmingRemoveId) {
+      const timer = setTimeout(() => setConfirmingRemoveId(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [confirmingRemoveId]);
+
   const addExercise = useCallback((exercise) => {
     const newExercise = {
       id: `${exercise.id}-${Date.now()}`,
@@ -69,9 +78,14 @@ const WorkoutLog = () => {
     addNotification(`${exercise.name} integrated.`, 'success');
   }, [addNotification]);
 
-  const removeExercise = useCallback((index) => {
-    setSelectedExercises(prev => prev.filter((_, i) => i !== index));
-  }, []);
+  const handleRemoveClick = useCallback((id) => {
+    if (confirmingRemoveId === id) {
+      setSelectedExercises(prev => prev.filter(ex => ex.id !== id));
+      setConfirmingRemoveId(null);
+    } else {
+      setConfirmingRemoveId(id);
+    }
+  }, [confirmingRemoveId]);
 
   const updateSet = useCallback((exerciseIdx, setIdx, field, value) => {
     setSelectedExercises(prev => {
@@ -191,6 +205,7 @@ const WorkoutLog = () => {
                     <button
                       key={t}
                       onClick={() => setSessionType(t)}
+                      aria-pressed={sessionType === t}
                       className={`py-3 rounded-xl text-[0.65rem] font-bold uppercase tracking-widest transition-all ${sessionType === t ? 'bg-voro-primary text-white ring-1 ring-voro-primary shadow-lg shadow-voro-primary/20' : 'bg-white/[0.02] text-gray-500 hover:bg-white/5 border border-white/5'}`}
                     >
                       {t}
@@ -210,6 +225,7 @@ const WorkoutLog = () => {
                     value={sessionDuration}
                     onChange={(e) => setSessionDuration(Number(e.target.value))}
                     min="1"
+                    aria-label="Session duration in minutes"
                   />
                   <span className="text-[0.6rem] font-black text-gray-600 uppercase tracking-widest">Min</span>
                 </div>
@@ -237,11 +253,11 @@ const WorkoutLog = () => {
                     <h3 className="text-2xl font-serif italic font-medium text-white tracking-tight">{exercise.name}</h3>
                   </div>
                   <button
-                    onClick={() => removeExercise(idx)}
-                    aria-label={`Remove ${exercise.name} from session`}
-                    className="p-3 rounded-xl hover:bg-red-500/10 text-gray-700 hover:text-red-400 transition-all opacity-0 group-hover/ex:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-red-500 outline-none"
+                    onClick={() => handleRemoveClick(exercise.id)}
+                    aria-label={confirmingRemoveId === exercise.id ? `Confirm removal of ${exercise.name}` : `Remove ${exercise.name} from session`}
+                    className={`p-3 rounded-xl transition-all outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${confirmingRemoveId === exercise.id ? 'bg-red-500/20 text-red-400 animate-pulse opacity-100' : 'hover:bg-red-500/10 text-gray-700 hover:text-red-400 opacity-0 group-hover/ex:opacity-100 focus-visible:opacity-100'}`}
                   >
-                    <Trash2 size={20} />
+                    {confirmingRemoveId === exercise.id ? <AlertCircle size={20} /> : <Trash2 size={20} />}
                   </button>
                 </div>
 
@@ -262,6 +278,7 @@ const WorkoutLog = () => {
                             type="number"
                             value={set.weight}
                             onChange={(e) => updateSet(idx, setIdx, 'weight', e.target.value)}
+                            aria-label={`Weight for set ${setIdx + 1} of ${exercise.name}`}
                             className="w-full bg-transparent border-b border-white/10 focus:border-voro-primary focus:outline-none py-1 text-lg font-mono font-bold text-white text-center"
                           />
                         </div>
@@ -270,6 +287,7 @@ const WorkoutLog = () => {
                             type="number"
                             value={set.reps}
                             onChange={(e) => updateSet(idx, setIdx, 'reps', e.target.value)}
+                            aria-label={`Reps for set ${setIdx + 1} of ${exercise.name}`}
                             className="w-full bg-transparent border-b border-white/10 focus:border-voro-primary focus:outline-none py-1 text-lg font-mono font-bold text-white text-center"
                           />
                         </div>
@@ -286,6 +304,7 @@ const WorkoutLog = () => {
 
                   <button
                     onClick={() => addSet(idx)}
+                    aria-label={`Add a new set to ${exercise.name}`}
                     className="w-full py-5 mt-4 border border-dashed border-white/10 rounded-2xl text-[0.6rem] font-black uppercase tracking-[0.4em] text-gray-600 hover:text-white hover:border-voro-primary/30 hover:bg-voro-primary/5 transition-all"
                   >
                     + Supplement Set
