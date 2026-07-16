@@ -17,6 +17,8 @@ export const useStorageKeySelector = (key, selector, equalityFn) => {
    */
   const defaultEquality = useCallback((a, b) => {
     if (a === b) return true;
+
+    // Fast primitive/type-mismatch exit
     if (typeof a !== 'object' || a === null || typeof b !== 'object' || b === null) return false;
 
     const keysA = Object.keys(a);
