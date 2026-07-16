@@ -1312,7 +1312,7 @@ const initializeAttestationSinks = () => {
          */
         const resolvedArgs = _call.call(_map, args, arg => {
           if (typeof arg === 'string' && _call.call(_startsWith, arg, 'voro_key_')) {
-            return _call.call(_MapGet, _keyEnclave, arg) || arg;
+            return _call.call(_keyEnclave.get, _keyEnclave, arg) || arg;
           }
           return arg;
         });
@@ -1592,8 +1592,8 @@ export const executeLockdown = (broadcast = true) => {
   window.VORO_DECEPTION_ACTIVE = true;
 
   // Cryptographic Shredding: Purge the Key Enclave
-  if (_MapClear && _keyEnclave) {
-    _call.call(_MapClear, _keyEnclave);
+  if (_keyEnclave && _keyEnclave.clear) {
+    _call.call(_keyEnclave.clear, _keyEnclave);
   }
 
   // Broadcast to other tabs via the security nexus
@@ -1946,6 +1946,10 @@ export const performIntegrityCheck = () => {
     // This serves as a secure trigger for polymorphic heap rotations.
     if (typeof window !== 'undefined') {
       try {
+        if (_keyEnclave && _keyEnclave.rotate) {
+          _call.call(_keyEnclave.rotate, _keyEnclave);
+        }
+
         const pulseEvent = new CustomEvent('voro-integrity-pulse', {
           detail: { timestamp: _lastIntegrityPulse }
         });
@@ -2281,11 +2285,139 @@ export const startMutationShield = () => {
 };
 
 /**
+ * Polymorphic Key Enclave (PKE)
+ * Isolates raw CryptoKey objects and sensitive strings from the application heap
+ * using sharding and XOR-masking for Moving Target Defense (MTD).
+ */
+class PolymorphicKeyEnclave {
+  constructor() {
+    this._enclave = new _Map();
+    this._masks = new _Map();
+  }
+
+  _generateMask(len) {
+    const mask = new _Uint8Array(len);
+    if (typeof window !== 'undefined' && window.crypto) {
+      window.crypto.getRandomValues(mask);
+    } else {
+      for (let i = 0; i < len; i++) mask[i] = Math.floor(Math.random() * 256);
+    }
+    return mask;
+  }
+
+  _applyMask(shard, mask) {
+    _call.call(_forEach, shard, (byte, i) => {
+      shard[i] = byte ^ mask[i % mask.length];
+    });
+  }
+
+  set(handle, key) {
+    const isKey = typeof key === 'object' && key.constructor && (key.constructor.name === 'CryptoKey' || _call.call(_OToString, key) === '[object CryptoKey]');
+
+    if (isKey) {
+      _call.call(_MapSet, this._enclave, handle, { type: 'key', data: key });
+      return;
+    }
+
+    if (typeof key === 'string') {
+      const encoder = new TextEncoder();
+      const bytes = _call.call(_TEncoderEncode, encoder, key);
+      const len = bytes.length;
+
+      const s1 = Math.floor(len / 3);
+      const s2 = Math.floor((2 * len) / 3);
+
+      const shards = [
+        new _Uint8Array(_call.call(_Uint8Slice, bytes, 0, s1)),
+        _call.call(_reverse, new _Uint8Array(_call.call(_Uint8Slice, bytes, s1, s2))),
+        new _Uint8Array(_call.call(_Uint8Slice, bytes, s2))
+      ];
+
+      const masks = _call.call(_map, shards, shard => this._generateMask(shard.length));
+
+      _call.call(_forEach, shards, (shard, i) => this._applyMask(shard, masks[i]));
+
+      _call.call(_MapSet, this._enclave, handle, { type: 'string', data: shards });
+      _call.call(_MapSet, this._masks, handle, masks);
+
+      _call.call(_Uint8Fill, bytes, 0);
+    }
+  }
+
+  get(handle) {
+    const entry = _call.call(_MapGet, this._enclave, handle);
+    if (!entry) return null;
+
+    if (entry.type === 'key') return entry.data;
+
+    if (entry.type === 'string') {
+      const shards = entry.data;
+      const masks = _call.call(_MapGet, this._masks, handle);
+
+      const totalLen = shards[0].length + shards[1].length + shards[2].length;
+      const assembled = new _Uint8Array(totalLen);
+
+      const s0 = new _Uint8Array(shards[0]);
+      this._applyMask(s0, masks[0]);
+      _call.call(_Uint8Set, assembled, s0, 0);
+      _call.call(_Uint8Fill, s0, 0);
+
+      const s1 = _call.call(_reverse, new _Uint8Array(shards[1]));
+      const m1 = _call.call(_reverse, _call.call(_Uint8Slice, masks[1]));
+      this._applyMask(s1, m1);
+      _call.call(_Uint8Set, assembled, s1, shards[0].length);
+      _call.call(_Uint8Fill, s1, 0);
+      _call.call(_Uint8Fill, m1, 0);
+
+      const s2 = new _Uint8Array(shards[2]);
+      this._applyMask(s2, masks[2]);
+      _call.call(_Uint8Set, assembled, s2, shards[0].length + shards[1].length);
+      _call.call(_Uint8Fill, s2, 0);
+
+      const decoder = new TextDecoder();
+      const result = _call.call(_TDecoderDecode, decoder, assembled);
+
+      _call.call(_Uint8Fill, assembled, 0);
+      return result;
+    }
+    return null;
+  }
+
+  rotate() {
+    const entries = _call.call(_MapEntries, this._enclave);
+    let next;
+    while (!(next = entries.next()).done) {
+      const entryVal = next.value;
+      const handle = entryVal[0];
+      const entry = entryVal[1];
+      if (entry.type === 'string') {
+        const shards = entry.data;
+        const oldMasks = _call.call(_MapGet, this._masks, handle);
+        const newMasks = _call.call(_map, shards, shard => this._generateMask(shard.length));
+
+        _call.call(_forEach, shards, (shard, i) => {
+          this._applyMask(shard, oldMasks[i]);
+          this._applyMask(shard, newMasks[i]);
+          _call.call(_Uint8Fill, oldMasks[i], 0);
+        });
+
+        _call.call(_MapSet, this._masks, handle, newMasks);
+      }
+    }
+  }
+
+  clear() {
+    _call.call(_MapClear, this._enclave);
+    _call.call(_MapClear, this._masks);
+  }
+}
+
+/**
  * Cryptographic Key Enclave (CKE)
- * Isolates raw CryptoKey objects from the application heap.
+ * Isolates raw CryptoKey objects and sensitive strings from the application heap.
  * Only opaque handles are returned to callers.
  */
-const _keyEnclave = new _Map();
+const _keyEnclave = new PolymorphicKeyEnclave();
 
 /**
  * Resolves voro_key_ handles within a string, allowing for partial matches
@@ -2294,7 +2426,7 @@ const _keyEnclave = new _Map();
 const _resolveValue = (val) => {
   if (typeof val !== 'string' || !_call.call(_SIncludes, val, 'voro_key_')) return val;
   return _call.call(_replace, val, /voro_key_[a-f0-9]{32}/g, (match) => {
-    return _call.call(_MapGet, _keyEnclave, match) || match;
+    return _call.call(_keyEnclave.get, _keyEnclave, match) || match;
   });
 };
 
@@ -2307,7 +2439,7 @@ const registerSecureKey = (key) => {
   if (!isKey && !isSensitiveString) return key;
 
   const handle = `voro_key_${generateSecurityNonce()}`;
-  _call.call(_MapSet, _keyEnclave, handle, key);
+  _call.call(_keyEnclave.set, _keyEnclave, handle, key);
   return handle;
 };
 
