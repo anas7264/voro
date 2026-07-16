@@ -235,3 +235,14 @@ Effective RASP requires protecting not only network and storage sinks but also n
 
 **Prevention:**
 Always include navigation and window-management APIs in the RASP `mustBeWrapped` list. Practice "Intrinsic Hardening" by pinning all global primitives used within security-critical modules to prevent an attacker from neutralizing the security system by monkey-patching its own dependencies.
+
+## 2026-06-12 - Background Execution & Response Stream Attestation
+
+**Vulnerability:**
+Partial RASP coverage in response stream methods (e.g., missing `arrayBuffer`, `formData`) and background execution constructors (`Worker`, `SharedWorker`) creates blind spots for data exfiltration and unauthorized code execution. An attacker could use `arrayBuffer` to smuggle binary data or spawn a Worker to execute malicious scripts outside the main thread's immediate RASP supervision.
+
+**Learning:**
+Comprehensive RASP must enforce "Attestation Parity" across all variations of a sink. Protecting `json` and `text` is insufficient if `arrayBuffer` or `formData` remain un-attested. Furthermore, background execution contexts must be subject to the same Granular Neural Capability Attestation (GNCA) as the main thread, ensuring that Workers cannot be used as an exfiltration bypass.
+
+**Prevention:**
+Always include all variations of data-consuming methods (`json`, `text`, `blob`, `arrayBuffer`, `formData`) in the `mustBeWrapped` list. Extend RASP protection to all background execution entry points (`Worker`, `SharedWorker`, `ServiceWorker`) to ensure a unified security posture across all execution contexts.

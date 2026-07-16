@@ -115,12 +115,16 @@ const _createObjectURL = (typeof window !== 'undefined' && window.URL) ? window.
 const _revokeObjectURL = (typeof window !== 'undefined' && window.URL) ? window.URL.revokeObjectURL : null;
 const _RTCPeerConnection = (typeof window !== 'undefined') ? (window.RTCPeerConnection || window.webkitRTCPeerConnection) : null;
 const _EventSource = typeof window !== 'undefined' ? window.EventSource : null;
+const _Worker = typeof window !== 'undefined' ? window.Worker : null;
+const _SharedWorker = typeof window !== 'undefined' ? window.SharedWorker : null;
 
 const _Request = typeof Request !== 'undefined' ? Request : null;
 const _Response = typeof Response !== 'undefined' ? Response : null;
 const _ResponseJSON = (typeof Response !== 'undefined' && Response.prototype) ? Response.prototype.json : null;
 const _ResponseText = (typeof Response !== 'undefined' && Response.prototype) ? Response.prototype.text : null;
 const _ResponseBlob = (typeof Response !== 'undefined' && Response.prototype) ? Response.prototype.blob : null;
+const _ResponseArrayBuffer = (typeof Response !== 'undefined' && Response.prototype) ? Response.prototype.arrayBuffer : null;
+const _ResponseFormData = (typeof Response !== 'undefined' && Response.prototype) ? Response.prototype.formData : null;
 
 // Storage Prototype Pinning
 const _StorageGetItem = (typeof window !== 'undefined' && typeof Storage !== 'undefined') ? Storage.prototype.getItem : null;
@@ -1207,6 +1211,50 @@ const initializeAttestationSinks = () => {
     window.EventSource = esWrapper;
   }
 
+  // Wrap Worker
+  if (_Worker) {
+    const OriginalWorker = _Worker;
+    const workerWrapper = function(scriptURL, options) {
+      if (!verifyAttestation('Worker', scriptURL)) {
+        throw new _Error("Worker construction blocked by VORO Neural Shield. No Attestation Permit found.");
+      }
+      return new OriginalWorker(scriptURL, options);
+    };
+    workerWrapper.prototype = OriginalWorker.prototype;
+    _getOwnPropertyNames(OriginalWorker).forEach(prop => {
+      if (!workerWrapper[prop]) {
+        try {
+          const descriptor = _getOwnPropertyDescriptor(OriginalWorker, prop);
+          if (descriptor) _defineProperty(workerWrapper, prop, descriptor);
+        } catch (e) { /* ignore */ }
+      }
+    });
+    TRUSTED_WRAPPERS.add(workerWrapper);
+    window.Worker = workerWrapper;
+  }
+
+  // Wrap SharedWorker
+  if (_SharedWorker) {
+    const OriginalSharedWorker = _SharedWorker;
+    const sharedWorkerWrapper = function(scriptURL, options) {
+      if (!verifyAttestation('SharedWorker', scriptURL)) {
+        throw new _Error("SharedWorker construction blocked by VORO Neural Shield. No Attestation Permit found.");
+      }
+      return new OriginalSharedWorker(scriptURL, options);
+    };
+    sharedWorkerWrapper.prototype = OriginalSharedWorker.prototype;
+    _getOwnPropertyNames(OriginalSharedWorker).forEach(prop => {
+      if (!sharedWorkerWrapper[prop]) {
+        try {
+          const descriptor = _getOwnPropertyDescriptor(OriginalSharedWorker, prop);
+          if (descriptor) _defineProperty(sharedWorkerWrapper, prop, descriptor);
+        } catch (e) { /* ignore */ }
+      }
+    });
+    TRUSTED_WRAPPERS.add(sharedWorkerWrapper);
+    window.SharedWorker = sharedWorkerWrapper;
+  }
+
   // Wrap Request
   if (_Request) {
     const OriginalRequest = _Request;
@@ -1262,7 +1310,9 @@ const initializeAttestationSinks = () => {
     const responseMethods = [
       { name: 'json', native: _ResponseJSON },
       { name: 'text', native: _ResponseText },
-      { name: 'blob', native: _ResponseBlob }
+      { name: 'blob', native: _ResponseBlob },
+      { name: 'arrayBuffer', native: _ResponseArrayBuffer },
+      { name: 'formData', native: _ResponseFormData }
     ];
 
     responseMethods.forEach(({ name, native }) => {
@@ -1855,7 +1905,8 @@ export const performIntegrityCheck = () => {
       'URL.createObjectURL', 'URL.revokeObjectURL',
       'RTCPeerConnection',
       'EventSource',
-      'Request', 'Response.json', 'Response.text', 'Response.blob',
+      'Worker', 'SharedWorker',
+      'Request', 'Response.json', 'Response.text', 'Response.blob', 'Response.arrayBuffer', 'Response.formData',
       'crypto.subtle.encrypt', 'crypto.subtle.decrypt', 'crypto.subtle.deriveKey', 'crypto.subtle.importKey', 'crypto.subtle.generateKey'
     ];
 
@@ -1884,7 +1935,8 @@ export const performIntegrityCheck = () => {
             'URL.createObjectURL', 'URL.revokeObjectURL',
             'RTCPeerConnection',
             'EventSource',
-            'Request', 'Response.json', 'Response.text', 'Response.blob',
+            'Worker', 'SharedWorker',
+            'Request', 'Response.json', 'Response.text', 'Response.blob', 'Response.arrayBuffer', 'Response.formData',
             'crypto.subtle.encrypt', 'crypto.subtle.decrypt', 'crypto.subtle.deriveKey', 'crypto.subtle.importKey', 'crypto.subtle.generateKey'
           ];
 
