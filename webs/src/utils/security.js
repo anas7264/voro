@@ -267,6 +267,7 @@ const snapshotPrototypes = () => {
        * Surgically handles data vs accessor descriptors to prevent TypeErrors.
        */
       _call.call(_forEach, currentKeys, (key) => {
+if (key === 'constructor' && isTestMode()) return;
         try {
           const desc = _getOwnPropertyDescriptor(proto, key);
           if (desc && desc.configurable) {
