@@ -121,3 +121,7 @@
 1. Split contexts that contain both volatile state and stable methods into separate providers.
 2. Ensure methods are referentially stable using useCallback and useMemo with minimal dependencies.
 3. Create targeted hooks for state-only vs. method-only consumption.
+
+## 2026-07-28 - Surgical Reactivity for Decorative Telemetry
+**Learning:** Decorative system telemetry that updates on a timer (e.g., every 1.5s) causes unnecessary full React render cycles. While small, these add up in complex dashboards. Using `useRef` and direct DOM manipulation (`innerText`) effectively bypasses the reconciliation overhead.
+**Action:** Apply the "Surgical Reactivity" pattern for high-frequency, non-logical UI updates like hex markers, coordinate telemetry, or progress micro-increments.

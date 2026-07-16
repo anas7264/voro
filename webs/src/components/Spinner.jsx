@@ -1,4 +1,4 @@
-import React, { memo, useState, useEffect } from "react";
+import React, { memo, useEffect, useRef } from "react";
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted static maps.
@@ -36,13 +36,22 @@ export const Spinner = memo(({
   message,
   className = ""
 }) => {
-  const [telemetry, setTelemetry] = useState("0x0000");
+  const telemetryRef1 = useRef(null);
+  const telemetryRef2 = useRef(null);
+  const lastTelemetryRef = useRef("0x0000");
 
-  // Cycle system telemetry for industrial aesthetic
+  /**
+   * ⚡ OPTIMIZATION: Surgical Reactivity.
+   * Telemetry updates are handled via direct DOM manipulation to bypass
+   * React re-renders every 1.5s for decorative system markers.
+   */
   useEffect(() => {
     const interval = setInterval(() => {
       const hex = Math.floor(Math.random() * 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
-      setTelemetry(`0x${hex}`);
+      const val = `0x${hex}`;
+      lastTelemetryRef.current = val;
+      if (telemetryRef1.current) telemetryRef1.current.innerText = val;
+      if (telemetryRef2.current) telemetryRef2.current.innerText = val;
     }, 1500);
     return () => clearInterval(interval);
   }, []);
@@ -82,8 +91,11 @@ export const Spinner = memo(({
         {/* Tactical Telemetry Ring */}
         <div className="absolute inset-[-10%] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-1000">
            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full pb-2">
-              <span className="text-[0.45rem] font-mono font-bold text-white/20 uppercase tracking-[0.4em]">
-                {telemetry}
+              <span
+                ref={telemetryRef1}
+                className="text-[0.45rem] font-mono font-bold text-white/20 uppercase tracking-[0.4em]"
+              >
+                {lastTelemetryRef.current}
               </span>
            </div>
         </div>
@@ -122,7 +134,7 @@ export const Spinner = memo(({
             </p>
           )}
           <span className="text-[0.45rem] font-mono text-white/20 uppercase tracking-[0.2em]">
-            Processing Sequence // {telemetry}
+            Processing Sequence // <span ref={telemetryRef2}>{lastTelemetryRef.current}</span>
           </span>
         </div>
       )}
