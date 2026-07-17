@@ -4,6 +4,7 @@ import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { validateWaterEntry } from '@/utils/validators';
 import Button from '@/components/Button';
+import Input from '@/components/Input';
 import LineChartComponent from '@/components/LineChartComponent';
 
 /**
@@ -78,6 +79,7 @@ const WaterTracker = () => {
   const { updateItem, getItem } = useStorageMethods();
   const { addNotification } = useNotifications();
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [customAmount, setCustomAmount] = useState('');
   const dailyGoal = 2000;
 
   /**
@@ -158,6 +160,17 @@ const WaterTracker = () => {
     const newDate = new Date(date);
     newDate.setDate(newDate.getDate() + days);
     setDate(newDate.toISOString().split('T')[0]);
+  };
+
+  const handleCustomSubmit = (e) => {
+    e.preventDefault();
+    const amt = parseInt(customAmount, 10);
+    if (!amt || isNaN(amt) || amt <= 0 || amt > 5000) {
+      addNotification('Please enter a valid volume between 1ml and 5000ml.', 'error');
+      return;
+    }
+    addWater(amt);
+    setCustomAmount('');
   };
 
   const percentage = Math.min((todayTotal / dailyGoal) * 100, 100);
@@ -243,6 +256,35 @@ const WaterTracker = () => {
                 </button>
               ))}
             </div>
+
+            <section className="bg-[#0A0C14] border border-white/5 p-8 rounded-[2rem] shadow-2xl transition-all hover:border-white/10">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="p-2.5 bg-blue-500/10 rounded-xl border border-blue-500/20">
+                  <Plus size={16} className="text-blue-500" />
+                </div>
+                <div>
+                  <h3 className="text-[0.6rem] font-black uppercase tracking-[0.4em] text-gray-500 mb-0.5">Custom Hydration</h3>
+                  <p className="text-[0.55rem] font-mono text-gray-600 uppercase tracking-widest">Manual Fluid Entry Port</p>
+                </div>
+              </div>
+
+              <form onSubmit={handleCustomSubmit} className="flex gap-4 items-end">
+                <div className="flex-1">
+                  <Input
+                    type="number"
+                    min="1"
+                    max="5000"
+                    value={customAmount}
+                    onChange={(e) => setCustomAmount(e.target.value)}
+                    placeholder="Enter custom volume"
+                    label="Volume (ml)"
+                  />
+                </div>
+                <Button type="submit" size="sm" className="h-[62px] rounded-[1.25rem] px-6 flex-shrink-0">
+                  Add ml
+                </Button>
+              </form>
+            </section>
           </div>
 
           {/* History & Trend */}
