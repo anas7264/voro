@@ -223,6 +223,21 @@ const ProgressPhotos = () => {
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    // Security: Validate file size (max 5MB to prevent LocalStorage exhaustion / Denial of Service)
+    const MAX_SIZE_BYTES = 5 * 1024 * 1024;
+    if (file.size > MAX_SIZE_BYTES) {
+      addNotification('File exceeds safety size limit of 5MB.', 'error');
+      return;
+    }
+
+    // Security: Validate file type against strict whitelist of safe image MIME types
+    const SAFE_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!SAFE_IMAGE_TYPES.includes(file.type)) {
+      addNotification('Invalid file type. Only secure image profiles (JPEG, PNG, WEBP, GIF) are accepted.', 'error');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onloadend = () => {
       const newPhoto = {
