@@ -45,13 +45,17 @@ const WorkoutHistory = () => {
    * ⚡ OPTIMIZATION: Derive workouts using useMemo instead of useEffect + useState.
    * This eliminates the mount-time double-render cycle and ensures the data
    * is reactive to storage changes without secondary state updates.
+   * ⚡ PERFORMANCE OPTIMIZATION: High-performance lexicographical sorting.
+   * Uses lexicographical string comparison (b.date.localeCompare(a.date)) instead of instantiating
+   * new Date objects for each element in the sorting comparator. This eliminates massive object
+   * churn and GC pressure.
    */
   const workouts = useMemo(() => {
     const data = workoutLog || {};
     return Object.entries(data)
       .filter(([_, w]) => w.attended)
       .map(([date, w]) => ({ date, ...w }))
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
+      .sort((a, b) => b.date.localeCompare(a.date));
   }, [workoutLog]);
 
   /**

@@ -11,6 +11,19 @@ const PAGE_SIZE = 20;
  */
 const CATEGORIES = ['All', ...new Set(exercises.map(e => e.category))];
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Category-First Filtering.
+ * Pre-computes an EXERCISES_BY_CATEGORY map at the module level.
+ * This enables the filtering useMemo hook to retrieve exercises of a selected
+ * category in O(1) time instead of performing an O(N) array scan over all
+ * 2,064 exercises on every render cycle or keystroke.
+ */
+const EXERCISES_BY_CATEGORY = exercises.reduce((acc, exercise) => {
+  if (!acc[exercise.category]) acc[exercise.category] = [];
+  acc[exercise.category].push(exercise);
+  return acc;
+}, {});
+
 const ExerciseLibrary = () => {
   const [searchQuery, setSearchQuery] = useState('');
   /**
@@ -35,13 +48,11 @@ const ExerciseLibrary = () => {
   /**
    * ⚡ OPTIMIZATION: Replace useEffect + useState pattern with useMemo for filtering.
    * This eliminates the double-render cycle and provides cleaner data derivation.
+   * ⚡ PERFORMANCE OPTIMIZATION: Category-First Filtering.
+   * Uses pre-calculated map for O(1) initial slice if a category is selected.
    */
   const filteredExercises = useMemo(() => {
-    let filtered = exercises;
-
-    if (selectedCategory !== 'All') {
-      filtered = filtered.filter(e => e.category === selectedCategory);
-    }
+    let filtered = selectedCategory === 'All' ? exercises : (EXERCISES_BY_CATEGORY[selectedCategory] || []);
 
     if (deferredSearchQuery.trim()) {
       const query = deferredSearchQuery.toLowerCase();

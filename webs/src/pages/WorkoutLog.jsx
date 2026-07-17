@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useDeferredValue } from 'react';
 import { Plus, Trash2, CheckCircle, Dumbbell, Calendar, Clock, Activity, Zap, TrendingUp, AlertCircle } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
@@ -40,6 +40,11 @@ const WorkoutLog = () => {
   const [selectedExercises, setSelectedExercises] = useState([]);
   const [showExerciseSearch, setShowExerciseSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  /**
+   * ⚡ OPTIMIZATION: Concurrent Rendering with useDeferredValue.
+   * Allows high-frequency keystrokes in search input to be processed without rendering lag.
+   */
+  const deferredSearchQuery = useDeferredValue(searchQuery);
 
   useEffect(() => {
     document.title = 'VORO | Workout Log';
@@ -151,14 +156,22 @@ const WorkoutLog = () => {
     await updateItem('workout_log', { [date]: workoutData });
   }, [date, selectedExercises, sessionType, sessionDuration, totalVolume, updateItem, addNotification]);
 
+  /**
+   * ⚡ OPTIMIZATION: Concurrent Search with useDeferredValue.
+   * This allows the search input to be completely fluid (60fps) during typing,
+   * as the expensive filter pass is treated as a low-priority transition.
+   */
   const filteredExercises = useMemo(() => {
     if (!showExerciseSearch) return [];
-    const query = searchQuery.toLowerCase();
+    if (!deferredSearchQuery.trim()) {
+      return exercises.slice(0, 15);
+    }
+    const query = deferredSearchQuery.toLowerCase();
     return exercises.filter(e =>
       e.name.toLowerCase().includes(query) ||
       e.category.toLowerCase().includes(query)
     ).slice(0, 15);
-  }, [showExerciseSearch, searchQuery]);
+  }, [showExerciseSearch, deferredSearchQuery]);
 
   return (
     <div className="min-h-screen bg-[#080B14] text-[#F0F4FF] pb-24">
