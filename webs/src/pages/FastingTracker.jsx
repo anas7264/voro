@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef, useCallback, memo } from 'react';
+import React, { useEffect, useState, useMemo, useRef, useCallback, memo, useId } from 'react';
 import { Play, Pause, RotateCcw, Clock, Zap, Target, Activity, ShieldCheck, Flame } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
@@ -6,7 +6,56 @@ import Select from '@/components/Select';
 import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 
+/**
+ * ⚡ REFINEMENT: MetabolicChronometer re-engineered as an elite luxury standard instrument.
+ * Architected to the 'Forge' luxury standard with 3D volumetric transforms,
+ * magnetic mouse tracking, holographic telemetry, and multi-layered parallax depth.
+ * Implements 'Surgical Reactivity' via direct DOM manipulation for 60fps performance.
+ */
 const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive }) => {
+  const containerRef = useRef(null);
+  const tiltXRef = useRef(null);
+  const tiltYRef = useRef(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const reactId = useId();
+
+  const nodeId = useMemo(() => `CHRONO_NODE_${reactId.replace(/:/g, '').slice(0, 4)}`, [reactId]);
+
+  const handleMouseMove = (e) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Volumetric tilt calculation (max 12 degrees)
+    const tiltY = ((x / rect.width) - 0.5) * 24;
+    const tiltX = (0.5 - (y / rect.height)) * 24;
+
+    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
+    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
+    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+
+    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    if (containerRef.current) {
+      // Provide a subtle static tilt for keyboard focus feedback
+      containerRef.current.style.setProperty('--tilt-x', '4deg');
+      containerRef.current.style.setProperty('--tilt-y', '-4deg');
+      if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
+    }
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+  };
+
   const ticks = useMemo(() => Array.from({ length: 60 }).map((_, i) => (
     <rect
       key={i}
@@ -20,65 +69,129 @@ const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive
     />
   )), []);
 
+  const interactionActive = isHovered || isFocused;
+
   return (
-    <div className="relative w-80 h-80 mx-auto group">
+    <div
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      tabIndex="0"
+      role="article"
+      aria-label={`Metabolic Chronometer. Phase progress: ${Math.round(progress)}%. Time: ${hours} hours, ${minutes} minutes, ${seconds} seconds.`}
+      style={{
+        transform: interactionActive
+          ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
+          : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: isHovered ? 'none' : 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)',
+        transformStyle: 'preserve-3d'
+      }}
+      className={`
+        relative w-80 h-80 mx-auto group outline-none rounded-full cursor-pointer
+        focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408]
+      `}
+    >
       {/* Outer Glow Ring */}
-      <div className={`absolute inset-[-10px] rounded-full transition-all duration-1000 blur-2xl opacity-20 ${isActive ? 'bg-voro-primary' : 'bg-transparent'}`} />
+      <div
+        className={`absolute inset-[-10px] rounded-full transition-all duration-1000 blur-2xl opacity-20 ${isActive ? 'bg-voro-primary' : 'bg-transparent'}`}
+        style={{ transform: 'translateZ(-10px)' }}
+      />
 
       {/* Background Glass Plate */}
-      <div className="absolute inset-0 rounded-full bg-[#0A0C14]/60 backdrop-blur-3xl border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)]" />
+      <div
+        className="absolute inset-0 rounded-full bg-[#0A0C14]/60 backdrop-blur-3xl border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+        style={{ transform: 'translateZ(0px)' }}
+      />
+
+      {/* Precision Grid & Grain Overlay */}
+      <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none" style={{ transform: 'translateZ(5px)' }}>
+        <div className="absolute inset-0 bg-grid-white opacity-0 group-hover:opacity-10 transition-opacity duration-1000" />
+        <div className="absolute inset-0 bg-boutique-grain opacity-[0.02]" />
+
+        {/* Dynamic Luminous Lens */}
+        <div
+          className="absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-700"
+          style={{
+            background: isHovered
+              ? `radial-gradient(150px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(124, 58, 237, 0.15), transparent 80%)`
+              : `radial-gradient(150px circle at 50% 50%, rgba(124, 58, 237, 0.15), transparent 80%)`,
+            transform: 'translateZ(20px)'
+          }}
+        />
+      </div>
+
+      {/* Holographic Coordinate Telemetry */}
+      <div
+        className="absolute top-10 right-14 pointer-events-none opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-all duration-500"
+        style={{ transform: 'translateZ(80px)' }}
+      >
+        <div className="flex flex-col items-end font-mono text-[0.4rem] font-bold text-voro-primary/60 tracking-[0.2em] space-y-0.5">
+          <span>TX_<span ref={tiltXRef}>0.0</span>°</span>
+          <span>TY_<span ref={tiltYRef}>0.0</span>°</span>
+          <span className="text-white/20">[{nodeId}]</span>
+        </div>
+      </div>
 
       {/* Metabolic Aura (Radial Pulse) */}
-      <div className={`absolute inset-10 rounded-full transition-all duration-[2000ms] ease-in-out ${
-        isActive
-          ? "bg-gradient-radial from-voro-primary/10 via-voro-primary/5 to-transparent animate-pulse-slow opacity-100"
-          : "opacity-0"
-      }`} />
+      <div
+        className={`absolute inset-10 rounded-full transition-all duration-[2000ms] ease-in-out ${
+          isActive
+            ? "bg-gradient-radial from-voro-primary/10 via-voro-primary/5 to-transparent animate-pulse-slow opacity-100"
+            : "opacity-0"
+        }`}
+        style={{ transform: 'translateZ(15px)' }}
+      />
 
-      <svg className="w-full h-full transform -rotate-90 relative z-10" viewBox="0 0 256 256">
-        <defs>
-          <linearGradient id="chrono-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#7C3AED" />
-            <stop offset="50%" stopColor="#9333EA" />
-            <stop offset="100%" stopColor="#10B981" />
-          </linearGradient>
-          <filter id="ring-glow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="5" result="blur" />
-            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-          </filter>
-        </defs>
+      {/* Clock Dial & SVG Elements (Mid Z-depth) */}
+      <div className="absolute inset-0 pointer-events-none" style={{ transform: 'translateZ(35px)' }}>
+        <svg className="w-full h-full transform -rotate-90 relative z-10" viewBox="0 0 256 256">
+          <defs>
+            <linearGradient id="chrono-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#7C3AED" />
+              <stop offset="50%" stopColor="#9333EA" />
+              <stop offset="100%" stopColor="#10B981" />
+            </linearGradient>
+            <filter id="ring-glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="5" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+          </defs>
 
-        {/* Static Precision Ticks */}
-        {ticks}
+          {/* Static Precision Ticks */}
+          {ticks}
 
-        {/* Track Ring */}
-        <circle
-          cx="128"
-          cy="128"
-          r="108"
-          stroke="rgba(255,255,255,0.03)"
-          strokeWidth="1"
-          fill="none"
-        />
+          {/* Track Ring */}
+          <circle
+            cx="128"
+            cy="128"
+            r="108"
+            stroke="rgba(255,255,255,0.03)"
+            strokeWidth="1"
+            fill="none"
+          />
 
-        {/* Active Progress Ring */}
-        <circle
-          cx="128"
-          cy="128"
-          r="108"
-          stroke="url(#chrono-grad)"
-          strokeWidth="6"
-          fill="none"
-          strokeDasharray={`${2 * Math.PI * 108}`}
-          strokeDashoffset={`${2 * Math.PI * 108 * (1 - progress / 100)}`}
-          strokeLinecap="round"
-          className="transition-all duration-[1500ms] ease-[cubic-bezier(0.34,1.56,0.64,1)]"
-          filter="url(#ring-glow)"
-        />
-      </svg>
+          {/* Active Progress Ring */}
+          <circle
+            cx="128"
+            cy="128"
+            r="108"
+            stroke="url(#chrono-grad)"
+            strokeWidth="6"
+            fill="none"
+            strokeDasharray={`${2 * Math.PI * 108}`}
+            strokeDashoffset={`${2 * Math.PI * 108 * (1 - progress / 100)}`}
+            strokeLinecap="round"
+            className="transition-all duration-[1500ms] ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+            filter="url(#ring-glow)"
+          />
+        </svg>
+      </div>
 
-      {/* Central Time Core */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
+      {/* Central Time Core (Highest Z-depth) */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none" style={{ transform: 'translateZ(70px)' }}>
         <p className="text-[0.6rem] font-mono font-bold text-gray-500 uppercase tracking-[0.5em] mb-4">Metabolic Phase</p>
 
         <div className="flex items-baseline gap-1">
@@ -127,7 +240,8 @@ const FastingTracker = () => {
     document.title = 'VORO | Fasting Tracker';
   }, []);
 
-  const [fastHours, breakHours] = fastingData.window.split(':').map(Number);
+  const windowStr = fastingData?.window || '16:8';
+  const [fastHours, breakHours] = windowStr.split(':').map(Number);
   const totalSeconds = fastHours * 3600;
 
   useEffect(() => {
