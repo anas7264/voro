@@ -177,6 +177,11 @@ let _activeContext = null;
 let _lastUserInteraction = 0;
 const USER_PRESENCE_THRESHOLD = 30000; // 30s
 
+// Keystroke Dynamics & Interaction Cadence Attestation (KDICA) state
+const _kdicaPresses = new Map();
+let _kdicaAnomalies = 0;
+const KDICA_ANOMALY_THRESHOLD = 5;
+
 /**
  * Identifies if the application is running in an authorized automated testing environment.
  */
@@ -190,6 +195,7 @@ const isTestMode = () => {
 
 /**
  * Initializes User Presence Attestation (UPA) by attaching trusted event listeners.
+ * Enhanced with Keystroke Dynamics and Interaction Cadence Attestation (KDICA).
  */
 const initializeUserPresence = () => {
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
@@ -202,8 +208,55 @@ const initializeUserPresence = () => {
     }
   };
 
+  const handleInteractionStart = (e) => {
+    updatePresence(e);
+    if (isTestMode()) return;
+
+    const id = e.type === 'keydown' ? `key_${e.key}` : `mouse_${e.button || 0}`;
+    const time = _perfNow ? _call.call(_perfNow, performance) : Date.now();
+    _kdicaPresses.set(id, time);
+  };
+
+  const handleInteractionEnd = (e) => {
+    if (isTestMode()) return;
+
+    const id = e.type === 'keyup' ? `key_${e.key}` : `mouse_${e.button || 0}`;
+    const startTime = _kdicaPresses.get(id);
+    if (!startTime) return;
+
+    const endTime = _perfNow ? _call.call(_perfNow, performance) : Date.now();
+    const duration = endTime - startTime;
+    _kdicaPresses.delete(id);
+
+    // Human muscular reflex speed limits:
+    // Physical press/click durations under 5ms are physiologically impossible.
+    // Sub-millisecond or perfectly instant 0ms durations indicate programmatic triggers.
+    if (duration < 5) {
+      _kdicaAnomalies++;
+      if (_console.warn) {
+        _call.call(_console.warn, console, `Security Sentinel: KDICA Anomaly detected (${e.type} duration: ${duration.toFixed(3)}ms). Anomalies: ${_kdicaAnomalies}/${KDICA_ANOMALY_THRESHOLD}`);
+      }
+
+      if (_kdicaAnomalies >= KDICA_ANOMALY_THRESHOLD) {
+        if (_console.error) {
+          _call.call(_console.error, console, `Security Sentinel: Programmatic bot/exfiltration pattern attested. Executing immediate lockdown.`);
+        }
+        executeLockdown();
+      }
+    } else if (duration >= 30 && duration <= 1000) {
+      // Natural human-like timing gracefully decays/cools down the anomaly score.
+      _kdicaAnomalies = Math.max(0, _kdicaAnomalies - 1);
+    }
+  };
+
+  // Setup start listeners
   ['mousedown', 'keydown', 'touchstart'].forEach(type => {
-    document.addEventListener(type, updatePresence, { capture: true, passive: true });
+    document.addEventListener(type, handleInteractionStart, { capture: true, passive: true });
+  });
+
+  // Setup end listeners for KDICA duration analysis
+  ['mouseup', 'keyup', 'touchend'].forEach(type => {
+    document.addEventListener(type, handleInteractionEnd, { capture: true, passive: true });
   });
 };
 
