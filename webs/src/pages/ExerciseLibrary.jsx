@@ -11,6 +11,16 @@ const PAGE_SIZE = 20;
  */
 const CATEGORIES = ['All', ...new Set(exercises.map(e => e.category))];
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted Category Map.
+ * Provides O(1) lookup for category filtering, avoiding O(N) array scans on all 2,064 exercises.
+ */
+const EXERCISES_BY_CATEGORY = exercises.reduce((acc, exercise) => {
+  if (!acc[exercise.category]) acc[exercise.category] = [];
+  acc[exercise.category].push(exercise);
+  return acc;
+}, {});
+
 const ExerciseLibrary = () => {
   const [searchQuery, setSearchQuery] = useState('');
   /**
@@ -37,11 +47,11 @@ const ExerciseLibrary = () => {
    * This eliminates the double-render cycle and provides cleaner data derivation.
    */
   const filteredExercises = useMemo(() => {
-    let filtered = exercises;
-
-    if (selectedCategory !== 'All') {
-      filtered = filtered.filter(e => e.category === selectedCategory);
-    }
+    /**
+     * ⚡ PERFORMANCE OPTIMIZATION: Category-First Filtering.
+     * Uses pre-calculated map for O(1) initial slice if a category is selected.
+     */
+    let filtered = selectedCategory === 'All' ? exercises : (EXERCISES_BY_CATEGORY[selectedCategory] || []);
 
     if (deferredSearchQuery.trim()) {
       const query = deferredSearchQuery.toLowerCase();
