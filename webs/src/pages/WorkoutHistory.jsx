@@ -51,7 +51,14 @@ const WorkoutHistory = () => {
     return Object.entries(data)
       .filter(([_, w]) => w.attended)
       .map(([date, w]) => ({ date, ...w }))
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
+      /* ⚡ PERFORMANCE OPTIMIZATION: Raw Relational Sort Optimization.
+         Utilizes raw string relational comparison to avoid both dynamic Date
+         allocation and localeCompare engine overhead. Safe-guarded with falls. */
+      .sort((a, b) => {
+        const dA = a.date || '';
+        const dB = b.date || '';
+        return dA < dB ? 1 : dA > dB ? -1 : 0;
+      });
   }, [workoutLog]);
 
   /**

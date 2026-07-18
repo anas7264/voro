@@ -37,7 +37,14 @@ const FoodJournal = () => {
    */
   const entries = useMemo(() => {
     const data = foodJournalData || [];
-    return [...data].sort((a, b) => new Date(b.date) - new Date(a.date));
+    return [...data].sort((a, b) => {
+      /* ⚡ PERFORMANCE OPTIMIZATION: Raw Relational Sort Optimization.
+         Utilizes raw string relational comparison to avoid both dynamic Date
+         allocation and localeCompare engine overhead. Safe-guarded with falls. */
+      const dA = a.date || '';
+      const dB = b.date || '';
+      return dA < dB ? 1 : dA > dB ? -1 : 0;
+    });
   }, [foodJournalData]);
 
   const handleAddEntry = useCallback(async () => {

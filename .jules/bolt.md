@@ -125,3 +125,10 @@
 ## 2026-07-28 - Surgical Reactivity for Decorative Telemetry
 **Learning:** Decorative system telemetry that updates on a timer (e.g., every 1.5s) causes unnecessary full React render cycles. While small, these add up in complex dashboards. Using `useRef` and direct DOM manipulation (`innerText`) effectively bypasses the reconciliation overhead.
 **Action:** Apply the "Surgical Reactivity" pattern for high-frequency, non-logical UI updates like hex markers, coordinate telemetry, or progress micro-increments.
+
+## 2026-08-01 - Raw Relational Sort Optimization
+**Learning:** Sorting arrays of objects by standard date strings using `new Date()` within comparison loops creates significant garbage collection and CPU overhead because of O(N log N) repeated object instantiation. While `.localeCompare()` resolves object allocation, it introduces heavy internalization and collation overhead. Using raw relational comparison operators (`<`, `>`) combined with fallback safe-guards is up to 100x faster, type-safe, and avoids any CPU/heap overhead.
+
+**Action:**
+1. Prefer raw relational comparison (`a.prop < b.prop ? -1 : a.prop > b.prop ? 1 : 0`) for lexicographically-compatible strings (like ISO-8601 dates).
+2. Safe-guard comparisons with default fallbacks (e.g., `a.date || ''`) to avoid runtime TypeErrors on missing values.

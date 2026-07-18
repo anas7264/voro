@@ -39,7 +39,14 @@ const BodyComposition = () => {
      * Includes O(N log N) safety sort which is minimal for typical 30-day windows.
      */
     const weights = [...metrics.weights]
-      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      /* ⚡ PERFORMANCE OPTIMIZATION: Raw Relational Sort Optimization.
+         Utilizes raw string relational comparison to avoid both dynamic Date
+         allocation and localeCompare engine overhead. Safe-guarded with falls. */
+      .sort((a, b) => {
+        const dA = a.date || '';
+        const dB = b.date || '';
+        return dA < dB ? -1 : dA > dB ? 1 : 0;
+      })
       .slice(-30)
       .map(w => {
         const date = new Date(w.date);
@@ -47,7 +54,14 @@ const BodyComposition = () => {
       });
 
     const bodyFat = [...metrics.bodyFat]
-      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      /* ⚡ PERFORMANCE OPTIMIZATION: Raw Relational Sort Optimization.
+         Utilizes raw string relational comparison to avoid both dynamic Date
+         allocation and localeCompare engine overhead. Safe-guarded with falls. */
+      .sort((a, b) => {
+        const dA = a.date || '';
+        const dB = b.date || '';
+        return dA < dB ? -1 : dA > dB ? 1 : 0;
+      })
       .map(b => ({ ...b, ts: new Date(b.date).getTime() }));
 
     let bfIdx = 0;
