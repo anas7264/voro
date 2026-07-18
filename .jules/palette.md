@@ -25,3 +25,7 @@
 ## 2025-07-02 - Accessible 3D Interaction Pattern
 **Learning:** High-fidelity interactive components (like Stat cards with 3D tilt) are often inaccessible to keyboard users because their interaction logic is tied exclusively to mouse events. By mapping focus states to the same CSS variables used for hover/mouse effects, we can provide a rich, tactile experience for all users.
 **Action:** When implementing direct DOM manipulation for performance-heavy 3D effects, ensure they are also triggered by `onFocus` and `onBlur`. Set meaningful default tilt values on focus to provide immediate visual confirmation of keyboard selection.
+
+## 2025-07-18 - Keyboard Accessibility for Hover-Revealed Controls
+**Learning:** High-fidelity layouts often hide utility buttons (like bookmark or share controls) under hover transitions (`group-hover:opacity-100`) to maintain a clean visual aesthetic. However, this pattern leaves elements completely hidden and unreachable for keyboard-only navigators.
+**Action:** Always combine hover states with focus-within triggers (e.g., `group-focus-within:opacity-100` or `group-focus-visible:opacity-100`) on wrapper containers, and ensure all newly revealed controls possess clear `focus-visible` ring outlines and explicit ARIA labels.

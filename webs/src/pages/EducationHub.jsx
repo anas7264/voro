@@ -4,13 +4,14 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Badge from '@/components/Badge';
 import Accordion from '@/components/Accordion';
+import { useNotifications } from '@/hooks/useNotifications';
 
 /**
  * ⚡ REFINEMENT: Cinematic Dossier Hero Component.
  * Features multi-layered parallax, volumetric 3D transforms, and industrial telemetry.
  * Utilizes 'Surgical Reactivity' via direct DOM manipulation for 60fps performance.
  */
-const DossierHero = memo(({ article }) => {
+const DossierHero = memo(({ article, onAccessDossier }) => {
   const containerRef = useRef(null);
   const imageRef = useRef(null);
   const contentRef = useRef(null);
@@ -117,10 +118,13 @@ const DossierHero = memo(({ article }) => {
               </div>
             </div>
 
-            <button className="group/btn relative flex items-center gap-6 px-14 py-7 bg-white text-black rounded-full text-[0.8rem] font-black uppercase tracking-[0.6em] transition-all duration-700 hover:scale-110 hover:shadow-[0_60px_100px_rgba(255,255,255,0.25)] active:scale-95 pointer-events-auto overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-tr from-voro-primary/30 via-transparent to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity duration-1000" />
+            <button
+              onClick={() => onAccessDossier?.(article.title)}
+              className="group/btn relative flex items-center gap-6 px-14 py-7 bg-white text-black rounded-full text-[0.8rem] font-black uppercase tracking-[0.6em] transition-all duration-700 hover:scale-110 hover:shadow-[0_60px_100px_rgba(255,255,255,0.25)] active:scale-95 pointer-events-auto overflow-hidden focus-visible:scale-110 focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408] outline-none"
+            >
+              <div className="absolute inset-0 bg-gradient-to-tr from-voro-primary/30 via-transparent to-transparent opacity-0 group-hover/btn:opacity-100 group-focus-visible/btn:opacity-100 transition-opacity duration-1000" />
               <span className="relative z-10">Access Dossier</span>
-              <ArrowUpRight size={20} className="relative z-10 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform duration-500" />
+              <ArrowUpRight size={20} className="relative z-10 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 group-focus-visible/btn:translate-x-1 group-focus-visible/btn:-translate-y-1 transition-transform duration-500" />
             </button>
           </div>
         </div>
@@ -144,8 +148,42 @@ const DossierHero = memo(({ article }) => {
 DossierHero.displayName = 'DossierHero';
 
 const EducationHub = () => {
+  const { addNotification } = useNotifications();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
+  const [bookmarkedIds, setBookmarkedIds] = useState([]);
+
+  const handleToggleBookmark = (id, title) => {
+    setBookmarkedIds((prev) => {
+      const isBookmarked = prev.includes(id);
+      if (isBookmarked) {
+        addNotification(`Removed "${title}" from your bookmarks.`, 'info');
+        return prev.filter((bookmarkId) => bookmarkId !== id);
+      } else {
+        addNotification(`Saved "${title}" to your bookmarks successfully!`, 'success');
+        return [...prev, id];
+      }
+    });
+  };
+
+  const handleShare = (title) => {
+    const shareUrl = `${window.location.origin}/education/article/${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+    navigator.clipboard.writeText(shareUrl)
+      .then(() => {
+        addNotification('Dossier share link copied to clipboard successfully.', 'success');
+      })
+      .catch(() => {
+        addNotification('Unable to copy share link to clipboard.', 'error');
+      });
+  };
+
+  const handleReadDossier = (title) => {
+    addNotification(`Syncing metadata for "${title}"...`, 'info');
+  };
+
+  const handleFooterClick = (label) => {
+    addNotification(`Accessing ${label} secure channel...`, 'info');
+  };
 
   useEffect(() => {
     document.title = 'VORO | Intellectual Archive';
@@ -292,7 +330,7 @@ const EducationHub = () => {
 
         {/* Cinematic Dossier Hero */}
         {!searchQuery && activeCategory === 'All' && featuredArticle && (
-          <DossierHero article={featuredArticle} />
+          <DossierHero article={featuredArticle} onAccessDossier={handleReadDossier} />
         )}
 
         {/* Intelligence Grid */}
@@ -322,9 +360,25 @@ const EducationHub = () => {
                     <Clock size={10} />
                     <span>{article.readTime}</span>
                   </div>
-                  <div className="flex gap-3 opacity-0 group-hover:opacity-100 transition-all">
-                    <button className="text-gray-500 hover:text-white transition-colors"><Bookmark size={14} /></button>
-                    <button className="text-gray-500 hover:text-white transition-colors"><Share2 size={14} /></button>
+                  <div className="flex gap-3 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all">
+                    <button
+                      onClick={() => handleToggleBookmark(article.id, article.title)}
+                      aria-label={`${bookmarkedIds.includes(article.id) ? 'Remove bookmark' : 'Bookmark'}: ${article.title}`}
+                      className="text-gray-500 hover:text-white focus-visible:text-white transition-colors outline-none focus-visible:ring-1 focus-visible:ring-voro-primary rounded-md p-1.5 bg-white/[0.02] hover:bg-white/[0.05]"
+                    >
+                      {bookmarkedIds.includes(article.id) ? (
+                        <Bookmark size={14} className="fill-current text-voro-primary" />
+                      ) : (
+                        <Bookmark size={14} />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleShare(article.title)}
+                      aria-label={`Copy share link for: ${article.title}`}
+                      className="text-gray-500 hover:text-white focus-visible:text-white transition-colors outline-none focus-visible:ring-1 focus-visible:ring-voro-primary rounded-md p-1.5 bg-white/[0.02] hover:bg-white/[0.05]"
+                    >
+                      <Share2 size={14} />
+                    </button>
                   </div>
                 </div>
 
@@ -338,9 +392,12 @@ const EducationHub = () => {
 
                 <div className="pt-6 border-t border-white/5 flex items-center justify-between">
                   <span className="text-[0.55rem] font-black text-gray-600 uppercase tracking-widest">{article.author}</span>
-                  <button className="text-voro-primary flex items-center gap-2 text-[0.55rem] font-black uppercase tracking-[0.2em]">
+                  <button
+                    onClick={() => handleReadDossier(article.title)}
+                    className="group/rd text-voro-primary flex items-center gap-2 text-[0.55rem] font-black uppercase tracking-[0.2em] outline-none focus-visible:ring-1 focus-visible:ring-voro-primary rounded-md px-2 py-1 bg-white/[0.02] hover:bg-white/[0.05] transition-all"
+                  >
                     Read Dossier
-                    <ArrowUpRight size={12} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                    <ArrowUpRight size={12} className="group-hover/rd:translate-x-1 group-hover/rd:-translate-y-1 group-focus-visible/rd:translate-x-1 group-focus-visible/rd:-translate-y-1 transition-transform duration-300" />
                   </button>
                 </div>
               </div>
@@ -395,9 +452,24 @@ const EducationHub = () => {
               <span className="text-[0.6rem] font-black text-gray-600 uppercase tracking-[0.4em]">Est. 2024</span>
            </div>
            <div className="flex gap-12">
-              <button className="text-[0.6rem] font-black text-gray-600 hover:text-voro-primary uppercase tracking-[0.3em] transition-colors">Publication Ethics</button>
-              <button className="text-[0.6rem] font-black text-gray-600 hover:text-voro-primary uppercase tracking-[0.3em] transition-colors">Archive Access</button>
-              <button className="text-[0.6rem] font-black text-gray-600 hover:text-voro-primary uppercase tracking-[0.3em] transition-colors">Neural Sync</button>
+              <button
+                onClick={() => handleFooterClick('Publication Ethics')}
+                className="text-[0.6rem] font-black text-gray-600 hover:text-voro-primary focus-visible:text-white uppercase tracking-[0.3em] transition-colors outline-none focus-visible:ring-1 focus-visible:ring-voro-primary rounded px-1.5 py-0.5"
+              >
+                Publication Ethics
+              </button>
+              <button
+                onClick={() => handleFooterClick('Archive Access')}
+                className="text-[0.6rem] font-black text-gray-600 hover:text-voro-primary focus-visible:text-white uppercase tracking-[0.3em] transition-colors outline-none focus-visible:ring-1 focus-visible:ring-voro-primary rounded px-1.5 py-0.5"
+              >
+                Archive Access
+              </button>
+              <button
+                onClick={() => handleFooterClick('Neural Sync')}
+                className="text-[0.6rem] font-black text-gray-600 hover:text-voro-primary focus-visible:text-white uppercase tracking-[0.3em] transition-colors outline-none focus-visible:ring-1 focus-visible:ring-voro-primary rounded px-1.5 py-0.5"
+              >
+                Neural Sync
+              </button>
            </div>
         </footer>
       </div>
