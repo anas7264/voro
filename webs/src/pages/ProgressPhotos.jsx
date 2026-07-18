@@ -190,6 +190,45 @@ const KineticPhotoNode = ({ photo, isSelected, onClick, onDelete, isStart, isLat
   );
 };
 
+/**
+ * 🛡️ BINARY IMAGE SIGNATURE / MAGIC NUMBER CHECK
+ * Ensures file uploaded is a real image (JPEG, PNG, GIF, WEBP)
+ * to prevent extension-spoofing and polyglot script attacks.
+ */
+const verifyImageHeader = (file) => {
+  return new Promise((resolve) => {
+    const headerReader = new FileReader();
+    headerReader.onloadend = (e) => {
+      if (e.target.readyState !== FileReader.DONE) {
+        resolve(false);
+        return;
+      }
+      const arr = new Uint8Array(e.target.result);
+      if (arr.length < 4) {
+        resolve(false);
+        return;
+      }
+      let header = "";
+      for (let i = 0; i < Math.min(arr.length, 12); i++) {
+        header += arr[i].toString(16).toUpperCase().padStart(2, '0');
+      }
+
+      // JPEG: FF D8 FF
+      const isJPEG = header.startsWith("FFD8FF");
+      // PNG: 89 50 4E 47
+      const isPNG = header.startsWith("89504E47");
+      // GIF: 47 49 46 38
+      const isGIF = header.startsWith("47494638");
+      // WEBP: RIFF (52 49 46 46) + WEBP (57 45 42 50) at offset 8 (16 hex chars)
+      const isWEBP = header.startsWith("52494646") && (header.length >= 24 && header.slice(16, 24) === "57454250");
+
+      resolve(isJPEG || isPNG || isGIF || isWEBP);
+    };
+    headerReader.onerror = () => resolve(false);
+    headerReader.readAsArrayBuffer(file.slice(0, 12));
+  });
+};
+
 const ProgressPhotos = () => {
   const photos = useStorageKey('voro_progress_photos') || [];
   const { setItem } = useStorageMethods();
@@ -227,7 +266,7 @@ const ProgressPhotos = () => {
     });
   }, [photos]);
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -245,16 +284,70 @@ const ProgressPhotos = () => {
       return;
     }
 
+    // Security Deep Defense: Verify binary headers to block spoofed files / polyglot payloads
+    const isHeaderValid = await verifyImageHeader(file);
+    if (!isHeaderValid) {
+      addNotification('Binary signature mismatch. The file content is not a valid secure image.', 'error');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onloadend = () => {
-      const newPhoto = {
-        id: `photo-${Date.now()}`,
-        src: reader.result,
-        date: new Date().toISOString(),
-        label: `Photo ${photos.length + 1}`
+      const img = new Image();
+      img.onload = () => {
+        try {
+          // HTML5 Canvas CDR (Content Disarm & Reconstruction) and Optimization
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            throw new Error('Canvas context not available');
+          }
+
+          // Downscale to standardized maximum dimension of 1000px to conserve LocalStorage
+          const MAX_DIM = 1000;
+          let width = img.width;
+          let height = img.height;
+          if (width > MAX_DIM || height > MAX_DIM) {
+            if (width > height) {
+              height = Math.round((height * MAX_DIM) / width);
+              width = MAX_DIM;
+            } else {
+              width = Math.round((width * MAX_DIM) / height);
+              height = MAX_DIM;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          // Drawing onto canvas strips EXIF, GPS, and camera metadata completely
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Re-encode raw pixel data to clean, metadata-free JPEG
+          const sanitizedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+
+          // Deep Memory Hygiene / Heap protection
+          ctx.clearRect(0, 0, width, height);
+          canvas.width = 0;
+          canvas.height = 0;
+
+          const newPhoto = {
+            id: `photo-${Date.now()}`,
+            src: sanitizedDataUrl,
+            date: new Date().toISOString(),
+            label: `Photo ${photos.length + 1}`
+          };
+          setItem('voro_progress_photos', [...photos, newPhoto]);
+          addNotification('Biometric visual record synthesized, sanitized, and optimized.', 'success');
+        } catch (err) {
+          console.error("Image sanitization failed:", err);
+          addNotification('Visual record synthesis failed due to processing error.', 'error');
+        }
       };
-      setItem('voro_progress_photos', [...photos, newPhoto]);
-      addNotification('Biometric visual record synthesized.', 'success');
+      img.onerror = () => {
+        addNotification('Corrupt or invalid image content detected.', 'error');
+      };
+      img.src = reader.result;
     };
     reader.readAsDataURL(file);
   };
