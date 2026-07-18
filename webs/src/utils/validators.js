@@ -3,12 +3,18 @@
 
 // Email validation
 export const isValidEmail = (email) => {
+  if (!email || typeof email !== 'string' || email.length > 254) {
+    return false; // Security: RFC 5321 length limit to prevent ReDoS / Denial of Service on massive inputs
+  }
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 };
 
 // Password validation (min 8 chars, 1 uppercase, 1 lowercase, 1 number)
 export const isValidPassword = (password) => {
+  if (!password || typeof password !== 'string' || password.length > 128) {
+    return false; // Security: Prevent client-side ReDoS and backend password hashing Denial of Service on extremely large strings
+  }
   const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/;
   return passwordRegex.test(password);
 };
@@ -125,10 +131,24 @@ export const isDateInPast = (dateString) => {
 
 // URL validation
 export const isValidURL = (url) => {
+  if (!url || typeof url !== 'string' || url.length > 2048) {
+    return false; // Security: Prevent client-side thread blocking / Denial of Service on extremely large inputs
+  }
   try {
     const parsed = new URL(url);
     // Security: Only allow http and https protocols to prevent javascript: or other malicious URI schemes
-    return ['http:', 'https:'].includes(parsed.protocol);
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return false;
+    }
+
+    // Security: Homoglyph-based URL deception / IDN spoofing prevention
+    const hostname = parsed.hostname;
+    const hasHomoglyphs = /[^\x00-\x7F]/.test(hostname) || hostname.toLowerCase().startsWith('xn--');
+    if (hasHomoglyphs) {
+      return false;
+    }
+
+    return true;
   } catch (e) {
     return false;
   }
