@@ -217,7 +217,14 @@ const ProgressPhotos = () => {
   }, []);
 
   const sortedPhotos = useMemo(() => {
-    return [...photos].sort((a, b) => new Date(a.date) - new Date(b.date));
+    return [...photos].sort((a, b) => {
+      /* ⚡ PERFORMANCE OPTIMIZATION: Raw Relational Sort Optimization.
+         Utilizes raw string relational comparison to avoid both dynamic Date
+         allocation and localeCompare engine overhead. Safe-guarded with falls. */
+      const dA = a.date || '';
+      const dB = b.date || '';
+      return dA < dB ? -1 : dA > dB ? 1 : 0;
+    });
   }, [photos]);
 
   const handleFileUpload = (e) => {
