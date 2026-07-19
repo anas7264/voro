@@ -2182,7 +2182,7 @@ export const validateAIResponse = (c, n = null) => {
   // 3. Comprehensive Data Exfiltration Check (Detects keywords and high-entropy tokens in URLs)
   // Check both markdown links/images and raw URLs for exfiltration patterns
   // Expanded to catch protocol-relative URLs, javascript: URIs, data: URIs, and blob: URIs
-  const urlRegex = /(?:https?:\/\/|www\.|(?:\s|^)\/\/|javascript:|data:|blob:)[^\s)\]]+/gi;
+  const urlRegex = /(?:https?:\/\/|www\.|(?<!:)\/\/|javascript:|data:|blob:)[^\s)\]]+/gi;
   const urls = _call.call(_match, c, urlRegex) || [];
 
   // High-signal keywords that trigger on any match within the URL
@@ -2195,12 +2195,17 @@ export const validateAIResponse = (c, n = null) => {
   for (const url of urls) {
     try {
       if (!_URL) throw new Error("URL constructor not available");
-      const urlObj = new _URL(_call.call(_startsWith, url, 'www.') ? `https://${url}` : url);
+      const base = (typeof window !== 'undefined' && window.location) ? window.location.origin : 'https://voro.local';
+      const cleanUrl = _call.call(_trim, url);
+      const urlToParse = _call.call(_startsWith, cleanUrl, '//')
+        ? `https:${cleanUrl}`
+        : (_call.call(_startsWith, cleanUrl, 'www.') ? `https://${cleanUrl}` : cleanUrl);
+      const urlObj = new _URL(urlToParse, base);
 
       // Whitelist: Skip exfiltration check for links to the application's own origin
       if (appOrigin && _call.call(_URLOrigin, urlObj) === appOrigin) continue;
 
-      // Homoglyph Detection: Block potential punycode spoofs
+      // Homoglyph Detection: Block potential punycode spoofing
       if (detectHomoglyphs(_call.call(_URLHostname, urlObj))) {
         if (_console.warn) _call.call(_console.warn, console, `Security Sentinel: AI exfiltration attempt blocked (Homoglyph hostname: ${_call.call(_URLHostname, urlObj)}).`);
         executeLockdown();
@@ -2244,10 +2249,30 @@ export const validateAIResponse = (c, n = null) => {
         }
       }
     } catch (e) {
-      // If URL parsing fails, perform a basic keyword check on the raw string
-      if (_call.call(_some, highSignalKeywords, kw => _call.call(_SIncludes, _call.call(_toLowerCase, url), kw))) {
+      // If URL parsing fails, perform a robust fallback check on the raw string
+      const lowerUrl = _call.call(_toLowerCase, url);
+
+      // Check both high-signal and low-signal keywords in the raw string to prevent any bypass
+      if (_call.call(_some, highSignalKeywords, kw => _call.call(_SIncludes, lowerUrl, kw)) ||
+          _call.call(_some, queryOnlyKeywords, kw => _call.call(_SIncludes, lowerUrl, kw))) {
+        if (_console.warn) _call.call(_console.warn, console, "Security Sentinel: AI exfiltration attempt blocked (Fallback Keyword check).");
         executeLockdown();
         return "[SECURITY_VIOLATION_DETECTED]";
+      }
+
+      // Check high-entropy segments in the raw string
+      let decodedUrl = url;
+      try {
+        decodedUrl = decodeURIComponent(url);
+      } catch (innerE) { /* fallback */ }
+
+      const segments = _call.call(_split, decodedUrl, /[\/\?&%=:._\-#]/);
+      for (const segment of segments) {
+        if (segment.length >= 24 && calculateEntropy(segment) > 4.2) {
+          if (_console.warn) _call.call(_console.warn, console, "Security Sentinel: AI exfiltration attempt blocked (Fallback High-entropy segment check).");
+          executeLockdown();
+          return "[SECURITY_VIOLATION_DETECTED]";
+        }
       }
     }
   }
