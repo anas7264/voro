@@ -2182,7 +2182,8 @@ export const validateAIResponse = (c, n = null) => {
   // 3. Comprehensive Data Exfiltration Check (Detects keywords and high-entropy tokens in URLs)
   // Check both markdown links/images and raw URLs for exfiltration patterns
   // Expanded to catch protocol-relative URLs, javascript: URIs, data: URIs, and blob: URIs
-  const urlRegex = /(?:https?:\/\/|www\.|(?:\s|^)\/\/|javascript:|data:|blob:)[^\s)\]]+/gi;
+  // Hardened with a lookbehind assertion to capture protocol-relative links in markdown/parentheses context
+  const urlRegex = /(?:https?:\/\/|www\.|(?<!:)\/\/|javascript:|data:|blob:)[^\s)\]]+/gi;
   const urls = _call.call(_match, c, urlRegex) || [];
 
   // High-signal keywords that trigger on any match within the URL
@@ -2195,7 +2196,17 @@ export const validateAIResponse = (c, n = null) => {
   for (const url of urls) {
     try {
       if (!_URL) throw new Error("URL constructor not available");
-      const urlObj = new _URL(_call.call(_startsWith, url, 'www.') ? `https://${url}` : url);
+
+      // Prepare URL: Prepend https: to protocol-relative links starting with //
+      let preparedUrl = url;
+      if (_call.call(_startsWith, preparedUrl, '//')) {
+        preparedUrl = 'https:' + preparedUrl;
+      } else if (_call.call(_startsWith, preparedUrl, 'www.')) {
+        preparedUrl = 'https://' + preparedUrl;
+      }
+
+      // Pass appOrigin as base URL to handle relative paths safely
+      const urlObj = new _URL(preparedUrl, appOrigin || undefined);
 
       // Whitelist: Skip exfiltration check for links to the application's own origin
       if (appOrigin && _call.call(_URLOrigin, urlObj) === appOrigin) continue;
@@ -2244,10 +2255,23 @@ export const validateAIResponse = (c, n = null) => {
         }
       }
     } catch (e) {
-      // If URL parsing fails, perform a basic keyword check on the raw string
-      if (_call.call(_some, highSignalKeywords, kw => _call.call(_SIncludes, _call.call(_toLowerCase, url), kw))) {
+      // If URL parsing fails, perform a deep fallback keyword and high-entropy check on the raw string
+      const lowerUrl = _call.call(_toLowerCase, url);
+      const hasHighSignal = _call.call(_some, highSignalKeywords, kw => _call.call(_SIncludes, lowerUrl, kw));
+      const hasQueryOnly = _call.call(_some, queryOnlyKeywords, kw => _call.call(_SIncludes, lowerUrl, kw));
+      if (hasHighSignal || hasQueryOnly) {
+        if (_console.warn) _call.call(_console.warn, console, "Security Sentinel: AI exfiltration fallback blocked (Keyword in malformed URL).");
         executeLockdown();
         return "[SECURITY_VIOLATION_DETECTED]";
+      }
+
+      const segments = _call.call(_split, lowerUrl, /[\/\?&%=:._\-#]/);
+      for (const segment of segments) {
+        if (segment.length >= 24 && calculateEntropy(segment) > 4.2) {
+          if (_console.warn) _call.call(_console.warn, console, "Security Sentinel: AI exfiltration fallback blocked (High-entropy token in malformed URL).");
+          executeLockdown();
+          return "[SECURITY_VIOLATION_DETECTED]";
+        }
       }
     }
   }
