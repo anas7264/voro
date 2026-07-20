@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Plus, Trash2, Calendar, Zap, Target, Activity } from 'lucide-react';
+import { Plus, Trash2, Calendar, Zap, Target, Activity, AlertCircle } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
@@ -26,10 +26,19 @@ const Periodization = () => {
   const blocks = useStorageKey('periodization') || [];
   const { setItem } = useStorageMethods();
   const { addNotification } = useNotifications();
+  const [confirmingRemoveId, setConfirmingRemoveId] = useState(null);
 
   useEffect(() => {
     document.title = 'VORO | Periodization Archive';
   }, []);
+
+  // Reset confirmation state after timeout
+  useEffect(() => {
+    if (confirmingRemoveId) {
+      const timer = setTimeout(() => setConfirmingRemoveId(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [confirmingRemoveId]);
 
   const handleAddBlock = useCallback(async (block) => {
     const newBlock = {
@@ -47,10 +56,15 @@ const Periodization = () => {
   }, [blocks, setItem, addNotification]);
 
   const handleRemoveBlock = useCallback(async (id) => {
-    const updated = blocks.filter(b => b.id !== id);
-    await setItem('periodization', updated);
-    addNotification('Evolution block decommissioned', 'info');
-  }, [blocks, setItem, addNotification]);
+    if (confirmingRemoveId === id) {
+      const updated = blocks.filter(b => b.id !== id);
+      await setItem('periodization', updated);
+      addNotification('Evolution block decommissioned', 'info');
+      setConfirmingRemoveId(null);
+    } else {
+      setConfirmingRemoveId(id);
+    }
+  }, [blocks, setItem, addNotification, confirmingRemoveId]);
 
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] p-4 md:p-8 selection:bg-voro-primary/30">
@@ -122,9 +136,10 @@ const Periodization = () => {
                        <span className="text-[0.55rem] font-mono text-gray-700 uppercase tracking-widest">Start: {new Date(block.startDate).toLocaleDateString()}</span>
                        <button
                         onClick={() => handleRemoveBlock(block.id)}
-                        className="p-3 rounded-xl hover:bg-red-500/10 text-gray-700 hover:text-red-400 transition-all opacity-0 group-hover:opacity-100"
+                        aria-label={confirmingRemoveId === block.id ? `Confirm decommissioning of block: ${block.name}` : `Decommission block: ${block.name}`}
+                        className={`p-3 rounded-xl transition-all outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${confirmingRemoveId === block.id ? 'bg-red-500/20 text-red-400 animate-pulse opacity-100' : 'hover:bg-red-500/10 text-gray-700 hover:text-red-400 opacity-0 group-hover:opacity-100 focus-visible:opacity-100'}`}
                        >
-                        <Trash2 size={18} />
+                        {confirmingRemoveId === block.id ? <AlertCircle size={18} /> : <Trash2 size={18} />}
                        </button>
                     </div>
                   </div>

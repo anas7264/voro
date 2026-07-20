@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Plus, Trash2, Pill, Calendar, Activity, Zap } from 'lucide-react';
+import { Plus, Trash2, Pill, Calendar, Activity, Zap, AlertCircle } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
@@ -26,10 +26,19 @@ const SupplementTracker = () => {
   const { setItem } = useStorageMethods();
   const { addNotification } = useNotifications();
   const [showForm, setShowForm] = useState(false);
+  const [confirmingRemoveId, setConfirmingRemoveId] = useState(null);
 
   useEffect(() => {
     document.title = 'VORO | Supplement Tracker';
   }, []);
+
+  // Reset confirmation state after timeout
+  useEffect(() => {
+    if (confirmingRemoveId) {
+      const timer = setTimeout(() => setConfirmingRemoveId(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [confirmingRemoveId]);
 
   const handleAddSupplement = async (supplement) => {
     const updated = [...userSupplements, {
@@ -44,9 +53,14 @@ const SupplementTracker = () => {
   };
 
   const handleRemove = async (id) => {
-    const updated = userSupplements.filter(s => s.id !== id);
-    await setItem('supplements', updated);
-    addNotification('Supplement removed from protocol.', 'info');
+    if (confirmingRemoveId === id) {
+      const updated = userSupplements.filter(s => s.id !== id);
+      await setItem('supplements', updated);
+      addNotification('Supplement removed from protocol.', 'info');
+      setConfirmingRemoveId(null);
+    } else {
+      setConfirmingRemoveId(id);
+    }
   };
 
   return (
@@ -107,9 +121,10 @@ const SupplementTracker = () => {
                   </div>
                   <button
                     onClick={() => handleRemove(supp.id)}
-                    className="p-2.5 rounded-xl text-gray-800 hover:text-red-400 hover:bg-red-400/10 transition-all opacity-0 group-hover:opacity-100"
+                    aria-label={confirmingRemoveId === supp.id ? `Confirm removal of ${supp.name}` : `Remove ${supp.name} from protocol`}
+                    className={`p-2.5 rounded-xl transition-all outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${confirmingRemoveId === supp.id ? 'bg-red-500/20 text-red-400 animate-pulse opacity-100' : 'text-gray-800 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 focus-visible:opacity-100'}`}
                   >
-                    <Trash2 size={16} />
+                    {confirmingRemoveId === supp.id ? <AlertCircle size={16} /> : <Trash2 size={16} />}
                   </button>
                 </div>
 
