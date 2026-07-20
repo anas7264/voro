@@ -1,6 +1,6 @@
 // VORO Storage Manager
 // window.storage abstraction for data persistence with transparent encryption
-import crypto from './crypto';
+import voroCrypto from './crypto';
 import {
   sanitizeObject, validateCallStack, executeLockdown, getDecoyData,
   isDeceptionActive, executeSecurely, createSecureProxy
@@ -196,7 +196,7 @@ class StorageManager {
       let processedItem = item;
       if (item.startsWith('v3:') || item.startsWith('v2:') || item.startsWith('v1:')) {
         // Pass fullKey as AAD for cryptographic binding verification
-        processedItem = await crypto.decrypt(item, fullKey);
+        processedItem = await voroCrypto.decrypt(item, fullKey);
       } else {
         // Fallback for legacy plain-text data
         try {
@@ -304,7 +304,7 @@ class StorageManager {
       let serialized;
       if (this.shouldEncrypt(baseKey)) {
         // Pass fullKey as AAD for cryptographic binding
-        serialized = await crypto.encrypt(sanitizedValue, fullKey);
+        serialized = await voroCrypto.encrypt(sanitizedValue, fullKey);
       } else {
         serialized = typeof sanitizedValue === "string" ? sanitizedValue : JSON.stringify(sanitizedValue);
       }
@@ -487,27 +487,56 @@ class StorageManager {
     return data;
   }
 
-  // Export storage as JSON for backup
+  // Export storage as JSON for backup with cryptographic authentication and encryption
   async export() {
     const data = await this.getAll();
     const timestamp = new Date().toISOString();
-    return {
-      version: 1,
+    const payload = {
+      version: 2,
       timestamp,
       data
+    };
+    // Encrypt the payload under the dynamically derived key.
+    // Note: 'voro_backup_vault' is the domain name used as HKDF salt/info and AES-GCM AAD.
+    // The actual cryptographic key is dynamically derived from the Master Key (Stored in IndexedDB)
+    // and is never hardcoded. This prevents cleartext disclosure of biometrics on disk.
+    const encryptedPayload = await voroCrypto.encrypt(payload, 'voro_backup_vault');
+    return {
+      voro_backup_v2: true,
+      payload: encryptedPayload
     };
   }
 
   // Import storage from JSON
   async import(backup) {
     try {
-      if (!backup.data || backup.version !== 1) {
+      if (!backup) {
         console.error("Invalid backup format");
         return false;
       }
 
-      for (const key of Object.keys(backup.data)) {
-        await this.set(key, backup.data[key]);
+      let backupData;
+      if (backup.voro_backup_v2 && backup.payload) {
+        // Authenticated Decryption using dynamically derived key & AAD validation
+        const decrypted = await voroCrypto.decrypt(backup.payload, 'voro_backup_vault');
+        if (!decrypted) {
+          throw new Error("Cryptographic verification failed. Backup is corrupted, tampered, or from a different session.");
+        }
+        backupData = decrypted.data;
+      } else if (backup.version === 1 && backup.data) {
+        // Legacy import with schema sanitization
+        backupData = backup.data;
+      } else {
+        console.error("Unknown backup signature");
+        return false;
+      }
+
+      for (const key of Object.keys(backupData)) {
+        if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
+        const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
+        if (!this.encryptedKeys.has(baseKey)) continue; // Strict key whitelist matching STORAGE_KEYS
+
+        await this.set(baseKey, backupData[key]);
       }
 
       return true;

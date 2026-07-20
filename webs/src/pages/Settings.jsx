@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useId, useCallback } from 'react';
+import React, { useEffect, useMemo, useId, useCallback, useRef } from 'react';
 import { Moon, Sun, Settings as SettingsIcon, RotateCcw, Download, Upload } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
@@ -18,10 +18,11 @@ const Settings = () => {
   const settings = useStorageKey('settings') || {};
   const { setItem, deleteItem } = useStorageMethods();
   // Retrieve exportData and clearAllData securely from useStorageMethods without subscribing to volatile storageState.
-  const { exportData, clearAllData } = useStorageMethods();
+  const { exportData, importData, clearAllData } = useStorageMethods();
 
   const { user } = useApp();
   const { addNotification } = useNotifications();
+  const importFileRef = useRef(null);
 
   const themeId = useId();
   const fontSizeId = useId();
@@ -72,6 +73,28 @@ const Settings = () => {
 
     addNotification('Data matrix exported successfully', 'success');
   };
+
+  const handleImportData = useCallback(async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const backup = JSON.parse(event.target.result);
+        const success = await importData(backup);
+        if (success) {
+          addNotification('Data matrix successfully restored', 'success');
+          setTimeout(() => window.location.reload(), 1000);
+        } else {
+          addNotification('Data restoration failed. Invalid or corrupted backup file.', 'error');
+        }
+      } catch (err) {
+        addNotification('Failed to parse backup file.', 'error');
+      }
+    };
+    reader.readAsText(file);
+  }, [importData, addNotification]);
 
   const handleClearData = useCallback(() => {
     const msg = 'CRITICAL: This will incinerate all local data (profile, workouts, nutrition, analytics). This action is irreversible. Proceed?';
@@ -238,10 +261,18 @@ const Settings = () => {
             <Button
               variant="secondary"
               className="flex items-center justify-center gap-3 !rounded-2xl py-6 border-white/5 hover:bg-white/5"
+              onClick={() => importFileRef.current?.click()}
             >
               <Upload size={18} />
               <span className="text-[0.65rem] font-black uppercase tracking-widest">Import Matrix</span>
             </Button>
+            <input
+              ref={importFileRef}
+              type="file"
+              accept=".json"
+              className="hidden"
+              onChange={handleImportData}
+            />
             <Button
               variant="danger"
               className="sm:col-span-2 flex items-center justify-center gap-3 !rounded-2xl py-6 mt-4 bg-red-500/10 border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-lg shadow-red-500/10"
