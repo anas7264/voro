@@ -6,6 +6,12 @@ import { useStorageKey } from '@/hooks/useStorage';
 
 const EMPTY_OBJ = Object.freeze({});
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted categories set.
+ * Prevents calling map, instantiating a Set, and reconstructing the array on mount or re-render.
+ */
+const CATEGORIES = [...new Set(achievements.map(a => a.category))];
+
 const Achievements = () => {
   /**
    * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
@@ -28,10 +34,6 @@ const Achievements = () => {
   }, [gamificationData]);
 
   const earnedIds = useMemo(() => new Set(earned), [earned]);
-
-  const categories = useMemo(() => {
-    return [...new Set(achievements.map(a => a.category))];
-  }, []);
 
   const xpToNextLevel = useMemo(() => {
     const currentLevelXP = level * 1000; // Simplified logic for UI
@@ -127,7 +129,7 @@ const Achievements = () => {
 
         {/* Categorized Matrix Display */}
         <div className="space-y-24">
-          {categories.map(category => (
+          {CATEGORIES.map(category => (
             <section key={category} className="space-y-10">
               <div className="items-center gap-6 hidden md:flex">
                 <h2 className="text-[0.7rem] font-black uppercase tracking-[0.5em] text-gray-500 whitespace-nowrap">

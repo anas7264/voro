@@ -132,3 +132,8 @@
 **Action:**
 1. Prefer raw relational comparison (`a.prop < b.prop ? -1 : a.prop > b.prop ? 1 : 0`) for lexicographically-compatible strings (like ISO-8601 dates).
 2. Safe-guard comparisons with default fallbacks (e.g., `a.date || ''`) to avoid runtime TypeErrors on missing values.
+
+## 2026-08-05 - Static Dataset & Category Hoisting
+**Learning:** Defining static datasets or performing extraction (e.g., `new Set(...)`) inside React components (or even inside `useMemo` hooks) still carries some allocation and Hook initialization/tracking overhead. Moving entirely static arrays and sets/maps out of the component scope completely avoids execution overhead on every render, keeping components lightning fast and clean.
+
+**Action:** Always hoist completely static data arrays, configuration objects, and their one-time derived values (like categories mappings or sets) to module-level constants.
