@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo } from 'react';
-import { Plus, Trash2, Layout } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Plus, Trash2, Layout, AlertCircle } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
@@ -11,10 +11,19 @@ const SavedTrainingPlans = () => {
    */
   const plansData = useStorageKey('plans') || {};
   const { updateItem } = useStorageMethods();
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
 
   useEffect(() => {
     document.title = 'VORO | Blueprint Archive';
   }, []);
+
+  // Reset confirmation state after timeout
+  useEffect(() => {
+    if (confirmingDeleteId) {
+      const timer = setTimeout(() => setConfirmingDeleteId(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [confirmingDeleteId]);
 
   /**
    * ⚡ OPTIMIZATION: Synchronous data derivation.
@@ -22,8 +31,13 @@ const SavedTrainingPlans = () => {
   const plans = useMemo(() => plansData.savedTrainingPlans || [], [plansData.savedTrainingPlans]);
 
   const handleDeletePlan = async (id) => {
-    const updated = plans.filter(p => p.id !== id);
-    await updateItem('plans', { savedTrainingPlans: updated });
+    if (confirmingDeleteId === id) {
+      const updated = plans.filter(p => p.id !== id);
+      await updateItem('plans', { savedTrainingPlans: updated });
+      setConfirmingDeleteId(null);
+    } else {
+      setConfirmingDeleteId(id);
+    }
   };
 
   return (
@@ -55,9 +69,10 @@ const SavedTrainingPlans = () => {
                       </div>
                       <button
                         onClick={() => handleDeletePlan(plan.id)}
-                        className="p-3 rounded-xl bg-white/[0.02] border border-white/5 text-gray-700 hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+                        aria-label={confirmingDeleteId === plan.id ? `Confirm deletion of training plan: ${plan.name}` : `Delete training plan: ${plan.name}`}
+                        className={`p-3 rounded-xl transition-all outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${confirmingDeleteId === plan.id ? 'bg-red-500/20 text-red-400 animate-pulse opacity-100' : 'bg-white/[0.02] border border-white/5 text-gray-700 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 focus-visible:opacity-100'}`}
                       >
-                        <Trash2 size={16} />
+                        {confirmingDeleteId === plan.id ? <AlertCircle size={16} /> : <Trash2 size={16} />}
                       </button>
                     </div>
 
