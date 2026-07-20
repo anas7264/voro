@@ -2,12 +2,39 @@
 // Data formatting utilities for display
 
 /**
+ * ⚡ PERFORMANCE OPTIMIZATION: Static lookup tables to avoid garbage collection and string allocations.
+ */
+const PADDED_MONTHS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
+const PADDED_DAYS = [
+  '00', '01', '02', '03', '04', '05', '06', '07', '08', '09',
+  '10', '11', '12', '13', '14', '15', '16', '17', '18', '19',
+  '20', '21', '22', '23', '24', '25', '26', '27', '28', '29',
+  '30', '31'
+];
+const PADDED_NUMS = Array.from({ length: 60 }, (_, i) => i < 10 ? `0${i}` : `${i}`);
+
+/**
  * ⚡ PERFORMANCE OPTIMIZATION: Memoized Intl formatters.
  * Reusing Intl.DateTimeFormat and Intl.NumberFormat instances avoids the high
  * overhead of object instantiation during frequent re-renders or loop processing.
  */
 const dateFormatterCache = new Map();
 const numberFormatterCache = new Map();
+
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Ultra-fast option serializer.
+ * Replaces slow JSON.stringify to significantly accelerate key generation.
+ */
+const serializeOptions = (options) => {
+  if (!options) return '';
+  let str = '';
+  for (const k in options) {
+    if (Object.prototype.hasOwnProperty.call(options, k)) {
+      str += `:${k}_${options[k]}`;
+    }
+  }
+  return str;
+};
 
 /**
  * Private helper to retrieve or create a memoized Intl formatter.
@@ -18,7 +45,7 @@ const numberFormatterCache = new Map();
  * @returns {Object} The cached or new Intl formatter instance
  */
 const getFormatter = (cache, FormatterClass, locale, options) => {
-  const cacheKey = `${locale}-${JSON.stringify(options)}`;
+  const cacheKey = `${locale}-${serializeOptions(options)}`;
   if (!cache.has(cacheKey)) {
     cache.set(cacheKey, new FormatterClass(locale, options));
   }
@@ -30,10 +57,7 @@ const getFormatter = (cache, FormatterClass, locale, options) => {
  * Significantly faster than d.toISOString().slice(0, 10) in tight loops.
  */
 export const getFastDateStr = (d) => {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return `${d.getFullYear()}-${PADDED_MONTHS[d.getMonth()]}-${PADDED_DAYS[d.getDate()]}`;
 };
 
 // Format date to readable string
@@ -102,11 +126,14 @@ export const formatTime = (seconds, includeHours = false) => {
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = Math.floor(seconds % 60);
 
+  const paddedMins = minutes < 60 ? PADDED_NUMS[minutes] : String(minutes).padStart(2, '0');
+  const paddedSecs = secs < 60 ? PADDED_NUMS[secs] : String(secs).padStart(2, '0');
+
   if (includeHours || hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    return `${hours}:${paddedMins}:${paddedSecs}`;
   }
 
-  return `${minutes}:${secs.toString().padStart(2, "0")}`;
+  return `${minutes}:${paddedSecs}`;
 };
 
 // Format calories with unit
@@ -159,7 +186,8 @@ export const formatPace = (metersPerSecond) => {
   const secondsPerKm = 3600 / (kmPerHour * 1000);
   const minutes = Math.floor(secondsPerKm / 60);
   const seconds = Math.round(secondsPerKm % 60);
-  return `${minutes}:${seconds.toString().padStart(2, "0")}/km`;
+  const paddedSecs = seconds < 60 ? PADDED_NUMS[seconds] : String(seconds).padStart(2, '0');
+  return `${minutes}:${paddedSecs}/km`;
 };
 
 // Format heart rate with bpm
