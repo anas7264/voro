@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { Plus, Trash2, Calendar, Zap, Target, Activity } from 'lucide-react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { Plus, Trash2, Calendar, Zap, Target, Activity, AlertTriangle } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
@@ -26,9 +26,14 @@ const Periodization = () => {
   const blocks = useStorageKey('periodization') || [];
   const { setItem } = useStorageMethods();
   const { addNotification } = useNotifications();
+  const [confirmingId, setConfirmingId] = useState(null);
+  const timeoutRef = useRef(null);
 
   useEffect(() => {
     document.title = 'VORO | Periodization Archive';
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
   }, []);
 
   const handleAddBlock = useCallback(async (block) => {
@@ -47,10 +52,20 @@ const Periodization = () => {
   }, [blocks, setItem, addNotification]);
 
   const handleRemoveBlock = useCallback(async (id) => {
-    const updated = blocks.filter(b => b.id !== id);
-    await setItem('periodization', updated);
-    addNotification('Evolution block decommissioned', 'info');
-  }, [blocks, setItem, addNotification]);
+    if (confirmingId === id) {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      setConfirmingId(null);
+      const updated = blocks.filter(b => b.id !== id);
+      await setItem('periodization', updated);
+      addNotification('Evolution block decommissioned', 'info');
+    } else {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      setConfirmingId(id);
+      timeoutRef.current = setTimeout(() => {
+        setConfirmingId(null);
+      }, 3000);
+    }
+  }, [blocks, confirmingId, setItem, addNotification]);
 
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] p-4 md:p-8 selection:bg-voro-primary/30">
@@ -122,9 +137,21 @@ const Periodization = () => {
                        <span className="text-[0.55rem] font-mono text-gray-700 uppercase tracking-widest">Start: {new Date(block.startDate).toLocaleDateString()}</span>
                        <button
                         onClick={() => handleRemoveBlock(block.id)}
-                        className="p-3 rounded-xl hover:bg-red-500/10 text-gray-700 hover:text-red-400 transition-all opacity-0 group-hover:opacity-100"
+                        className={`p-3 rounded-xl transition-all flex items-center gap-1.5 text-[0.65rem] font-mono font-bold uppercase tracking-wider ${
+                          confirmingId === block.id
+                            ? 'bg-red-500/20 text-red-400 border border-red-500/30 shadow-[0_0_12px_rgba(239,68,68,0.2)] scale-105 opacity-100'
+                            : 'hover:bg-red-500/10 text-gray-700 hover:text-red-400 opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100'
+                        }`}
+                        aria-label={confirmingId === block.id ? `Confirm deletion of ${block.name}` : `Remove ${block.name}`}
                        >
-                        <Trash2 size={18} />
+                        {confirmingId === block.id ? (
+                          <>
+                            <AlertTriangle size={12} className="animate-pulse" />
+                            <span>Confirm Deletion</span>
+                          </>
+                        ) : (
+                          <Trash2 size={18} />
+                        )}
                        </button>
                     </div>
                   </div>

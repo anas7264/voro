@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo } from 'react';
-import { Plus, Trash2, Layout } from 'lucide-react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
+import { Plus, Trash2, Layout, AlertTriangle } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
@@ -12,8 +12,14 @@ const SavedTrainingPlans = () => {
   const plansData = useStorageKey('plans') || {};
   const { updateItem } = useStorageMethods();
 
+  const [confirmingId, setConfirmingId] = useState(null);
+  const timeoutRef = useRef(null);
+
   useEffect(() => {
     document.title = 'VORO | Blueprint Archive';
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
   }, []);
 
   /**
@@ -22,8 +28,18 @@ const SavedTrainingPlans = () => {
   const plans = useMemo(() => plansData.savedTrainingPlans || [], [plansData.savedTrainingPlans]);
 
   const handleDeletePlan = async (id) => {
-    const updated = plans.filter(p => p.id !== id);
-    await updateItem('plans', { savedTrainingPlans: updated });
+    if (confirmingId === id) {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      setConfirmingId(null);
+      const updated = plans.filter(p => p.id !== id);
+      await updateItem('plans', { savedTrainingPlans: updated });
+    } else {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      setConfirmingId(id);
+      timeoutRef.current = setTimeout(() => {
+        setConfirmingId(null);
+      }, 3000);
+    }
   };
 
   return (
@@ -55,9 +71,21 @@ const SavedTrainingPlans = () => {
                       </div>
                       <button
                         onClick={() => handleDeletePlan(plan.id)}
-                        className="p-3 rounded-xl bg-white/[0.02] border border-white/5 text-gray-700 hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+                        className={`p-3 rounded-xl transition-all flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider ${
+                          confirmingId === plan.id
+                            ? 'bg-red-500/20 text-red-400 border border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.2)] scale-105 opacity-100'
+                            : 'bg-white/[0.02] border border-white/5 text-gray-700 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100'
+                        }`}
+                        aria-label={confirmingId === plan.id ? `Confirm deletion of ${plan.name} blueprint` : `Remove ${plan.name} blueprint`}
                       >
-                        <Trash2 size={16} />
+                        {confirmingId === plan.id ? (
+                          <>
+                            <AlertTriangle size={14} className="animate-pulse" />
+                            <span>Confirm Deletion</span>
+                          </>
+                        ) : (
+                          <Trash2 size={16} />
+                        )}
                       </button>
                     </div>
 

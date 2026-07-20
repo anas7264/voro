@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { Plus, Trash2, Pill, Calendar, Activity, Zap } from 'lucide-react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
+import { Plus, Trash2, Pill, Calendar, Activity, Zap, AlertTriangle } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
@@ -26,9 +26,14 @@ const SupplementTracker = () => {
   const { setItem } = useStorageMethods();
   const { addNotification } = useNotifications();
   const [showForm, setShowForm] = useState(false);
+  const [confirmingId, setConfirmingId] = useState(null);
+  const timeoutRef = useRef(null);
 
   useEffect(() => {
     document.title = 'VORO | Supplement Tracker';
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
   }, []);
 
   const handleAddSupplement = async (supplement) => {
@@ -44,9 +49,19 @@ const SupplementTracker = () => {
   };
 
   const handleRemove = async (id) => {
-    const updated = userSupplements.filter(s => s.id !== id);
-    await setItem('supplements', updated);
-    addNotification('Supplement removed from protocol.', 'info');
+    if (confirmingId === id) {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      setConfirmingId(null);
+      const updated = userSupplements.filter(s => s.id !== id);
+      await setItem('supplements', updated);
+      addNotification('Supplement removed from protocol.', 'info');
+    } else {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      setConfirmingId(id);
+      timeoutRef.current = setTimeout(() => {
+        setConfirmingId(null);
+      }, 3000);
+    }
   };
 
   return (
@@ -107,9 +122,21 @@ const SupplementTracker = () => {
                   </div>
                   <button
                     onClick={() => handleRemove(supp.id)}
-                    className="p-2.5 rounded-xl text-gray-800 hover:text-red-400 hover:bg-red-400/10 transition-all opacity-0 group-hover:opacity-100"
+                    className={`p-2.5 rounded-xl transition-all flex items-center gap-1.5 text-[0.65rem] font-mono font-bold uppercase tracking-wider ${
+                      confirmingId === supp.id
+                        ? 'bg-red-500/20 text-red-400 border border-red-500/30 shadow-[0_0_12px_rgba(239,68,68,0.2)] scale-105 opacity-100'
+                        : 'text-gray-800 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100'
+                    }`}
+                    aria-label={confirmingId === supp.id ? `Confirm deletion of ${supp.name} compound` : `Remove ${supp.name} compound`}
                   >
-                    <Trash2 size={16} />
+                    {confirmingId === supp.id ? (
+                      <>
+                        <AlertTriangle size={12} className="animate-pulse" />
+                        <span>Confirm Deletion</span>
+                      </>
+                    ) : (
+                      <Trash2 size={16} />
+                    )}
                   </button>
                 </div>
 
