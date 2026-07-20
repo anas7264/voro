@@ -147,6 +147,85 @@ const DossierHero = memo(({ article, onAccessDossier }) => {
 
 DossierHero.displayName = 'DossierHero';
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted stable articles dataset and categories.
+ * Prevents allocating the articles array, mapping its values, and instantiating
+ * a Set on every single component render cycle.
+ */
+const ARTICLES = [
+  {
+    id: 1,
+    title: 'Biological Fuel: Decoding Macronutrient Synthesis',
+    category: 'Nutrition',
+    readTime: '8 min',
+    author: 'Dr. Elias Vance',
+    date: 'May 2024',
+    tags: ['Metabolic', 'Synthesis'],
+    excerpt: 'An exhaustive exploration of protein, carbohydrates, and lipids. Understand the kinetic conversion of energy and how to optimize your metabolic trajectory.',
+    featured: true,
+    image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&q=80&w=2000'
+  },
+  {
+    id: 2,
+    title: 'Hypertrophic Architecture: The Progressive Overload Doctrine',
+    category: 'Training',
+    readTime: '12 min',
+    author: 'Aria Thorne',
+    date: 'June 2024',
+    tags: ['Hypertrophy', 'Force'],
+    excerpt: 'Master the mechanical tension, metabolic stress, and muscle damage triad. A scientific blueprint for consistent physiological adaptation and force production.',
+    image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=1000'
+  },
+  {
+    id: 3,
+    title: 'Circadian Optimization: The Neural Recovery Protocol',
+    category: 'Recovery',
+    readTime: '10 min',
+    author: 'Marcus Chen',
+    date: 'April 2024',
+    tags: ['Circadian', 'Neural'],
+    excerpt: 'Investigate the profound impact of sleep architecture on endocrine health and kinetic performance. Strategies for deep REM-state maximization.',
+    image: 'https://images.unsplash.com/photo-1541480605637-296291a24d9d?auto=format&fit=crop&q=80&w=1000'
+  },
+  {
+    id: 4,
+    title: 'The Levantine Matrix: Ancient Wisdom in Modern Nutrition',
+    category: 'Nutrition',
+    readTime: '15 min',
+    author: 'Sama Haddad',
+    date: 'July 2024',
+    tags: ['Levantine', 'Longevity'],
+    excerpt: 'Decoding the nutritional density of Palestinian and Levantine cuisine. A longitudinal analysis of the world’s most potent longevity diets.',
+    image: 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&q=80&w=1000'
+  },
+  {
+    id: 5,
+    title: 'Endocrine Equilibrium: Managing Cortisol in High-Performance States',
+    category: 'Recovery',
+    readTime: '7 min',
+    author: 'Dr. Sarah Miller',
+    date: 'August 2024',
+    tags: ['Hormonal', 'Balance'],
+    excerpt: 'Strategies for balancing the sympathetic and parasympathetic nervous systems during intensive training cycles to prevent overreaching.',
+    image: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&q=80&w=1000'
+  },
+  {
+    id: 6,
+    title: 'Kinetic Mechanics: The Physics of the Deadlift',
+    category: 'Training',
+    readTime: '9 min',
+    author: 'Coach J. Richards',
+    date: 'September 2024',
+    tags: ['Biomechanics', 'Power'],
+    excerpt: 'A deep dive into leverage, center of mass, and spinal stabilization. Optimize your pull for maximum efficiency and structural integrity.',
+    image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&q=80&w=1000'
+  }
+];
+
+const CATEGORIES = ['All', ...new Set(ARTICLES.map(a => a.category))];
+
+const FEATURED_ARTICLE = ARTICLES.find(a => a.featured);
+
 const EducationHub = () => {
   const { addNotification } = useNotifications();
   const [searchQuery, setSearchQuery] = useState('');
@@ -189,89 +268,15 @@ const EducationHub = () => {
     document.title = 'VORO | Intellectual Archive';
   }, []);
 
-  const articles = useMemo(() => [
-    {
-      id: 1,
-      title: 'Biological Fuel: Decoding Macronutrient Synthesis',
-      category: 'Nutrition',
-      readTime: '8 min',
-      author: 'Dr. Elias Vance',
-      date: 'May 2024',
-      tags: ['Metabolic', 'Synthesis'],
-      excerpt: 'An exhaustive exploration of protein, carbohydrates, and lipids. Understand the kinetic conversion of energy and how to optimize your metabolic trajectory.',
-      featured: true,
-      image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&q=80&w=2000'
-    },
-    {
-      id: 2,
-      title: 'Hypertrophic Architecture: The Progressive Overload Doctrine',
-      category: 'Training',
-      readTime: '12 min',
-      author: 'Aria Thorne',
-      date: 'June 2024',
-      tags: ['Hypertrophy', 'Force'],
-      excerpt: 'Master the mechanical tension, metabolic stress, and muscle damage triad. A scientific blueprint for consistent physiological adaptation and force production.',
-      image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=1000'
-    },
-    {
-      id: 3,
-      title: 'Circadian Optimization: The Neural Recovery Protocol',
-      category: 'Recovery',
-      readTime: '10 min',
-      author: 'Marcus Chen',
-      date: 'April 2024',
-      tags: ['Circadian', 'Neural'],
-      excerpt: 'Investigate the profound impact of sleep architecture on endocrine health and kinetic performance. Strategies for deep REM-state maximization.',
-      image: 'https://images.unsplash.com/photo-1541480605637-296291a24d9d?auto=format&fit=crop&q=80&w=1000'
-    },
-    {
-      id: 4,
-      title: 'The Levantine Matrix: Ancient Wisdom in Modern Nutrition',
-      category: 'Nutrition',
-      readTime: '15 min',
-      author: 'Sama Haddad',
-      date: 'July 2024',
-      tags: ['Levantine', 'Longevity'],
-      excerpt: 'Decoding the nutritional density of Palestinian and Levantine cuisine. A longitudinal analysis of the world’s most potent longevity diets.',
-      image: 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&q=80&w=1000'
-    },
-    {
-      id: 5,
-      title: 'Endocrine Equilibrium: Managing Cortisol in High-Performance States',
-      category: 'Recovery',
-      readTime: '7 min',
-      author: 'Dr. Sarah Miller',
-      date: 'August 2024',
-      tags: ['Hormonal', 'Balance'],
-      excerpt: 'Strategies for balancing the sympathetic and parasympathetic nervous systems during intensive training cycles to prevent overreaching.',
-      image: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&q=80&w=1000'
-    },
-    {
-      id: 6,
-      title: 'Kinetic Mechanics: The Physics of the Deadlift',
-      category: 'Training',
-      readTime: '9 min',
-      author: 'Coach J. Richards',
-      date: 'September 2024',
-      tags: ['Biomechanics', 'Power'],
-      excerpt: 'A deep dive into leverage, center of mass, and spinal stabilization. Optimize your pull for maximum efficiency and structural integrity.',
-      image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&q=80&w=1000'
-    }
-  ], []);
-
-  const categories = ['All', ...new Set(articles.map(a => a.category))];
-
-  const featuredArticle = useMemo(() => articles.find(a => a.featured), [articles]);
-
   const filteredArticles = useMemo(() => {
-    return articles.filter(article => {
+    return ARTICLES.filter(article => {
       if (article.featured && activeCategory === 'All' && !searchQuery) return false;
       const matchesSearch = article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                             article.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = activeCategory === 'All' || article.category === activeCategory;
       return matchesSearch && matchesCategory;
     });
-  }, [articles, searchQuery, activeCategory]);
+  }, [searchQuery, activeCategory]);
 
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30 pb-24 relative overflow-hidden">
@@ -311,7 +316,7 @@ const EducationHub = () => {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {categories.map(cat => (
+              {CATEGORIES.map(cat => (
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
@@ -329,8 +334,8 @@ const EducationHub = () => {
         </header>
 
         {/* Cinematic Dossier Hero */}
-        {!searchQuery && activeCategory === 'All' && featuredArticle && (
-          <DossierHero article={featuredArticle} onAccessDossier={handleReadDossier} />
+        {!searchQuery && activeCategory === 'All' && FEATURED_ARTICLE && (
+          <DossierHero article={FEATURED_ARTICLE} onAccessDossier={handleReadDossier} />
         )}
 
         {/* Intelligence Grid */}
