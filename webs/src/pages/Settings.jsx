@@ -83,6 +83,21 @@ const Settings = () => {
     }
   }, [clearAllData, addNotification]);
 
+  const handleImportData = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      if (await useStorageMethods().importData(JSON.parse(await file.text()))) {
+        addNotification('System data matrix successfully synchronized', 'success');
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        addNotification('Data decryption or integrity check failed', 'error');
+      }
+    } catch (err) {
+      addNotification('Invalid file payload or structure', 'error');
+    }
+  };
+
   const labelStyle = "block text-[0.65rem] font-mono font-black uppercase tracking-[0.3em] text-gray-500 group-hover:text-voro-primary transition-colors cursor-pointer mb-1";
 
   return (
@@ -235,13 +250,23 @@ const Settings = () => {
               <Download size={18} />
               <span className="text-[0.65rem] font-black uppercase tracking-widest">Export Archive</span>
             </Button>
-            <Button
-              variant="secondary"
-              className="flex items-center justify-center gap-3 !rounded-2xl py-6 border-white/5 hover:bg-white/5"
-            >
-              <Upload size={18} />
-              <span className="text-[0.65rem] font-black uppercase tracking-widest">Import Matrix</span>
-            </Button>
+            <div className="relative">
+              <input
+                type="file"
+                accept=".json"
+                style={{ display: 'none' }}
+                id="matrix-import-uploader"
+                onChange={handleImportData}
+              />
+              <Button
+                variant="secondary"
+                className="flex items-center justify-center gap-3 !rounded-2xl py-6 border-white/5 hover:bg-white/5 w-full text-center"
+                onClick={() => document.getElementById('matrix-import-uploader')?.click()}
+              >
+                <Upload size={18} />
+                <span className="text-[0.65rem] font-black uppercase tracking-widest">Import Matrix</span>
+              </Button>
+            </div>
             <Button
               variant="danger"
               className="sm:col-span-2 flex items-center justify-center gap-3 !rounded-2xl py-6 mt-4 bg-red-500/10 border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-lg shadow-red-500/10"

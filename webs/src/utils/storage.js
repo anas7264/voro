@@ -489,30 +489,55 @@ class StorageManager {
 
   // Export storage as JSON for backup
   async export() {
-    const data = await this.getAll();
-    const timestamp = new Date().toISOString();
-    return {
-      version: 1,
-      timestamp,
-      data
-    };
+    try {
+      const rawData = await this.getAll();
+      const backupKey = await crypto.deriveDomainKey('voro_backup_vault');
+      const encoder = new TextEncoder();
+      const encodedData = encoder.encode(JSON.stringify(rawData));
+      const iv = new Uint8Array(12);
+      window.crypto.getRandomValues(iv);
+      const ciphertext = await executeSecurely("Encrypt Backup", () =>
+        window.crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: encoder.encode('voro_backup_vault') }, backupKey, encodedData),
+        ['sink:crypto.subtle.encrypt']
+      );
+      const combined = new Uint8Array(iv.length + ciphertext.byteLength);
+      combined.set(iv);
+      combined.set(new Uint8Array(ciphertext), iv.length);
+      const binary = Array.from(combined, byte => String.fromCharCode(byte)).join('');
+      encodedData.fill(0);
+      iv.fill(0);
+      combined.fill(0);
+      return { format: "voro_backup_v2", timestamp: new Date().toISOString(), ciphertext: btoa(binary) };
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
   }
 
-  // Import storage from JSON
+  // Import storage from encrypted backup
   async import(backup) {
     try {
-      if (!backup.data || backup.version !== 1) {
-        console.error("Invalid backup format");
-        return false;
+      if (!backup || backup.format !== "voro_backup_v2" || !backup.ciphertext) return false;
+      const binaryString = atob(backup.ciphertext);
+      const bytes = Uint8Array.from(binaryString, c => c.charCodeAt(0));
+      const iv = bytes.slice(0, 12);
+      const ciphertext = bytes.slice(12);
+      const backupKey = await crypto.deriveDomainKey('voro_backup_vault');
+      const decryptedBuffer = await executeSecurely("Decrypt Backup", () =>
+        window.crypto.subtle.decrypt({ name: 'AES-GCM', iv, additionalData: new TextEncoder().encode('voro_backup_vault') }, backupKey, ciphertext),
+        ['sink:crypto.subtle.decrypt']
+      );
+      bytes.fill(0);
+      iv.fill(0);
+      const backupData = JSON.parse(new TextDecoder().decode(new Uint8Array(decryptedBuffer)));
+      const validKeys = new Set(Object.values(STORAGE_KEYS));
+      for (const key of Object.keys(backupData)) {
+        if (!validKeys.has(key) || ['__proto__', 'constructor', 'prototype'].includes(key)) continue;
+        await this.set(key, sanitizeObject(backupData[key]));
       }
-
-      for (const key of Object.keys(backup.data)) {
-        await this.set(key, backup.data[key]);
-      }
-
       return true;
-    } catch (error) {
-      console.error("Storage import error:", error);
+    } catch (e) {
+      console.error(e);
       return false;
     }
   }
