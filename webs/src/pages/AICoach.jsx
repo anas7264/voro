@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useRef, memo } from 'react';
-import { Send, Loader, Bot, Sparkles } from 'lucide-react';
+import { Send, Loader, Bot, Sparkles, Trash2, AlertCircle } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
 import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useAI } from '@/hooks/useAI';
+import { useNotifications } from '@/hooks/useNotifications';
 
 const MessageItem = memo(({ msg }) => {
   const isAssistant = msg.role === 'assistant';
@@ -61,6 +62,7 @@ const AICoach = () => {
   const savedHistory = useStorageKey('chat_history');
   const { setItem } = useStorageMethods();
   const { chat, loading: aiLoading } = useAI();
+  const { addNotification } = useNotifications();
 
   /**
    * ⚡ OPTIMIZATION: Hydration-safe state initialization.
@@ -70,7 +72,27 @@ const AICoach = () => {
   const [messages, setMessages] = useState(() => savedHistory || []);
   const [input, setInput] = useState('');
   const [localLoading, setLocalLoading] = useState(false);
+  const [confirmingPurge, setConfirmingPurge] = useState(false);
   const messagesEndRef = useRef(null);
+
+  // Reset confirmation state after timeout
+  useEffect(() => {
+    if (confirmingPurge) {
+      const timer = setTimeout(() => setConfirmingPurge(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [confirmingPurge]);
+
+  const handlePurgeDialogue = async () => {
+    if (!confirmingPurge) {
+      setConfirmingPurge(true);
+      return;
+    }
+    setConfirmingPurge(false);
+    setMessages([]);
+    await setItem('chat_history', []);
+    addNotification('Neural dialogue history purged successfully.', 'success');
+  };
 
   const loading = aiLoading || localLoading;
 
@@ -97,6 +119,37 @@ const AICoach = () => {
     'Explain my macros',
     'Motivate me!',
   ];
+
+  const handleSendRef = useRef(null);
+  useEffect(() => {
+    handleSendRef.current = handleSendMessage;
+  });
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const activeEl = document.activeElement;
+      if (
+        activeEl &&
+        (activeEl.tagName === 'INPUT' ||
+         activeEl.tagName === 'TEXTAREA' ||
+         activeEl.isContentEditable)
+      ) {
+        return;
+      }
+
+      const num = parseInt(e.key, 10);
+      if (num >= 1 && num <= 6) {
+        e.preventDefault();
+        const prompt = quickPrompts[num - 1];
+        if (prompt) {
+          handleSendRef.current(prompt);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     document.title = 'VORO | AI Coach';
@@ -173,17 +226,33 @@ const AICoach = () => {
       </div>
 
       <div className="relative max-w-4xl mx-auto w-full flex flex-col h-screen">
-        <header className="mb-12">
-          <div className="flex items-center gap-3 text-voro-primary mb-2">
-            <Bot size={18} />
-            <span className="text-[0.6rem] font-black uppercase tracking-[0.3em]">Neural Synthesis Engine</span>
+        <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div>
+            <div className="flex items-center gap-3 text-voro-primary mb-2">
+              <Bot size={18} />
+              <span className="text-[0.6rem] font-black uppercase tracking-[0.3em]">Neural Synthesis Engine</span>
+            </div>
+            <h1 className="text-4xl md:text-6xl font-serif italic font-medium tracking-tight text-white mb-2 leading-tight">
+              Neural <span className="text-voro-primary not-italic font-bold">Oracle</span>
+            </h1>
+            <p className="text-gray-500 font-mono text-[0.65rem] uppercase tracking-[0.2em] opacity-60">
+              Real-time biometric data processing & biological optimization
+            </p>
           </div>
-          <h1 className="text-4xl md:text-6xl font-serif italic font-medium tracking-tight text-white mb-2 leading-tight">
-            Neural <span className="text-voro-primary not-italic font-bold">Oracle</span>
-          </h1>
-          <p className="text-gray-500 font-mono text-[0.65rem] uppercase tracking-[0.2em] opacity-60">
-            Real-time biometric data processing & biological optimization
-          </p>
+          {messages.length > 0 && (
+            <div className="flex-shrink-0">
+              <Button
+                variant={confirmingPurge ? "danger" : "secondary"}
+                size="sm"
+                onClick={handlePurgeDialogue}
+                className={`flex items-center gap-2 h-12 rounded-[1rem] ${confirmingPurge ? "animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.4)]" : ""}`}
+                aria-label={confirmingPurge ? "Confirm purging of neural dialogue history" : "Purge neural dialogue history"}
+              >
+                {confirmingPurge ? <AlertCircle size={14} /> : <Trash2 size={14} />}
+                <span>{confirmingPurge ? "Confirm Purge" : "Purge Dialogue"}</span>
+              </Button>
+            </div>
+          )}
         </header>
 
         {/* Chat Area */}
@@ -213,11 +282,15 @@ const AICoach = () => {
                   <button
                     key={idx}
                     onClick={() => handleSendMessage(prompt)}
-                    className="group relative p-6 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-voro-primary/30 transition-all duration-500 text-left overflow-hidden"
+                    className="group relative p-6 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-voro-primary/30 transition-all duration-500 text-left overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-voro-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-voro-surface"
+                    aria-label={`Ask coach: ${prompt}`}
                   >
-                    <div className="absolute inset-0 bg-voro-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <span className="relative z-10 text-[0.6rem] font-mono font-black uppercase tracking-[0.25em] text-gray-500 group-hover:text-white transition-colors">
+                    <div className="absolute inset-0 bg-voro-primary/5 opacity-0 group-hover:opacity-100 group-focus:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-500" />
+                    <span className="relative z-10 text-[0.6rem] font-mono font-black uppercase tracking-[0.25em] text-gray-500 group-hover:text-white group-focus:text-white group-focus-visible:text-white transition-colors">
                       {prompt}
+                    </span>
+                    <span className="absolute top-2 right-4 font-mono text-[0.45rem] font-bold text-gray-700 group-hover:text-voro-secondary group-focus:text-voro-secondary group-focus-visible:text-voro-secondary transition-colors" aria-hidden="true">
+                      [{idx + 1}]
                     </span>
                   </button>
                 ))}
