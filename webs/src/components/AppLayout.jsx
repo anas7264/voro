@@ -17,8 +17,10 @@ const AppLayout = ({ children }) => {
    * ⚡ OPTIMIZATION: Global Neural Ambient Engine.
    * Tracks mouse movement to drive background atmospheric displacement.
    * Uses direct DOM manipulation of CSS variables to bypass React render cycle.
+   * Hardened with high-frequency event throttling via requestAnimationFrame and passive registration.
    */
   useEffect(() => {
+    let rId;
     const handleMouseMove = (e) => {
       if (!layoutRef.current) return;
 
@@ -29,15 +31,27 @@ const AppLayout = ({ children }) => {
       const nx = (clientX / innerWidth) * 100;
       const ny = (clientY / innerHeight) * 100;
 
-      // Update CSS variables on the container
-      layoutRef.current.style.setProperty('--bg-x1', `${nx * 0.4}%`);
-      layoutRef.current.style.setProperty('--bg-y1', `${ny * 0.4}%`);
-      layoutRef.current.style.setProperty('--bg-x2', `${(100 - nx) * 0.3}%`);
-      layoutRef.current.style.setProperty('--bg-y2', `${(100 - ny) * 0.3}%`);
+      if (rId) {
+        cancelAnimationFrame(rId);
+      }
+
+      rId = requestAnimationFrame(() => {
+        if (!layoutRef.current) return;
+        // Update CSS variables on the container
+        layoutRef.current.style.setProperty('--bg-x1', `${nx * 0.4}%`);
+        layoutRef.current.style.setProperty('--bg-y1', `${ny * 0.4}%`);
+        layoutRef.current.style.setProperty('--bg-x2', `${(100 - nx) * 0.3}%`);
+        layoutRef.current.style.setProperty('--bg-y2', `${(100 - ny) * 0.3}%`);
+      });
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      if (rId) {
+        cancelAnimationFrame(rId);
+      }
+    };
   }, []);
 
   /**
