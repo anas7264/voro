@@ -29,3 +29,7 @@
 ## 2025-07-18 - Keyboard Accessibility for Hover-Revealed Controls
 **Learning:** High-fidelity layouts often hide utility buttons (like bookmark or share controls) under hover transitions (`group-hover:opacity-100`) to maintain a clean visual aesthetic. However, this pattern leaves elements completely hidden and unreachable for keyboard-only navigators.
 **Action:** Always combine hover states with focus-within triggers (e.g., `group-focus-within:opacity-100` or `group-focus-visible:opacity-100`) on wrapper containers, and ensure all newly revealed controls possess clear `focus-visible` ring outlines and explicit ARIA labels.
+
+## 2025-07-20 - Defensive Double-Confirmation with Global Keyboard Shortcuts
+**Learning:** Reusable defensive actions (like purging logs or clearing history) should align visual danger transitions (e.g. pulsing warnings, icon swaps, and timeouts) with explicit assistive attributes. For pages centered on quick interactions (like AI Coach/prompts), pairing visual keyboard shortcut indicators with global key handlers significantly enhances navigation speed for power and accessibility users alike, provided inputs/textareas are bypassed.
+**Action:** Always verify that keyboard shortcuts are deactivated when the user is actively focused on an input or textarea element by querying `document.activeElement` and verifying its tagName. Use a stable `useRef` pointing to the event callbacks to prevent listener re-registration overhead.
