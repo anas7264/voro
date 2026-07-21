@@ -70,6 +70,12 @@ class StorageManager {
         this.notify('*', null);
       });
 
+      // Active Session Ephemerality (ASE)
+      // Purge cached decrypted data from memory when the user is idle.
+      window.addEventListener('voro-security-idle-shred', () => {
+        this.clearCache();
+      });
+
       // Visibility-Based Memory Sanitization
       // Purge cached data from memory when the tab is backgrounded.
       document.addEventListener('visibilitychange', () => {
