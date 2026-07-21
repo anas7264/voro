@@ -78,6 +78,19 @@ const Settings = () => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Security: Validate file size (max 5MB to prevent client-side Denial of Service / thread blocking / memory exhaustion)
+    const MAX_SIZE_BYTES = 5 * 1024 * 1024;
+    if (file.size > MAX_SIZE_BYTES) {
+      addNotification('File exceeds safety size limit of 5MB.', 'error');
+      return;
+    }
+
+    // Security: Validate file name extension to ensure it is JSON
+    if (!file.name.toLowerCase().endsWith('.json')) {
+      addNotification('Invalid file type. Only standard JSON matrix files (.json) are accepted.', 'error');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
