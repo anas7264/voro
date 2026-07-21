@@ -205,6 +205,18 @@ const initializeUserPresence = () => {
     // This blocks automated scripts and headless interaction.
     if (e.isTrusted) {
       _lastUserInteraction = _perfNow ? _call.call(_perfNow, performance) : Date.now();
+      if (typeof window !== 'undefined' && window._voro_idle_shredded) {
+        window._voro_idle_shredded = false;
+        try {
+          const activeEvent = new CustomEvent('voro-security-user-active', {
+            detail: { timestamp: _lastUserInteraction }
+          });
+          window.dispatchEvent(activeEvent);
+        } catch (err) { /* fail-safe */ }
+        if (_console.info) {
+          _call.call(_console.info, console, "Security Sentinel: User re-attested. Session re-activated.");
+        }
+      }
     }
   };
 
@@ -2612,6 +2624,23 @@ const startAutonomousPulse = () => {
         }
       }
 
+      // Active Session Ephemerality: Check if the user is idle
+      const curTime = _perfNow ? _call.call(_perfNow, performance) : Date.now();
+      if (curTime - _lastUserInteraction > USER_PRESENCE_THRESHOLD && !isTestMode()) {
+        if (!window._voro_idle_shredded) {
+          window._voro_idle_shredded = true;
+          try {
+            const idleEvent = new CustomEvent('voro-security-idle-shred', {
+              detail: { timestamp: curTime }
+            });
+            window.dispatchEvent(idleEvent);
+          } catch (err) { /* fail-safe */ }
+          if (_console.warn) {
+            _call.call(_console.warn, console, "Security Sentinel: Active Session Ephemerality triggered. Memory keys shredded due to user idle state.");
+          }
+        }
+      }
+
       // Schedule next pulse recursively to prevent interval-piling and make tracking harder
       _call.call(_setTimeout, window, pulse, PULSE_INTERVAL);
     } catch (e) {
@@ -2666,8 +2695,7 @@ const sentinelExports = {
   _call,
   _apply,
   _reverse,
-  _slice,
-  _forEach
+  _slice
 };
 
 // Deep freeze the exports to prevent tampering

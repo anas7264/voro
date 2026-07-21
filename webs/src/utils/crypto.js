@@ -29,6 +29,12 @@ class CryptoManager {
         this.shredKeys();
       });
 
+      // Active Session Ephemerality (ASE)
+      // Purge sensitive keys from memory when the user is idle.
+      window.addEventListener('voro-security-idle-shred', () => {
+        this.shredKeys();
+      });
+
       // Visibility-Based Memory Sanitization
       // Purge sensitive keys from memory when the tab is backgrounded.
       document.addEventListener('visibilitychange', () => {
