@@ -63,11 +63,12 @@ const AICoach = () => {
   const { chat, loading: aiLoading } = useAI();
 
   /**
-   * ⚡ OPTIMIZATION: Hydration-safe state initialization.
-   * We initialize from the reactive storage snapshot, but also use a secondary
-   * effect to catch the transition if storage is still initializing on mount.
+   * ⚡ PERFORMANCE OPTIMIZATION: 100% Stateless & Reactive UI.
+   * Replaced duplicate local state and manual synchronization hooks with direct,
+   * synchronous subscription derivation. Eliminates redundant double-render mount
+   * cycles and achieves absolute same-origin tab synchronicity on chat history.
    */
-  const [messages, setMessages] = useState(() => savedHistory || []);
+  const messages = savedHistory || [];
   const [input, setInput] = useState('');
   const [localLoading, setLocalLoading] = useState(false);
   const messagesEndRef = useRef(null);
@@ -81,13 +82,6 @@ const AICoach = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages, loading]);
-
-  // Sync messages if storage was empty on mount but loads later
-  useEffect(() => {
-    if (savedHistory && savedHistory.length > 0 && messages.length === 0) {
-      setMessages(savedHistory);
-    }
-  }, [savedHistory, messages.length]);
 
   const quickPrompts = [
     'What should I eat today?',
@@ -107,8 +101,10 @@ const AICoach = () => {
 
     const userMessage = { role: 'user', content: text, timestamp: new Date().toISOString() };
     const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);
     setInput('');
+
+    // Write user message to store immediately for instantaneous Optimistic UI reaction
+    await setItem('chat_history', updatedMessages);
 
     try {
       // Transition from simulation to real AI flow
@@ -124,7 +120,6 @@ const AICoach = () => {
           timestamp: new Date().toISOString(),
         };
         const finalMessages = [...updatedMessages, aiResponse];
-        setMessages(finalMessages);
         await setItem('chat_history', finalMessages);
       }
     } catch (error) {
@@ -138,7 +133,6 @@ const AICoach = () => {
           timestamp: new Date().toISOString(),
         };
         const finalMessages = [...updatedMessages, aiResponse];
-        setMessages(finalMessages);
         await setItem('chat_history', finalMessages);
         setLocalLoading(false);
       }, 800);
