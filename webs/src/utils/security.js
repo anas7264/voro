@@ -629,9 +629,9 @@ export const validateCallStack = () => {
 export const sanitizeInput = (input) => {
   if (typeof input !== 'string') return input;
 
-  // Strip null bytes, dangerous control characters, and zero-width markers
+  // Strip null bytes, dangerous control characters, and zero-width/invisible/formatting markers
   // eslint-disable-next-line no-control-regex
-  input = _call.call(_replace, input, /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F\u200B-\u200D\uFEFF]/g, '');
+  input = _call.call(_replace, input, /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF\u115F\u1160\u3164\uFFA0]/g, '');
 
   // If in a browser environment, use DOMParser for robust sanitization
   if (typeof window !== 'undefined' && window.DOMParser && _parseFromString) {
@@ -2170,7 +2170,7 @@ export const validateAIResponse = (c, n = null) => {
 
   // 1. Steganographic / Zero-Width Detection (Neural Exfiltration)
   // These characters are often used to smuggle data or bypass filters in plain-sight.
-  if (_call.call(_test, /[\u200B-\u200D\uFEFF]/, c)) {
+  if (_call.call(_test, /[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF\u115F\u1160\u3164\uFFA0]/, c)) {
     if (_console.error) _call.call(_console.error, console, "Security Sentinel: Steganographic markers detected in AI output.");
     executeLockdown();
     return "[SECURITY_VIOLATION_DETECTED]";
