@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useDeferredValue, memo } from 'react';
 import { Plus, Trash2, CheckCircle, Dumbbell, Calendar, Clock, Activity, Zap, TrendingUp, AlertCircle } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
@@ -11,6 +11,78 @@ import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { validateWorkoutEntry } from '@/utils/validators';
 import { exercises } from '@/data/exercises';
+
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Concurrent Exercise Search in WorkoutLog.jsx
+ * The high-frequency exercise search state is isolated in a memoized subcomponent,
+ * ExerciseSearchModal, utilizing React's useDeferredValue hook to defer the expensive
+ * O(N) array filtering of the 2,064 item exercise library. This separates typing
+ * events from heavy calculations, keeping input fluid at 60fps and protecting the
+ * parent layout from redundant reconciliation.
+ */
+const ExerciseSearchModal = memo(({ isOpen, onClose, onSelectExercise }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+
+  const filteredExercises = useMemo(() => {
+    if (!isOpen) return [];
+    const query = deferredSearchQuery.toLowerCase();
+    return exercises.filter(e =>
+      e.name.toLowerCase().includes(query) ||
+      e.category.toLowerCase().includes(query)
+    ).slice(0, 15);
+  }, [isOpen, deferredSearchQuery]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSearchQuery('');
+    }
+  }, [isOpen]);
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Movement Pattern Synthesis"
+    >
+      <div className="space-y-10 min-h-[500px]">
+        <div className="space-y-4">
+          <p className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-500 ml-1">Database Query</p>
+          <Input
+            placeholder="Search exercise patterns..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            autoFocus
+          />
+        </div>
+
+        <div className="space-y-3 max-h-[450px] overflow-y-auto no-scrollbar pb-10">
+          {filteredExercises.map(ex => (
+            <button
+              key={ex.id}
+              onClick={() => onSelectExercise(ex)}
+              className="w-full text-left p-6 rounded-3xl bg-white/[0.02] border border-white/5 hover:border-voro-primary hover:bg-voro-primary/[0.02] transition-all group"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-bold text-white tracking-tight uppercase">{ex.name}</span>
+                <span className="text-[0.55rem] font-black text-voro-primary uppercase tracking-widest px-2 py-0.5 rounded bg-voro-primary/10 border border-voro-primary/20">{ex.difficulty}</span>
+              </div>
+              <p className="text-[0.6rem] font-mono text-gray-600 tracking-widest uppercase">{ex.category} · {ex.equipment || 'Standard'}</p>
+            </button>
+          ))}
+          {filteredExercises.length === 0 && (
+            <div className="text-center py-24 opacity-20">
+              <Zap size={48} className="mx-auto mb-4 text-gray-700" />
+              <p className="text-[0.65rem] font-black uppercase tracking-[0.3em]">Pattern Void</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </Modal>
+  );
+});
+
+ExerciseSearchModal.displayName = 'ExerciseSearchModal';
 
 const WorkoutLog = () => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -39,7 +111,6 @@ const WorkoutLog = () => {
   const [sessionDuration, setSessionDuration] = useState(60);
   const [selectedExercises, setSelectedExercises] = useState([]);
   const [showExerciseSearch, setShowExerciseSearch] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     document.title = 'VORO | Workout Log';
@@ -150,15 +221,6 @@ const WorkoutLog = () => {
     // Use updateItem for atomic key-level persistence.
     await updateItem('workout_log', { [date]: workoutData });
   }, [date, selectedExercises, sessionType, sessionDuration, totalVolume, updateItem, addNotification]);
-
-  const filteredExercises = useMemo(() => {
-    if (!showExerciseSearch) return [];
-    const query = searchQuery.toLowerCase();
-    return exercises.filter(e =>
-      e.name.toLowerCase().includes(query) ||
-      e.category.toLowerCase().includes(query)
-    ).slice(0, 15);
-  }, [showExerciseSearch, searchQuery]);
 
   return (
     <div className="min-h-screen bg-[#080B14] text-[#F0F4FF] pb-24">
@@ -328,45 +390,11 @@ const WorkoutLog = () => {
 
       {showConfetti && <Confetti />}
 
-      <Modal
+      <ExerciseSearchModal
         isOpen={showExerciseSearch}
         onClose={() => setShowExerciseSearch(false)}
-        title="Movement Pattern Synthesis"
-      >
-        <div className="space-y-10 min-h-[500px]">
-          <div className="space-y-4">
-            <p className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-500 ml-1">Database Query</p>
-            <Input
-              placeholder="Search exercise patterns..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              autoFocus
-            />
-          </div>
-
-          <div className="space-y-3 max-h-[450px] overflow-y-auto no-scrollbar pb-10">
-            {filteredExercises.map(ex => (
-              <button
-                key={ex.id}
-                onClick={() => addExercise(ex)}
-                className="w-full text-left p-6 rounded-3xl bg-white/[0.02] border border-white/5 hover:border-voro-primary hover:bg-voro-primary/[0.02] transition-all group"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-bold text-white tracking-tight uppercase">{ex.name}</span>
-                  <span className="text-[0.55rem] font-black text-voro-primary uppercase tracking-widest px-2 py-0.5 rounded bg-voro-primary/10 border border-voro-primary/20">{ex.difficulty}</span>
-                </div>
-                <p className="text-[0.6rem] font-mono text-gray-600 tracking-widest uppercase">{ex.category} · {ex.equipment || 'Standard'}</p>
-              </button>
-            ))}
-            {filteredExercises.length === 0 && (
-              <div className="text-center py-24 opacity-20">
-                <Zap size={48} className="mx-auto mb-4 text-gray-700" />
-                <p className="text-[0.65rem] font-black uppercase tracking-[0.3em]">Pattern Void</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </Modal>
+        onSelectExercise={addExercise}
+      />
     </div>
   );
 };
