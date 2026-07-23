@@ -56,6 +56,7 @@ class StorageManager {
     this.encryptedKeys = new Set(Object.values(STORAGE_KEYS));
     this.listeners = new Set();
     this.cache = new Map();
+    this.stateLedger = new Map(); // Cached expected state hashes
     this._lastUpdate = new Map(); // Track timestamps for optimistic rollbacks
     this.memoizedData = null;
     this.memoizedDecoyData = null;
@@ -85,12 +86,10 @@ class StorageManager {
     if (this.initialized) return;
     if (this.initPromise) return this.initPromise;
 
-    /**
-     * ⚡ PERFORMANCE OPTIMIZATION: Parallel Storage Initialization.
-     * Replaces sequential decryption with Promise.all to significantly
-     * reduce app startup latency.
-     */
     this.initPromise = (async () => {
+      // 🔐 Load DDSA state ledger from secure enclave first
+      await this.loadStateLedger();
+
       const keys = this.list();
       await Promise.all(keys.map(async (key) => {
         const value = await this.getAsync(key);
@@ -102,6 +101,19 @@ class StorageManager {
     })();
 
     return this.initPromise;
+  }
+
+  async loadStateLedger() {
+    if (typeof window === 'undefined') return;
+    try {
+      const ledger = await voroCrypto.loadAllStateHashes();
+      this.stateLedger.clear();
+      for (const [key, hash] of Object.entries(ledger)) {
+        this.stateLedger.set(key, hash);
+      }
+    } catch (e) {
+      console.error("Storage loadStateLedger error:", e);
+    }
   }
 
   checkAvailability() {
@@ -189,6 +201,29 @@ class StorageManager {
       const item = await executeSecurely(`Read ${baseKey}`, () => {
         return localStorage.getItem(fullKey);
       }, ['sink:localStorage.getItem']);
+
+      // 🔐 CDDSA Check: Synchronously verify against cached state hashes
+      if (typeof window !== 'undefined') {
+        const expectedHash = this.stateLedger.get(fullKey) || null;
+        if (expectedHash !== null) {
+          if (!item) {
+            console.error(`Security Sentinel: Storage state truncation/deletion detected for key ${fullKey}. Expected hash found, but data is missing!`);
+            executeLockdown();
+            return getDecoyData(baseKey);
+          }
+          const currentHash = await voroCrypto.hashValue(item);
+          if (currentHash !== expectedHash) {
+            console.error(`Security Sentinel: Cryptographic state desynchronization detected for key ${fullKey}. Tampering/replay suspected.`);
+            executeLockdown();
+            return getDecoyData(baseKey);
+          }
+        } else if (item) {
+          // Self-Healing Baseline: Legacy data exists, but no state hash is in IndexedDB/map yet.
+          const currentHash = await voroCrypto.hashValue(item);
+          this.stateLedger.set(fullKey, currentHash);
+          await voroCrypto.saveStateHash(fullKey, currentHash);
+        }
+      }
 
       if (!item) return null;
 
@@ -313,6 +348,13 @@ class StorageManager {
         localStorage.setItem(fullKey, serialized);
       }, ['sink:localStorage.setItem']);
 
+      // 🔐 CDDSA Write: Synchronously update map and transactionally update state hash in secure enclave
+      if (typeof window !== 'undefined') {
+        const currentHash = await voroCrypto.hashValue(serialized);
+        this.stateLedger.set(fullKey, currentHash);
+        await voroCrypto.saveStateHash(fullKey, currentHash);
+      }
+
       return true;
     } catch (error) {
       console.error("Storage set error:", error);
@@ -353,6 +395,12 @@ class StorageManager {
         localStorage.removeItem(fullKey);
       }, ['sink:localStorage.removeItem']);
 
+      // 🔐 CDDSA Delete: Synchronously delete from map and remove from secure enclave
+      if (typeof window !== 'undefined') {
+        this.stateLedger.delete(fullKey);
+        await voroCrypto.deleteStateHash(fullKey);
+      }
+
       this.cache.delete(baseKey);
       this.notify(baseKey, null);
 
@@ -390,6 +438,12 @@ class StorageManager {
             localStorage.removeItem(key);
           }, ['sink:localStorage.removeItem']);
         }
+      }
+
+      // 🔐 CDDSA Clear: Synchronously clear map and reset secure enclave
+      if (typeof window !== 'undefined') {
+        this.stateLedger.clear();
+        await voroCrypto.clearAllStateHashes();
       }
 
       this.clearCache();

@@ -4,7 +4,7 @@ import sentinel from './security';
 const {
   validateCallStack, executeSecurely, createSecureProxy, registerSecureKey,
   _TEncoderEncode, _TDecoderDecode, _Uint8Fill, _Uint8Set, _Uint8Slice,
-  _call, _slice
+  _call, _slice, _SubtleDigest
 } = sentinel;
 
 const DB_NAME = 'VORO_SECURE_STORAGE';
@@ -18,6 +18,7 @@ class CryptoManager {
   constructor() {
     this.key = null;
     this.hkdfKey = null;
+    this.db = null;
     this.domainKeyCache = new Map();
     this.initialized = false;
     this.initPromise = null;
@@ -46,6 +47,10 @@ class CryptoManager {
   shredKeys() {
     this.key = null;
     this.hkdfKey = null;
+    if (this.db) {
+      try { this.db.close(); } catch (e) {}
+    }
+    this.db = null;
     this.domainKeyCache.clear();
     this.initialized = false;
     this.initPromise = null;
@@ -93,6 +98,7 @@ class CryptoManager {
 
         request.onsuccess = (event) => {
           const db = event.target.result;
+          this.db = db;
           const transaction = db.transaction(STORE_NAME, 'readwrite');
           const store = transaction.objectStore(STORE_NAME);
 
@@ -356,6 +362,152 @@ class CryptoManager {
       console.error(`Decryption failed (v${version}). Potential tampering or domain mismatch.`, error);
       return null;
     }
+  }
+
+  /**
+   * Generates a SHA-256 hash string for a given text.
+   */
+  async hashValue(text) {
+    if (!text) return '';
+    const encoder = new TextEncoder();
+    const data = _call.call(_TEncoderEncode, encoder, text);
+    if (!_SubtleDigest || typeof window === 'undefined') {
+      // In case digest is completely unavailable, use a simple JS hash
+      let hash = 0;
+      for (let i = 0; i < text.length; i++) {
+        const char = text.charCodeAt(i);
+        hash = (hash << 5) - hash + char;
+        hash = hash & hash;
+      }
+      return `fallback_${hash}`;
+    }
+
+    const hashBuffer = await _call.call(_SubtleDigest, window.crypto.subtle, 'SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  /**
+   * Helper to ensure the active connection is open.
+   */
+  async getDatabase() {
+    if (this.db) return this.db;
+    await this.init();
+    return this.db;
+  }
+
+  /**
+   * Records the state hash of a key in the secure IndexedDB store.
+   */
+  async saveStateHash(key, hash) {
+    if (typeof window === 'undefined') return;
+    const db = await this.getDatabase();
+    if (!db) return;
+    return await executeSecurely(`Save State Hash [${key}]`, () => {
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const putRequest = store.put(hash, `STATE_HASH_${key}`);
+        putRequest.onsuccess = () => resolve(true);
+        putRequest.onerror = () => reject(new Error(`Failed to save state hash for ${key}`));
+      });
+    }, []);
+  }
+
+  /**
+   * Retrieves the state hash of a key from the secure IndexedDB store.
+   */
+  async getStateHash(key) {
+    if (typeof window === 'undefined') return null;
+    const db = await this.getDatabase();
+    if (!db) return null;
+    return await executeSecurely(`Get State Hash [${key}]`, () => {
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const getRequest = store.get(`STATE_HASH_${key}`);
+        getRequest.onsuccess = () => resolve(getRequest.result || null);
+        getRequest.onerror = () => reject(new Error(`Failed to get state hash for ${key}`));
+      });
+    }, []);
+  }
+
+  /**
+   * Removes the state hash of a key from the secure IndexedDB store.
+   */
+  async deleteStateHash(key) {
+    if (typeof window === 'undefined') return;
+    const db = await this.getDatabase();
+    if (!db) return;
+    return await executeSecurely(`Delete State Hash [${key}]`, () => {
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const deleteRequest = store.delete(`STATE_HASH_${key}`);
+        deleteRequest.onsuccess = () => resolve(true);
+        deleteRequest.onerror = () => reject(new Error(`Failed to delete state hash for ${key}`));
+      });
+    }, []);
+  }
+
+  /**
+   * Clears all state hashes from the secure IndexedDB store.
+   */
+  async clearAllStateHashes() {
+    if (typeof window === 'undefined') return;
+    const db = await this.getDatabase();
+    if (!db) return;
+    return await executeSecurely('Clear All State Hashes', () => {
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const openCursor = store.openKeyCursor ? store.openKeyCursor() : store.openCursor();
+        openCursor.onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) {
+            const key = cursor.key;
+            if (typeof key === 'string' && key.startsWith('STATE_HASH_')) {
+              store.delete(key);
+            }
+            cursor.continue();
+          } else {
+            resolve(true);
+          }
+        };
+        openCursor.onerror = () => reject(new Error('Failed to cursor-clear state hashes'));
+      });
+    }, []);
+  }
+
+  /**
+   * Loads all state hashes from IndexedDB at once.
+   */
+  async loadAllStateHashes() {
+    if (typeof window === 'undefined') return {};
+    const db = await this.getDatabase();
+    if (!db) return {};
+    return await executeSecurely('Load All State Hashes', () => {
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const ledger = {};
+        const openCursor = store.openKeyCursor ? store.openCursor() : store.openCursor();
+        openCursor.onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) {
+            const key = cursor.key;
+            if (typeof key === 'string' && key.startsWith('STATE_HASH_')) {
+              const actualKey = key.replace('STATE_HASH_', '');
+              ledger[actualKey] = cursor.value;
+            }
+            cursor.continue();
+          } else {
+            resolve(ledger);
+          }
+        };
+        openCursor.onerror = () => reject(new Error('Failed to cursor-load state hashes'));
+      });
+    }, []);
   }
 }
 
