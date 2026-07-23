@@ -138,6 +138,7 @@ const _SubtleDecrypt = (typeof window !== 'undefined' && window.crypto?.subtle) 
 const _SubtleDeriveKey = (typeof window !== 'undefined' && window.crypto?.subtle) ? window.crypto.subtle.deriveKey : null;
 const _SubtleImportKey = (typeof window !== 'undefined' && window.crypto?.subtle) ? window.crypto.subtle.importKey : null;
 const _SubtleGenerateKey = (typeof window !== 'undefined' && window.crypto?.subtle) ? window.crypto.subtle.generateKey : null;
+const _SubtleDigest = (typeof window !== 'undefined' && window.crypto?.subtle) ? window.crypto.subtle.digest : null;
 
 const _freeze = Object.freeze;
 const _values = Object.values;
@@ -2651,6 +2652,7 @@ const sentinelExports = {
   _Uint8Fill,
   _Uint8Set,
   _Uint8Slice,
+  _SubtleDigest,
   _SIncludes,
   _split,
   _replace,
