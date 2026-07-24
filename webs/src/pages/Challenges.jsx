@@ -7,6 +7,21 @@ import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 
 /**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted Challenge Grouping Map.
+ * Groups static challenges by category at module load time to completely
+ * avoid array filtrations and Hook tracking overhead on every render.
+ */
+const CHALLENGES_BY_CATEGORY = challenges.reduce((acc, challenge) => {
+  if (!acc[challenge.category]) acc[challenge.category] = [];
+  acc[challenge.category].push(challenge);
+  return acc;
+}, {});
+
+const DAILY_CHALLENGES = CHALLENGES_BY_CATEGORY['Daily'] || [];
+const WEEKLY_CHALLENGES = CHALLENGES_BY_CATEGORY['Weekly'] || [];
+const MONTHLY_CHALLENGES = CHALLENGES_BY_CATEGORY['Monthly'] || [];
+
+/**
  * ⚡ REFINEMENT: Challenges page redesigned as a "Strategic Objective Matrix".
  * Features a high-end tabbed interface, luxury spatial architecture,
  * and ambient background depth.
@@ -47,14 +62,9 @@ const Challenges = () => {
     addNotification(`${challenge.name} Manifested. +${challenge.xpReward} XP Synthesized.`, 'success');
   };
 
-  const dailyChallenges = useMemo(() =>
-    challenges.filter(c => c.category === 'Daily'), []);
-
-  const weeklyChallenges = useMemo(() =>
-    challenges.filter(c => c.category === 'Weekly'), []);
-
-  const monthlyChallenges = useMemo(() =>
-    challenges.filter(c => c.category === 'Monthly'), []);
+  const dailyChallenges = DAILY_CHALLENGES;
+  const weeklyChallenges = WEEKLY_CHALLENGES;
+  const monthlyChallenges = MONTHLY_CHALLENGES;
 
   const tabList = [
     {
