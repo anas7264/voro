@@ -21,6 +21,7 @@ class CryptoManager {
     this.domainKeyCache = new Map();
     this.initialized = false;
     this.initPromise = null;
+    this.db = null; // CDDSA: Cached IndexedDB connection to avoid transaction/connection overhead
 
     // Security: High-priority listener for system-wide lockdown
     // Performs atomic cryptographic shredding of master keys from memory.
@@ -49,6 +50,7 @@ class CryptoManager {
     this.domainKeyCache.clear();
     this.initialized = false;
     this.initPromise = null;
+    this.db = null; // Clear cached connection
     console.warn("Security Sentinel: Cryptographic keys have been shredded from memory.");
   }
 
@@ -78,23 +80,32 @@ class CryptoManager {
     return this.initPromise;
   }
 
+  // Open secure key store in IndexedDB and cache the connection
+  async openDB() {
+    if (this.db) return this.db;
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, 1);
+      request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME);
+        }
+      };
+      request.onsuccess = (event) => {
+        this.db = event.target.result;
+        resolve(this.db);
+      };
+      request.onerror = () => reject(new Error('Failed to open secure key store'));
+    });
+  }
+
   // Get keys from IndexedDB or generate new ones
   async getOrGenerateKeys() {
-    return await executeSecurely("Retrieve Master Keys", () => {
+    return await executeSecurely("Retrieve Master Keys", async () => {
+      const db = await this.openDB();
       return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, 1);
-
-        request.onupgradeneeded = (event) => {
-          const db = event.target.result;
-          if (!db.objectStoreNames.contains(STORE_NAME)) {
-            db.createObjectStore(STORE_NAME);
-          }
-        };
-
-        request.onsuccess = (event) => {
-          const db = event.target.result;
-          const transaction = db.transaction(STORE_NAME, 'readwrite');
-          const store = transaction.objectStore(STORE_NAME);
+        const transaction = db.transaction(STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
 
           const getMaster = store.get(KEY_NAME);
           const getHKDF = store.get(HKDF_KEY_NAME);
@@ -162,11 +173,95 @@ class CryptoManager {
           };
 
           getMaster.onerror = () => reject(new Error('Failed to retrieve master key'));
-        };
-
-        request.onerror = () => reject(new Error('Failed to open secure key store'));
       });
     }, ['sink:indexedDB.open', 'requirement:user-presence', 'sink:crypto.subtle.generateKey', 'sink:crypto.subtle.importKey', 'sink:crypto.subtle.encrypt', 'sink:crypto.subtle.decrypt', 'sink:crypto.subtle.deriveKey']);
+  }
+
+  /**
+   * Calculates a SHA-256 hash of a string value securely using Web Crypto API.
+   */
+  async calculateSHA256(stringValue) {
+    if (stringValue === null || stringValue === undefined) return '';
+    const encoder = new TextEncoder();
+    const data = _call.call(_TEncoderEncode, encoder, stringValue);
+    const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  // Retrieve all state hashes in one IndexedDB transaction
+  async getAllStateHashes() {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readonly');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.openCursor();
+      const hashes = new Map();
+
+      request.onsuccess = (event) => {
+        const cursor = event.target.result;
+        if (cursor) {
+          const key = cursor.key;
+          if (typeof key === 'string' && key.startsWith('state_hash_')) {
+            const baseKey = key.replace('state_hash_', '');
+            hashes.set(baseKey, cursor.value);
+          }
+          cursor.continue();
+        } else {
+          resolve(hashes);
+        }
+      };
+      request.onerror = () => reject(new Error('Failed to retrieve state hashes'));
+    });
+  }
+
+  // Save a state hash to the secure IndexedDB
+  async saveStateHash(key, stringValue) {
+    const db = await this.openDB();
+    const hash = await this.calculateSHA256(stringValue);
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const putReq = store.put(hash, `state_hash_${key}`);
+      putReq.onsuccess = () => resolve(hash);
+      putReq.onerror = () => reject(new Error(`Failed to save state hash for ${key}`));
+    });
+  }
+
+  // Delete a state hash from the secure IndexedDB
+  async deleteStateHash(key) {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const delReq = store.delete(`state_hash_${key}`);
+      delReq.onsuccess = () => resolve();
+      delReq.onerror = () => reject(new Error(`Failed to delete state hash for ${key}`));
+    });
+  }
+
+  // Clear all state hashes from the secure IndexedDB
+  async clearAllStateHashes() {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.openCursor();
+
+      request.onsuccess = (event) => {
+        const cursor = event.target.result;
+        if (cursor) {
+          const key = cursor.key;
+          if (typeof key === 'string' && key.startsWith('state_hash_')) {
+            cursor.delete();
+          }
+          cursor.continue();
+        } else {
+          resolve();
+        }
+      };
+      request.onerror = () => reject(new Error('Failed to clear state hashes'));
+    });
   }
 
   /**

@@ -185,7 +185,7 @@ const KDICA_ANOMALY_THRESHOLD = 5;
 /**
  * Identifies if the application is running in an authorized automated testing environment.
  */
-const isTestMode = () => {
+export const isTestMode = () => {
   if (typeof window === 'undefined') return false;
   const testModeMarker = (typeof localStorage !== 'undefined' && _StorageGetItem)
     ? _call.call(_StorageGetItem, localStorage, 'voro_test_mode')
@@ -2645,6 +2645,7 @@ const sentinelExports = {
   getDecoyData,
   isDeceptionActive,
   checkUserPresence,
+  isTestMode,
   // Hermetic Primitives for Secret Management
   _TEncoderEncode,
   _TDecoderDecode,

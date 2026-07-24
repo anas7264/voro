@@ -3,7 +3,7 @@
 import voroCrypto from './crypto';
 import {
   sanitizeObject, validateCallStack, executeLockdown, getDecoyData,
-  isDeceptionActive, executeSecurely, createSecureProxy
+  isDeceptionActive, executeSecurely, createSecureProxy, isTestMode
 } from './security';
 
 const STORAGE_PREFIX = "voro_";
@@ -61,6 +61,7 @@ class StorageManager {
     this.memoizedDecoyData = null;
     this.initialized = false;
     this.initPromise = null;
+    this.stateLedger = null; // CDDSA: Synchronous expected state ledger
 
     // Security: High-priority listener for system-wide lockdown
     // Performs immediate memory purge of all cached data.
@@ -91,6 +92,14 @@ class StorageManager {
      * reduce app startup latency.
      */
     this.initPromise = (async () => {
+      try {
+        // CDDSA: Asynchronously retrieve state hashes from the secure IndexedDB enclave upon startup
+        this.stateLedger = await voroCrypto.getAllStateHashes();
+      } catch (e) {
+        console.error("CDDSA: Failed to load state hashes from IndexedDB:", e);
+        this.stateLedger = new Map();
+      }
+
       const keys = this.list();
       await Promise.all(keys.map(async (key) => {
         const value = await this.getAsync(key);
@@ -189,6 +198,27 @@ class StorageManager {
       const item = await executeSecurely(`Read ${baseKey}`, () => {
         return localStorage.getItem(fullKey);
       }, ['sink:localStorage.getItem']);
+
+      // --- Cached Dual-Database State Attestation (CDDSA) Verification ---
+      if (this.stateLedger && !isTestMode()) {
+        const expectedHash = this.stateLedger.get(baseKey);
+        if (expectedHash) {
+          if (!item) {
+            // Tamper/Deletion Anomaly: Item exists in ledger but is missing in localStorage
+            console.error(`CDDSA Anomaly: Deletion detected for key: ${baseKey}. Executing immediate lockdown.`);
+            executeLockdown();
+            return getDecoyData(baseKey);
+          }
+          const actualHash = await voroCrypto.calculateSHA256(item);
+          if (actualHash !== expectedHash) {
+            // Tamper Anomaly: Out-of-band modification or replay attack
+            console.error(`CDDSA Anomaly: Integrity violation (hash mismatch) detected for key: ${baseKey}. Expected: ${expectedHash}, Actual: ${actualHash}. Executing immediate lockdown.`);
+            executeLockdown();
+            return getDecoyData(baseKey);
+          }
+        }
+      }
+      // ------------------------------------------------------------------
 
       if (!item) return null;
 
@@ -313,6 +343,13 @@ class StorageManager {
         localStorage.setItem(fullKey, serialized);
       }, ['sink:localStorage.setItem']);
 
+      // --- CDDSA Hash Update ---
+      if (this.stateLedger) {
+        const hash = await voroCrypto.saveStateHash(baseKey, serialized);
+        this.stateLedger.set(baseKey, hash);
+      }
+      // -------------------------
+
       return true;
     } catch (error) {
       console.error("Storage set error:", error);
@@ -353,6 +390,13 @@ class StorageManager {
         localStorage.removeItem(fullKey);
       }, ['sink:localStorage.removeItem']);
 
+      // --- CDDSA Hash Deletion ---
+      if (this.stateLedger) {
+        await voroCrypto.deleteStateHash(baseKey);
+        this.stateLedger.delete(baseKey);
+      }
+      // ----------------------------
+
       this.cache.delete(baseKey);
       this.notify(baseKey, null);
 
@@ -391,6 +435,13 @@ class StorageManager {
           }, ['sink:localStorage.removeItem']);
         }
       }
+
+      // --- CDDSA Hash Clear ---
+      if (this.stateLedger) {
+        await voroCrypto.clearAllStateHashes();
+        this.stateLedger.clear();
+      }
+      // ------------------------
 
       this.clearCache();
       this.notify('*', null);
