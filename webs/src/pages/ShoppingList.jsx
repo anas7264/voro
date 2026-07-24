@@ -107,8 +107,11 @@ const ShoppingList = () => {
                 style={{ animationDelay: `${idx * 50}ms` }}
               >
                 <button
+                  role="checkbox"
+                  aria-checked={item.checked}
+                  aria-label={`Toggle secure status for ${item.text}`}
                   onClick={() => handleToggleItem(item.id)}
-                  className={`relative w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-500 ${
+                  className={`relative w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-voro-primary ${
                     item.checked
                       ? 'bg-voro-primary border-voro-primary shadow-[0_0_15px_rgba(124,58,237,0.4)]'
                       : 'border-white/10 hover:border-white/30'
@@ -123,14 +126,14 @@ const ShoppingList = () => {
                   {item.text}
                 </span>
 
-                <div className="flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-4 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                    <span className="text-[0.5rem] font-mono text-gray-700 uppercase tracking-widest hidden md:block">
                      [0x{item.id.toString(16).toUpperCase().slice(-4)}]
                    </span>
                    <button
                     onClick={() => handleDeleteItem(item.id)}
-                    className="p-3 rounded-xl text-gray-700 hover:text-red-400 hover:bg-red-400/10 transition-all"
-                    aria-label="Purge Item"
+                    className="p-3 rounded-xl text-gray-700 hover:text-red-400 hover:bg-red-400/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                    aria-label={`Purge ${item.text}`}
                   >
                     <Trash2 size={16} />
                   </button>
