@@ -40,13 +40,13 @@ export const getPasswordStrength = (password) => {
 // Positive number validation
 export const isPositiveNumber = (value) => {
   const num = parseFloat(value);
-  return !isNaN(num) && num > 0;
+  return Number.isFinite(num) && num > 0;
 };
 
 // Non-negative number validation
 export const isNonNegativeNumber = (value) => {
   const num = parseFloat(value);
-  return !isNaN(num) && num >= 0;
+  return Number.isFinite(num) && num >= 0;
 };
 
 // Integer validation
@@ -284,19 +284,34 @@ export const validateVitals = (vitals) => {
   if (!isValidHeartRate(vitals.heartRate)) errors.heartRate = "Heart rate must be between 30-220 bpm";
 
   if (vitals.bloodPressure) {
-    const parts = vitals.bloodPressure.split('/');
-    if (parts.length === 2) {
-      if (!isValidBloodPressure(parts[0], parts[1])) {
-        errors.bloodPressure = "Invalid blood pressure format or values";
-      }
+    if (vitals.bloodPressure.length > 20) {
+      errors.bloodPressure = "Blood pressure reading is too long";
     } else {
-      errors.bloodPressure = "Blood pressure must be in 'systolic/diastolic' format";
+      const parts = vitals.bloodPressure.split('/');
+      if (parts.length === 2) {
+        if (!isValidBloodPressure(parts[0], parts[1])) {
+          errors.bloodPressure = "Invalid blood pressure format or values";
+        }
+      } else {
+        errors.bloodPressure = "Blood pressure must be in 'systolic/diastolic' format";
+      }
     }
   }
 
-  if (vitals.sleep < 0 || vitals.sleep > 24) errors.sleep = "Sleep must be between 0-24 hours";
-  if (vitals.mood < 1 || vitals.mood > 10) errors.mood = "Mood must be between 1-10";
-  if (vitals.energy < 1 || vitals.energy > 10) errors.energy = "Energy must be between 1-10";
+  const sleep = parseFloat(vitals.sleep);
+  if (isNaN(sleep) || !Number.isFinite(sleep) || sleep < 0 || sleep > 24) {
+    errors.sleep = "Sleep must be between 0-24 hours";
+  }
+
+  const mood = parseFloat(vitals.mood);
+  if (isNaN(mood) || !Number.isFinite(mood) || mood < 1 || mood > 10) {
+    errors.mood = "Mood must be between 1-10";
+  }
+
+  const energy = parseFloat(vitals.energy);
+  if (isNaN(energy) || !Number.isFinite(energy) || energy < 1 || energy > 10) {
+    errors.energy = "Energy must be between 1-10";
+  }
 
   return { valid: Object.keys(errors).length === 0, errors };
 };
@@ -311,7 +326,11 @@ export const validateWorkoutEntry = (workout) => {
       errors.exercises = "At least one exercise is required";
     } else {
       workout.exercises.forEach((ex, idx) => {
-        if (!ex.name?.trim()) errors[`exercise_${idx}_name`] = "Exercise name is required";
+        if (!ex.name?.trim()) {
+          errors[`exercise_${idx}_name`] = "Exercise name is required";
+        } else if (ex.name.length > 100) {
+          errors[`exercise_${idx}_name`] = "Exercise name must be less than 100 characters";
+        }
         if (Array.isArray(ex.sets)) {
           ex.sets.forEach((set, setIdx) => {
             if (!isValidReps(set.reps)) errors[`exercise_${idx}_set_${setIdx}_reps`] = "Reps must be between 1-100";
@@ -323,7 +342,11 @@ export const validateWorkoutEntry = (workout) => {
     if (!isValidDate(workout.date)) errors.date = "Date is invalid";
   } else {
     // Single entry validation
-    if (!workout.exercise?.trim()) errors.exercise = "Exercise is required";
+    if (!workout.exercise?.trim()) {
+      errors.exercise = "Exercise is required";
+    } else if (workout.exercise.length > 100) {
+      errors.exercise = "Exercise name must be less than 100 characters";
+    }
     if (!isValidSets(workout.sets)) errors.sets = "Sets must be between 1-50";
     if (!isValidReps(workout.reps)) errors.reps = "Reps must be between 1-100";
     if (!isValidExerciseWeight(workout.weight)) errors.weight = "Weight is invalid";
@@ -337,7 +360,11 @@ export const validateWorkoutEntry = (workout) => {
 export const validateNutritionEntry = (nutrition) => {
   const errors = {};
 
-  if (!nutrition.food?.trim()) errors.food = "Food is required";
+  if (!nutrition.food?.trim()) {
+    errors.food = "Food is required";
+  } else if (nutrition.food.length > 100) {
+    errors.food = "Food name must be less than 100 characters";
+  }
   if (!isValidCalories(nutrition.calories)) errors.calories = "Calories must be between 500-10000";
   if (!isNonNegativeNumber(nutrition.protein)) errors.protein = "Protein must be non-negative";
   if (!isNonNegativeNumber(nutrition.carbs)) errors.carbs = "Carbs must be non-negative";
