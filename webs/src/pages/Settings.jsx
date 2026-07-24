@@ -78,6 +78,20 @@ const Settings = () => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Strict validation: check file extension and mime type
+    const isJson = file.name.toLowerCase().endsWith('.json') || file.type === 'application/json';
+    if (!isJson) {
+      addNotification('Invalid file type. Only secure JSON backups (.json) are accepted.', 'error');
+      return;
+    }
+
+    // Strict validation: limit file size to 5MB to prevent thread-starvation / memory DoS
+    const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+    if (file.size > MAX_SIZE) {
+      addNotification('File exceeds the 5MB safety size limit.', 'error');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
