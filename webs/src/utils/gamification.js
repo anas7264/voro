@@ -92,41 +92,66 @@ export const checkAchievementTrigger = (trigger, userData) => {
 };
 
 // Calculate streak
+// ⚡ PERFORMANCE OPTIMIZATION: Bypasses redundant heavy Date object allocations.
+// Reduces object creation from O(N) back-to-back instantiations to a single O(N) map,
+// performing standard numeric comparison on epoch timestamps with Math.round for robust DST mitigation.
 export const calculateStreak = (completedDates) => {
   if (!completedDates || completedDates.length === 0) return { current: 0, best: 0 };
 
-  const sortedDates = completedDates.map(d => new Date(d)).sort((a, b) => a - b);
+  // Parse strings to local midnight timestamps in one pass
+  const localMidnights = [];
+  for (let i = 0; i < completedDates.length; i++) {
+    const d = completedDates[i];
+    if (!d) continue;
+    const dt = new Date(d);
+    if (isNaN(dt.getTime())) continue;
+    dt.setHours(0, 0, 0, 0);
+    localMidnights.push(dt.getTime());
+  }
+
+  if (localMidnights.length === 0) return { current: 0, best: 0 };
+
+  // Extremely fast numeric sort, zero object allocations
+  localMidnights.sort((a, b) => a - b);
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const todayMs = today.getTime();
+  const dayMs = 86400000;
 
   let currentStreak = 0;
   let bestStreak = 0;
   let tempStreak = 0;
 
-  for (let i = 0; i < sortedDates.length; i++) {
-    const date = new Date(sortedDates[i]);
-    date.setHours(0, 0, 0, 0);
+  for (let i = 0; i < localMidnights.length; i++) {
+    const time = localMidnights[i];
 
     if (i === 0) {
       tempStreak = 1;
     } else {
-      const prevDate = new Date(sortedDates[i - 1]);
-      prevDate.setHours(0, 0, 0, 0);
+      const prevTime = localMidnights[i - 1];
 
-      const dayDiff = (date - prevDate) / (1000 * 60 * 60 * 24);
+      // If same local day, skip to avoid breaking or incorrectly incrementing streak
+      if (time === prevTime) continue;
 
-      if (dayDiff === 1) {
+      const dayDiff = (time - prevTime) / dayMs;
+      const roundedDiff = Math.round(dayDiff);
+
+      if (roundedDiff === 1) {
         tempStreak += 1;
       } else {
         tempStreak = 1;
       }
     }
 
-    if (tempStreak > bestStreak) bestStreak = tempStreak;
+    if (tempStreak > bestStreak) {
+      bestStreak = tempStreak;
+    }
 
     // Check if this is current streak
-    const daysSinceDate = (today - date) / (1000 * 60 * 60 * 24);
-    if (daysSinceDate <= 1) {
+    const daysSinceDate = (todayMs - time) / dayMs;
+    const roundedDaysSince = Math.round(daysSinceDate);
+    if (roundedDaysSince <= 1) {
       currentStreak = tempStreak;
     }
   }

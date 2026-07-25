@@ -1,5 +1,6 @@
 import { useMemo, useCallback } from "react";
 import { useStorageMethods, useStorageKey } from "./useStorage";
+import { getFastDateStr } from "@/utils/formatters";
 
 export const useStreak = () => {
   const { setItem } = useStorageMethods();
@@ -115,20 +116,23 @@ export const useStreak = () => {
   }, [streakData, streakStatus]);
 
   // Get streak percentage for week
+  // ⚡ PERFORMANCE OPTIMIZATION: Uses Set-based O(1) membership checks and fast manual Date formatting via `getFastDateStr`.
   const getWeeklyStreakPercentage = useCallback(() => {
     try {
+      if (!completedDates || completedDates.length === 0) return 0;
       const today = new Date();
       const weekStart = new Date(today);
       weekStart.setDate(today.getDate() - today.getDay());
 
+      const completedSet = new Set(completedDates);
       let daysCompleted = 0;
 
       for (let i = 0; i < 7; i++) {
         const date = new Date(weekStart);
         date.setDate(date.getDate() + i);
-        const dateString = date.toISOString().split("T")[0];
+        const dateString = getFastDateStr(date);
 
-        if (completedDates?.includes(dateString)) {
+        if (completedSet.has(dateString)) {
           daysCompleted++;
         }
       }
@@ -141,16 +145,23 @@ export const useStreak = () => {
   }, [completedDates]);
 
   // Get monthly streak count
+  // ⚡ PERFORMANCE OPTIMIZATION: Bypasses hundreds of dynamic Date allocations by executing a zero-allocation string prefix match via `.startsWith()`.
   const getMonthlyStreakCount = useCallback(() => {
     try {
+      if (!completedDates || completedDates.length === 0) return 0;
       const today = new Date();
-      const currentMonth = today.getMonth();
-      const currentYear = today.getFullYear();
+      const yearStr = today.getFullYear().toString();
+      const monthStr = (today.getMonth() + 1).toString().padStart(2, "0");
+      const prefix = `${yearStr}-${monthStr}`;
 
-      return completedDates?.filter(date => {
-        const dateObj = new Date(date);
-        return dateObj.getMonth() === currentMonth && dateObj.getFullYear() === currentYear;
-      }).length || 0;
+      let count = 0;
+      for (let i = 0; i < completedDates.length; i++) {
+        const d = completedDates[i];
+        if (d && d.startsWith(prefix)) {
+          count++;
+        }
+      }
+      return count;
     } catch (err) {
       console.error("Failed to get monthly streak count:", err);
       return 0;
