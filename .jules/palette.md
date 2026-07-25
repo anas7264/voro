@@ -29,3 +29,7 @@
 ## 2025-07-18 - Keyboard Accessibility for Hover-Revealed Controls
 **Learning:** High-fidelity layouts often hide utility buttons (like bookmark or share controls) under hover transitions (`group-hover:opacity-100`) to maintain a clean visual aesthetic. However, this pattern leaves elements completely hidden and unreachable for keyboard-only navigators.
 **Action:** Always combine hover states with focus-within triggers (e.g., `group-focus-within:opacity-100` or `group-focus-visible:opacity-100`) on wrapper containers, and ensure all newly revealed controls possess clear `focus-visible` ring outlines and explicit ARIA labels.
+
+## 2026-07-25 - Interactive Branding and Logo Accessibility
+**Learning:** Brand logos and signature assets in high-fidelity design systems are often initially implemented as static presentation components. When subsequent layout sections bind clicks or interactive cursor transitions to these nodes, they become completely unreachable and unusable for keyboard-only and screen-reader users unless they are retrofitted with semantic roles, focus handlers, and explicit keyboard hooks.
+**Action:** If a static brand component is bound with an active callback like `onClick`, always conditionally inject interactive attributes (`role="button"`, `tabIndex={0}`, explicit `aria-label`), custom keydown handlers for `Enter`/`Space`, and luxury-standard `focus-visible` halo indicators.
