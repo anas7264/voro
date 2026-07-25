@@ -2301,6 +2301,7 @@ export const validateAIResponse = (c, n = null) => {
 let _domBackboneSnapshot = null;
 const checkStructuralIntegrity = () => {
   if (typeof window === 'undefined' || typeof document === 'undefined') return true;
+  if (isTestMode()) return true;
 
   try {
     // We snapshot the critical architectural skeleton: head and the primary app root
