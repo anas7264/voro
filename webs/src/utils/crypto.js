@@ -357,6 +357,130 @@ class CryptoManager {
       return null;
     }
   }
+
+  /**
+   * Retrieves all state hashes from IndexedDB in a single transaction.
+   */
+  async getStoredHashes() {
+    return await executeSecurely("Retrieve State Hashes", () => {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, 1);
+        request.onsuccess = (event) => {
+          const db = event.target.result;
+          const transaction = db.transaction(STORE_NAME, 'readonly');
+          const store = transaction.objectStore(STORE_NAME);
+
+          const hashes = {};
+          const cursorRequest = store.openCursor();
+
+          cursorRequest.onsuccess = (e) => {
+            const cursor = e.target.result;
+            if (cursor) {
+              const key = cursor.key;
+              if (typeof key === 'string' && key.startsWith('hash_')) {
+                hashes[key.replace('hash_', '')] = cursor.value;
+              }
+              cursor.continue();
+            } else {
+              resolve(hashes);
+            }
+          };
+
+          cursorRequest.onerror = () => {
+            reject(new Error('Failed to retrieve state ledger hashes'));
+          };
+        };
+        request.onerror = () => {
+          reject(new Error('Failed to open state store'));
+        };
+      });
+    }, ['sink:indexedDB.open']);
+  }
+
+  /**
+   * Persists a state hash to IndexedDB.
+   */
+  async saveStoredHash(key, hash) {
+    return await executeSecurely(`Save State Hash [${key}]`, () => {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, 1);
+        request.onsuccess = (event) => {
+          const db = event.target.result;
+          const transaction = db.transaction(STORE_NAME, 'readwrite');
+          const store = transaction.objectStore(STORE_NAME);
+          const putRequest = store.put(hash, `hash_${key}`);
+
+          putRequest.onsuccess = () => resolve(true);
+          putRequest.onerror = () => reject(new Error(`Failed to save state hash for key: ${key}`));
+        };
+        request.onerror = () => reject(new Error('Failed to open state store'));
+      });
+    }, ['sink:indexedDB.open']);
+  }
+
+  /**
+   * Removes a state hash from IndexedDB.
+   */
+  async deleteStoredHash(key) {
+    return await executeSecurely(`Delete State Hash [${key}]`, () => {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, 1);
+        request.onsuccess = (event) => {
+          const db = event.target.result;
+          const transaction = db.transaction(STORE_NAME, 'readwrite');
+          const store = transaction.objectStore(STORE_NAME);
+          const deleteRequest = store.delete(`hash_${key}`);
+
+          deleteRequest.onsuccess = () => resolve(true);
+          deleteRequest.onerror = () => reject(new Error(`Failed to delete state hash for key: ${key}`));
+        };
+        request.onerror = () => reject(new Error('Failed to open state store'));
+      });
+    }, ['sink:indexedDB.open']);
+  }
+
+  /**
+   * Clears all state hashes from IndexedDB.
+   */
+  async clearStoredHashes() {
+    return await executeSecurely("Clear State Hashes", () => {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, 1);
+        request.onsuccess = (event) => {
+          const db = event.target.result;
+          const transaction = db.transaction(STORE_NAME, 'readwrite');
+          const store = transaction.objectStore(STORE_NAME);
+
+          const keysToDelete = [];
+          const cursorRequest = store.openCursor();
+
+          cursorRequest.onsuccess = (e) => {
+            const cursor = e.target.result;
+            if (cursor) {
+              const key = cursor.key;
+              if (typeof key === 'string' && key.startsWith('hash_')) {
+                keysToDelete.push(key);
+              }
+              cursor.continue();
+            } else {
+              const deletePromises = keysToDelete.map(k => {
+                return new Promise((res, rej) => {
+                  const req = store.delete(k);
+                  req.onsuccess = res;
+                  req.onerror = rej;
+                });
+              });
+              Promise.all(deletePromises)
+                .then(() => resolve(true))
+                .catch(reject);
+            }
+          };
+          cursorRequest.onerror = () => reject(new Error('Failed to scan store for clear'));
+        };
+        request.onerror = () => reject(new Error('Failed to open state store'));
+      });
+    }, ['sink:indexedDB.open']);
+  }
 }
 
 const cryptoManager = new CryptoManager();
