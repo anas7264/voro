@@ -12,6 +12,17 @@ const EMPTY_OBJ = Object.freeze({});
  */
 const CATEGORIES = [...new Set(achievements.map(a => a.category))];
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted Achievement Grouping Map.
+ * Groups static achievements by category at module load time to completely
+ * avoid O(C * N) array filtrations on every render.
+ */
+const ACHIEVEMENTS_BY_CATEGORY = achievements.reduce((acc, achievement) => {
+  if (!acc[achievement.category]) acc[achievement.category] = [];
+  acc[achievement.category].push(achievement);
+  return acc;
+}, {});
+
 const Achievements = () => {
   /**
    * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
@@ -139,8 +150,7 @@ const Achievements = () => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                {achievements
-                  .filter(a => a.category === category)
+                {(ACHIEVEMENTS_BY_CATEGORY[category] || [])
                   .map(achievement => (
                     <AchievementCard
                       key={achievement.id}
