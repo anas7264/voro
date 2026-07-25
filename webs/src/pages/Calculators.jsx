@@ -22,7 +22,8 @@ import {
 } from 'lucide-react';
 
 /**
- * ⚡ PERFORMANCE OPTIMIZATION: Isolated Active Calculator Components.
+ * ⚡ PERFORMANCE OPTIMIZATION & PREMIUM FORGE RE-ENGINEERING:
+ * Isolated Active Calculator Components.
  * Re-engineered to the 'Forge' luxury standard with custom visualizers,
  * mathematical whitespace, and interactive micro-animations.
  */
@@ -42,10 +43,10 @@ const BMICalculator = memo(({ weight, height, calculateBMI, getBMICategory }) =>
     <div className="animate-slide-up space-y-12">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-[0.65rem] font-mono font-black text-voro-primary uppercase tracking-[0.3em] mb-2">Biometric Index</h3>
-          <p className="text-3xl font-serif font-bold text-white tracking-tight">Body Mass Index</p>
+          <h3 className="text-[0.65rem] font-mono font-black text-voro-primary uppercase tracking-[0.4em] mb-2">Biometric Index // V_BMI</h3>
+          <p className="text-4xl font-serif italic font-medium text-white tracking-tight">Body Mass Index</p>
         </div>
-        <div className="px-4 py-2 bg-white/[0.02] border border-white/5 rounded-xl font-mono text-[0.45rem] text-gray-500 uppercase tracking-widest">
+        <div className="px-4 py-2 bg-white/[0.02] border border-white/5 rounded-xl font-mono text-[0.45rem] text-gray-500 uppercase tracking-[0.2em] select-none">
           NODE // BMI_SPEC_01
         </div>
       </div>
@@ -54,23 +55,23 @@ const BMICalculator = memo(({ weight, height, calculateBMI, getBMICategory }) =>
         {/* Left Side: Cinematic value display */}
         <div className="lg:col-span-5 space-y-4">
           <div className="flex items-baseline gap-4">
-            <span className="text-8xl font-serif italic font-medium tracking-tighter text-white select-none">
+            <span className="text-[7rem] md:text-[8rem] font-serif italic font-medium tracking-tighter text-white select-none leading-none">
               {bmi}
             </span>
-            <span className="text-sm font-mono font-black text-voro-primary uppercase tracking-[0.2em] relative -top-4">
+            <span className="text-xs font-mono font-black text-voro-primary uppercase tracking-[0.3em] relative -top-8">
               kg/m²
             </span>
           </div>
           <div className="space-y-1">
-            <span className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest block">Classification Spectrum</span>
-            <span className="text-xl font-serif italic text-voro-primary font-bold">{category}</span>
+            <span className="text-[0.6rem] font-mono font-black text-gray-600 uppercase tracking-widest block">Classification Spectrum</span>
+            <span className="text-2xl font-serif italic text-voro-primary font-bold">{category}</span>
           </div>
         </div>
 
         {/* Right Side: Interactive color-graded spectrum bar */}
         <div className="lg:col-span-7 space-y-8">
           <div className="space-y-4">
-            <div className="flex justify-between text-[0.55rem] font-mono font-black text-gray-600 uppercase tracking-widest">
+            <div className="flex justify-between text-[0.55rem] font-mono font-black text-gray-600 uppercase tracking-widest select-none">
               <span>Underweight (15)</span>
               <span>Normal (18.5)</span>
               <span>Overweight (25)</span>
@@ -92,7 +93,7 @@ const BMICalculator = memo(({ weight, height, calculateBMI, getBMICategory }) =>
             </div>
           </div>
 
-          <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 flex gap-4 items-start">
+          <div className="p-6 rounded-2xl bg-white/[0.01] border border-white/5 flex gap-4 items-start hover:border-white/10 transition-colors">
             <Info size={16} className="text-voro-primary mt-0.5 flex-shrink-0" />
             <p className="text-xs text-gray-500 leading-relaxed font-light">
               BMI serves as a general systemic surrogate for adiposity. While extremely useful for population studies, it does not directly differentiate between skeletal muscle and adipose tissue.
@@ -120,10 +121,10 @@ const BMRCalculator = memo(({ weight, height, age, gender, calculateBMR }) => {
     <div className="animate-slide-up space-y-12">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-[0.65rem] font-mono font-black text-voro-secondary uppercase tracking-[0.3em] mb-2">Metabolic Velocity Core</h3>
-          <p className="text-3xl font-serif font-bold text-white tracking-tight">Basal Metabolic Rate</p>
+          <h3 className="text-[0.65rem] font-mono font-black text-voro-secondary uppercase tracking-[0.4em] mb-2">Metabolic Velocity Core // V_BMR</h3>
+          <p className="text-4xl font-serif italic font-medium text-white tracking-tight">Basal Metabolic Rate</p>
         </div>
-        <div className="px-4 py-2 bg-white/[0.02] border border-white/5 rounded-xl font-mono text-[0.45rem] text-gray-500 uppercase tracking-widest">
+        <div className="px-4 py-2 bg-white/[0.02] border border-white/5 rounded-xl font-mono text-[0.45rem] text-gray-500 uppercase tracking-[0.2em] select-none">
           ALGO // MIFFLIN_ST_JEOR
         </div>
       </div>
@@ -132,22 +133,22 @@ const BMRCalculator = memo(({ weight, height, age, gender, calculateBMR }) => {
         {/* Left display */}
         <div className="lg:col-span-5 space-y-4">
           <div className="flex items-baseline gap-4">
-            <span className="text-8xl font-serif italic font-medium tracking-tighter text-white">
+            <span className="text-[7rem] md:text-[8rem] font-serif italic font-medium tracking-tighter text-white leading-none">
               {bmr}
             </span>
-            <span className="text-sm font-mono font-black text-voro-secondary uppercase tracking-[0.2em]">
+            <span className="text-xs font-mono font-black text-voro-secondary uppercase tracking-[0.3em] relative -top-8">
               kcal/day
             </span>
           </div>
           <div className="space-y-1">
-            <span className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest block">Baseline Autonomic Expenditure</span>
-            <span className="text-lg font-serif text-white font-bold italic">100% Hermetic Maintenance</span>
+            <span className="text-[0.6rem] font-mono font-black text-gray-600 uppercase tracking-widest block">Baseline Autonomic Expenditure</span>
+            <span className="text-xl font-serif text-white font-bold italic">100% Hermetic Maintenance</span>
           </div>
         </div>
 
         {/* Right sub-allocation breakdown */}
         <div className="lg:col-span-7 space-y-6">
-          <span className="text-[0.6rem] font-mono font-black text-gray-600 uppercase tracking-widest block">Systemic Allocation Profile</span>
+          <span className="text-[0.6rem] font-mono font-black text-gray-600 uppercase tracking-widest block select-none">Systemic Allocation Profile</span>
 
           <div className="space-y-4">
             {[
@@ -196,10 +197,10 @@ const TDEECalculator = memo(({ weight, height, age, gender, activityLevel, calcu
     <div className="animate-slide-up space-y-12">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-[0.65rem] font-mono font-black text-voro-accent uppercase tracking-[0.3em] mb-2">Active Kinetic Velocity</h3>
-          <p className="text-3xl font-serif font-bold text-white tracking-tight">Total Daily Energy Expenditure</p>
+          <h3 className="text-[0.65rem] font-mono font-black text-voro-accent uppercase tracking-[0.4em] mb-2">Active Kinetic Velocity // V_TDEE</h3>
+          <p className="text-4xl font-serif italic font-medium text-white tracking-tight">Total Daily Energy Expenditure</p>
         </div>
-        <div className="px-4 py-2 bg-white/[0.02] border border-white/5 rounded-xl font-mono text-[0.45rem] text-gray-500 uppercase tracking-widest">
+        <div className="px-4 py-2 bg-white/[0.02] border border-white/5 rounded-xl font-mono text-[0.45rem] text-gray-500 uppercase tracking-[0.2em] select-none">
           NODE // TDEE_ACTIVE_03
         </div>
       </div>
@@ -209,30 +210,30 @@ const TDEECalculator = memo(({ weight, height, age, gender, activityLevel, calcu
         <div className="lg:col-span-5 space-y-6">
           <div className="space-y-4">
             <div className="flex items-baseline gap-4">
-              <span className="text-8xl font-serif italic font-medium tracking-tighter text-white">
+              <span className="text-[7rem] md:text-[8rem] font-serif italic font-medium tracking-tighter text-white leading-none">
                 {tdee}
               </span>
-              <span className="text-sm font-mono font-black text-voro-accent uppercase tracking-[0.2em]">
+              <span className="text-xs font-mono font-black text-voro-accent uppercase tracking-[0.3em] relative -top-8">
                 kcal/day
               </span>
             </div>
             <div className="space-y-1">
-              <span className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest block">Active Metabolic Target</span>
-              <span className="text-lg font-serif text-white font-bold italic">
+              <span className="text-[0.6rem] font-mono font-black text-gray-600 uppercase tracking-widest block">Active Metabolic Target</span>
+              <span className="text-xl font-serif text-white font-bold italic">
                 {activityLevel.replace('_', ' ').toUpperCase()} Scale
               </span>
             </div>
           </div>
 
-          <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
-            <span className="text-[0.6rem] font-mono font-black text-gray-600 uppercase tracking-widest block">Deficit vs Surplus Zones</span>
+          <div className="p-6 rounded-2xl bg-white/[0.01] border border-white/5 space-y-4 hover:border-white/10 transition-colors">
+            <span className="text-[0.6rem] font-mono font-black text-gray-600 uppercase tracking-widest block select-none">Deficit vs Surplus Zones</span>
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-red-500/5 border border-red-500/10 rounded-xl text-center">
-                <span className="text-[0.55rem] font-mono text-gray-500 uppercase tracking-widest block">Fat Loss Base</span>
+                <span className="text-[0.55rem] font-mono text-gray-500 uppercase tracking-widest block select-none">Fat Loss Base</span>
                 <span className="text-xl font-serif font-bold text-red-400">{Math.round(tdee - 500)} kcal</span>
               </div>
               <div className="p-4 bg-green-500/5 border border-green-500/10 rounded-xl text-center">
-                <span className="text-[0.55rem] font-mono text-gray-500 uppercase tracking-widest block">Anabolic Load</span>
+                <span className="text-[0.55rem] font-mono text-gray-500 uppercase tracking-widest block select-none">Anabolic Load</span>
                 <span className="text-xl font-serif font-bold text-green-400">{Math.round(tdee * 1.1)} kcal</span>
               </div>
             </div>
@@ -241,7 +242,7 @@ const TDEECalculator = memo(({ weight, height, age, gender, activityLevel, calcu
 
         {/* Right Side Interactive Multipliers List */}
         <div className="lg:col-span-7 space-y-4">
-          <span className="text-[0.6rem] font-mono font-black text-gray-600 uppercase tracking-widest block mb-2">Metabolic Multiplier Index</span>
+          <span className="text-[0.6rem] font-mono font-black text-gray-600 uppercase tracking-widest block mb-2 select-none">Metabolic Multiplier Index</span>
           <div className="space-y-2.5">
             {multipliers.map((m) => {
               const isActive = activityLevel === m.key;
@@ -302,10 +303,10 @@ const IdealWeightCalculator = memo(({ height, gender, calculateIdealWeight }) =>
     <div className="animate-slide-up space-y-12">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-[0.65rem] font-mono font-black text-voro-primary uppercase tracking-[0.3em] mb-2">Biological Calibration</h3>
-          <p className="text-3xl font-serif font-bold text-white tracking-tight">Ideal Body Weight</p>
+          <h3 className="text-[0.65rem] font-mono font-black text-voro-primary uppercase tracking-[0.4em] mb-2">Biological Calibration // V_IBW</h3>
+          <p className="text-4xl font-serif italic font-medium text-white tracking-tight">Ideal Body Weight</p>
         </div>
-        <div className="px-4 py-2 bg-white/[0.02] border border-white/5 rounded-xl font-mono text-[0.45rem] text-gray-500 uppercase tracking-widest">
+        <div className="px-4 py-2 bg-white/[0.02] border border-white/5 rounded-xl font-mono text-[0.45rem] text-gray-500 uppercase tracking-[0.2em] select-none">
           FORMULA // DEVINE_HEIGHT_CAL
         </div>
       </div>
@@ -314,36 +315,36 @@ const IdealWeightCalculator = memo(({ height, gender, calculateIdealWeight }) =>
         {/* Left Side display */}
         <div className="lg:col-span-5 space-y-4">
           <div className="flex items-baseline gap-4">
-            <span className="text-8xl font-serif italic font-medium tracking-tighter text-white">
+            <span className="text-[7rem] md:text-[8rem] font-serif italic font-medium tracking-tighter text-white leading-none">
               {Number(idealWeight).toFixed(1)}
             </span>
-            <span className="text-sm font-mono font-black text-voro-primary uppercase tracking-[0.2em]">
+            <span className="text-xs font-mono font-black text-voro-primary uppercase tracking-[0.3em] relative -top-8">
               kg
             </span>
           </div>
           <div className="space-y-1">
-            <span className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest block">Structural Homoeostasis Center</span>
-            <span className="text-lg font-serif text-white font-bold italic">Perfect Mechanical Equilibrium</span>
+            <span className="text-[0.6rem] font-mono font-black text-gray-600 uppercase tracking-widest block">Structural Homoeostasis Center</span>
+            <span className="text-xl font-serif text-white font-bold italic">Perfect Mechanical Equilibrium</span>
           </div>
         </div>
 
         {/* Symmetrical target range display */}
         <div className="lg:col-span-7 space-y-8">
-          <span className="text-[0.6rem] font-mono font-black text-gray-600 uppercase tracking-widest block">Symmetrical Adaptive Variance Range (±10%)</span>
+          <span className="text-[0.6rem] font-mono font-black text-gray-600 uppercase tracking-widest block select-none">Symmetrical Adaptive Variance Range (±10%)</span>
 
-          <div className="relative p-8 rounded-3xl bg-white/[0.01] border border-white/5 flex flex-col justify-center overflow-hidden">
+          <div className="relative p-8 rounded-3xl bg-white/[0.01] border border-white/5 flex flex-col justify-center overflow-hidden hover:border-white/10 transition-colors">
             <div className="absolute top-0 right-0 w-24 h-24 bg-voro-primary/5 rounded-full blur-xl pointer-events-none" />
 
             <div className="flex justify-between items-center mb-6 relative z-10">
               <div className="text-left">
-                <span className="text-[0.55rem] font-mono text-gray-500 uppercase tracking-widest block">Lower Boundary</span>
+                <span className="text-[0.55rem] font-mono text-gray-500 uppercase tracking-widest block select-none">Lower Boundary</span>
                 <span className="text-2xl font-serif italic font-medium text-gray-400">{Number(lowerBound).toFixed(1)} kg</span>
               </div>
               <div className="w-12 h-12 rounded-full border border-voro-primary/30 flex items-center justify-center animate-pulse">
                 <Target size={20} className="text-voro-primary" />
               </div>
               <div className="text-right">
-                <span className="text-[0.55rem] font-mono text-gray-500 uppercase tracking-widest block">Upper Boundary</span>
+                <span className="text-[0.55rem] font-mono text-gray-500 uppercase tracking-widest block select-none">Upper Boundary</span>
                 <span className="text-2xl font-serif italic font-medium text-gray-400">{Number(upperBound).toFixed(1)} kg</span>
               </div>
             </div>
@@ -356,7 +357,7 @@ const IdealWeightCalculator = memo(({ height, gender, calculateIdealWeight }) =>
               </div>
               <span className="text-white/20 font-mono text-xl select-none">]</span>
             </div>
-            <span className="text-center text-[0.55rem] font-mono text-gray-600 uppercase tracking-widest mt-4">
+            <span className="text-center text-[0.55rem] font-mono text-gray-600 uppercase tracking-widest mt-4 select-none">
               90% to 110% Physiological Density Scale
             </span>
           </div>
@@ -395,10 +396,10 @@ const FFMICalculator = memo(({ weight, height, bodyFat, calculateFFMI }) => {
     <div className="animate-slide-up space-y-12">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-[0.65rem] font-mono font-black text-voro-secondary uppercase tracking-[0.3em] mb-2">Anabolic Muscular Density</h3>
-          <p className="text-3xl font-serif font-bold text-white tracking-tight">Fat-Free Mass Index</p>
+          <h3 className="text-[0.65rem] font-mono font-black text-voro-secondary uppercase tracking-[0.4em] mb-2">Anabolic Muscular Density // V_FFMI</h3>
+          <p className="text-4xl font-serif italic font-medium text-white tracking-tight">Fat-Free Mass Index</p>
         </div>
-        <div className="px-4 py-2 bg-white/[0.02] border border-white/5 rounded-xl font-mono text-[0.45rem] text-gray-500 uppercase tracking-widest">
+        <div className="px-4 py-2 bg-white/[0.02] border border-white/5 rounded-xl font-mono text-[0.45rem] text-gray-500 uppercase tracking-[0.2em] select-none">
           NODE // FFMI_ANABOLIC_05
         </div>
       </div>
@@ -408,22 +409,22 @@ const FFMICalculator = memo(({ weight, height, bodyFat, calculateFFMI }) => {
         <div className="lg:col-span-5 space-y-6">
           <div className="space-y-4">
             <div className="flex items-baseline gap-4">
-              <span className="text-8xl font-serif italic font-medium tracking-tighter text-white">
+              <span className="text-[7rem] md:text-[8rem] font-serif italic font-medium tracking-tighter text-white leading-none">
                 {ffmi}
               </span>
-              <span className="text-sm font-mono font-black text-voro-secondary uppercase tracking-[0.2em]">
+              <span className="text-xs font-mono font-black text-voro-secondary uppercase tracking-[0.3em] relative -top-8">
                 index
               </span>
             </div>
             <div className="space-y-1">
-              <span className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest block">Muscular Potential Status</span>
-              <span className="text-lg font-serif text-white font-bold italic">
+              <span className="text-[0.6rem] font-mono font-black text-gray-600 uppercase tracking-widest block">Muscular Potential Status</span>
+              <span className="text-xl font-serif text-white font-bold italic">
                 {tiers.find(t => t.key === activeKey)?.label || "Undetermined"}
               </span>
             </div>
           </div>
 
-          <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 flex gap-4 items-start">
+          <div className="p-6 rounded-2xl bg-white/[0.01] border border-white/5 flex gap-4 items-start hover:border-white/10 transition-colors">
             <Info size={16} className="text-voro-secondary mt-0.5 flex-shrink-0" />
             <p className="text-xs text-gray-500 leading-relaxed font-light">
               Fat-Free Mass Index normalizes skeletal muscular mass to your absolute height, preventing weight bias, and tracks biological potential over long cycles.
@@ -433,7 +434,7 @@ const FFMICalculator = memo(({ weight, height, bodyFat, calculateFFMI }) => {
 
         {/* Right Benchmarks Matrix */}
         <div className="lg:col-span-7 space-y-4">
-          <span className="text-[0.6rem] font-mono font-black text-gray-600 uppercase tracking-widest block mb-2">Anabolic Potential Matrix Tiers</span>
+          <span className="text-[0.6rem] font-mono font-black text-gray-600 uppercase tracking-widest block mb-2 select-none">Anabolic Potential Matrix Tiers</span>
           <div className="space-y-2.5">
             {tiers.map((t) => {
               const isActive = activeKey === t.key;
@@ -450,7 +451,7 @@ const FFMICalculator = memo(({ weight, height, bodyFat, calculateFFMI }) => {
                 >
                   {isActive && (
                     <>
-                      <div className="absolute right-4 top-4 bg-voro-secondary/20 border border-voro-secondary/40 text-voro-secondary rounded-full px-3 py-1 font-mono text-[0.45rem] tracking-wider uppercase">
+                      <div className="absolute right-4 top-4 bg-voro-secondary/20 border border-voro-secondary/40 text-voro-secondary rounded-full px-3 py-1 font-mono text-[0.45rem] tracking-wider uppercase select-none">
                         [CHOSEN_TIER]
                       </div>
                       <div className="kinetic-sweep opacity-10" />
@@ -512,10 +513,10 @@ const DeficitCalculator = memo(({ weight, height, age, gender, activityLevel, ca
     <div className="animate-slide-up space-y-12">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-[0.65rem] font-mono font-black text-voro-danger uppercase tracking-[0.3em] mb-2">Kinetic Loss Forecast</h3>
-          <p className="text-3xl font-serif font-bold text-white tracking-tight">Thermodynamic Projection</p>
+          <h3 className="text-[0.65rem] font-mono font-black text-voro-danger uppercase tracking-[0.4em] mb-2">Kinetic Loss Forecast // V_SIM</h3>
+          <p className="text-4xl font-serif italic font-medium text-white tracking-tight">Thermodynamic Projection</p>
         </div>
-        <div className="px-4 py-2 bg-white/[0.02] border border-white/5 rounded-xl font-mono text-[0.45rem] text-gray-500 uppercase tracking-widest">
+        <div className="px-4 py-2 bg-white/[0.02] border border-white/5 rounded-xl font-mono text-[0.45rem] text-gray-500 uppercase tracking-[0.2em] select-none">
           SIM // CALORIC_DEF_12W
         </div>
       </div>
@@ -525,7 +526,7 @@ const DeficitCalculator = memo(({ weight, height, age, gender, activityLevel, ca
         <div className="lg:col-span-5 space-y-8">
           <div className="space-y-4">
             <div className="flex justify-between items-baseline mb-2">
-              <span className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest block">Daily Deficit Magnitude</span>
+              <span className="text-[0.6rem] font-mono font-black text-gray-600 uppercase tracking-widest block select-none">Daily Deficit Magnitude</span>
               <span className="px-3 py-1 bg-voro-danger/10 border border-voro-danger/20 text-voro-danger font-mono text-xs font-bold rounded-lg select-none">
                 {deficitTarget} kcal/day
               </span>
@@ -549,7 +550,7 @@ const DeficitCalculator = memo(({ weight, height, age, gender, activityLevel, ca
 
           <div className="space-y-4">
             <div className="p-6 rounded-2xl bg-[#0D121F]/40 border border-white/5 space-y-4 relative overflow-hidden">
-              <span className="text-[0.6rem] font-mono font-black text-gray-600 uppercase tracking-widest block">Projected 12-Week Synthesis</span>
+              <span className="text-[0.6rem] font-mono font-black text-gray-600 uppercase tracking-widest block select-none">Projected 12-Week Synthesis</span>
               <div className="flex items-baseline justify-between">
                 <span className="text-5xl font-serif italic font-bold text-white">
                   -{forecast[11].cumulativeFatLoss} <span className="text-xs font-mono font-black text-voro-danger uppercase tracking-widest">kg</span>
@@ -558,7 +559,7 @@ const DeficitCalculator = memo(({ weight, height, age, gender, activityLevel, ca
                   Target: {forecast[11].weight} kg
                 </span>
               </div>
-              <div className="pt-4 border-t border-white/5 flex justify-between text-[0.55rem] font-mono text-gray-500 uppercase tracking-widest">
+              <div className="pt-4 border-t border-white/5 flex justify-between text-[0.55rem] font-mono text-gray-500 uppercase tracking-widest select-none">
                 <span>Cumulative Deficit</span>
                 <span className="text-white font-bold">{forecast[11].cumulativeDeficit} kcal</span>
               </div>
@@ -570,13 +571,13 @@ const DeficitCalculator = memo(({ weight, height, age, gender, activityLevel, ca
         <div className="lg:col-span-7 space-y-4">
           <div className="flex items-center gap-3 mb-2">
             <CalendarDays size={14} className="text-voro-danger" />
-            <span className="text-[0.6rem] font-mono font-black text-gray-600 uppercase tracking-widest">12-Week Projection Timeline</span>
+            <span className="text-[0.6rem] font-mono font-black text-gray-600 uppercase tracking-widest select-none">12-Week Projection Timeline</span>
           </div>
 
           <div className="border border-white/5 rounded-2xl overflow-hidden bg-white/[0.01]">
             <table className="w-full font-mono text-[0.6rem] text-left">
               <thead>
-                <tr className="bg-white/[0.03] text-gray-500 border-b border-white/5 font-black uppercase tracking-widest">
+                <tr className="bg-white/[0.03] text-gray-500 border-b border-white/5 font-black uppercase tracking-widest select-none">
                   <th className="px-5 py-4">Week</th>
                   <th className="px-5 py-4">Projected Weight</th>
                   <th className="px-5 py-4 text-right">Cumulative Shift</th>
@@ -759,7 +760,7 @@ const Calculators = () => {
         <header className="mb-20">
           <div className="flex items-center gap-3 text-voro-primary mb-4">
             <Zap size={18} className="animate-pulse" />
-            <span className="text-[0.65rem] font-mono font-black uppercase tracking-[0.3em]">Computation Engine</span>
+            <span className="text-[0.65rem] font-mono font-black uppercase tracking-[0.4em]">Computation Engine</span>
           </div>
           <h1 className="text-5xl md:text-7xl font-serif italic font-medium tracking-tight text-white leading-tight">
             Biometric <span className="text-gradient not-italic font-bold">Calculators</span>
@@ -773,14 +774,14 @@ const Calculators = () => {
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-12 items-start">
           {/* LEFT PANEL: BIOMETRIC CALIBRATION ENCLAVE */}
           <section className="xl:col-span-4 space-y-8">
-            <Card className="p-8 md:p-10 bg-[#0A0C14] border border-white/5 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
+            <Card variant="premium" nodeId="CON_X2" className="p-8 md:p-10 relative overflow-hidden">
               {/* Corner Telemetry Accent */}
               <div className="absolute top-0 right-0 p-4 opacity-[0.03] pointer-events-none font-mono text-[0.4rem] font-black">
                 [INPUT_CON_X2]
               </div>
 
-              <div className="flex items-center gap-3 mb-10">
-                <div className="p-2.5 bg-voro-primary/10 text-voro-primary rounded-xl">
+              <div className="flex items-center gap-4 mb-10">
+                <div className="p-2.5 bg-voro-primary/10 text-voro-primary rounded-xl border border-voro-primary/20">
                   <Scale size={18} />
                 </div>
                 <div>
@@ -797,7 +798,7 @@ const Calculators = () => {
                 {/* 1. Weight Slider */}
                 <div className="space-y-3">
                   <div className="flex justify-between items-baseline">
-                    <label className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest">
+                    <label className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest cursor-pointer select-none">
                       Current Mass
                     </label>
                     <span className="text-lg font-serif italic font-bold text-white">
@@ -811,9 +812,9 @@ const Calculators = () => {
                     step="0.5"
                     value={weight}
                     onChange={(e) => setWeight(parseFloat(e.target.value))}
-                    className="accent-voro-primary h-1.5 w-full bg-white/5 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-voro-primary"
+                    className="accent-voro-primary h-1.5 w-full bg-white/5 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-voro-primary hover:bg-white/10 transition-colors"
                   />
-                  <div className="flex justify-between text-[0.45rem] font-mono font-black text-gray-700 uppercase tracking-widest">
+                  <div className="flex justify-between text-[0.45rem] font-mono font-black text-gray-700 uppercase tracking-widest select-none">
                     <span>30 kg</span>
                     <span>200 kg</span>
                   </div>
@@ -822,7 +823,7 @@ const Calculators = () => {
                 {/* 2. Height Slider */}
                 <div className="space-y-3">
                   <div className="flex justify-between items-baseline">
-                    <label className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest">
+                    <label className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest cursor-pointer select-none">
                       Height Dimension
                     </label>
                     <span className="text-lg font-serif italic font-bold text-white">
@@ -836,9 +837,9 @@ const Calculators = () => {
                     step="1"
                     value={height}
                     onChange={(e) => setHeight(parseInt(e.target.value))}
-                    className="accent-voro-primary h-1.5 w-full bg-white/5 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-voro-primary"
+                    className="accent-voro-primary h-1.5 w-full bg-white/5 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-voro-primary hover:bg-white/10 transition-colors"
                   />
-                  <div className="flex justify-between text-[0.45rem] font-mono font-black text-gray-700 uppercase tracking-widest">
+                  <div className="flex justify-between text-[0.45rem] font-mono font-black text-gray-700 uppercase tracking-widest select-none">
                     <span>100 cm</span>
                     <span>250 cm</span>
                   </div>
@@ -847,7 +848,7 @@ const Calculators = () => {
                 {/* 3. Age Slider */}
                 <div className="space-y-3">
                   <div className="flex justify-between items-baseline">
-                    <label className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest">
+                    <label className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest cursor-pointer select-none">
                       Temporal Age
                     </label>
                     <span className="text-lg font-serif italic font-bold text-white">
@@ -861,9 +862,9 @@ const Calculators = () => {
                     step="1"
                     value={age}
                     onChange={(e) => setAge(parseInt(e.target.value))}
-                    className="accent-voro-primary h-1.5 w-full bg-white/5 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-voro-primary"
+                    className="accent-voro-primary h-1.5 w-full bg-white/5 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-voro-primary hover:bg-white/10 transition-colors"
                   />
-                  <div className="flex justify-between text-[0.45rem] font-mono font-black text-gray-700 uppercase tracking-widest">
+                  <div className="flex justify-between text-[0.45rem] font-mono font-black text-gray-700 uppercase tracking-widest select-none">
                     <span>10 yrs</span>
                     <span>100 yrs</span>
                   </div>
@@ -872,7 +873,7 @@ const Calculators = () => {
                 {/* 4. Body Fat Slider */}
                 <div className="space-y-3">
                   <div className="flex justify-between items-baseline">
-                    <label className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest">
+                    <label className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest cursor-pointer select-none">
                       Body Fat Ratio
                     </label>
                     <span className="text-lg font-serif italic font-bold text-white">
@@ -886,9 +887,9 @@ const Calculators = () => {
                     step="0.5"
                     value={bodyFat}
                     onChange={(e) => setBodyFat(parseFloat(e.target.value))}
-                    className="accent-voro-primary h-1.5 w-full bg-white/5 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-voro-primary"
+                    className="accent-voro-primary h-1.5 w-full bg-white/5 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-voro-primary hover:bg-white/10 transition-colors"
                   />
-                  <div className="flex justify-between text-[0.45rem] font-mono font-black text-gray-700 uppercase tracking-widest">
+                  <div className="flex justify-between text-[0.45rem] font-mono font-black text-gray-700 uppercase tracking-widest select-none">
                     <span>5 %</span>
                     <span>50 %</span>
                   </div>
@@ -896,16 +897,17 @@ const Calculators = () => {
 
                 {/* 5. Gender Selection Buttons */}
                 <div className="space-y-3">
-                  <span className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest block">
+                  <span className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest block select-none">
                     Phenotypic Sex
                   </span>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-4">
                     {['male', 'female'].map((g) => (
                       <button
                         key={g}
                         onClick={() => setGender(g)}
                         className={`
-                          py-3 rounded-2xl text-[0.65rem] font-black uppercase tracking-[0.3em] border transition-all duration-500
+                          py-3.5 rounded-2xl text-[0.65rem] font-black uppercase tracking-[0.3em] border transition-all duration-500
+                          active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14]
                           ${gender === g
                             ? "bg-voro-primary text-white border-voro-primary shadow-[0_10px_20px_rgba(124,58,237,0.2)]"
                             : "bg-white/[0.01] text-gray-500 border-white/5 hover:border-white/20 hover:text-gray-300"
@@ -920,20 +922,25 @@ const Calculators = () => {
 
                 {/* 6. Activity Level Selector */}
                 <div className="space-y-3">
-                  <span className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest block">
+                  <span className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest block select-none">
                     Activity Coefficient
                   </span>
-                  <select
-                    value={activityLevel}
-                    onChange={(e) => setActivityLevel(e.target.value)}
-                    className="w-full bg-[#020408] border border-white/5 rounded-2xl py-4 px-6 text-xs font-mono text-white tracking-widest uppercase focus:outline-none focus:border-voro-primary transition-colors cursor-pointer"
-                  >
-                    <option value="sedentary">Sedentary (No Exercise)</option>
-                    <option value="lightly_active">Lightly Active</option>
-                    <option value="moderately_active">Moderately Active</option>
-                    <option value="very_active">Very Active</option>
-                    <option value="extremely_active">Extremely Active</option>
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={activityLevel}
+                      onChange={(e) => setActivityLevel(e.target.value)}
+                      className="w-full bg-[#020408]/80 border border-white/5 rounded-2xl py-4.5 px-6 text-xs font-mono text-white tracking-widest uppercase focus:outline-none focus:border-voro-primary focus:ring-1 focus:ring-voro-primary transition-all cursor-pointer appearance-none"
+                    >
+                      <option value="sedentary">Sedentary (No Exercise)</option>
+                      <option value="lightly_active">Lightly Active</option>
+                      <option value="moderately_active">Moderately Active</option>
+                      <option value="very_active">Very Active</option>
+                      <option value="extremely_active">Extremely Active</option>
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                      <ChevronRight size={14} className="rotate-90" />
+                    </div>
+                  </div>
                 </div>
               </div>
             </Card>
@@ -949,7 +956,7 @@ const Calculators = () => {
               />
             </div>
 
-            <Card className="p-10 md:p-14 bg-[#0A0C14] border-white/5 rounded-[3.5rem] shadow-2xl relative min-h-[480px] flex flex-col justify-center">
+            <Card variant="premium" nodeId="COMP_PROJ" className="p-10 md:p-14 min-h-[480px] flex flex-col justify-center">
               {activeContent}
             </Card>
           </section>
@@ -958,19 +965,19 @@ const Calculators = () => {
         <footer className="mt-28 pt-16 border-t border-white/5">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-16">
             <div>
-              <span className="text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] block mb-4">Precision Science</span>
+              <span className="text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] block mb-4 select-none">Precision Science</span>
               <p className="text-xs text-gray-500 leading-relaxed font-light">
                 Our mathematical models utilize peer-reviewed somatic equations including Mifflin-St Jeor, Epley/Brzycki formulas, and Devine scales for absolute accuracy and precision calibration.
               </p>
             </div>
             <div>
-              <span className="text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] block mb-4">Clinical Context</span>
+              <span className="text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] block mb-4 select-none">Clinical Context</span>
               <p className="text-xs text-gray-500 leading-relaxed font-light">
                 These estimations are optimized for elite physical training and biological tracking. All variables must be evaluated in accordance with overall energy levels, hormone balance, and sleep.
               </p>
             </div>
             <div>
-              <span className="text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] block mb-4">Real-Time Sync</span>
+              <span className="text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] block mb-4 select-none">Real-Time Sync</span>
               <p className="text-xs text-gray-500 leading-relaxed font-light">
                 Modifications in this local calibration panel remain ephemeral to allow secure sandbox simulation. Your actual profiles can be permanently committed inside the Profile Configuration Node.
               </p>
