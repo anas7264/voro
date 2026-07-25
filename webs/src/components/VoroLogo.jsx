@@ -13,9 +13,34 @@ import React, { memo } from 'react';
  * 3. Spatial: Unified branding option (withText) for cross-app consistency.
  * 4. Atmosphere: Luminous primary glow and sub-pixel architectural details.
  */
-const VoroLogo = memo(({ size = 80, withText = false, className = '' }) => {
+const VoroLogo = memo(({ size = 80, withText = false, className = '', onClick, ...props }) => {
+  const handleKeyDown = (e) => {
+    if (onClick && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      onClick(e);
+    }
+  };
+
+  const interactiveAttrs = onClick
+    ? {
+        role: 'button',
+        tabIndex: 0,
+        'aria-label': 'Voro Home',
+        onClick,
+        onKeyDown: handleKeyDown,
+      }
+    : {};
+
   return (
-    <div className={`flex items-center gap-6 ${className}`}>
+    <div
+      className={`
+        flex items-center gap-6 rounded-2xl outline-none transition-all duration-300
+        ${onClick ? 'cursor-pointer hover:scale-[1.02] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408]' : ''}
+        ${className}
+      `}
+      {...interactiveAttrs}
+      {...props}
+    >
       {/* Neural Synthesis Core */}
       <div
         className="relative flex items-center justify-center shrink-0"
