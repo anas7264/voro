@@ -61,6 +61,7 @@ class StorageManager {
     this.memoizedDecoyData = null;
     this.initialized = false;
     this.initPromise = null;
+    this.stateLedger = new Map(); // SHA-256 State Ledger for CDDSA
 
     // Security: High-priority listener for system-wide lockdown
     // Performs immediate memory purge of all cached data.
@@ -81,6 +82,33 @@ class StorageManager {
     }
   }
 
+  /**
+   * Computes a deterministic SHA-256 hash of a serialized string.
+   * Resilient fallback supports test runners and headless non-browser scopes.
+   */
+  async computeHash(str) {
+    if (!str) return '';
+    try {
+      if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle && window.crypto.subtle.digest) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(str);
+        const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      }
+    } catch (e) {
+      // Fallback on error/unsupported environment
+    }
+    // Deterministic fallback hashing if native digest is unavailable
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash |= 0;
+    }
+    return 'fallback_' + Math.abs(hash).toString(16);
+  }
+
   async ensureInitialized() {
     if (this.initialized) return;
     if (this.initPromise) return this.initPromise;
@@ -91,7 +119,34 @@ class StorageManager {
      * reduce app startup latency.
      */
     this.initPromise = (async () => {
+      // CDDSA: Retrieve expected hashes asynchronously from the secure IndexedDB enclave
+      try {
+        const storedHashes = await voroCrypto.getStoredHashes();
+        this.stateLedger = new Map(Object.entries(storedHashes));
+      } catch (e) {
+        console.error("Security Sentinel [CDDSA]: Failed to load state ledger hashes:", e);
+        this.stateLedger = new Map();
+      }
+
       const keys = this.list();
+
+      // CDDSA Self-Healing baseline: Populate ledger on initial migration if empty
+      if (this.stateLedger.size === 0 && keys.length > 0) {
+        for (const key of keys) {
+          const fullKey = this.getFullKey(key);
+          const item = localStorage.getItem(fullKey);
+          if (item) {
+            const hash = await this.computeHash(item);
+            this.stateLedger.set(key, hash);
+            try {
+              await voroCrypto.saveStoredHash(key, hash);
+            } catch (err) {
+              console.error(`Security Sentinel [CDDSA]: Failed to self-heal hash for ${key}:`, err);
+            }
+          }
+        }
+      }
+
       await Promise.all(keys.map(async (key) => {
         const value = await this.getAsync(key);
         this.cache.set(key, value);
@@ -189,6 +244,28 @@ class StorageManager {
       const item = await executeSecurely(`Read ${baseKey}`, () => {
         return localStorage.getItem(fullKey);
       }, ['sink:localStorage.getItem']);
+
+      // --- Cached Dual-Database State Attestation (CDDSA) verification ---
+      const expectedHash = this.stateLedger.get(baseKey);
+
+      if (item) {
+        const calculatedHash = await this.computeHash(item);
+        if (expectedHash && calculatedHash !== expectedHash) {
+          console.error(`Security Sentinel [CDDSA]: Tamper detected for ${baseKey}! Hash mismatch.`);
+          executeLockdown();
+          return getDecoyData(baseKey);
+        } else if (!expectedHash && this.initialized) {
+          console.error(`Security Sentinel [CDDSA]: Injection detected for ${baseKey}! Key has no registered hash.`);
+          executeLockdown();
+          return getDecoyData(baseKey);
+        }
+      } else {
+        if (expectedHash && this.initialized) {
+          console.error(`Security Sentinel [CDDSA]: Deletion tamper detected for ${baseKey}! Key is missing from local storage.`);
+          executeLockdown();
+          return getDecoyData(baseKey);
+        }
+      }
 
       if (!item) return null;
 
@@ -313,6 +390,15 @@ class StorageManager {
         localStorage.setItem(fullKey, serialized);
       }, ['sink:localStorage.setItem']);
 
+      // --- CDDSA Hash Sync ---
+      const newHash = await this.computeHash(serialized);
+      this.stateLedger.set(baseKey, newHash);
+      try {
+        await voroCrypto.saveStoredHash(baseKey, newHash);
+      } catch (err) {
+        console.error(`Security Sentinel [CDDSA]: Failed to persist hash for ${baseKey}:`, err);
+      }
+
       return true;
     } catch (error) {
       console.error("Storage set error:", error);
@@ -353,6 +439,14 @@ class StorageManager {
         localStorage.removeItem(fullKey);
       }, ['sink:localStorage.removeItem']);
 
+      // --- CDDSA Hash Delete ---
+      this.stateLedger.delete(baseKey);
+      try {
+        await voroCrypto.deleteStoredHash(baseKey);
+      } catch (err) {
+        console.error(`Security Sentinel [CDDSA]: Failed to delete hash for ${baseKey}:`, err);
+      }
+
       this.cache.delete(baseKey);
       this.notify(baseKey, null);
 
@@ -390,6 +484,14 @@ class StorageManager {
             localStorage.removeItem(key);
           }, ['sink:localStorage.removeItem']);
         }
+      }
+
+      // --- CDDSA Hash Clear ---
+      this.stateLedger.clear();
+      try {
+        await voroCrypto.clearStoredHashes();
+      } catch (err) {
+        console.error("Security Sentinel [CDDSA]: Failed to clear state ledger hashes:", err);
       }
 
       this.clearCache();
