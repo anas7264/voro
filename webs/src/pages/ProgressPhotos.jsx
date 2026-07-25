@@ -73,8 +73,8 @@ const SpectralLens = ({ before, after, onClose }) => {
             window.removeEventListener('mousemove', handleMove);
             window.removeEventListener('mouseup', up);
           };
-          window.addEventListener('mousemove', handleMove);
-          window.addEventListener('mouseup', up);
+          window.addEventListener('mousemove', handleMove, { passive: true });
+          window.addEventListener('mouseup', up, { passive: true });
         }}
         onTouchMove={handleMove}
       >
