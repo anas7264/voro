@@ -5,6 +5,8 @@ import Card from '@/components/Card';
 import Input from '@/components/Input';
 import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useAI } from '@/hooks/useAI';
+import { useNotifications } from '@/hooks/useNotifications';
+import { isValidChatQuery } from '@/utils/validators';
 
 /**
  * ⚡ LUXURAL REFINEMENT: MessageItem Dialogue Bubble
@@ -200,6 +202,7 @@ const AICoach = () => {
   const savedHistory = useStorageKey('chat_history');
   const { setItem } = useStorageMethods();
   const { chat, loading: aiLoading } = useAI();
+  const { addNotification } = useNotifications();
 
   const [messages, setMessages] = useState(() => savedHistory || []);
   const [input, setInput] = useState('');
@@ -237,6 +240,12 @@ const AICoach = () => {
 
   const handleSendMessage = async (text = input) => {
     if (!text.trim() || loading) return;
+
+    // Security: Validate character length of the chat query before transmission and processing in AI/Redaction/Entropy pipelines (mitigates DoS)
+    if (!isValidChatQuery(text)) {
+      addNotification('Query is too long (maximum 2000 characters).', 'error');
+      return;
+    }
 
     const userMessage = { role: 'user', content: text, timestamp: new Date().toISOString() };
     const updatedMessages = [...messages, userMessage];
