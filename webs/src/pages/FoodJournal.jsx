@@ -3,6 +3,7 @@ import { Plus, Trash2, BookOpen, Clock, Zap } from 'lucide-react';
 import { Button, Card, Textarea, Header } from '@/components';
 import { useStorageMethods, useStorageKey } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
+import { isValidJournalNote } from '@/utils/validators';
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
@@ -49,6 +50,12 @@ const FoodJournal = () => {
 
   const handleAddEntry = useCallback(async () => {
     if (!note.trim()) return;
+
+    // Security: Validate character length before processing downstream sanitization and encryption pipelines (mitigates DoS)
+    if (!isValidJournalNote(note.trim())) {
+      addNotification('Reflection is too long (maximum 2048 characters).', 'error');
+      return;
+    }
 
     const newEntry = {
       id: Date.now(),

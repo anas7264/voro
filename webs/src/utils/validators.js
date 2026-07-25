@@ -203,6 +203,16 @@ export const isValidWaterAmount = (amount) => {
   return !isNaN(ml) && ml >= 0 && ml <= 5000;
 };
 
+// Journal note length validation (max 2048 characters to mitigate client-side DoS/memory bloat)
+export const isValidJournalNote = (note) => {
+  return typeof note === 'string' && note.length <= 2048;
+};
+
+// Chat query length validation (max 2000 characters to mitigate client-side DoS/memory bloat)
+export const isValidChatQuery = (query) => {
+  return typeof query === 'string' && query.length <= 2000;
+};
+
 // Gender validation
 export const isValidGender = (gender) => {
   const validGenders = ["male", "female", "other", "prefer_not_to_say"];
@@ -476,5 +486,7 @@ export default {
   validateFoodDiaryEntry,
   validateHabit,
   validateRecipe,
-  isValidWaterAmount
+  isValidWaterAmount,
+  isValidJournalNote,
+  isValidChatQuery
 };
