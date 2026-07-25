@@ -137,3 +137,10 @@
 **Learning:** Defining static datasets or performing extraction (e.g., `new Set(...)`) inside React components (or even inside `useMemo` hooks) still carries some allocation and Hook initialization/tracking overhead. Moving entirely static arrays and sets/maps out of the component scope completely avoids execution overhead on every render, keeping components lightning fast and clean.
 
 **Action:** Always hoist completely static data arrays, configuration objects, and their one-time derived values (like categories mappings or sets) to module-level constants.
+
+## 2026-08-10 - Concurrent Exercise Filtering with Deferred Value
+**Learning:** High-frequency keystroke inputs that filter large in-memory datasets (like the 2,064-item exercise library) can severely block the main thread and lag typing if handled in parent-level state. Merely memoizing or wrapping the search query in local state still forces the search list to block updates. Utilizing React's `useDeferredValue` allows the browser to prioritize typing paint events at 60fps, yielding a concurrent-rendering-like feel where the heavy O(N) list calculation is deferred until the CPU is free.
+
+**Action:**
+1. Isolate high-frequency text inputs and their corresponding filter lists into dedicated subcomponents wrapped in `React.memo`.
+2. Use `useDeferredValue` on the search query before passing it into filtering logic to prioritize immediate keystroke feedback.
