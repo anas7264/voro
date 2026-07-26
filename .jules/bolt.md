@@ -144,3 +144,10 @@
 **Action:**
 1. Isolate high-frequency text inputs and their corresponding filter lists into dedicated subcomponents wrapped in `React.memo`.
 2. Use `useDeferredValue` on the search query before passing it into filtering logic to prioritize immediate keystroke feedback.
+
+## 2026-08-15 - Pre-Formatting List Dates in Memoization Hooks
+**Learning:** Performing dynamic date parsing and Intl.DateTimeFormat formatting in component render-paths or lists is a hidden rendering bottleneck. In components that have high-frequency local state transitions (e.g., expand/collapse in `WorkoutHistory.jsx` or hover/focus in `PRRecords.jsx`), re-rendering the list forces heavy parsing/formatting of all items' date strings on every interaction. Moving the date formatting out of the render loop and into the parent data-derivation `useMemo` block completely eliminates this redundant CPU/heap overhead.
+
+**Action:**
+1. Avoid `Intl.DateTimeFormat.format` and `new Date()` calls directly inside rendering `map()` functions.
+2. Pre-compute and map formatted date strings into dataset objects inside parent `useMemo` hooks so they are formatted exactly once per data change.

@@ -50,7 +50,17 @@ const WorkoutHistory = () => {
     const data = workoutLog || {};
     return Object.entries(data)
       .filter(([_, w]) => w.attended)
-      .map(([date, w]) => ({ date, ...w }))
+      .map(([date, w]) => {
+        // ⚡ PERFORMANCE OPTIMIZATION: Pre-format the date inside useMemo
+        // This avoids dynamic Date allocation and expensive Intl.DateTimeFormat formatting
+        // inside the high-frequency render loop on every expand/collapse state update.
+        const parsedDate = new Date(date);
+        return {
+          date,
+          formattedDate: fullDateFormatter.format(parsedDate),
+          ...w
+        };
+      })
       /* ⚡ PERFORMANCE OPTIMIZATION: Raw Relational Sort Optimization.
          Utilizes raw string relational comparison to avoid both dynamic Date
          allocation and localeCompare engine overhead. Safe-guarded with falls. */
@@ -122,7 +132,7 @@ const WorkoutHistory = () => {
                       <div className="flex items-center gap-3 mb-1">
                         <Calendar size={14} className="text-gray-500" />
                         <span className="text-sm text-gray-400">
-                          {fullDateFormatter.format(new Date(workout.date))}
+                          {workout.formattedDate}
                         </span>
                       </div>
                       <h3 className={`text-lg font-bold mb-2 ${typeColors[workout.type] || typeColors.default}`}>

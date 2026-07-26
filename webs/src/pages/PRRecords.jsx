@@ -212,7 +212,7 @@ const ApexPRCard = ({ item, nodeId }) => {
                   </div>
                   <div className="flex items-center gap-2 text-[0.55rem] font-black text-gray-600 uppercase tracking-[0.2em] mt-2">
                     <Calendar size={10} className="text-gray-700" />
-                    <span>{fullDateFormatter.format(new Date(record.date))}</span>
+                    <span>{record.formattedDate}</span>
                   </div>
                 </div>
 
@@ -264,6 +264,15 @@ const PRRecords = () => {
           const dA = a.date || '';
           const dB = b.date || '';
           return dA < dB ? 1 : dA > dB ? -1 : 0;
+        }).map(r => {
+          // ⚡ PERFORMANCE OPTIMIZATION: Pre-format record date inside useMemo
+          // This avoids dynamic Date allocation and expensive Intl.DateTimeFormat formatting
+          // inside the high-frequency hover/focus render loops in ApexPRCard.
+          const parsedDate = new Date(r.date);
+          return {
+            ...r,
+            formattedDate: fullDateFormatter.format(parsedDate)
+          };
         }) : [],
       };
     }).filter(pr => pr.records.length > 0);
