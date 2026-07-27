@@ -6,7 +6,7 @@ import Input from '@/components/Input';
 import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useAI } from '@/hooks/useAI';
 import { useNotifications } from '@/hooks/useNotifications';
-import { isValidChatQuery } from '@/utils/validators';
+import { isValidChatQuery, isPromptInjection } from '@/utils/validators';
 
 /**
  * ⚡ LUXURAL REFINEMENT: MessageItem Dialogue Bubble
@@ -244,6 +244,12 @@ const AICoach = () => {
     // Security: Validate character length of the chat query before transmission and processing in AI/Redaction/Entropy pipelines (mitigates DoS)
     if (!isValidChatQuery(text)) {
       addNotification('Query is too long (maximum 2000 characters).', 'error');
+      return;
+    }
+
+    // Security: Validate query against prompt injection, jailbreak, and delimiter hijacking patterns
+    if (isPromptInjection(text)) {
+      addNotification('Security Alert: Malicious prompt pattern or system instructions override attempt detected. Transmission aborted.', 'error');
       return;
     }
 

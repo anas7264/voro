@@ -213,6 +213,80 @@ export const isValidChatQuery = (query) => {
   return typeof query === 'string' && query.length <= 2000;
 };
 
+// Prompt injection / jailbreak / delimiter hijacking detection
+export const isPromptInjection = (query) => {
+  if (!query || typeof query !== 'string') return false;
+
+  // 1. Delimiter hijacking detection (VORO specific nonced blocks or closing tags)
+  const delimiterRegex = /\[\/?(?:USER_DATA|SECURITY_PROTOCOL|MESSAGE_HISTORY|USER_INPUT)(?:_[A-Za-z0-9]+)?\]/gi;
+  if (delimiterRegex.test(query)) return true;
+
+  const lowerQuery = query.toLowerCase();
+
+  // 2. Override and instruction bypass patterns
+  const overridePatterns = [
+    "ignore previous",
+    "ignore above",
+    "ignore all instructions",
+    "ignore system",
+    "bypass instructions",
+    "override system",
+    "system override",
+    "developer mode",
+    "dan mode",
+    "do anything now",
+    "forget previous",
+    "forget all instructions",
+    "forget what was said",
+    "you must now ignore",
+    "you are now a developer",
+    "you are now an unrestricted",
+    "unrestricted mode",
+    "without restrictions",
+    "disable safety",
+    "bypass filters"
+  ];
+
+  if (overridePatterns.some(pattern => lowerQuery.includes(pattern))) return true;
+
+  // 3. Prompt harvesting and instruction disclosure patterns
+  const harvestingPatterns = [
+    "repeat the system prompt",
+    "reveal your instructions",
+    "reveal the system prompt",
+    "reveal instructions",
+    "output the system instructions",
+    "output your instructions",
+    "output the text above",
+    "show your system prompt",
+    "show system prompt",
+    "what is your system prompt",
+    "what is your prompt",
+    "what are your instructions",
+    "what are your developer instructions",
+    "reveal the nonce",
+    "output your nonces"
+  ];
+
+  if (harvestingPatterns.some(pattern => lowerQuery.includes(pattern))) return true;
+
+  // 4. Roleplay/Persona bypass attempts
+  const roleplayPatterns = [
+    "roleplay as",
+    "adopt the persona",
+    "pretend to be",
+    "you are now a terminal",
+    "you are now a linux",
+    "starting now you are",
+    "you are no longer an ai assistant",
+    "you are no longer a helpful"
+  ];
+
+  if (roleplayPatterns.some(pattern => lowerQuery.includes(pattern))) return true;
+
+  return false;
+};
+
 // Gender validation
 export const isValidGender = (gender) => {
   const validGenders = ["male", "female", "other", "prefer_not_to_say"];
@@ -488,5 +562,6 @@ export default {
   validateRecipe,
   isValidWaterAmount,
   isValidJournalNote,
-  isValidChatQuery
+  isValidChatQuery,
+  isPromptInjection
 };
