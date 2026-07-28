@@ -22,13 +22,66 @@ const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive
 
   const nodeId = useMemo(() => `CHRONO_NODE_${reactId.replace(/:/g, '').slice(0, 4)}`, [reactId]);
 
+  // Dynamic shift colors representing different levels of biological fasting progression
+  const metabolicState = useMemo(() => {
+    if (progress < 25) {
+      return {
+        name: "Glycogen Depletion",
+        color: "text-amber-500",
+        glow: "from-amber-500/25 via-amber-600/10 to-transparent",
+        glowColor: "rgba(245, 158, 11, 0.25)",
+        border: "border-amber-500/20",
+        indicator: "bg-amber-500",
+        textGlow: "shadow-[0_0_15px_rgba(245,158,11,0.5)]",
+        gradientId: "grad-glycogen",
+        colors: ["#F59E0B", "#D97706"]
+      };
+    } else if (progress < 50) {
+      return {
+        name: "Lipid Oxidation",
+        color: "text-emerald-400",
+        glow: "from-emerald-400/25 via-emerald-500/10 to-transparent",
+        glowColor: "rgba(52, 211, 153, 0.25)",
+        border: "border-emerald-500/20",
+        indicator: "bg-emerald-400",
+        textGlow: "shadow-[0_0_15px_rgba(16,185,129,0.5)]",
+        gradientId: "grad-lipid",
+        colors: ["#34D399", "#059669"]
+      };
+    } else if (progress < 75) {
+      return {
+        name: "Autophagy Sequence",
+        color: "text-indigo-400",
+        glow: "from-indigo-400/25 via-indigo-500/10 to-transparent",
+        glowColor: "rgba(129, 140, 248, 0.25)",
+        border: "border-indigo-500/20",
+        indicator: "bg-indigo-400",
+        textGlow: "shadow-[0_0_15px_rgba(99,102,241,0.5)]",
+        gradientId: "grad-autophagy",
+        colors: ["#818CF8", "#4F46E5"]
+      };
+    } else {
+      return {
+        name: "Deep Ketosis",
+        color: "text-cyan-400",
+        glow: "from-cyan-400/30 via-cyan-500/15 to-transparent",
+        glowColor: "rgba(34, 211, 238, 0.3)",
+        border: "border-cyan-500/20",
+        indicator: "bg-cyan-400",
+        textGlow: "shadow-[0_0_20px_rgba(6,182,212,0.6)]",
+        gradientId: "grad-ketosis",
+        colors: ["#22D3EE", "#0891B2"]
+      };
+    }
+  }, [progress]);
+
   const handleMouseMove = (e) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    // Volumetric tilt calculation (max 12 degrees)
+    // Volumetric tilt calculation (max 24 degrees)
     const tiltY = ((x / rect.width) - 0.5) * 24;
     const tiltX = (0.5 - (y / rect.height)) * 24;
 
@@ -81,7 +134,7 @@ const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive
       onBlur={handleBlur}
       tabIndex="0"
       role="article"
-      aria-label={`Metabolic Chronometer. Phase progress: ${Math.round(progress)}%. Time: ${hours} hours, ${minutes} minutes, ${seconds} seconds.`}
+      aria-label={`Metabolic Chronometer. Phase: ${metabolicState.name}. Phase progress: ${Math.round(progress)}%. Time: ${hours} hours, ${minutes} minutes, ${seconds} seconds.`}
       style={{
         transform: interactionActive
           ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
@@ -94,30 +147,55 @@ const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive
         focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408]
       `}
     >
-      {/* Outer Glow Ring */}
+      {/* Outer Glow Ring - Dynamic Color Shift & Ambient Auroral Backglow */}
       <div
-        className={`absolute inset-[-10px] rounded-full transition-all duration-1000 blur-2xl opacity-20 ${isActive ? 'bg-voro-primary' : 'bg-transparent'}`}
+        className={`absolute inset-[-15px] rounded-full transition-all duration-[1500ms] blur-3xl opacity-30 ${isActive ? 'animate-pulse-slow' : 'opacity-10 bg-white/5'}`}
+        style={{
+          background: `radial-gradient(circle, ${metabolicState.glowColor} 0%, transparent 70%)`,
+          transform: 'translateZ(-20px)'
+        }}
+      />
+
+      {/* Kinetic Outer Concentric Ring - Orbiting ticks */}
+      <div
+        className="absolute inset-[-12px] rounded-full border border-dashed border-white/5 pointer-events-none animate-orbit-clockwise opacity-40 group-hover:opacity-100 transition-opacity duration-1000"
         style={{ transform: 'translateZ(-10px)' }}
       />
 
+      {/* Kinetic Inner Concentric Ring - Reverse Orbiting Telemetry */}
+      <div
+        className="absolute inset-[10px] rounded-full border border-dashed border-white/[0.03] pointer-events-none animate-orbit-counter opacity-30 group-hover:opacity-80 transition-opacity duration-1000"
+        style={{ transform: 'translateZ(-5px)' }}
+      />
+
+      {/* Orbiting Tech Beacon (LED dot circling the dial) */}
+      <div
+        className="absolute inset-[-12px] rounded-full pointer-events-none animate-orbit-clockwise"
+        style={{ transform: 'translateZ(10px)' }}
+      >
+        <div
+          className={`absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full transition-colors duration-1000 shadow-[0_0_10px_currentColor] ${metabolicState.color}`}
+        />
+      </div>
+
       {/* Background Glass Plate */}
       <div
-        className="absolute inset-0 rounded-full bg-[#0A0C14]/60 backdrop-blur-3xl border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+        className="absolute inset-0 rounded-full bg-[#0A0C14]/75 backdrop-blur-3xl border border-white/10 shadow-[0_0_60px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.05)]"
         style={{ transform: 'translateZ(0px)' }}
       />
 
       {/* Precision Grid & Grain Overlay */}
       <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none" style={{ transform: 'translateZ(5px)' }}>
-        <div className="absolute inset-0 bg-grid-white opacity-0 group-hover:opacity-10 transition-opacity duration-1000" />
-        <div className="absolute inset-0 bg-boutique-grain opacity-[0.02]" />
+        <div className="absolute inset-0 bg-grid-white opacity-0 group-hover:opacity-15 transition-opacity duration-1000" />
+        <div className="absolute inset-0 bg-boutique-grain opacity-[0.03]" />
 
-        {/* Dynamic Luminous Lens */}
+        {/* Dynamic Luminous Lens with Shifting Phase Palette */}
         <div
           className="absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-700"
           style={{
             background: isHovered
-              ? `radial-gradient(150px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(124, 58, 237, 0.15), transparent 80%)`
-              : `radial-gradient(150px circle at 50% 50%, rgba(124, 58, 237, 0.15), transparent 80%)`,
+              ? `radial-gradient(150px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), ${metabolicState.glowColor}, transparent 80%)`
+              : `radial-gradient(150px circle at 50% 50%, ${metabolicState.glowColor}, transparent 80%)`,
             transform: 'translateZ(20px)'
           }}
         />
@@ -128,18 +206,18 @@ const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive
         className="absolute top-10 right-14 pointer-events-none opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-all duration-500"
         style={{ transform: 'translateZ(80px)' }}
       >
-        <div className="flex flex-col items-end font-mono text-[0.4rem] font-bold text-voro-primary/60 tracking-[0.2em] space-y-0.5">
-          <span>TX_<span ref={tiltXRef}>0.0</span>°</span>
-          <span>TY_<span ref={tiltYRef}>0.0</span>°</span>
+        <div className="flex flex-col items-end font-mono text-[0.4rem] font-bold tracking-[0.2em] space-y-0.5">
+          <span className={metabolicState.color}>TX_<span ref={tiltXRef}>0.0</span>°</span>
+          <span className={metabolicState.color}>TY_<span ref={tiltYRef}>0.0</span>°</span>
           <span className="text-white/20">[{nodeId}]</span>
         </div>
       </div>
 
-      {/* Metabolic Aura (Radial Pulse) */}
+      {/* Metabolic Aura (Radial Pulse matching current biological phase) */}
       <div
-        className={`absolute inset-10 rounded-full transition-all duration-[2000ms] ease-in-out ${
+        className={`absolute inset-10 rounded-full transition-all duration-[1500ms] ease-in-out ${
           isActive
-            ? "bg-gradient-radial from-voro-primary/10 via-voro-primary/5 to-transparent animate-pulse-slow opacity-100"
+            ? `bg-gradient-radial ${metabolicState.glow} animate-pulse-slow opacity-100`
             : "opacity-0"
         }`}
         style={{ transform: 'translateZ(15px)' }}
@@ -149,10 +227,9 @@ const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive
       <div className="absolute inset-0 pointer-events-none" style={{ transform: 'translateZ(35px)' }}>
         <svg className="w-full h-full transform -rotate-90 relative z-10" viewBox="0 0 256 256">
           <defs>
-            <linearGradient id="chrono-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#7C3AED" />
-              <stop offset="50%" stopColor="#9333EA" />
-              <stop offset="100%" stopColor="#10B981" />
+            <linearGradient id={metabolicState.gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={metabolicState.colors[0]} />
+              <stop offset="100%" stopColor={metabolicState.colors[1]} />
             </linearGradient>
             <filter id="ring-glow" x="-20%" y="-20%" width="140%" height="140%">
               <feGaussianBlur stdDeviation="5" result="blur" />
@@ -173,18 +250,18 @@ const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive
             fill="none"
           />
 
-          {/* Active Progress Ring */}
+          {/* Active Progress Ring - Multi-colored gradient based on state */}
           <circle
             cx="128"
             cy="128"
             r="108"
-            stroke="url(#chrono-grad)"
+            stroke={`url(#${metabolicState.gradientId})`}
             strokeWidth="6"
             fill="none"
             strokeDasharray={`${2 * Math.PI * 108}`}
             strokeDashoffset={`${2 * Math.PI * 108 * (1 - progress / 100)}`}
             strokeLinecap="round"
-            className="transition-all duration-[1500ms] ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+            className="transition-all duration-[1200ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
             filter="url(#ring-glow)"
           />
         </svg>
@@ -192,7 +269,10 @@ const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive
 
       {/* Central Time Core (Highest Z-depth) */}
       <div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none" style={{ transform: 'translateZ(70px)' }}>
-        <p className="text-[0.6rem] font-mono font-bold text-gray-500 uppercase tracking-[0.5em] mb-4">Metabolic Phase</p>
+        <p className="text-[0.55rem] font-mono font-bold text-gray-500 uppercase tracking-[0.4em] mb-1">Metabolic Phase</p>
+        <p className={`text-[0.65rem] font-serif italic tracking-[0.1em] font-medium transition-colors duration-1000 mb-3 ${metabolicState.color}`}>
+          {metabolicState.name}
+        </p>
 
         <div className="flex items-baseline gap-1">
           <div className="text-6xl font-serif italic font-medium text-white tracking-tighter">
@@ -202,15 +282,15 @@ const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive
           <div className="text-6xl font-serif italic font-medium text-white tracking-tighter">
             {String(minutes).padStart(2, '0')}
           </div>
-          <div className="ml-2 w-8 text-xl font-mono font-bold text-voro-primary tabular-nums">
+          <div className="ml-2 w-8 text-xl font-mono font-bold tabular-nums transition-colors duration-1000" style={{ color: metabolicState.colors[0] }}>
             {String(seconds).padStart(2, '0')}
           </div>
         </div>
 
         <div className="mt-6 flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/5 backdrop-blur-md">
-           <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-voro-primary animate-pulse' : 'bg-gray-700'}`} />
+           <div className={`w-1.5 h-1.5 rounded-full transition-all duration-1000 ${isActive ? `${metabolicState.indicator} animate-pulse` : 'bg-gray-700'}`} />
            <span className="text-[0.55rem] font-black text-gray-400 uppercase tracking-[0.3em]">
-             {Math.round(progress)}% Potential Achieved
+             {Math.round(progress)}% Optimized
            </span>
         </div>
       </div>
