@@ -172,6 +172,22 @@ const runTests = async () => {
     throw new Error(`❌ Failure: Relative path link incorrectly triggered lockdown! res3=${res3}, compromised=${window.VORO_COMPROMISED}`);
   }
 
+  // --- TEST 4: Extended Steganographic / Invisible Character Detection ---
+  console.log("🛡️ Test 4: Verifying extended steganographic / invisible character detection...");
+  lockdownCount = 0;
+  window.VORO_COMPROMISED = false;
+  window.VORO_DECEPTION_ACTIVE = false;
+
+  // \u200E is Left-to-Right Mark, \u202A is Left-to-Right Embedding, \u2060 is Word Joiner, \u115F is Hangul Choseong Filler
+  const steganographicPayload = "Here is some hidden data: \u200E\u202A\u2060\u115F";
+  const res4 = validateAIResponse(steganographicPayload);
+
+  if (res4 === "[SECURITY_VIOLATION_DETECTED]" && lockdownCount > 0 && window.VORO_COMPROMISED) {
+    console.log("✅ Success: Extended steganographic and invisible characters were successfully detected and locked down!");
+  } else {
+    throw new Error(`❌ Failure: Extended steganographic/invisible characters were NOT blocked! res4=${res4}, compromised=${window.VORO_COMPROMISED}`);
+  }
+
   console.log("\n🎉 ALL EXFILTRATION SECURITY VERIFICATION TESTS PASSED SUCCESSFULLY!");
   console.log("=========================================");
   process.exit(0);
