@@ -262,3 +262,14 @@ Traditional range-bound checks are not safe unless pre-validated with explicit `
 
 **Prevention:**
 Always use `Number.isFinite()` instead of `!isNaN()` for numeric validations. Ensure any numeric variables are validated using `Number.isFinite(parsedValue) && !isNaN(parsedValue)` before executing relational range comparisons. Enforce strict character length limits on all user-controlled text inputs at the input-validation boundary.
+
+## 2026-06-15 - Unicode Decomposition and Homoglyph Evasion Mitigation in Prompt Injection Shields
+
+**Vulnerability:**
+Prompt injection detectors matching raw keywords (such as "ignore") are highly vulnerable to evasion via stylized mathematical alphanumeric fonts (e.g. `𝐢𝐠𝐧𝐨𝐫𝐞`), fullwidth characters (e.g. `ｉｇｎｏｒｅ`), and Unicode homoglyphs (e.g. Cyrillic `і`, `о`, `е` to bypass English keywords).
+
+**Learning:**
+Combining native JavaScript `normalize('NFKD')` decomposition with a mapping dictionary to convert Cyrillic lookalikes back to ASCII equivalents completely neutralizes these formatting and homoglyph evasion attacks before they hit keyword and boundary check blocks.
+
+**Prevention:**
+Always normalize untrusted user text down to its baseline canonical ASCII representation using NFKD decomposition and a mapping dictionary before checking it against system-level keyword blocklists or injection patterns.
