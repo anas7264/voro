@@ -371,6 +371,12 @@ class CryptoManager {
     return await executeSecurely("Retrieve State Hashes", () => {
       return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, 1);
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME);
+          }
+        };
         request.onsuccess = (event) => {
           const db = event.target.result;
           const transaction = db.transaction(STORE_NAME, 'readonly');
@@ -410,6 +416,12 @@ class CryptoManager {
     return await executeSecurely(`Save State Hash [${key}]`, () => {
       return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, 1);
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME);
+          }
+        };
         request.onsuccess = (event) => {
           const db = event.target.result;
           const transaction = db.transaction(STORE_NAME, 'readwrite');
@@ -431,6 +443,12 @@ class CryptoManager {
     return await executeSecurely(`Delete State Hash [${key}]`, () => {
       return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, 1);
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME);
+          }
+        };
         request.onsuccess = (event) => {
           const db = event.target.result;
           const transaction = db.transaction(STORE_NAME, 'readwrite');
@@ -452,6 +470,12 @@ class CryptoManager {
     return await executeSecurely("Clear State Hashes", () => {
       return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, 1);
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME);
+          }
+        };
         request.onsuccess = (event) => {
           const db = event.target.result;
           const transaction = db.transaction(STORE_NAME, 'readwrite');
