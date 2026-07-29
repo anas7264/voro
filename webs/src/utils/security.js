@@ -557,6 +557,14 @@ export const checkPrototypeIntegrity = () => {
   return !compromised;
 };
 
+// Bounded cache for call stack validation outcomes
+const _validatedStacks = new Map();
+const MAX_STACK_CACHE_SIZE = 500;
+
+export const clearStackCache = () => {
+  _validatedStacks.clear();
+};
+
 /**
  * Call Stack Attestation (CSA)
  * Verifies the provenance of the execution stack to prevent unauthorized programmatic access
@@ -571,6 +579,11 @@ export const validateCallStack = () => {
   try {
     const stack = new _Error().stack;
     if (!stack) return true; // Some browsers might not provide stack, fail-open for UX but logs
+
+    // ⚡ PERFORMANCE OPTIMIZATION: Zero-allocation call stack cache hit
+    if (_validatedStacks.has(stack)) {
+      return _validatedStacks.get(stack);
+    }
 
     const lines = _call.call(_split, stack, '\n');
     const trustedOrigin = window.location.origin;
@@ -624,6 +637,12 @@ export const validateCallStack = () => {
         }
       }
     }
+
+    // ⚡ PERFORMANCE OPTIMIZATION: Bounded Cache validation success
+    if (_validatedStacks.size >= MAX_STACK_CACHE_SIZE) {
+      _validatedStacks.clear();
+    }
+    _validatedStacks.set(stack, true);
 
     return true;
   } catch (e) {
@@ -1727,6 +1746,9 @@ export const executeLockdown = (broadcast = true) => {
   if (window.storage && typeof window.storage.clearCache === 'function') {
     window.storage.clearCache();
   }
+
+  // Clear call stack validation cache
+  clearStackCache();
 
   // Aggressive Memory Hygiene: Purge session storage and other transient sinks
   try {
