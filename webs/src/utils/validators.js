@@ -217,9 +217,21 @@ export const isValidChatQuery = (query) => {
 export const isPromptInjection = (query) => {
   if (!query || typeof query !== 'string') return false;
 
-  // Normalize: Clean zero-width, formatting, and invisible characters, and condense consecutive whitespaces
-  const normalizedQuery = query
-    .toLowerCase()
+  // Normalize:
+  // 1. Decompose mathematical alphanumeric bold/italic/script fonts and fullwidth characters using NFKD normalization
+  // 2. Map Cyrillic homoglyphs back to their Latin lookalikes to prevent homoglyph evasion
+  const homoglyphs = {
+    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y',
+    'к': 'k', 'л': 'l', 'м': 'm', 'н': 'h', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 'c', 'т': 't', 'у': 'y',
+    'ф': 'f', 'х': 'x', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e',
+    'ю': 'yu', 'я': 'ya', 'і': 'i', 'ј': 'j', 'ѕ': 's'
+  };
+
+  let normalizedQuery = query.normalize('NFKD').toLowerCase();
+  normalizedQuery = normalizedQuery.replace(/[а-яіјѕ]/g, char => homoglyphs[char] || char);
+
+  // 3. Clean zero-width, formatting, and invisible characters, and condense consecutive whitespaces
+  normalizedQuery = normalizedQuery
     .replace(/[\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff\u00ad]/g, '')
     .replace(/\s+/g, ' ');
 
