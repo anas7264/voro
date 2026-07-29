@@ -217,11 +217,15 @@ export const isValidChatQuery = (query) => {
 export const isPromptInjection = (query) => {
   if (!query || typeof query !== 'string') return false;
 
+  // Normalize: Clean zero-width, formatting, and invisible characters, and condense consecutive whitespaces
+  const normalizedQuery = query
+    .toLowerCase()
+    .replace(/[\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff\u00ad]/g, '')
+    .replace(/\s+/g, ' ');
+
   // 1. Delimiter hijacking detection (VORO specific nonced blocks or closing tags)
   const delimiterRegex = /\[\/?(?:USER_DATA|SECURITY_PROTOCOL|MESSAGE_HISTORY|USER_INPUT)(?:_[A-Za-z0-9]+)?\]/gi;
-  if (delimiterRegex.test(query)) return true;
-
-  const lowerQuery = query.toLowerCase();
+  if (delimiterRegex.test(normalizedQuery) || delimiterRegex.test(query)) return true;
 
   // 2. Override and instruction bypass patterns
   const overridePatterns = [
@@ -247,7 +251,7 @@ export const isPromptInjection = (query) => {
     "bypass filters"
   ];
 
-  if (overridePatterns.some(pattern => lowerQuery.includes(pattern))) return true;
+  if (overridePatterns.some(pattern => normalizedQuery.includes(pattern))) return true;
 
   // 3. Prompt harvesting and instruction disclosure patterns
   const harvestingPatterns = [
@@ -268,7 +272,7 @@ export const isPromptInjection = (query) => {
     "output your nonces"
   ];
 
-  if (harvestingPatterns.some(pattern => lowerQuery.includes(pattern))) return true;
+  if (harvestingPatterns.some(pattern => normalizedQuery.includes(pattern))) return true;
 
   // 4. Roleplay/Persona bypass attempts
   const roleplayPatterns = [
@@ -282,7 +286,7 @@ export const isPromptInjection = (query) => {
     "you are no longer a helpful"
   ];
 
-  if (roleplayPatterns.some(pattern => lowerQuery.includes(pattern))) return true;
+  if (roleplayPatterns.some(pattern => normalizedQuery.includes(pattern))) return true;
 
   return false;
 };
