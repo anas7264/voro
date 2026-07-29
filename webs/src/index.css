@@ -332,6 +332,25 @@ body::before {
 .animate-wave { animation: wave 4s cubic-bezier(0.36, 0.45, 0.63, 0.53) infinite; }
 .animate-wave-slow { animation: wave-slow 7s cubic-bezier(0.36, 0.45, 0.63, 0.53) infinite; }
 
+/* Concentric Orbit Keyframes for Fasting Tracker Chronometer */
+@keyframes orbit-clockwise {
+  from { transform: translateZ(-10px) rotate(0deg); }
+  to { transform: translateZ(-10px) rotate(360deg); }
+}
+
+@keyframes orbit-counter {
+  from { transform: translateZ(-5px) rotate(360deg); }
+  to { transform: translateZ(-5px) rotate(0deg); }
+}
+
+.animate-orbit-clockwise {
+  animation: orbit-clockwise 24s linear infinite;
+}
+
+.animate-orbit-counter {
+  animation: orbit-counter 36s linear infinite;
+}
+
 /* Boutique Grain Texture */
 .bg-boutique-grain {
   position: relative;
