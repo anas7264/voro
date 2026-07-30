@@ -37,7 +37,7 @@ const PAGE_SIZE = 15;
  * Features 3D volumetric transforms, coordinate telemetry, magnetic mouse tracking,
  * and keyboard accessibility with static focus-tilts (4 degrees).
  */
-const ChronoArchiveCard = ({ workout, idx, isExpanded, onToggle, nodeId }) => {
+const ChronoArchiveCard = React.memo(({ workout, idx, isExpanded, onToggle, nodeId }) => {
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
@@ -144,7 +144,7 @@ const ChronoArchiveCard = ({ workout, idx, isExpanded, onToggle, nodeId }) => {
               <div className="flex items-center gap-3">
                 <Calendar size={14} className="text-gray-500" />
                 <span className="text-xs font-mono font-medium text-gray-500 uppercase tracking-widest">
-                  {fullDateFormatter.format(new Date(workout.date))}
+                  {workout.formattedDate}
                 </span>
               </div>
 
@@ -222,7 +222,8 @@ const ChronoArchiveCard = ({ workout, idx, isExpanded, onToggle, nodeId }) => {
       </div>
     </div>
   );
-};
+});
+ChronoArchiveCard.displayName = 'ChronoArchiveCard';
 
 const WorkoutHistory = () => {
   const workoutLog = useStorageKey('workout_log');
@@ -245,7 +246,11 @@ const WorkoutHistory = () => {
     const data = workoutLog || {};
     return Object.entries(data)
       .filter(([_, w]) => w.attended)
-      .map(([date, w]) => ({ date, ...w }))
+      .map(([date, w]) => ({
+        date,
+        ...w,
+        formattedDate: fullDateFormatter.format(new Date(date))
+      }))
       /* ⚡ PERFORMANCE OPTIMIZATION: Raw Relational Sort Optimization.
          Utilizes raw string relational comparison to avoid both dynamic Date
          allocation and localeCompare engine overhead. Safe-guarded with fallbacks. */

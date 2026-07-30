@@ -34,7 +34,7 @@ const EXERCISE_METADATA_MAP = exercises.reduce((acc, e) => {
  * Conforms to the 'Forge' luxury standard with 3D volumetric transforms,
  * magnetic mouse tracking, and real-time One-Rep Max calculation.
  */
-const ApexPRCard = ({ item, nodeId }) => {
+const ApexPRCard = React.memo(({ item, nodeId }) => {
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
@@ -212,7 +212,7 @@ const ApexPRCard = ({ item, nodeId }) => {
                   </div>
                   <div className="flex items-center gap-2 text-[0.55rem] font-black text-gray-600 uppercase tracking-[0.2em] mt-2">
                     <Calendar size={10} className="text-gray-700" />
-                    <span>{fullDateFormatter.format(new Date(record.date))}</span>
+                    <span>{record.formattedDate}</span>
                   </div>
                 </div>
 
@@ -231,7 +231,8 @@ const ApexPRCard = ({ item, nodeId }) => {
       <div className="absolute bottom-0 left-12 right-12 h-px bg-gradient-to-r from-transparent via-white/5 to-transparent group-hover/card:via-voro-primary/30 transition-all duration-1000" />
     </div>
   );
-};
+});
+ApexPRCard.displayName = 'ApexPRCard';
 
 const PRRecords = () => {
   const prHistory = useStorageKey('pr_history');
@@ -264,7 +265,10 @@ const PRRecords = () => {
           const dA = a.date || '';
           const dB = b.date || '';
           return dA < dB ? 1 : dA > dB ? -1 : 0;
-        }) : [],
+        }).map(r => ({
+          ...r,
+          formattedDate: fullDateFormatter.format(new Date(r.date))
+        })) : [],
       };
     }).filter(pr => pr.records.length > 0);
   }, [prHistory]);
