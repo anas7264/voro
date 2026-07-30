@@ -239,6 +239,9 @@ export const isPromptInjection = (query) => {
   const delimiterRegex = /\[\/?(?:USER_DATA|SECURITY_PROTOCOL|MESSAGE_HISTORY|USER_INPUT)(?:_[A-Za-z0-9]+)?\]/gi;
   if (delimiterRegex.test(normalizedQuery) || delimiterRegex.test(query)) return true;
 
+  // Clean Markdown obfuscation (asterisks, underscores, tildes, backticks) specifically for keyword matching
+  normalizedQuery = normalizedQuery.replace(/[\*_~`]/g, '');
+
   // 2. Override and instruction bypass patterns
   const overridePatterns = [
     "ignore previous",

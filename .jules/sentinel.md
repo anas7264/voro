@@ -160,71 +160,6 @@ Robust exfiltration defense must implement "Deep Decoding" by applying `decodeUR
 **Prevention:**
 Always decode untrusted URLs before security validation. Ensure all error logging in sensitive modules uses a centralized redaction engine to prevent the accidental exposure of secrets or PII in development or production logs.
 
-## 2025-05-26 - High-Fidelity Redaction & Collision Avoidance
-**Vulnerability:**
-Broad regex patterns for sensitive data (like 13-16 digit sequences for credit cards) can lead to catastrophic false positives by redacting essential system identifiers like Unix timestamps (e.g., 1716388915000). Furthermore, overlapping patterns (like UUID and PHONE) can cause partial redaction or incorrect categorization.
-
-**Learning:**
-Redaction patterns must be "High-Fidelity" and ordered by specificity. Using issuer-specific prefixes for credit cards and incorporating negative lookaheads (e.g., `(?!\d{13,16}\b)`) in catch-all entropy checks prevents the accidental masking of timestamps while maintaining security. Ordering complex patterns like UUID before greedy ones like PHONE ensures structural integrity of the redaction.
-
-**Prevention:**
-Always validate redaction regexes against common non-sensitive technical identifiers (timestamps, metrics). Prioritize specific, prefixed patterns over generic length-based ones.
-
-## 2025-05-24 - RASP Evasion via Native Reversion
-
-**Vulnerability:**
-Runtime Self-Protection (RASP) systems that only monitor for monkey-patching of native primitives are vulnerable to "Native Reversion". An attacker can delete the security wrapper and revert a sink (e.g., `fetch`) to its native browser implementation. Since the native code passes the `isNative` check, the RASP system "fails open" and stops monitoring the sink, allowing un-attested data exfiltration.
-
-**Learning:**
-Effective RASP must not only detect monkey-patching but also enforce that high-risk sinks *must* be wrapped. By explicitly rejecting native-code primitives for sensitive APIs (fetch, Storage, WebSocket) within the `isAuthorized` check, we force the system to stay within the attestation-guarded environment. Furthermore, targeting `Storage.prototype` provides atomic coverage for all storage instances (local/session) while hardening them against easy removal.
-
-**Prevention:**
-Maintain a "Must-Be-Wrapped" list for high-risk sinks. Ensure the integrity check rejects native browser implementations for these specific APIs. Use `configurable: false` on property definitions to prevent the deletion or replacement of security wrappers at runtime.
-
-## 2025-05-27 - Bound Function RASP Bypass & Attestation Completeness
-
-**Vulnerability:**
-Standard `isNative` checks using `toString().includes('[native code]')` are susceptible to bypass via `.bind()`. A bound function's `toString()` output mimics a native function, allowing unauthorized scripts to bypass RASP integrity checks. Furthermore, introducing new security sinks (like `URL.createObjectURL`) without updating all call sites to provide the necessary "Attestation Permits" leads to immediate functional regression and application crashes.
-
-**Learning:**
-Hardening `isNative` requires scrutinizing the function's metadata beyond its string representation; in most modern engines, bound functions carry a `bound ` prefix in their `name` property. Additionally, security architecture must be treated as a holistic contract—any expansion of the restricted sink list (RASP) necessitates a simultaneous "Attestation Audit" across the entire codebase to ensure legitimate features are properly granted capabilities via `executeSecurely`.
-
-**Prevention:**
-Always check for the `bound ` prefix in the `name` property during native-code verification. When adding new APIs to the RASP `mustBeWrapped` list, perform a global search for all occurrences of that API and wrap them in attested execution blocks before deploying the restrictive policy.
-
-## 2025-05-28 - Universal Console Redaction & Window Name Exfiltration
-
-**Vulnerability:**
-Sensitive data (PII, API keys) logged during development or error handling can persist in the browser's console, where it may be harvested by malicious extensions. Additionally, `window.name` is a persistent property that survives cross-origin navigations and can be used to smuggle data out of the application's origin.
-
-**Learning:**
-Proactive environment neutralization requires intercepting all potential data-leakage sinks. Automatically redacting all console output ensures that even if a developer inadvertently logs a secret, it is neutralized before it becomes persistent in the console history. Furthermore, clearing `window.name` during a security lockdown closes a common cross-origin exfiltration vector that is often overlooked in standard session-clearing procedures.
-
-**Prevention:**
-Always wrap global console methods with a redaction utility during the security initialization phase. Ensure that any system-wide "lockdown" or "logout" procedure includes a reset of the `window.name` property to prevent its use as an exfiltration bridge.
-
-## 2025-05-29 - Hardened Cryptographic Attestation & RASP Extension
-
-**Vulnerability:**
-Native cryptographic primitives (`crypto.subtle`) are powerful exfiltration sinks if left unmonitored. Even with Authenticated Encryption at Rest, an attacker executing code in the application's origin could use the native browser APIs to decrypt sensitive data or generate unauthorized keys if the RASP system only monitors for monkey-patching and "fails open" to native code.
-
-**Learning:**
-True Zero Trust requires that even native, "safe" primitives be treated as restricted resources. By extending RASP to include `crypto.subtle` in the "Must-Be-Wrapped" list and enforcing Granular Neural Capability Attestation (GNCA), we ensure that cryptographic operations can only occur within authorized, stack-bound execution contexts. This prevents "Cryptographic Side-Loading" and ensures that sensitive data remains protected even if an attacker gains partial execution privileges.
-
-**Prevention:**
-Always include cryptographic primitives in RASP integrity checks. Enforce that high-risk sinks must be wrapped in attested execution blocks (`executeSecurely`) with granular capabilities. Never allow unauthorized contexts to access native cryptographic methods, even if they haven't been monkey-patched.
-
-## 2025-05-30 - Service Worker RASP Integration & Initialization Hardening
-
-**Vulnerability:**
-Native browser APIs like `navigator.serviceWorker.register` provide a powerful vector for persistent compromise, including network request interception and cache poisoning. If these sinks are left unmonitored by RASP, an attacker can bypass origin-based security policies. Furthermore, if the security orchestrator is not the absolute first module loaded in the application entry point, other dependencies may capture references to native primitives before they are pinned or wrapped.
-
-**Learning:**
-Robust security requires both breadth of coverage and precedence of execution. Extending RASP to include Service Worker registration ensures that all background execution contexts are subject to attestation. Simultaneously, enforcing that the security sentinel is the first import in `main.jsx` guarantees the integrity of captured primitives by preventing "Primitive Race Conditions" with other third-party libraries.
-
-**Prevention:**
-Always include background execution and network-interception APIs (`ServiceWorker`, `SharedWorker`) in the RASP `mustBeWrapped` list. Mandatory security initialization must occur as the absolute first line of the application's entry sequence to ensure that all subsequent module loads operate within a protected environment.
-
 ## 2026-06-11 - Window.open RASP Integration & Intrinsic Sentinel Hardening
 
 **Vulnerability:**
@@ -273,3 +208,13 @@ Combining native JavaScript `normalize('NFKD')` decomposition with a mapping dic
 
 **Prevention:**
 Always normalize untrusted user text down to its baseline canonical ASCII representation using NFKD decomposition and a mapping dictionary before checking it against system-level keyword blocklists or injection patterns.
+
+## 2026-06-16 - Markdown-Based Obfuscation Bypass Mitigation in Prompt Injection Shields
+**Vulnerability:**
+Prompt injection blocklists can be bypassed using markdown formatting syntax (such as bold, italic, strikethrough, or code blocks: `*`, `_`, `~`, `` ` ``) interspersed between characters (e.g. `i**g**n**o**r**e previous`). Since markdown is interpreted as formatting rather than literal letters by LLMs, the obfuscated input still triggers malicious overrides downstream while escaping keyword detection blocks.
+
+**Learning:**
+Normalizing input specifically for prompt injection validation must include stripping all Markdown formatting characters. To prevent breaking delimiter checks (which use underscores for nonce/context tagging, e.g. `[USER_DATA_12345]`), the delimiter validation must run first (or on raw inputs) before formatting characters are scrubbed from the matching string.
+
+**Prevention:**
+Always execute delimiter and structural tests prior to cleaning emphasis. Clean asterisks, underscores, tildes, and backticks from query strings to ensure standard blocklist matches evaluate correctly, without altering the actual query payload delivered to the LLM.
