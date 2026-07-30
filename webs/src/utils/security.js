@@ -284,20 +284,24 @@ const _console = {
 
 /**
  * Anomaly detection for potential "Data Smuggling" or high-entropy secrets.
+ * ⚡ PERFORMANCE OPTIMIZATION: Uses Object.create(null) and direct property iteration
+ * to completely eliminate array allocations (Object.values, Array.reduce) and prototype lookups.
  */
 const calculateEntropy = (str) => {
   if (!str || str.length < 20) return 0;
   const len = str.length;
-  const frequencies = {};
+  const frequencies = Object.create(null);
   for (let i = 0; i < len; i++) {
     const char = str[i];
     frequencies[char] = (frequencies[char] || 0) + 1;
   }
-  const values = _call.call(_values, Object, frequencies);
-  return _call.call(_reduce, values, (sum, freq) => {
+  let sum = 0;
+  for (const char in frequencies) {
+    const freq = frequencies[char];
     const p = freq / len;
-    return sum - p * _log2(p);
-  }, 0);
+    sum -= p * _log2(p);
+  }
+  return sum;
 };
 
 /**
