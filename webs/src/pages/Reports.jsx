@@ -6,6 +6,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { exportWeeklyReport, exportMonthlyReport, exportMealPlan, exportTrainingPlan, savePDF } from '@/utils/pdfExport';
+import { executeSecurely } from '@/utils/security';
 
 const STEPS = [
   "INITIALIZING CRYPTOGRAPHIC SYNC...",
@@ -79,7 +80,7 @@ const Reports = () => {
     };
   }, [getItem]);
 
-  const handleJSONExport = useCallback((key) => {
+  const handleJSONExport = useCallback(async (key) => {
     try {
       const data = getItem(key);
       if (!data) {
@@ -88,7 +89,10 @@ const Reports = () => {
       }
       const fileData = JSON.stringify(data, null, 2);
       const blob = new Blob([fileData], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
+      const url = await executeSecurely("Export Dossier", () => {
+        return URL.createObjectURL(blob);
+      }, ["sink:URL.createObjectURL"]);
+
       const link = document.createElement("a");
       link.download = `voro_${key}_dossier_${new Date().toISOString().split('T')[0]}.json`;
       link.href = url;
@@ -96,6 +100,10 @@ const Reports = () => {
       link.click();
       document.body.removeChild(link);
       addNotification("Data stream compiled & secure export initiated.", "success");
+
+      await executeSecurely("Cleanup Dossier URL", () => {
+        URL.revokeObjectURL(url);
+      }, ["sink:URL.revokeObjectURL"]);
     } catch (e) {
       addNotification("Cryptographic packaging failed.", "error");
     }
