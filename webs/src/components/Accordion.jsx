@@ -71,6 +71,7 @@ const AccordionItem = memo(({ item, isOpen, onToggle, index }) => {
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
 
   const handleMouseMove = (e) => {
     if (!containerRef.current) return;
@@ -91,32 +92,50 @@ const AccordionItem = memo(({ item, isOpen, onToggle, index }) => {
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
   };
 
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    if (!containerRef.current) return;
+
+    if (isFocused) {
+      // Revert back to focus static 4-degree tilt on mouse leave
+      containerRef.current.style.setProperty('--tilt-x', '4deg');
+      containerRef.current.style.setProperty('--tilt-y', '-4deg');
+      if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
+    } else {
+      containerRef.current.style.setProperty('--tilt-x', '0deg');
+      containerRef.current.style.setProperty('--tilt-y', '0deg');
+    }
+  };
+
   const nodeId = useMemo(() => `NODE_AC_${index.toString().padStart(2, '0')}`, [index]);
   const attestedId = useMemo(() => Math.floor(Math.random() * 0x1000000).toString(16).toUpperCase().padStart(6, '0'), []);
+
+  const interactionActive = isHovered || isFocused;
 
   return (
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseLeave={handleMouseLeave}
       style={{
-        transform: isHovered
+        transform: interactionActive
           ? `perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)`
           : `perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)`,
-        transition: isHovered ? 'none' : 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)',
+        transition: (isHovered && !isFocused) ? 'none' : 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
       }}
       className={`
         relative overflow-hidden bg-[#0A0C14] border border-white/5 rounded-[2.5rem]
-        transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
+        transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group
         ${isOpen ? "border-voro-primary/30 shadow-[0_40px_80px_rgba(0,0,0,0.6)]" : "hover:border-white/10 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)]"}
       `}
     >
       {/* Precision Grid & Light Detail */}
-      <div className="absolute inset-0 bg-grid-white opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+      <div className="absolute inset-0 bg-grid-white opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-1000 pointer-events-none" />
       <div
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-700 pointer-events-none"
         style={{
           background: `radial-gradient(600px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(124, 58, 237, 0.05), transparent 40%)`,
         }}
@@ -125,7 +144,23 @@ const AccordionItem = memo(({ item, isOpen, onToggle, index }) => {
       <button
         id={buttonId}
         onClick={onToggle}
-        className="relative z-10 w-full px-10 py-8 flex items-center justify-between group outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14] rounded-[2.5rem]"
+        onFocus={() => {
+          setIsFocused(true);
+          if (containerRef.current) {
+            containerRef.current.style.setProperty('--tilt-x', '4deg');
+            containerRef.current.style.setProperty('--tilt-y', '-4deg');
+            if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
+            if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
+          }
+        }}
+        onBlur={() => {
+          setIsFocused(false);
+          if (containerRef.current) {
+            containerRef.current.style.setProperty('--tilt-x', '0deg');
+            containerRef.current.style.setProperty('--tilt-y', '0deg');
+          }
+        }}
+        className="relative z-10 w-full px-10 py-8 flex items-center justify-between outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14] rounded-[2.5rem]"
         aria-expanded={isOpen}
         aria-controls={regionId}
       >
