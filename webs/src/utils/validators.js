@@ -219,16 +219,25 @@ export const isPromptInjection = (query) => {
 
   // Normalize:
   // 1. Decompose mathematical alphanumeric bold/italic/script fonts and fullwidth characters using NFKD normalization
-  // 2. Map Cyrillic homoglyphs back to their Latin lookalikes to prevent homoglyph evasion
+  // 2. Strip combining diacritical marks (accents/modifiers) to neutralize character-accented bypasses
+  // 3. Map Cyrillic and Greek homoglyphs back to their Latin lookalikes to prevent homoglyph evasion
   const homoglyphs = {
+    // Cyrillic homoglyphs
     'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y',
     'к': 'k', 'л': 'l', 'м': 'm', 'н': 'h', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 'c', 'т': 't', 'у': 'y',
     'ф': 'f', 'х': 'x', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e',
-    'ю': 'yu', 'я': 'ya', 'і': 'i', 'ј': 'j', 'ѕ': 's'
+    'ю': 'yu', 'я': 'ya', 'і': 'i', 'ј': 'j', 'ѕ': 's',
+    // Greek homoglyphs (mapped by visual similarity for spoofing defense)
+    'α': 'a', 'β': 'b', 'γ': 'g', 'δ': 'd', 'ε': 'e', 'ζ': 'z', 'η': 'n', 'θ': 'th', 'ι': 'i', 'κ': 'k',
+    'λ': 'l', 'μ': 'u', 'ν': 'v', 'ξ': 'x', 'ο': 'o', 'π': 'p', 'ρ': 'p', 'σ': 's', 'ς': 's', 'τ': 't',
+    'υ': 'y', 'φ': 'f', 'χ': 'x', 'ψ': 'ps', 'ω': 'w'
   };
 
   let normalizedQuery = query.normalize('NFKD').toLowerCase();
-  normalizedQuery = normalizedQuery.replace(/[а-яіјѕ]/g, char => homoglyphs[char] || char);
+  // Strip combining diacritical marks (e.g. accents)
+  normalizedQuery = normalizedQuery.replace(/[\u0300-\u036f]/g, '');
+  // Translate Cyrillic and Greek homoglyphs to Latin equivalents
+  normalizedQuery = normalizedQuery.replace(/[а-яіјѕα-ως]/g, char => homoglyphs[char] || char);
 
   // 3. Clean zero-width, formatting, and invisible characters, and condense consecutive whitespaces
   normalizedQuery = normalizedQuery
