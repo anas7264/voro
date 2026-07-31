@@ -159,3 +159,10 @@
 **Action:**
 1. Use `Object.create(null)` for high-frequency internal hash maps or character counts.
 2. Always iterate map keys via `for (const key in map)` loops instead of calling `Object.values`/`Object.keys` to avoid temporary array allocations in performance-critical code blocks.
+
+## 2026-08-25 - Loop-Bound ISO Date Extraction Bypass
+**Learning:** Instantiating `new Date` and serializing/formatting it using `toISOString().split('T')[0]` within loop-bound data calculations (e.g., training volume aggregation over deep chronological logs) introduces severe CPU cycles and GC allocation thrashing. If the incoming dataset dates are already standard ISO string formats starting with `YYYY-MM-DD`, executing a direct `.slice(0, 10)` completely bypasses the dynamic date parser and VM-level heap allocations, ensuring 60fps responsiveness.
+
+**Action:**
+1. In high-frequency loop maps or aggregations, avoid invoking `new Date` parsers for basic date manipulations or extraction when strings are pre-formatted.
+2. Use raw string slicing (`slice(0, 10)`) as the fast-path bypass for standard ISO date formats, reserving dynamic parsers as the slow fallback.

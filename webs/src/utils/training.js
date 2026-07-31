@@ -22,7 +22,11 @@ export const analyzeTrainingVolume = (workouts) => {
     volumeByExercise[workout.exercise] += volume;
 
     // Group by day
-    const day = new Date(workout.date).toISOString().split("T")[0];
+    // ⚡ PERFORMANCE OPTIMIZATION: Avoid heavy dynamic Date parsing, timezone calculations,
+    // and .toISOString() serialization in hot loops when workout.date is already in standard ISO format.
+    const day = (typeof workout.date === "string" && workout.date.length >= 10 && workout.date[4] === "-" && workout.date[7] === "-")
+      ? workout.date.slice(0, 10)
+      : new Date(workout.date).toISOString().split("T")[0];
     if (!volumeByDay[day]) {
       volumeByDay[day] = 0;
     }
