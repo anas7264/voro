@@ -692,7 +692,8 @@ export const sanitizeInput = (input) => {
           if (_call.call(_startsWith, attr, 'on') ||
               attr === 'action' ||
               attr === 'formaction' ||
-              (attr === 'href' || attr === 'src') && _call.call(_startsWith, value, 'javascript:')) {
+              (attr === 'href' || attr === 'src') && _call.call(_startsWith, value, 'javascript:') ||
+              (attr === 'style' && _call.call(_SIncludes, value, 'url('))) {
             el.removeAttribute(el.attributes[i].name);
             i--; // Adjust index after removal
           }
