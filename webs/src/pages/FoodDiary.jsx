@@ -12,6 +12,14 @@ import Ring from '@/components/Ring';
 import { NutritionCard } from '@/components/NutritionCard';
 import { foods } from '@/data/foods';
 
+// ⚡ PERFORMANCE OPTIMIZATION: Pre-calculate lowercase properties for the static foods dataset.
+// This completely avoids allocating and converting strings on every single keystroke inside the filter loop.
+const FOODS_LOWERCASE = foods.map(f => ({
+  ...f,
+  _nameLower: f.name.toLowerCase(),
+  _categoryLower: f.category ? f.category.toLowerCase() : '',
+}));
+
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
  * Prevents redundant object instantiation of Intl.DateTimeFormat in render loops.
@@ -402,12 +410,12 @@ const FoodSearchModal = ({ isOpen, onClose, onSelectFood }) => {
    * and ensures results are computed only when the search query changes.
    */
   const results = useMemo(() => {
-    if (!search.trim()) return foods.slice(0, 15);
+    if (!search.trim()) return FOODS_LOWERCASE.slice(0, 15);
 
     const query = search.toLowerCase();
-    return foods.filter(f =>
-      f.name.toLowerCase().includes(query) ||
-      (f.category && f.category.toLowerCase().includes(query))
+    return FOODS_LOWERCASE.filter(f =>
+      f._nameLower.includes(query) ||
+      f._categoryLower.includes(query)
     ).slice(0, 20);
   }, [search]);
 
