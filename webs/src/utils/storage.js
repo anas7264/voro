@@ -3,11 +3,121 @@
 import voroCrypto from './crypto';
 import {
   sanitizeObject, validateCallStack, executeLockdown, getDecoyData,
-  isDeceptionActive, executeSecurely, createSecureProxy
+  isDeceptionActive, executeSecurely, createSecureProxy, sanitizeInput
 } from './security';
 
 const STORAGE_PREFIX = "voro_";
 const GHOST_VAULT_KEY = "voro_ghost_vault";
+
+const KEY_SCHEMAS = {
+  user: 'object',
+  profile: 'object',
+  settings: 'object',
+  gamification: 'object',
+  meal_prep: 'object',
+  plans: 'object',
+  nutrition_log: 'array',
+  workout_log: 'array',
+  body_metrics: 'array',
+  vitals: 'array',
+  supplements: 'array',
+  habits: 'array',
+  recipes: 'array',
+  chat_history: 'array',
+  notifications: 'array',
+  shopping_list: 'array',
+  periodization: 'array',
+  pr_history: 'array',
+  quick_log: 'array',
+  custom_foods: 'array',
+  custom_exercises: 'array',
+  fitness_tests: 'array',
+  injury_log: 'array',
+  cycle_tracking: 'array',
+  competition: 'array',
+  gym_setup: 'array'
+};
+
+/**
+ * Recursively validates and sanitizes incoming backup/restoration data.
+ * Implements:
+ * 1. Depth-limit checking to prevent stack overflows & DoS (max depth 6).
+ * 2. Circular reference protection via WeakSet tracking.
+ * 3. Key checking for prototype pollution (removes __proto__, constructor, prototype).
+ * 4. Value checking (bounds check on string lengths: max 10,000 chars; array length: max 1,000 elements).
+ * 5. String-value XSS sanitization via sanitizeInput.
+ */
+function validateAndSanitizeData(data, depth = 0, seen = new WeakSet()) {
+  if (depth > 6) {
+    throw new Error("Security Shield: Max object depth exceeded in backup payload.");
+  }
+
+  if (data === null || data === undefined) {
+    return data;
+  }
+
+  const dataType = typeof data;
+
+  if (dataType === 'string') {
+    if (data.length > 10000) {
+      throw new Error("Security Shield: String length limit exceeded in backup payload.");
+    }
+    return sanitizeInput(data);
+  }
+
+  if (dataType === 'number') {
+    if (!Number.isFinite(data) || isNaN(data)) {
+      return 0; // Standardize/neutralize non-finite numeric anomalies
+    }
+    return data;
+  }
+
+  if (dataType === 'boolean') {
+    return data;
+  }
+
+  if (dataType === 'object') {
+    if (seen.has(data)) {
+      throw new Error("Security Shield: Circular reference detected in backup payload.");
+    }
+    seen.add(data);
+
+    if (Array.isArray(data)) {
+      if (data.length > 1000) {
+        throw new Error("Security Shield: Array element count limit exceeded in backup payload.");
+      }
+      return data.map(item => validateAndSanitizeData(item, depth + 1, seen));
+    }
+
+    const cleanedObj = {};
+    const keys = Object.getOwnPropertyNames(data);
+
+    for (const key of keys) {
+      // Deep Prototype Pollution Guard
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+        continue;
+      }
+
+      // Check key length to prevent key-based memory exhaustion or parsing DoS
+      if (key.length > 128) {
+        continue; // Discard absurdly large keys
+      }
+
+      const val = data[key];
+      // Do not import functions or symbols - only persistable JSON data is valid
+      if (typeof val === 'function' || typeof val === 'symbol') {
+        continue;
+      }
+
+      cleanedObj[key] = validateAndSanitizeData(val, depth + 1, seen);
+    }
+
+    return cleanedObj;
+  }
+
+  // Fallback for unexpected types (functions, symbols, undefined)
+  return null;
+}
 
 // Honey-token Entrapment: Canary keys that are never used by the application.
 // Any interaction with these keys triggers a system-wide security lockdown.
@@ -644,7 +754,21 @@ class StorageManager {
         const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
         if (!this.encryptedKeys.has(baseKey)) continue; // Strict key whitelist matching STORAGE_KEYS
 
-        await this.set(baseKey, backupData[key]);
+        // Deep validate and recursively sanitize the imported key data structure
+        const sanitizedVal = validateAndSanitizeData(backupData[key]);
+
+        // Enforce strict schema type conformance
+        const expectedType = KEY_SCHEMAS[baseKey];
+        if (expectedType === 'array' && !Array.isArray(sanitizedVal)) {
+          console.error(`Security Shield [DSVSS]: Type mismatch for "${baseKey}". Expected an array.`);
+          continue;
+        }
+        if (expectedType === 'object' && (typeof sanitizedVal !== 'object' || Array.isArray(sanitizedVal) || sanitizedVal === null)) {
+          console.error(`Security Shield [DSVSS]: Type mismatch for "${baseKey}". Expected a non-null object.`);
+          continue;
+        }
+
+        await this.set(baseKey, sanitizedVal);
       }
 
       return true;
