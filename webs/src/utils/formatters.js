@@ -5,6 +5,7 @@
  * ⚡ PERFORMANCE OPTIMIZATION: Static lookup tables to avoid garbage collection and string allocations.
  */
 const PADDED_MONTHS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
+const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const PADDED_DAYS = [
   '00', '01', '02', '03', '04', '05', '06', '07', '08', '09',
   '10', '11', '12', '13', '14', '15', '16', '17', '18', '19',
@@ -58,6 +59,37 @@ const getFormatter = (cache, FormatterClass, locale, options) => {
  */
 export const getFastDateStr = (d) => {
   return `${d.getFullYear()}-${PADDED_MONTHS[d.getMonth()]}-${PADDED_DAYS[d.getDate()]}`;
+};
+
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Zero-allocation ASCII-subtraction-based parse path
+ * for standard ISO-8601 strings (YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS.sssZ) to 'MMM D'.
+ * Bypasses Date object allocation and Intl.DateTimeFormat lookups.
+ */
+export const getFastShortDate = (str) => {
+  if (typeof str === 'string' && str.length >= 10 && str.charCodeAt(4) === 45 && str.charCodeAt(7) === 45) {
+    const m1 = str.charCodeAt(5) - 48;
+    const m2 = str.charCodeAt(6) - 48;
+    const monthIndex = m1 * 10 + m2 - 1;
+
+    const d1 = str.charCodeAt(8) - 48;
+    const d2 = str.charCodeAt(9) - 48;
+    const dayVal = d1 * 10 + d2;
+
+    if (monthIndex >= 0 && monthIndex < 12 && dayVal >= 1 && dayVal <= 31) {
+      return `${SHORT_MONTHS[monthIndex]} ${dayVal}`;
+    }
+  }
+
+  if (str instanceof Date) {
+    if (isNaN(str.getTime())) return '';
+    return `${SHORT_MONTHS[str.getMonth()]} ${str.getDate()}`;
+  }
+
+  // Safe fallback to Intl.DateTimeFormat
+  const dateObj = typeof str === 'string' ? new Date(str) : str;
+  if (!dateObj || (dateObj instanceof Date && isNaN(dateObj.getTime()))) return '';
+  return getFormatter(dateFormatterCache, Intl.DateTimeFormat, 'en-US', { month: 'short', day: 'numeric' }).format(dateObj);
 };
 
 // Format date to readable string
@@ -298,6 +330,7 @@ export const formatUnits = (value, unit) => {
 
 export default {
   getFastDateStr,
+  getFastShortDate,
   formatDate,
   formatNumber,
   formatWeight,
