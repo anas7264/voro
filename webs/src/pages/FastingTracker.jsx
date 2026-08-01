@@ -435,7 +435,7 @@ const FastingTracker = () => {
                     </Button>
                     <button
                       onClick={handleReset}
-                      className="p-6 rounded-[1.5rem] bg-white/[0.03] border border-white/5 text-gray-500 hover:text-white hover:bg-white/10 transition-all duration-500"
+                      className="p-6 rounded-[1.5rem] bg-white/[0.03] border border-white/5 text-gray-500 hover:text-white hover:bg-white/10 transition-all duration-500 focus-visible:ring-2 focus-visible:ring-voro-primary/50 outline-none"
                       aria-label="Reset metabolic cycle"
                     >
                       <RotateCcw size={20} />
