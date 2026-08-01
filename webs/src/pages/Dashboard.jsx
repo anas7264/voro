@@ -19,7 +19,7 @@ import { useAppContext } from '@/hooks/useAppContext';
 import { useStorageMethods, useStorageKey, useStorageKeySelector } from '@/hooks/useStorage';
 import { useAI } from '@/hooks/useAI';
 import { useNotifications } from '@/hooks/useNotifications';
-import { getFastDateStr } from '@/utils/formatters';
+import { getFastDateStr, getFastShortDate } from '@/utils/formatters';
 import Modal from '@/components/Modal';
 import LineChartComponent from '@/components/LineChartComponent';
 import Ring from '@/components/Ring';
@@ -64,7 +64,6 @@ const getGreeting = () => {
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
  * Prevents redundant object instantiation of Intl.DateTimeFormat in loops or high-frequency renders.
  */
-const shortDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
 const longDateFormatter = new Intl.DateTimeFormat('en-US', {
   weekday: 'long',
   year: 'numeric',
@@ -199,7 +198,7 @@ const Dashboard = () => {
 
   const weightTrend = useMemo(() => {
     return weights30D.map(w => ({
-      date: shortDateFormatter.format(new Date(w.date)),
+      date: getFastShortDate(w.date),
       weight: w.value,
       fullDate: w.date
     }));

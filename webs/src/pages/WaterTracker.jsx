@@ -3,6 +3,7 @@ import { Plus, Droplet, Trash2, TrendingUp, ChevronLeft, ChevronRight, Target, Z
 import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { validateWaterEntry } from '@/utils/validators';
+import { getFastShortDate } from '@/utils/formatters';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import LineChartComponent from '@/components/LineChartComponent';
@@ -11,7 +12,6 @@ import LineChartComponent from '@/components/LineChartComponent';
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
  * Prevents redundant object instantiation of Intl.DateTimeFormat in loops.
  */
-const shortDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
 const longDateFormatter = new Intl.DateTimeFormat('en-US', {
   weekday: 'short',
   month: 'short',
@@ -368,7 +368,7 @@ const WaterTracker = () => {
       return Object.entries(history || {})
         .slice(-30)
         .map(([d, amount]) => ({
-          date: shortDateFormatter.format(new Date(d)),
+          date: getFastShortDate(d),
           water: amount,
         }));
     }, [])

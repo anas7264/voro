@@ -10,12 +10,7 @@ import { useApp } from '@/hooks/useAppContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import { calculateBMI, calculateFFMI } from '@/utils/calculators';
 import { isValidWeight, isValidBodyFat, isPositiveNumber } from '@/utils/validators';
-
-/**
- * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
- * Prevents redundant object instantiation of Intl.DateTimeFormat in loops.
- */
-const shortDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+import { getFastShortDate } from '@/utils/formatters';
 
 const BodyMetrics = () => {
   const { updateItem } = useStorageMethods();
@@ -145,12 +140,12 @@ const BodyMetrics = () => {
    * Hoisted formatters eliminate object churn in the trend loop.
    */
   const weightData = useMemo(() => weights.slice(-30).map(w => ({
-    date: shortDateFormatter.format(new Date(w.date)),
+    date: getFastShortDate(w.date),
     weight: w.value,
   })), [weights]);
 
   const bodyFatData = useMemo(() => bodyFatRecords.slice(-30).map(b => ({
-    date: shortDateFormatter.format(new Date(b.date)),
+    date: getFastShortDate(b.date),
     bodyFat: b.value,
   })), [bodyFatRecords]);
 

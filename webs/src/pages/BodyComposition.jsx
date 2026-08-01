@@ -7,8 +7,7 @@ import Badge from '@/components/Badge';
 import { useStorageKey } from '@/hooks/useStorage';
 import { useApp } from '@/hooks/useAppContext';
 import { bodyFatStandards, bodyFatLevelDescriptions, bodyFatHealthMetrics } from '@/data/bodyFatStandards';
-
-const labelFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+import { getFastShortDate } from '@/utils/formatters';
 
 const BodyComposition = () => {
   /**
@@ -86,7 +85,7 @@ const BodyComposition = () => {
       const leanMass = (weight - fatMass);
 
       result.push({
-        date: labelFormatter.format(w.dateObj),
+        date: getFastShortDate(w.date),
         leanMass: Number(leanMass.toFixed(2)),
         fatMass: Number(fatMass.toFixed(2)),
         bodyFat: Number(bfPct.toFixed(2)),
