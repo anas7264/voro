@@ -213,31 +213,35 @@ export const isValidChatQuery = (query) => {
   return typeof query === 'string' && query.length <= 2000;
 };
 
+// ⚡ PERFORMANCE OPTIMIZATION: Hoisted homoglyph map and pre-compiled regex patterns.
+// Prevents dynamic allocations on every keystroke and executes single-pass native DFA-based searches.
+const HOMOGLYPHS_MAP = {
+  // Cyrillic homoglyphs
+  'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y',
+  'к': 'k', 'л': 'l', 'м': 'm', 'н': 'h', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 'c', 'т': 't', 'у': 'y',
+  'ф': 'f', 'х': 'x', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e',
+  'ю': 'yu', 'я': 'ya', 'і': 'i', 'ј': 'j', 'ѕ': 's', 'ё': 'e', 'є': 'e',
+  // Greek homoglyphs (mapped by visual similarity for spoofing defense)
+  'α': 'a', 'β': 'b', 'γ': 'g', 'δ': 'd', 'ε': 'e', 'ζ': 'z', 'η': 'n', 'θ': 'th', 'ι': 'i', 'κ': 'k',
+  'λ': 'l', 'μ': 'u', 'ν': 'v', 'ξ': 'x', 'ο': 'o', 'π': 'p', 'ρ': 'p', 'σ': 's', 'ς': 's', 'τ': 't',
+  'υ': 'y', 'φ': 'f', 'χ': 'x', 'ψ': 'ps', 'ω': 'w'
+};
+
+const OVERRIDE_RE = /ignore previous|ignore above|ignore all instructions|ignore system|bypass instructions|override system|system override|developer mode|dan mode|do anything now|forget previous|forget all instructions|forget what was said|you must now ignore|you are now a developer|you are now an unrestricted|unrestricted mode|without restrictions|disable safety|bypass filters/i;
+
+const HARVESTING_RE = /repeat the system prompt|reveal your instructions|reveal the system prompt|reveal instructions|output the system instructions|output your instructions|output the text above|show your system prompt|show system prompt|what is your system prompt|what is your prompt|what are your instructions|what are your developer instructions|reveal the nonce|output your nonces/i;
+
+const ROLEPLAY_RE = /roleplay as|adopt the persona|pretend to be|you are now a terminal|you are now a linux|starting now you are|you are no longer an ai assistant|you are no longer a helpful/i;
+
 // Prompt injection / jailbreak / delimiter hijacking detection
 export const isPromptInjection = (query) => {
   if (!query || typeof query !== 'string') return false;
-
-  // Normalize:
-  // 1. Decompose mathematical alphanumeric bold/italic/script fonts and fullwidth characters using NFKD normalization
-  // 2. Strip combining diacritical marks (accents/modifiers) to neutralize character-accented bypasses
-  // 3. Map Cyrillic and Greek homoglyphs back to their Latin lookalikes to prevent homoglyph evasion
-  const homoglyphs = {
-    // Cyrillic homoglyphs
-    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y',
-    'к': 'k', 'л': 'l', 'м': 'm', 'н': 'h', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 'c', 'т': 't', 'у': 'y',
-    'ф': 'f', 'х': 'x', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e',
-    'ю': 'yu', 'я': 'ya', 'і': 'i', 'ј': 'j', 'ѕ': 's', 'ё': 'e', 'є': 'e',
-    // Greek homoglyphs (mapped by visual similarity for spoofing defense)
-    'α': 'a', 'β': 'b', 'γ': 'g', 'δ': 'd', 'ε': 'e', 'ζ': 'z', 'η': 'n', 'θ': 'th', 'ι': 'i', 'κ': 'k',
-    'λ': 'l', 'μ': 'u', 'ν': 'v', 'ξ': 'x', 'ο': 'o', 'π': 'p', 'ρ': 'p', 'σ': 's', 'ς': 's', 'τ': 't',
-    'υ': 'y', 'φ': 'f', 'χ': 'x', 'ψ': 'ps', 'ω': 'w'
-  };
 
   let normalizedQuery = query.normalize('NFKD').toLowerCase();
   // Strip combining diacritical marks across all standard Unicode diacritic blocks (including extended, supplement, symbols, and half-marks)
   normalizedQuery = normalizedQuery.replace(/[\u0300-\u036f\u1ab0-\u1aff\u1dc0-\u1dff\u20d0-\u20ff\ufe20-\ufe2f]/g, '');
   // Translate Cyrillic and Greek homoglyphs (matching full Unicode Cyrillic and Greek/Coptic blocks) to Latin equivalents
-  normalizedQuery = normalizedQuery.replace(/[\u0400-\u04FF\u0370-\u03FF]/g, char => homoglyphs[char] || char);
+  normalizedQuery = normalizedQuery.replace(/[\u0400-\u04FF\u0370-\u03FF]/g, char => HOMOGLYPHS_MAP[char] || char);
 
   // 3. Clean zero-width, formatting, and invisible characters, and condense consecutive whitespaces
   normalizedQuery = normalizedQuery
@@ -251,66 +255,10 @@ export const isPromptInjection = (query) => {
   // Clean Markdown obfuscation (asterisks, underscores, tildes, backticks) specifically for keyword matching
   normalizedQuery = normalizedQuery.replace(/[\*_~`]/g, '');
 
-  // 2. Override and instruction bypass patterns
-  const overridePatterns = [
-    "ignore previous",
-    "ignore above",
-    "ignore all instructions",
-    "ignore system",
-    "bypass instructions",
-    "override system",
-    "system override",
-    "developer mode",
-    "dan mode",
-    "do anything now",
-    "forget previous",
-    "forget all instructions",
-    "forget what was said",
-    "you must now ignore",
-    "you are now a developer",
-    "you are now an unrestricted",
-    "unrestricted mode",
-    "without restrictions",
-    "disable safety",
-    "bypass filters"
-  ];
-
-  if (overridePatterns.some(pattern => normalizedQuery.includes(pattern))) return true;
-
-  // 3. Prompt harvesting and instruction disclosure patterns
-  const harvestingPatterns = [
-    "repeat the system prompt",
-    "reveal your instructions",
-    "reveal the system prompt",
-    "reveal instructions",
-    "output the system instructions",
-    "output your instructions",
-    "output the text above",
-    "show your system prompt",
-    "show system prompt",
-    "what is your system prompt",
-    "what is your prompt",
-    "what are your instructions",
-    "what are your developer instructions",
-    "reveal the nonce",
-    "output your nonces"
-  ];
-
-  if (harvestingPatterns.some(pattern => normalizedQuery.includes(pattern))) return true;
-
-  // 4. Roleplay/Persona bypass attempts
-  const roleplayPatterns = [
-    "roleplay as",
-    "adopt the persona",
-    "pretend to be",
-    "you are now a terminal",
-    "you are now a linux",
-    "starting now you are",
-    "you are no longer an ai assistant",
-    "you are no longer a helpful"
-  ];
-
-  if (roleplayPatterns.some(pattern => normalizedQuery.includes(pattern))) return true;
+  // 2. Override, Harvesting, and Roleplay bypass patterns matched in single-pass compiled regexes
+  if (OVERRIDE_RE.test(normalizedQuery)) return true;
+  if (HARVESTING_RE.test(normalizedQuery)) return true;
+  if (ROLEPLAY_RE.test(normalizedQuery)) return true;
 
   return false;
 };

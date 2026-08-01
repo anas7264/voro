@@ -11,11 +11,19 @@ const PAGE_SIZE = 24;
  */
 const CATEGORIES = ['All', ...new Set(foods.map(f => f.category))];
 
+// ⚡ PERFORMANCE OPTIMIZATION: Pre-calculate lowercase properties for the static foods dataset.
+// This completely avoids allocating and converting strings on every single keystroke inside the filter loop.
+const FOODS_LOWERCASE = foods.map(f => ({
+  ...f,
+  _nameLower: f.name.toLowerCase(),
+  _subCategoryLower: f.subCategory ? f.subCategory.toLowerCase() : '',
+}));
+
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted Category Map.
  * Provides O(1) lookup for category filtering, avoiding O(N) array scans.
  */
-const FOOD_BY_CATEGORY = foods.reduce((acc, food) => {
+const FOOD_BY_CATEGORY = FOODS_LOWERCASE.reduce((acc, food) => {
   if (!acc[food.category]) acc[food.category] = [];
   acc[food.category].push(food);
   return acc;
@@ -54,14 +62,14 @@ const FoodLibrary = () => {
      * ⚡ PERFORMANCE OPTIMIZATION: Category-First Filtering.
      * Uses pre-calculated map for O(1) initial slice if a category is selected.
      */
-    let filtered = selectedCategory === 'All' ? foods : (FOOD_BY_CATEGORY[selectedCategory] || []);
+    let filtered = selectedCategory === 'All' ? FOODS_LOWERCASE : (FOOD_BY_CATEGORY[selectedCategory] || []);
 
     if (deferredSearchQuery.trim()) {
       const query = deferredSearchQuery.toLowerCase();
       filtered = filtered.filter(f =>
-        f.name.toLowerCase().includes(query) ||
+        f._nameLower.includes(query) ||
         (f.nameAr && f.nameAr.includes(query)) ||
-        (f.subCategory && f.subCategory.toLowerCase().includes(query))
+        (f.subCategory && f._subCategoryLower.includes(query))
       );
     }
 

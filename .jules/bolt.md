@@ -166,3 +166,11 @@
 **Action:**
 1. In high-frequency loop maps or aggregations, avoid invoking `new Date` parsers for basic date manipulations or extraction when strings are pre-formatted.
 2. Use raw string slicing (`slice(0, 10)`) as the fast-path bypass for standard ISO date formats, reserving dynamic parsers as the slow fallback.
+
+## 2026-08-28 - Module-Level Indexing & Validator Regex Pre-compilation
+**Learning:** Hoisting configuration objects and mappings (like Cyrillic/Greek homoglyphs) to the module level avoids expensive dictionary recreation on every validation cycle. Furthermore, replacing sequential string `.some()`/`.includes()` loops with unified, pre-compiled regular expressions shifts search execution to native C++ DFAs (V8 Irregexp), cutting down processing overhead. Similarly, pre-calculating lowercase search keys on large static arrays (`exercises`, `foods`) outside the component lifecycle completely bypasses garbage collection thrashing during high-frequency keystroke events.
+
+**Action:**
+1. Hoist complex static mappings and lookup tables outside functions/hooks to avoid reallocation churn.
+2. Compile array-based search filters into unified, module-scoped `RegExp` constants.
+3. Pre-process static datasets on module load with pre-computed lowercase search properties to eliminate hot-path `.toLowerCase()` cycles inside filter loops.

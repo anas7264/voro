@@ -12,6 +12,14 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { validateWorkoutEntry } from '@/utils/validators';
 import { exercises } from '@/data/exercises';
 
+// ⚡ PERFORMANCE OPTIMIZATION: Pre-calculate lowercase properties for the static exercises dataset.
+// This completely avoids allocating and converting 4,128 strings on every single keystroke inside the filter loop.
+const EXERCISES_LOWERCASE = exercises.map(e => ({
+  ...e,
+  _nameLower: e.name.toLowerCase(),
+  _categoryLower: e.category.toLowerCase(),
+}));
+
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Concurrent Exercise Search in WorkoutLog.jsx
  * The high-frequency exercise search state is isolated in a memoized subcomponent,
@@ -27,9 +35,9 @@ const ExerciseSearchModal = memo(({ isOpen, onClose, onSelectExercise }) => {
   const filteredExercises = useMemo(() => {
     if (!isOpen) return [];
     const query = deferredSearchQuery.toLowerCase();
-    return exercises.filter(e =>
-      e.name.toLowerCase().includes(query) ||
-      e.category.toLowerCase().includes(query)
+    return EXERCISES_LOWERCASE.filter(e =>
+      e._nameLower.includes(query) ||
+      e._categoryLower.includes(query)
     ).slice(0, 15);
   }, [isOpen, deferredSearchQuery]);
 

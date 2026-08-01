@@ -11,11 +11,18 @@ const PAGE_SIZE = 20;
  */
 const CATEGORIES = ['All', ...new Set(exercises.map(e => e.category))];
 
+// ⚡ PERFORMANCE OPTIMIZATION: Pre-calculate lowercase properties for the static exercises dataset.
+// This completely avoids allocating and converting strings on every single keystroke inside the filter loop.
+const EXERCISES_LOWERCASE = exercises.map(e => ({
+  ...e,
+  _nameLower: e.name.toLowerCase(),
+}));
+
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted Category Map.
  * Provides O(1) lookup for category filtering, avoiding O(N) array scans on all 2,064 exercises.
  */
-const EXERCISES_BY_CATEGORY = exercises.reduce((acc, exercise) => {
+const EXERCISES_BY_CATEGORY = EXERCISES_LOWERCASE.reduce((acc, exercise) => {
   if (!acc[exercise.category]) acc[exercise.category] = [];
   acc[exercise.category].push(exercise);
   return acc;
@@ -51,12 +58,12 @@ const ExerciseLibrary = () => {
      * ⚡ PERFORMANCE OPTIMIZATION: Category-First Filtering.
      * Uses pre-calculated map for O(1) initial slice if a category is selected.
      */
-    let filtered = selectedCategory === 'All' ? exercises : (EXERCISES_BY_CATEGORY[selectedCategory] || []);
+    let filtered = selectedCategory === 'All' ? EXERCISES_LOWERCASE : (EXERCISES_BY_CATEGORY[selectedCategory] || []);
 
     if (deferredSearchQuery.trim()) {
       const query = deferredSearchQuery.toLowerCase();
       filtered = filtered.filter(e =>
-        e.name.toLowerCase().includes(query)
+        e._nameLower.includes(query)
       );
     }
 
