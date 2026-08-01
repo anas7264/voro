@@ -476,7 +476,7 @@ const WaterTracker = () => {
           <div className="flex items-center gap-6 bg-[#0A0C14]/90 border border-white/5 rounded-[2.5rem] p-3 shadow-2xl backdrop-blur-3xl">
             <button
               onClick={() => handleDateChange(-1)}
-              className="p-4 hover:bg-white/5 rounded-[1.75rem] text-gray-500 hover:text-white transition-all active:scale-90"
+              className="p-4 hover:bg-white/5 rounded-[1.75rem] text-gray-500 hover:text-white transition-all active:scale-90 focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:border-blue-500/50 outline-none"
               aria-label="Previous chronological index"
             >
               <ChevronLeft size={20} />
@@ -487,7 +487,7 @@ const WaterTracker = () => {
             </div>
             <button
               onClick={() => handleDateChange(1)}
-              className="p-4 hover:bg-white/5 rounded-[1.75rem] text-gray-500 hover:text-white transition-all active:scale-90"
+              className="p-4 hover:bg-white/5 rounded-[1.75rem] text-gray-500 hover:text-white transition-all active:scale-90 focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:border-blue-500/50 outline-none"
               aria-label="Next chronological index"
             >
               <ChevronRight size={20} />
