@@ -41,3 +41,7 @@
 ## 2026-07-27 - High-Contrast Focus Visuals on Luxury Dark-Themed Icons
 **Learning:** In ultra-dark luxury user interfaces (e.g. Voro's Forge aesthetic), custom icon buttons embedded within technical widgets (such as date chevrons or metabolic timers) often lack outline borders or background highlights. Standard browser outline behaviors can disrupt the pristine aesthetics or remain entirely invisible.
 **Action:** Use tailored `focus-visible:ring-2` with semi-transparent accent colors (such as Voro's primary yellow/gold or custom cyan) alongside `outline-none` and coordinate transitions to ensure focus highlights perfectly integrate into the dark luxury frame while maintaining optimal keyboard visibility.
+
+## 2026-07-28 - Unifying Legacy Pagination Elements with Luxury Custom Buttons
+**Learning:** Native pagination controls or "Load More" buttons in high-fidelity luxury systems are often implemented as standard, unstyled HTML components. This creates a jarring UX discontinuity, as they lack the volumetric tilts, tactile focus feedback, and telemetry overlays that characterize the primary navigation items.
+**Action:** When encountering standard `<button>` elements used for pagination or secondary triggers, refactor them to use the design system's custom luxury `<Button>` component. This automatically inherits coordinate telemetry, magnetic hover physics, custom high-contrast focus rings, and the 4-degree keyboard focus-tilt behavior.

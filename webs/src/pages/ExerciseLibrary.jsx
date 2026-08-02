@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo, useDeferredValue } from 'react';
 import { Search, Activity } from 'lucide-react';
 import { exercises } from '@/data/exercises';
 import { ExerciseCard } from '@/components/ExerciseCard';
+import Button from '@/components/Button';
 
 const PAGE_SIZE = 20;
 
@@ -146,12 +147,12 @@ const ExerciseLibrary = () => {
 
         {visibleCount < filteredExercises.length && (
           <div className="mt-12 flex justify-center">
-            <button
+            <Button
+              variant="secondary"
               onClick={() => setVisibleCount(prev => prev + PAGE_SIZE)}
-              className="px-12 py-5 rounded-2xl bg-white/5 border border-white/5 text-[0.65rem] font-black uppercase tracking-[0.4em] text-white transition-all hover:bg-white/10 hover:border-white/20 hover:shadow-2xl"
             >
               Load More Exercises
-            </button>
+            </Button>
           </div>
         )}
       </div>
