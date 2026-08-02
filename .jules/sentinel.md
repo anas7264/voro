@@ -218,3 +218,13 @@ Normalizing input specifically for prompt injection validation must include stri
 
 **Prevention:**
 Always execute delimiter and structural tests prior to cleaning emphasis. Clean asterisks, underscores, tildes, and backticks from query strings to ensure standard blocklist matches evaluate correctly, without altering the actual query payload delivered to the LLM.
+
+## 2026-06-17 - Multi-Pass Encoding Prompt Injection Shield
+**Vulnerability:**
+Prompt injection filters that analyze plain-text input can be bypassed if an attacker encodes prompt instructions (such as "ignore previous") or specific delimiters using URL percent-encoding, double-percent encoding, or HTML decimal/hex entity encoding. If the underlying model, web framework, or markdown rendering context decodes these entities down the line, the malicious instructions execute while escaping the initial query validation checks.
+
+**Learning:**
+Neutralizing encoding-based evasion requires executing a pre-normalization decoding pipeline. Integrating a multi-pass, recursive URL percent-decoder alongside an HTML entity decoder (covering decimal, hex, and named entities) maps obfuscated sequences back to their true literal sequence.
+
+**Prevention:**
+Always run recursive URL and HTML entity decoding on user queries at the absolute entry boundary of prompt-injection and delimiter validation engines, before any normalizations, formatting stripping, or pattern-matching checks.
