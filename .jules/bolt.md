@@ -174,3 +174,10 @@
 1. Hoist complex static mappings and lookup tables outside functions/hooks to avoid reallocation churn.
 2. Compile array-based search filters into unified, module-scoped `RegExp` constants.
 3. Pre-process static datasets on module load with pre-computed lowercase search properties to eliminate hot-path `.toLowerCase()` cycles inside filter loops.
+
+## 2026-08-31 - Static Redaction Array Hoisting
+**Learning:** Dynamically allocating heavy objects containing multiple regex literals and invoking `Object.entries()` inside hot-path, high-frequency utility loops (such as redactData, which processes every log output and user query) severely impacts engine-level memory utilization and CPU execution time. Pre-compiling static tuples of `[name, regexp]` as a module-level constant and freezing it completely bypasses runtime object allocation and entries generation, improving data flow efficiency.
+
+**Action:**
+1. Hoist complex regex group definitions from local utility function scopes into a module-level frozen array.
+2. Use stable arrays of tuples for iterating key-value style logic in performance-critical code blocks to avoid runtime key/value array allocation.

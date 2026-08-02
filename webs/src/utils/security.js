@@ -2120,37 +2120,41 @@ export const sanitizeObject = (o, s = new WeakSet()) => {
 };
 
 /**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted and frozen static redaction patterns to avoid
+ * object allocation, regex compilation, and dynamic Object.entries() iteration on every call.
+ */
+const REDACTION_PATTERNS = _freeze([
+  ['UUID', /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi],
+  ['CREDIT_CARD', /\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|6(?:011|5[0-9]{2})[0-9]{12}|(?:2131|1800|35\d{3})\d{11})\b/g],
+  ['EMAIL', /[\w.-]+@[\w.-]+\.\w+/g],
+  ['IPV4', /\b(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/g],
+  ['IPV6', /\b(?:(?:[A-Fa-f0-9]{1,4}:){7}[A-Fa-f0-9]{1,4}|(?:[A-Fa-f0-9]{1,4}:){1,6}:[A-Fa-f0-9]{1,4}|(?:[A-Fa-f0-9]{1,4}:){1,5}(?::[A-Fa-f0-9]{1,4}){1,2}|(?:[A-Fa-f0-9]{1,4}:){1,4}(?::[A-Fa-f0-9]{1,4}){1,3}|(?:[A-Fa-f0-9]{1,4}:){1,3}(?::[A-Fa-f0-9]{1,4}){1,4}|(?:[A-Fa-f0-9]{1,4}:){1,2}(?::[A-Fa-f0-9]{1,4}){1,5}|[A-Fa-f0-9]{1,4}:(?::[A-Fa-f0-9]{1,4}){1,6}|(?::[A-Fa-f0-9]{1,4}){1,7}|(?:[A-Fa-f0-9]{1,4}:){1,7}:|:(?::[A-Fa-f0-9]{1,4}){1,7}|::)\b/g],
+  ['PHONE', /\b(?!\d{13,16}\b)(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g],
+  ['STRIPE', /sk_(?:live|test)_\w{24,34}/g],
+  ['STRIPE_RESTRICTED', /rk_(?:live|test)_\w{24,34}/g],
+  ['AWS', /AKIA\w{16}/g],
+  ['BEARER', /Bearer\s+[A-Za-z0-9-._~+/]+=*/g],
+  ['JWT', /eyJ[\w=-]+\.eyJ[\w=-]+\.[\w-_.+/=]*/g],
+  ['GOOGLE', /AIza[0-9A-Za-z-_]{35}/g],
+  ['GITHUB', /\b(?:ghp|gho|ghu|ghs|ghr|github_pat)_[a-zA-Z0-9]{36,255}\b/g],
+  ['OPENAI', /\bsk-(?:proj-)?[a-zA-Z0-9\-_]{20,}\b/g],
+  ['PEM_KEY', /-----BEGIN (?:[\w\s]+)PRIVATE KEY-----[\s\S]+?-----END (?:[\w\s]+)PRIVATE KEY-----|-----BEGIN (?:[\w\s]+)PUBLIC KEY-----[\s\S]+?-----END (?:[\w\s]+)PUBLIC KEY-----/g],
+  ['SSH_KEY', /-----BEGIN OPENSSH PRIVATE KEY-----[\s\S]+?-----END OPENSSH PRIVATE KEY-----/g],
+  ['CLAUDE', /sk-ant-api03-[a-zA-Z0-9\-_]{93,}/g],
+  ['SLACK', /https:\/\/hooks\.slack\.com\/services\/T\w{8,10}\/B\w{8,10}\/\w{24}/g],
+  ['DISCORD', /https:\/\/discord\.com\/api\/webhooks\/\d+\/[\w-]{68}/g],
+  ['MARKER', /\[(USER_DATA|SECURITY_PROTOCOL|MESSAGE_HISTORY|USER_INPUT)_\w{32}\]/g]
+]);
+
+/**
  * Redacts PII (Emails), Secrets (Stripe, AWS, JWT, Google), and AI markers. Circular reference safe.
  */
 export const redactData = (d, s = null) => {
   const seen = s || (typeof WeakSet !== 'undefined' ? new WeakSet() : null);
 
   if (typeof d === 'string') {
-    const p = {
-      UUID: /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi,
-      CREDIT_CARD: /\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|6(?:011|5[0-9]{2})[0-9]{12}|(?:2131|1800|35\d{3})\d{11})\b/g,
-      EMAIL: /[\w.-]+@[\w.-]+\.\w+/g,
-      IPV4: /\b(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/g,
-      IPV6: /\b(?:(?:[A-Fa-f0-9]{1,4}:){7}[A-Fa-f0-9]{1,4}|(?:[A-Fa-f0-9]{1,4}:){1,6}:[A-Fa-f0-9]{1,4}|(?:[A-Fa-f0-9]{1,4}:){1,5}(?::[A-Fa-f0-9]{1,4}){1,2}|(?:[A-Fa-f0-9]{1,4}:){1,4}(?::[A-Fa-f0-9]{1,4}){1,3}|(?:[A-Fa-f0-9]{1,4}:){1,3}(?::[A-Fa-f0-9]{1,4}){1,4}|(?:[A-Fa-f0-9]{1,4}:){1,2}(?::[A-Fa-f0-9]{1,4}){1,5}|[A-Fa-f0-9]{1,4}:(?::[A-Fa-f0-9]{1,4}){1,6}|(?::[A-Fa-f0-9]{1,4}){1,7}|(?:[A-Fa-f0-9]{1,4}:){1,7}:|:(?::[A-Fa-f0-9]{1,4}){1,7}|::)\b/g,
-      PHONE: /\b(?!\d{13,16}\b)(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g,
-      STRIPE: /sk_(?:live|test)_\w{24,34}/g,
-      STRIPE_RESTRICTED: /rk_(?:live|test)_\w{24,34}/g,
-      AWS: /AKIA\w{16}/g,
-      BEARER: /Bearer\s+[A-Za-z0-9-._~+/]+=*/g,
-      JWT: /eyJ[\w=-]+\.eyJ[\w=-]+\.[\w-_.+/=]*/g,
-      GOOGLE: /AIza[0-9A-Za-z-_]{35}/g,
-      GITHUB: /\b(?:ghp|gho|ghu|ghs|ghr|github_pat)_[a-zA-Z0-9]{36,255}\b/g,
-      OPENAI: /\bsk-(?:proj-)?[a-zA-Z0-9\-_]{20,}\b/g,
-      PEM_KEY: /-----BEGIN (?:[\w\s]+)PRIVATE KEY-----[\s\S]+?-----END (?:[\w\s]+)PRIVATE KEY-----|-----BEGIN (?:[\w\s]+)PUBLIC KEY-----[\s\S]+?-----END (?:[\w\s]+)PUBLIC KEY-----/g,
-      SSH_KEY: /-----BEGIN OPENSSH PRIVATE KEY-----[\s\S]+?-----END OPENSSH PRIVATE KEY-----/g,
-      CLAUDE: /sk-ant-api03-[a-zA-Z0-9\-_]{93,}/g,
-      SLACK: /https:\/\/hooks\.slack\.com\/services\/T\w{8,10}\/B\w{8,10}\/\w{24}/g,
-      DISCORD: /https:\/\/discord\.com\/api\/webhooks\/\d+\/[\w-]{68}/g,
-      MARKER: /\[(USER_DATA|SECURITY_PROTOCOL|MESSAGE_HISTORY|USER_INPUT)_\w{32}\]/g
-    };
     let r = d;
-    const entries = _call.call(_entries, Object, p);
-    _call.call(_forEach, entries, ([n, g]) => {
+    _call.call(_forEach, REDACTION_PATTERNS, ([n, g]) => {
       r = _call.call(_replace, r, g, m => n === 'MARKER' ? `[[${_call.call(_slice, m, 1, -1)}]]` : `[REDACTED_${n}]`);
     });
     // Shannon entropy-based catch-all for high-entropy tokens > 24 chars
