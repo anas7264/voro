@@ -233,11 +233,53 @@ const HARVESTING_RE = /repeat the system prompt|reveal your instructions|reveal 
 
 const ROLEPLAY_RE = /roleplay as|adopt the persona|pretend to be|you are now a terminal|you are now a linux|starting now you are|you are no longer an ai assistant|you are no longer a helpful/i;
 
+// Helper to decode URL percent encoding (handles double/recursive encoding up to 5 times)
+const decodePercentEncoding = (str) => {
+  try {
+    let decoded = str;
+    let prev;
+    let limit = 5;
+    do {
+      prev = decoded;
+      decoded = decodeURIComponent(decoded);
+    } while (decoded !== prev && --limit > 0);
+    return decoded;
+  } catch (e) {
+    return str;
+  }
+};
+
+// Helper to decode HTML entities (handles decimal, hex, and named entities)
+const decodeHTMLEntities = (str) => {
+  if (!str || typeof str !== 'string') return str;
+  return str.replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => {
+      try {
+        return String.fromCharCode(parseInt(hex, 16));
+      } catch (e) {
+        return _;
+      }
+    })
+    .replace(/&#(\d+);/g, (_, dec) => {
+      try {
+        return String.fromCharCode(parseInt(dec, 10));
+      } catch (e) {
+        return _;
+      }
+    });
+};
+
 // Prompt injection / jailbreak / delimiter hijacking detection
 export const isPromptInjection = (query) => {
   if (!query || typeof query !== 'string') return false;
 
-  let normalizedQuery = query.normalize('NFKD').toLowerCase();
+  // Security: Decode URL percent-encoding and HTML entities first
+  const decodedQuery = decodePercentEncoding(decodeHTMLEntities(query));
+
+  let normalizedQuery = decodedQuery.normalize('NFKD').toLowerCase();
   // Strip combining diacritical marks across all standard Unicode diacritic blocks (including extended, supplement, symbols, and half-marks)
   normalizedQuery = normalizedQuery.replace(/[\u0300-\u036f\u1ab0-\u1aff\u1dc0-\u1dff\u20d0-\u20ff\ufe20-\ufe2f]/g, '');
   // Translate Cyrillic and Greek homoglyphs (matching full Unicode Cyrillic and Greek/Coptic blocks) to Latin equivalents
@@ -250,7 +292,7 @@ export const isPromptInjection = (query) => {
 
   // 1. Delimiter hijacking detection (VORO specific nonced blocks or closing tags)
   const delimiterRegex = /\[\/?(?:USER_DATA|SECURITY_PROTOCOL|MESSAGE_HISTORY|USER_INPUT)(?:_[A-Za-z0-9]+)?\]/gi;
-  if (delimiterRegex.test(normalizedQuery) || delimiterRegex.test(query)) return true;
+  if (delimiterRegex.test(normalizedQuery) || delimiterRegex.test(query) || delimiterRegex.test(decodedQuery)) return true;
 
   // Clean Markdown obfuscation (asterisks, underscores, tildes, backticks) specifically for keyword matching
   normalizedQuery = normalizedQuery.replace(/[\*_~`]/g, '');
