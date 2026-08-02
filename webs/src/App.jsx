@@ -9,6 +9,7 @@ import { LoadingSpinner } from "./components/LoadingSpinner";
 import AppLayout from "./components/AppLayout";
 import OnboardingGuard from "./components/OnboardingGuard";
 import SecurityLockdown from "./components/SecurityLockdown";
+import ScreenPrivacyGuard from "./components/ScreenPrivacyGuard";
 
 // Lazy-loaded pages
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -76,6 +77,7 @@ export const App = () => {
           <NotificationProvider>
             <Router>
               <SecurityLockdown />
+              <ScreenPrivacyGuard />
               <NotificationContainer />
               <Suspense fallback={<LoadingFallback />}>
                 <Routes>
