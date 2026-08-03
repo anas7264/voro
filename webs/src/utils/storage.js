@@ -9,6 +9,9 @@ import {
 const STORAGE_PREFIX = "voro_";
 const GHOST_VAULT_KEY = "voro_ghost_vault";
 
+// ⚡ PERFORMANCE OPTIMIZATION: Hoisted TextEncoder singleton to avoid garbage collection and memory allocations.
+const ENCODER = typeof TextEncoder !== 'undefined' ? new TextEncoder() : null;
+
 const KEY_SCHEMAS = {
   user: 'object',
   profile: 'object',
@@ -206,8 +209,7 @@ class StorageManager {
     if (!str) return '';
     try {
       if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle && window.crypto.subtle.digest) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(str);
+        const data = ENCODER.encode(str);
         const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
         const hashArray = Array.from(new Uint8Array(hashBuffer));
         return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');

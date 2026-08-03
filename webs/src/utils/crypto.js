@@ -14,6 +14,10 @@ const HKDF_KEY_NAME = 'HKDF_BASE_KEY';
 const ALGO = 'AES-GCM';
 const KEY_SIZE = 256;
 
+// ⚡ PERFORMANCE OPTIMIZATION: Hoisted TextEncoder/TextDecoder singletons to avoid garbage collection and memory allocations.
+const ENCODER = typeof TextEncoder !== 'undefined' ? new TextEncoder() : null;
+const DECODER = typeof TextDecoder !== 'undefined' ? new TextDecoder() : null;
+
 class CryptoManager {
   constructor() {
     this.key = null;
@@ -192,8 +196,7 @@ class CryptoManager {
     }
 
     await this.init();
-    const encoder = new TextEncoder();
-    const infoBuffer = _call.call(_TEncoderEncode, encoder, domain);
+    const infoBuffer = _call.call(_TEncoderEncode, ENCODER, domain);
 
     const derivedKey = await executeSecurely(`Derive Key [${domain}]`, async () => {
       return await window.crypto.subtle.deriveKey(
@@ -236,9 +239,8 @@ class CryptoManager {
 
     await this.init();
 
-    const encoder = new TextEncoder();
     const rawString = typeof data === 'string' ? data : JSON.stringify(data);
-    const encodedData = _call.call(_TEncoderEncode, encoder, rawString);
+    const encodedData = _call.call(_TEncoderEncode, ENCODER, rawString);
     const iv = new Uint8Array(12);
     window.crypto.getRandomValues(iv);
 
@@ -250,7 +252,7 @@ class CryptoManager {
     const algorithm = { name: ALGO, iv };
     let aadBuffer = null;
     if (domain) {
-      aadBuffer = _call.call(_TEncoderEncode, encoder, domain);
+      aadBuffer = _call.call(_TEncoderEncode, ENCODER, domain);
       algorithm.additionalData = aadBuffer;
     }
 
@@ -327,8 +329,7 @@ class CryptoManager {
       const algorithm = { name: ALGO, iv };
       let aadBuffer = null;
       if ((version === 2 || version === 3) && domain) {
-        const encoder = new TextEncoder();
-        aadBuffer = _call.call(_TEncoderEncode, encoder, domain);
+        aadBuffer = _call.call(_TEncoderEncode, ENCODER, domain);
         algorithm.additionalData = aadBuffer;
       }
 
@@ -346,8 +347,7 @@ class CryptoManager {
       if (aadBuffer) _call.call(_Uint8Fill, aadBuffer, 0);
 
       const decrypted = new Uint8Array(decryptedBuffer);
-      const decoder = new TextDecoder();
-      const decoded = _call.call(_TDecoderDecode, decoder, decrypted);
+      const decoded = _call.call(_TDecoderDecode, DECODER, decrypted);
 
       // Final shred of the decrypted plain-text buffer
       _call.call(_Uint8Fill, decrypted, 0);

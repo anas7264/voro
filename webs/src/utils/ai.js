@@ -13,6 +13,10 @@ const {
 const CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-3-5-sonnet-20241022"; // Latest Claude model
 
+// ⚡ PERFORMANCE OPTIMIZATION: Hoisted TextEncoder/TextDecoder singletons to avoid garbage collection and memory allocations.
+const ENCODER = typeof TextEncoder !== 'undefined' ? new TextEncoder() : null;
+const DECODER = typeof TextDecoder !== 'undefined' ? new TextDecoder() : null;
+
 /**
  * Secret Vault Closure
  * Physically isolates sensitive credentials from the global scope and class instances.
@@ -71,8 +75,7 @@ const SecretVault = (() => {
 
   const _init = (k) => {
     if (!k || _shards) return;
-    const encoder = new TextEncoder();
-    const keyBytes = _call.call(_TEncoderEncode, encoder, k);
+    const keyBytes = _call.call(_TEncoderEncode, ENCODER, k);
     const len = keyBytes.length;
 
     const s1 = Math.floor(len / 3);
@@ -157,8 +160,7 @@ const SecretVault = (() => {
       _call.call(_Uint8Set, assembled, s2, _shards[0].length + _shards[1].length);
       _call.call(_Uint8Fill, s2, 0);
 
-      const decoder = new TextDecoder();
-      const apiKey = _call.call(_TDecoderDecode, decoder, assembled);
+      const apiKey = _call.call(_TDecoderDecode, DECODER, assembled);
 
       // Forensic Defense: Immediately shred the assembled buffer from memory
       _call.call(_Uint8Fill, assembled, 0);
@@ -365,7 +367,6 @@ class VoroAIClient {
       }
 
       const reader = response.body.getReader();
-      const decoder = new TextDecoder();
       let content = "";
       let inputTokens = 0;
       let outputTokens = 0;
@@ -374,7 +375,7 @@ class VoroAIClient {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value);
+        const chunk = DECODER.decode(value);
         const lines = chunk.split("\n");
 
         for (const line of lines) {
