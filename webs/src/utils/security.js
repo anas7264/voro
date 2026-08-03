@@ -2458,6 +2458,10 @@ export const startMutationShield = () => {
   return observer;
 };
 
+// ⚡ PERFORMANCE OPTIMIZATION: Hoisted TextEncoder/TextDecoder singletons to avoid garbage collection and memory allocations.
+const ENCODER = typeof TextEncoder !== 'undefined' ? new TextEncoder() : null;
+const DECODER = typeof TextDecoder !== 'undefined' ? new TextDecoder() : null;
+
 /**
  * Polymorphic Key Enclave (PKE)
  * Isolates raw CryptoKey objects and sensitive strings from the application heap
@@ -2494,8 +2498,7 @@ class PolymorphicKeyEnclave {
     }
 
     if (typeof key === 'string') {
-      const encoder = new TextEncoder();
-      const bytes = _call.call(_TEncoderEncode, encoder, key);
+      const bytes = _call.call(_TEncoderEncode, ENCODER, key);
       const len = bytes.length;
 
       const s1 = Math.floor(len / 3);
@@ -2548,8 +2551,7 @@ class PolymorphicKeyEnclave {
       _call.call(_Uint8Set, assembled, s2, shards[0].length + shards[1].length);
       _call.call(_Uint8Fill, s2, 0);
 
-      const decoder = new TextDecoder();
-      const result = _call.call(_TDecoderDecode, decoder, assembled);
+      const result = _call.call(_TDecoderDecode, DECODER, assembled);
 
       _call.call(_Uint8Fill, assembled, 0);
       return result;
