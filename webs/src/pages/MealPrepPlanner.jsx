@@ -1,26 +1,79 @@
-import React, { useEffect, useMemo, useCallback } from 'react';
-import { Calendar, Plus, Clock, Package, ShoppingCart, ChevronRight, Zap, Download } from 'lucide-react';
+import React, { useEffect, useMemo, useCallback, useState, useRef } from 'react';
+import { Calendar, Plus, Clock, Package, ShoppingCart, ChevronRight, Zap, Download, Trash2, AlertTriangle, Check } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 
+// Cinematic Loading Messages
+const CINEMATIC_MESSAGES = [
+  '[SYS_INIT] - SYNCHRONIZING PROCURABLE MASS...',
+  '[CAL_BIOM] - MAPPING AMINO ACID BIOPRINTS...',
+  '[OPTIM_LOG] - SYNCING AMBIENT KINETIC LOGISTICS...',
+  '[ALIGN_SYNC] - TROPHIC SYNTHESIS COMPLETED'
+];
+
 const MealPrepPlanner = () => {
-  /**
-   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
-   * Replaced broad useStorage() with useStorageKey('meal_prep') for reactive data.
-   */
   const mealPrepData = useStorageKey('meal_prep') || {};
-  const { updateItem } = useStorageMethods();
+  const { updateItem, setItem } = useStorageMethods();
   const { addNotification } = useNotifications();
 
+  // Cinematic overlay state
+  const [loading, setLoading] = useState(true);
+  const [tickerIndex, setTickerIndex] = useState(0);
+
+  // Interaction states
+  const [isAddingSession, setIsAddingSession] = useState(false);
+  const [confirmingPurgeSessionId, setConfirmingPurgeSessionId] = useState(null);
+  const [confirmingPurgeProvisions, setConfirmingPurgeProvisions] = useState(false);
+
+  // Form states for adding new session
+  const [newDay, setNewDay] = useState('Sunday');
+  const [newDuration, setNewDuration] = useState('2 hours');
+  const [newCount, setNewCount] = useState(15);
+  const [newRecipe, setNewRecipe] = useState('');
+  const [tempRecipes, setTempRecipes] = useState([]);
+
   useEffect(() => {
-    document.title = 'VORO | Culinary Logistics';
+    document.title = 'VORO | Culinary Procurement Enclave';
+
+    // Cinematic loading cycle
+    let tickerInterval = setInterval(() => {
+      setTickerIndex(prev => {
+        if (prev < CINEMATIC_MESSAGES.length - 1) {
+          return prev + 1;
+        }
+        clearInterval(tickerInterval);
+        return prev;
+      });
+    }, 600);
+
+    const loadTimer = setTimeout(() => {
+      setLoading(false);
+    }, 2500);
+
+    return () => {
+      clearInterval(tickerInterval);
+      clearTimeout(loadTimer);
+    };
   }, []);
 
-  /**
-   * ⚡ OPTIMIZATION: Narrow dependency to specific storage key for surgical reactivity.
-   */
+  // Self-canceling timeouts for purge operations
+  useEffect(() => {
+    if (confirmingPurgeSessionId !== null) {
+      const timer = setTimeout(() => setConfirmingPurgeSessionId(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [confirmingPurgeSessionId]);
+
+  useEffect(() => {
+    if (confirmingPurgeProvisions) {
+      const timer = setTimeout(() => setConfirmingPurgeProvisions(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [confirmingPurgeProvisions]);
+
+  // Derived datasets
   const prepPlan = useMemo(() => {
     return mealPrepData.plan || [
       { id: 1, day: 'Sunday', duration: '2 hours', count: 20, recipes: ['Kinetic Chicken & Basmati', 'Atlantic Salmon & Greens', 'Turkey & Sweet Potato Flux'] },
@@ -28,8 +81,8 @@ const MealPrepPlanner = () => {
     ];
   }, [mealPrepData.plan]);
 
-  const toggleProvision = useCallback(async (index) => {
-    const provisions = mealPrepData.provisions || [
+  const provisions = useMemo(() => {
+    return mealPrepData.provisions || [
       { item: 'Kinetic Chicken Breast', qty: '3.0 kg', checked: false },
       { item: 'Atlantic Salmon Fillet', qty: '2.0 kg', checked: true },
       { item: 'Basmati Grains (Bulk)', qty: '5.0 kg', checked: false },
@@ -37,16 +90,156 @@ const MealPrepPlanner = () => {
       { item: 'Organic Spinach Matrix', qty: '1.0 kg', checked: true },
       { item: 'Liquid Hydration (Oils)', qty: '500 ml', checked: false }
     ];
+  }, [mealPrepData.provisions]);
 
+  const toggleProvision = useCallback(async (index) => {
     const updated = [...provisions];
     updated[index] = { ...updated[index], checked: !updated[index].checked };
 
     await updateItem('meal_prep', { provisions: updated });
     addNotification('Provisions matrix synchronized', 'success');
-  }, [mealPrepData.provisions, updateItem, addNotification]);
+  }, [provisions, updateItem, addNotification]);
+
+  const handleAddRecipeTemp = () => {
+    if (!newRecipe.trim()) return;
+    setTempRecipes(prev => [...prev, newRecipe.trim()]);
+    setNewRecipe('');
+  };
+
+  const handleCreateSession = async () => {
+    const recipesToUse = tempRecipes.length > 0 ? tempRecipes : [newRecipe.trim() || 'Custom Trophic Synthesis'];
+    const newSession = {
+      id: Date.now(),
+      day: newDay,
+      duration: newDuration,
+      count: Number(newCount),
+      recipes: recipesToUse
+    };
+
+    const updated = [...prepPlan, newSession];
+    await updateItem('meal_prep', { plan: updated });
+
+    // Reset form
+    setNewDay('Sunday');
+    setNewDuration('2 hours');
+    setNewCount(15);
+    setNewRecipe('');
+    setTempRecipes([]);
+    setIsAddingSession(false);
+
+    addNotification('Metabolic prep session registered', 'success');
+  };
+
+  const handleDeleteSession = async (id) => {
+    if (confirmingPurgeSessionId === id) {
+      const updated = prepPlan.filter(s => s.id !== id);
+      await updateItem('meal_prep', { plan: updated });
+      setConfirmingPurgeSessionId(null);
+      addNotification('Prep session purged from system logs', 'error');
+    } else {
+      setConfirmingPurgeSessionId(id);
+    }
+  };
+
+  const handlePurgeProvisions = async () => {
+    if (confirmingPurgeProvisions) {
+      await updateItem('meal_prep', { provisions: [] });
+      setConfirmingPurgeProvisions(false);
+      addNotification('Provisions matrix entirely cleared', 'error');
+    } else {
+      setConfirmingPurgeProvisions(true);
+    }
+  };
+
+  // 3D Mouse Tracker for individual card ref manipulation (Surgical Reactivity, zero React render cycles)
+  const cardRefs = useRef({});
+  const teleRefsX = useRef({});
+  const teleRefsY = useRef({});
+
+  const handleCardMouseMove = (id, e) => {
+    const card = cardRefs.current[id];
+    if (!card) return;
+
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    const rotateY = ((x / rect.width) - 0.5) * 14; // Max 14deg tilt
+    const rotateX = (0.5 - (y / rect.height)) * 14;
+
+    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+    card.style.setProperty('--lens-x', `${x}px`);
+    card.style.setProperty('--lens-y', `${y}px`);
+
+    if (teleRefsX.current[id]) teleRefsX.current[id].innerText = rotateX.toFixed(1);
+    if (teleRefsY.current[id]) teleRefsY.current[id].innerText = rotateY.toFixed(1);
+  };
+
+  const handleCardMouseLeave = (id) => {
+    const card = cardRefs.current[id];
+    if (!card) return;
+
+    card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
+    if (teleRefsX.current[id]) teleRefsX.current[id].innerText = '0.0';
+    if (teleRefsY.current[id]) teleRefsY.current[id].innerText = '0.0';
+  };
+
+  const handleCardFocus = (id) => {
+    const card = cardRefs.current[id];
+    if (!card) return;
+
+    // Accessible 4-degree default tilt with elegant focus ring
+    card.style.transform = `perspective(1000px) rotateX(4deg) rotateY(-4deg) scale3d(1.02, 1.02, 1.02)`;
+    if (teleRefsX.current[id]) teleRefsX.current[id].innerText = '4.0';
+    if (teleRefsY.current[id]) teleRefsY.current[id].innerText = '-4.0';
+  };
+
+  const handleCardBlur = (id) => {
+    const card = cardRefs.current[id];
+    if (!card) return;
+
+    card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
+    if (teleRefsX.current[id]) teleRefsX.current[id].innerText = '0.0';
+    if (teleRefsY.current[id]) teleRefsY.current[id].innerText = '0.0';
+  };
 
   return (
-    <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30">
+    <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30 relative">
+      {/* Cinematic Load Overlay */}
+      {loading && (
+        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#020408] backdrop-blur-2xl transition-all duration-1000">
+          <div className="absolute inset-0 bg-grid-white opacity-[0.02] pointer-events-none" />
+          <div className="absolute inset-0 bg-boutique-grain opacity-[0.03] pointer-events-none" />
+
+          {/* Golden-Ratio Concentric Counter-Rotating Rings */}
+          <div className="relative w-56 h-56 flex items-center justify-center mb-12">
+            <div className="absolute inset-0 border border-dashed border-voro-primary/30 rounded-full animate-spin [animation-duration:15s]" />
+            <div className="absolute w-44 h-44 border border-voro-secondary/40 rounded-full animate-spin [animation-duration:8s] [animation-direction:reverse]" />
+            <div className="absolute w-32 h-32 border border-dashed border-voro-accent/20 rounded-full animate-spin [animation-duration:20s]" />
+            <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-[#0A0C14] to-voro-primary/20 border border-white/10 flex items-center justify-center shadow-2xl">
+              <Package size={24} className="text-voro-primary animate-pulse" />
+            </div>
+          </div>
+
+          <div className="space-y-4 text-center max-w-md px-6">
+            <span className="text-[0.55rem] font-mono font-black text-voro-primary tracking-[0.5em] uppercase block animate-pulse">
+              INTELLIGENT RE-ALIGNMENT ACTIVE
+            </span>
+            <div className="h-10 flex items-center justify-center">
+              <p className="text-xs font-mono text-gray-400 uppercase tracking-widest transition-opacity duration-300">
+                {CINEMATIC_MESSAGES[tickerIndex]}
+              </p>
+            </div>
+            <div className="w-48 h-1 bg-white/[0.03] rounded-full mx-auto overflow-hidden relative">
+              <div className="absolute top-0 left-0 h-full bg-voro-primary animate-kinetic-sweep" />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Ambient Background Logistics */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-voro-primary/5 rounded-full blur-[120px]" />
@@ -57,22 +250,108 @@ const MealPrepPlanner = () => {
         <header className="mb-24 flex flex-col md:flex-row md:items-end justify-between gap-8">
           <div className="space-y-4">
             <div className="flex items-center gap-3 text-voro-primary">
-              <Package size={18} />
-              <span className="text-[0.6rem] font-black uppercase tracking-[0.4em]">Culinary Supply Chain</span>
+              <Package size={18} className="animate-pulse" />
+              <span className="text-[0.6rem] font-black uppercase tracking-[0.4em]">Culinary Procurement Enclave</span>
             </div>
             <h1 className="text-6xl md:text-7xl font-serif italic font-medium tracking-tighter text-white leading-tight">
-              Logistics <span className="text-gradient not-italic font-bold">Architect</span>
+              Biometric <span className="text-gradient not-italic font-bold">Logistics</span>
             </h1>
             <p className="text-gray-500 font-mono text-[0.65rem] uppercase tracking-[0.3em] opacity-60">
-              Systematic orchestration of metabolic provisions
+              Systematic orchestration of metabolically synchronized provisions
             </p>
           </div>
 
-          <button className="group flex items-center gap-3 px-10 py-5 bg-white text-black rounded-full text-[0.7rem] font-black uppercase tracking-[0.4em] transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-white/10">
+          <Button
+            onClick={() => setIsAddingSession(true)}
+            variant="primary"
+            className="group flex items-center gap-4 px-10 h-16 shadow-2xl shadow-voro-primary/20 text-[0.7rem] font-black uppercase tracking-[0.4em]"
+          >
             <Plus size={18} />
             <span>Design Prep Plan</span>
-          </button>
+          </Button>
         </header>
+
+        {/* Dynamic Add Session Module */}
+        {isAddingSession && (
+          <div className="mb-16 p-10 bg-[#0A0C14] border border-voro-primary/20 rounded-3xl relative overflow-hidden animate-slide-up">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-voro-primary/5 rounded-full blur-3xl -mr-16 -mt-16" />
+            <h3 className="text-2xl font-serif italic text-white mb-8">Establish New Prep Sequence</h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+              <div className="space-y-3">
+                <label className="text-[0.55rem] font-mono font-bold text-gray-500 uppercase tracking-widest">Temporal Node (Day)</label>
+                <select
+                  value={newDay}
+                  onChange={(e) => setNewDay(e.target.value)}
+                  className="w-full bg-[#020408] border border-white/10 rounded-2xl p-4 text-white font-mono text-sm focus:border-voro-primary outline-none"
+                >
+                  {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-[0.55rem] font-mono font-bold text-gray-500 uppercase tracking-widest">Prep Duration</label>
+                <select
+                  value={newDuration}
+                  onChange={(e) => setNewDuration(e.target.value)}
+                  className="w-full bg-[#020408] border border-white/10 rounded-2xl p-4 text-white font-mono text-sm focus:border-voro-primary outline-none"
+                >
+                  {['30 mins', '1 hour', '1.5 hours', '2 hours', '3 hours'].map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-[0.55rem] font-mono font-bold text-gray-500 uppercase tracking-widest">Provision Units (Count)</label>
+                <input
+                  type="number"
+                  value={newCount}
+                  onChange={(e) => setNewCount(e.target.value)}
+                  min="1"
+                  className="w-full bg-[#020408] border border-white/10 rounded-2xl p-4 text-white font-mono text-sm focus:border-voro-primary outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4 mb-8">
+              <label className="text-[0.55rem] font-mono font-bold text-gray-500 uppercase tracking-widest block">Metabolic Recipe Archetypes</label>
+              <div className="flex gap-4">
+                <input
+                  type="text"
+                  value={newRecipe}
+                  onChange={(e) => setNewRecipe(e.target.value)}
+                  placeholder="e.g. Kinetic Salmon Matrix..."
+                  className="flex-1 bg-[#020408] border border-white/10 rounded-2xl p-4 text-white font-serif italic text-sm focus:border-voro-primary outline-none"
+                />
+                <Button variant="secondary" onClick={handleAddRecipeTemp} className="h-14 px-6 text-[0.6rem]">
+                  Append Recipe
+                </Button>
+              </div>
+
+              {tempRecipes.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-4">
+                  {tempRecipes.map((r, i) => (
+                    <span key={i} className="px-3 py-1.5 rounded-xl bg-voro-primary/10 border border-voro-primary/20 text-[0.6rem] font-mono text-voro-primary tracking-widest uppercase">
+                      {r}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-4">
+              <Button variant="secondary" onClick={() => setIsAddingSession(false)} className="px-8 h-14 text-[0.65rem]">
+                Cancel
+              </Button>
+              <Button variant="primary" onClick={handleCreateSession} className="px-10 h-14 text-[0.65rem]">
+                Synthesize Plan
+              </Button>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-12 gap-12 mb-20">
           {/* Prep Schedule Modules */}
@@ -87,22 +366,69 @@ const MealPrepPlanner = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {prepPlan.map((session, idx) => (
-                <Card
+                <div
                   key={session.id}
-                  className="group relative p-0 overflow-hidden bg-[#0A0C14] border-white/5 transition-all hover:border-voro-primary/20 hover:shadow-voro-primary/5 animate-slide-up"
-                  style={{ animationDelay: `${idx * 150}ms` }}
+                  ref={el => cardRefs.current[session.id] = el}
+                  onMouseMove={(e) => handleCardMouseMove(session.id, e)}
+                  onMouseLeave={() => handleCardMouseLeave(session.id)}
+                  onFocus={() => handleCardFocus(session.id)}
+                  onBlur={() => handleCardBlur(session.id)}
+                  tabIndex={0}
+                  className="group relative p-0 overflow-hidden bg-[#0A0C14] border border-white/5 rounded-3xl transition-all duration-500 shadow-2xl hover:border-voro-primary/25 outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-black animate-slide-up"
+                  style={{
+                    animationDelay: `${idx * 150}ms`,
+                    transformStyle: 'preserve-3d',
+                    perspective: '1000px',
+                    transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.5s, box-shadow 0.5s'
+                  }}
                 >
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-voro-primary/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-voro-primary/10 transition-colors duration-1000" />
+                  {/* Volumetric Hover Luminous Lens */}
+                  <div
+                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                    style={{
+                      background: 'radial-gradient(150px circle at var(--lens-x, 50%) var(--lens-y, 50%), rgba(124,58,237,0.06), transparent 75%)'
+                    }}
+                  />
+
+                  {/* High-End Telemetry Overlay */}
+                  <div className="absolute top-4 right-6 pointer-events-none opacity-0 group-hover:opacity-60 group-focus:opacity-60 transition-opacity duration-300 flex gap-3 font-mono text-[0.45rem] font-bold text-white/30">
+                    <span>X_<span ref={el => teleRefsX.current[session.id] = el}>0.0</span>°</span>
+                    <span>Y_<span ref={el => teleRefsY.current[session.id] = el}>0.0</span>°</span>
+                    <span className="text-voro-primary">NODE_{session.id.toString().slice(-4)}</span>
+                  </div>
 
                   <div className="p-10 border-b border-white/5 bg-white/[0.01]">
-                    <div className="flex items-center gap-6 mb-8">
-                       <div className="w-14 h-14 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-center text-voro-primary shadow-inner">
-                          <Calendar size={24} />
-                       </div>
-                       <div>
-                          <span className="text-[0.55rem] font-mono font-bold text-gray-600 uppercase tracking-[0.3em]">{session.day}</span>
-                          <h4 className="text-2xl font-serif italic font-medium text-white tracking-tight mt-1">Session {session.id}</h4>
-                       </div>
+                    <div className="flex items-center justify-between mb-8">
+                      <div className="flex items-center gap-6">
+                         <div className="w-14 h-14 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-center text-voro-primary shadow-inner">
+                            <Calendar size={24} />
+                         </div>
+                         <div>
+                            <span className="text-[0.55rem] font-mono font-bold text-gray-600 uppercase tracking-[0.3em]">{session.day}</span>
+                            <h4 className="text-2xl font-serif italic font-medium text-white tracking-tight mt-1">Session {session.id.toString().slice(-4)}</h4>
+                         </div>
+                      </div>
+
+                      {/* Double-Confirmation Safegard Delete Button */}
+                      <button
+                        onClick={() => handleDeleteSession(session.id)}
+                        className={`p-3 rounded-2xl border transition-all duration-300 relative overflow-hidden flex items-center gap-2 ${
+                          confirmingPurgeSessionId === session.id
+                            ? 'bg-red-500/10 border-red-500/30 text-red-400 font-bold scale-105 animate-pulse'
+                            : 'bg-white/[0.01] border-white/5 text-gray-700 hover:text-red-400 hover:bg-red-500/5'
+                        }`}
+                        aria-live="polite"
+                        aria-label={confirmingPurgeSessionId === session.id ? 'Confirm purge sequence' : 'Purge session'}
+                      >
+                        {confirmingPurgeSessionId === session.id ? (
+                          <>
+                            <AlertTriangle size={14} className="text-red-400" />
+                            <span className="text-[0.55rem] font-mono tracking-widest uppercase">[PURGE?]</span>
+                          </>
+                        ) : (
+                          <Trash2 size={14} />
+                        )}
+                      </button>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -130,17 +456,17 @@ const MealPrepPlanner = () => {
                     </div>
                     <div className="space-y-3">
                       {session.recipes.map((recipe, rIdx) => (
-                        <div key={rIdx} className="flex items-center justify-between p-4 rounded-xl bg-white/[0.01] border border-white/5 group/item hover:bg-white/[0.03] transition-all">
+                        <div key={rIdx} className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.01] border border-white/5 group/item hover:bg-white/[0.03] hover:border-voro-primary/20 transition-all">
                            <span className="text-sm font-serif italic text-gray-300 group-hover/item:text-white transition-colors">{recipe}</span>
                            <ChevronRight size={14} className="text-gray-800 group-hover/item:text-voro-primary transition-all" />
                         </div>
                       ))}
                     </div>
-                    <button className="w-full py-4 mt-4 border border-dashed border-white/10 rounded-2xl text-[0.6rem] font-black uppercase tracking-[0.4em] text-gray-600 hover:text-white hover:border-voro-primary/30 hover:bg-voro-primary/5 transition-all">
+                    <Button variant="secondary" className="w-full h-12 mt-4 text-[0.6rem] tracking-[0.3em]">
                       Review Manifest
-                    </button>
+                    </Button>
                   </div>
-                </Card>
+                </div>
               ))}
             </div>
           </div>
@@ -152,42 +478,66 @@ const MealPrepPlanner = () => {
                <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-voro-secondary/5 rounded-full blur-[100px] group-hover/matrix:bg-voro-secondary/10 transition-colors duration-1000" />
 
                <div className="relative">
-                  <div className="flex items-center gap-4 mb-12">
-                    <div className="p-3 bg-voro-secondary/10 text-voro-secondary rounded-2xl border border-voro-secondary/20 shadow-lg shadow-voro-secondary/5">
-                      <ShoppingCart size={20} />
+                  <div className="flex items-center justify-between mb-12">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-voro-secondary/10 text-voro-secondary rounded-2xl border border-voro-secondary/20 shadow-lg shadow-voro-secondary/5">
+                        <ShoppingCart size={20} />
+                      </div>
+                      <h3 className="text-[0.65rem] font-mono font-medium uppercase tracking-[0.4em] text-voro-secondary font-black">Supply List</h3>
                     </div>
-                    <h3 className="text-[0.65rem] font-mono font-medium uppercase tracking-[0.4em] text-voro-secondary">Supply List</h3>
-                  </div>
 
-                  <div className="space-y-4 mb-12">
-                    {(mealPrepData.provisions || [
-                      { item: 'Kinetic Chicken Breast', qty: '3.0 kg', checked: false },
-                      { item: 'Atlantic Salmon Fillet', qty: '2.0 kg', checked: true },
-                      { item: 'Basmati Grains (Bulk)', qty: '5.0 kg', checked: false },
-                      { item: 'Sweet Potato Tuber', qty: '2.5 kg', checked: false },
-                      { item: 'Organic Spinach Matrix', qty: '1.0 kg', checked: true },
-                      { item: 'Liquid Hydration (Oils)', qty: '500 ml', checked: false }
-                    ]).map((item, i) => (
+                    {/* Purge Supply List Button */}
+                    {provisions.length > 0 && (
                       <button
-                        key={i}
-                        onClick={() => toggleProvision(i)}
-                        className="w-full flex items-center justify-between p-5 rounded-2xl bg-white/[0.02] border border-white/5 group/prov hover:bg-white/[0.04] transition-all"
+                        onClick={handlePurgeProvisions}
+                        className={`p-2.5 rounded-xl border text-xs font-mono transition-all flex items-center gap-2 ${
+                          confirmingPurgeProvisions
+                            ? 'bg-red-500/15 border-red-500/30 text-red-400 font-bold animate-pulse'
+                            : 'bg-white/[0.02] border-white/5 text-gray-500 hover:text-red-400'
+                        }`}
+                        aria-live="polite"
                       >
-                        <div className="flex items-center gap-4">
-                          <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${item.checked ? 'bg-voro-secondary border-voro-secondary shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'border-white/10 group-hover/prov:border-white/20'}`}>
-                             {item.checked && <Plus size={12} className="text-white rotate-45" />}
-                          </div>
-                          <span className={`text-sm font-serif italic transition-all ${item.checked ? 'text-gray-600 line-through' : 'text-gray-300'}`}>{item.item}</span>
-                        </div>
-                        <span className="text-[0.6rem] font-mono font-bold text-voro-secondary opacity-60">{item.qty}</span>
+                        {confirmingPurgeProvisions ? (
+                          <>
+                            <AlertTriangle size={12} />
+                            <span className="text-[0.45rem] tracking-widest">[PURGE ALL?]</span>
+                          </>
+                        ) : (
+                          <Trash2 size={12} />
+                        )}
                       </button>
-                    ))}
+                    )}
                   </div>
 
-                  <button className="w-full flex items-center justify-center gap-4 py-5 rounded-2xl bg-white text-black text-[0.65rem] font-black uppercase tracking-[0.3em] transition-all hover:scale-[1.03] active:scale-[0.97] shadow-xl shadow-white/5">
+                  {provisions.length > 0 ? (
+                    <div className="space-y-4 mb-12">
+                      {provisions.map((item, i) => (
+                        <button
+                          key={i}
+                          onClick={() => toggleProvision(i)}
+                          className="w-full flex items-center justify-between p-5 rounded-2xl bg-white/[0.02] border border-white/5 group/prov hover:bg-white/[0.04] hover:border-voro-secondary/20 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-voro-secondary"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all duration-300 ${item.checked ? 'bg-voro-secondary border-voro-secondary shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'border-white/10 group-hover/prov:border-white/20'}`}>
+                               {item.checked && <Check size={12} className="text-white" />}
+                            </div>
+                            <span className={`text-sm font-serif italic transition-all duration-300 ${item.checked ? 'text-gray-600 line-through' : 'text-gray-300'}`}>{item.item}</span>
+                          </div>
+                          <span className="text-[0.6rem] font-mono font-bold text-voro-secondary opacity-60">{item.qty}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="py-16 text-center border border-dashed border-white/5 rounded-2xl mb-12 opacity-30">
+                      <Package size={24} className="mx-auto mb-2 text-gray-600" />
+                      <p className="text-[0.55rem] font-mono uppercase tracking-widest">No supplies registered</p>
+                    </div>
+                  )}
+
+                  <Button variant="secondary" className="w-full h-14 flex items-center justify-center gap-4 text-[0.65rem]">
                     <Download size={16} />
                     <span>Export Provisions</span>
-                  </button>
+                  </Button>
                </div>
             </Card>
 
