@@ -53,7 +53,18 @@ const Settings = () => {
   }, [theme, handleSettingChange]);
 
   const handleExportData = async () => {
-    const backup = await exportData();
+    const usePassword = window.confirm("Would you like to encrypt this backup with a password? This allows you to safely transfer and restore your data on other devices.");
+    let password = null;
+    if (usePassword) {
+      password = window.prompt("Enter a strong password to encrypt your data archive (write this down, it cannot be recovered):");
+      if (password === null) return; // User cancelled
+      if (!password.trim()) {
+        addNotification('Password cannot be empty. Export aborted.', 'error');
+        return;
+      }
+    }
+
+    const backup = await exportData(password);
     if (!backup) return;
     const json = JSON.stringify(backup, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
@@ -100,7 +111,7 @@ const Settings = () => {
           addNotification('Data matrix successfully restored', 'success');
           setTimeout(() => window.location.reload(), 1000);
         } else {
-          addNotification('Data restoration failed. Invalid or corrupted backup file.', 'error');
+          addNotification('Data restoration failed. Invalid password or corrupted backup file.', 'error');
         }
       } catch (err) {
         addNotification('Failed to parse backup file.', 'error');

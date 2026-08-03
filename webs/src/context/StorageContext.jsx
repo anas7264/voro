@@ -113,9 +113,9 @@ export const StorageProvider = ({ children }) => {
   }, []);
 
   // Export storage
-  const exportData = useCallback(async () => {
+  const exportData = useCallback(async (password = null) => {
     try {
-      return await storage.export();
+      return await storage.export(password);
     } catch (err) {
       console.error("Failed to export storage data:", err);
       return null;
@@ -123,9 +123,9 @@ export const StorageProvider = ({ children }) => {
   }, []);
 
   // Import storage
-  const importData = useCallback(async (backup) => {
+  const importData = useCallback(async (backup, password = null) => {
     try {
-      return await storage.import(backup);
+      return await storage.import(backup, password);
     } catch (err) {
       console.error("Failed to import storage data:", err);
       return false;
