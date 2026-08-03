@@ -45,3 +45,7 @@
 ## 2026-07-28 - Unifying Legacy Pagination Elements with Luxury Custom Buttons
 **Learning:** Native pagination controls or "Load More" buttons in high-fidelity luxury systems are often implemented as standard, unstyled HTML components. This creates a jarring UX discontinuity, as they lack the volumetric tilts, tactile focus feedback, and telemetry overlays that characterize the primary navigation items.
 **Action:** When encountering standard `<button>` elements used for pagination or secondary triggers, refactor them to use the design system's custom luxury `<Button>` component. This automatically inherits coordinate telemetry, magnetic hover physics, custom high-contrast focus rings, and the 4-degree keyboard focus-tilt behavior.
+
+## 2026-07-29 - Screen-Reader Label Integrity in Collapsed Sidebar Navigation
+**Learning:** Sidebar layouts in responsive web architectures frequently hide or omit text labels entirely when collapsed into an icon-only mode to conserve screen space. This practice leaves standard navigation elements completely unlabelled for screen reader users, who rely on underlying DOM text structures.
+**Action:** Always declare explicit, stable `aria-label` properties on responsive navigation links. This ensures screen readers consistently announce link destinations (e.g. "Food Diary", "Dashboard") regardless of the current visual presentation scale or layout collapse states.

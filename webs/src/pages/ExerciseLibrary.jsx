@@ -114,7 +114,7 @@ const ExerciseLibrary = () => {
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-6 py-2.5 rounded-full text-[0.6rem] font-black uppercase tracking-[0.25em] transition-all border ${
+                className={`px-6 py-2.5 rounded-full text-[0.6rem] font-black uppercase tracking-[0.25em] transition-all border outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408] ${
                   selectedCategory === cat
                     ? 'bg-white text-black border-white shadow-xl shadow-white/5'
                     : 'bg-white/5 text-gray-500 border-white/5 hover:border-white/10 hover:bg-white/10'
