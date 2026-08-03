@@ -1,10 +1,10 @@
 // VORO Storage Manager
 // window.storage abstraction for data persistence with transparent encryption
-import voroCrypto from './crypto';
+import voroCrypto from './crypto.js';
 import {
   sanitizeObject, validateCallStack, executeLockdown, getDecoyData,
   isDeceptionActive, executeSecurely, createSecureProxy, sanitizeInput
-} from './security';
+} from './security.js';
 
 const STORAGE_PREFIX = "voro_";
 const GHOST_VAULT_KEY = "voro_ghost_vault";
@@ -708,14 +708,23 @@ class StorageManager {
   }
 
   // Export storage as JSON for backup with cryptographic authentication and encryption
-  async export() {
+  async export(password = null) {
     const data = await this.getAll();
     const timestamp = new Date().toISOString();
     const payload = {
-      version: 2,
+      version: 3,
       timestamp,
       data
     };
+
+    if (password && typeof password === 'string') {
+      const encryptedPayload = await voroCrypto.encryptWithPassword(payload, password);
+      return {
+        voro_backup_v3: true,
+        ...encryptedPayload
+      };
+    }
+
     // Encrypt the payload under the dynamically derived key.
     // Note: 'voro_backup_vault' is the domain name used as HKDF salt/info and AES-GCM AAD.
     // The actual cryptographic key is dynamically derived from the Master Key (Stored in IndexedDB)
@@ -728,7 +737,7 @@ class StorageManager {
   }
 
   // Import storage from JSON
-  async import(backup) {
+  async import(backup, password = null) {
     try {
       if (!backup) {
         console.error("Invalid backup format");
@@ -736,7 +745,21 @@ class StorageManager {
       }
 
       let backupData;
-      if (backup.voro_backup_v2 && backup.payload) {
+      if (backup.voro_backup_v3) {
+        let activePassword = password;
+        if (!activePassword && typeof window !== 'undefined') {
+          activePassword = window.prompt("This archive is password-encrypted. Please enter the password to decrypt:");
+        }
+        if (!activePassword) {
+          console.error("No password provided for decryption.");
+          return false;
+        }
+        const decrypted = await voroCrypto.decryptWithPassword(backup, activePassword);
+        if (!decrypted) {
+          throw new Error("Cryptographic verification failed. Incorrect password, or backup is corrupted.");
+        }
+        backupData = decrypted.data;
+      } else if (backup.voro_backup_v2 && backup.payload) {
         // Authenticated Decryption using dynamically derived key & AAD validation
         const decrypted = await voroCrypto.decrypt(backup.payload, 'voro_backup_vault');
         if (!decrypted) {

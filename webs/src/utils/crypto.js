@@ -1,6 +1,6 @@
 // VORO Crypto Utility
 // Authenticated Encryption at Rest (AES-GCM) using Web Crypto API
-import sentinel from './security';
+import sentinel from './security.js';
 const {
   validateCallStack, executeSecurely, createSecureProxy, registerSecureKey,
   _TEncoderEncode, _TDecoderDecode, _Uint8Fill, _Uint8Set, _Uint8Slice,
@@ -360,6 +360,191 @@ class CryptoManager {
       }
     } catch (error) {
       console.error(`Decryption failed (v${version}). Potential tampering or domain mismatch.`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Encrypts data using a password-derived key (PBKDF2 + AES-GCM)
+   * This allows secure multi-device backups.
+   */
+  async encryptWithPassword(data, password) {
+    if (!password || typeof password !== 'string') {
+      throw new Error("Security Sentinel: Password must be a non-empty string.");
+    }
+
+    if (window.VORO_COMPROMISED || !validateCallStack()) {
+      throw new Error("Security Sentinel: Encryption blocked due to environment compromise or unauthorized provenance.");
+    }
+
+    const encoder = new TextEncoder();
+    const rawString = typeof data === 'string' ? data : JSON.stringify(data);
+    const encodedData = _call.call(_TEncoderEncode, encoder, rawString);
+
+    const salt = new Uint8Array(32);
+    window.crypto.getRandomValues(salt);
+
+    const iv = new Uint8Array(12);
+    window.crypto.getRandomValues(iv);
+
+    const encodedPassword = _call.call(_TEncoderEncode, encoder, password);
+
+    // Derive key using executeSecurely with necessary capabilities
+    const derivedKey = await executeSecurely("Derive Password Key", async () => {
+      const passwordKey = await window.crypto.subtle.importKey(
+        'raw',
+        encodedPassword,
+        'PBKDF2',
+        false,
+        ['deriveKey']
+      );
+      return await window.crypto.subtle.deriveKey(
+        {
+          name: 'PBKDF2',
+          salt,
+          iterations: 100000,
+          hash: 'SHA-256'
+        },
+        passwordKey,
+        { name: ALGO, length: KEY_SIZE },
+        false,
+        ['encrypt', 'decrypt']
+      );
+    }, ['sink:crypto.subtle.importKey', 'sink:crypto.subtle.deriveKey']);
+
+    // Perform encryption
+    const ciphertext = await executeSecurely("Encrypt with Password Key", async () => {
+      return await window.crypto.subtle.encrypt(
+        { name: ALGO, iv },
+        derivedKey,
+        encodedData
+      );
+    }, ['sink:crypto.subtle.encrypt']);
+
+    // Heap Hygiene: Shred sensitive buffers
+    _call.call(_Uint8Fill, encodedData, 0);
+    _call.call(_Uint8Fill, encodedPassword, 0);
+
+    // Convert ciphertext, salt, and iv to appropriate return formats
+    const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
+    const ivHex = Array.from(iv).map(b => b.toString(16).padStart(2, '0')).join('');
+
+    // base64 encode the ciphertext
+    const ciphertextBytes = new Uint8Array(ciphertext);
+    let binary = '';
+    for (let i = 0; i < ciphertextBytes.byteLength; i++) {
+      binary += String.fromCharCode(ciphertextBytes[i]);
+    }
+    const ciphertextBase64 = btoa(binary);
+
+    _call.call(_Uint8Fill, salt, 0);
+    _call.call(_Uint8Fill, iv, 0);
+    _call.call(_Uint8Fill, ciphertextBytes, 0);
+
+    return {
+      salt: saltHex,
+      iv: ivHex,
+      iterations: 100000,
+      ciphertext: ciphertextBase64
+    };
+  }
+
+  /**
+   * Decrypts data using a password-derived key (PBKDF2 + AES-GCM)
+   */
+  async decryptWithPassword(encryptedPayload, password) {
+    if (!password || typeof password !== 'string') {
+      throw new Error("Security Sentinel: Password must be a non-empty string.");
+    }
+    if (!encryptedPayload || typeof encryptedPayload !== 'object') {
+      throw new Error("Security Sentinel: Invalid encrypted payload format.");
+    }
+
+    const { salt: saltHex, iv: ivHex, iterations, ciphertext: ciphertextBase64 } = encryptedPayload;
+
+    if (!saltHex || !ivHex || !ciphertextBase64) {
+      throw new Error("Security Sentinel: Missing cryptographic parameters in payload.");
+    }
+
+    if (window.VORO_COMPROMISED || !validateCallStack()) {
+      throw new Error("Security Sentinel: Decryption blocked due to environment compromise or unauthorized provenance.");
+    }
+
+    try {
+      const encoder = new TextEncoder();
+      const encodedPassword = _call.call(_TEncoderEncode, encoder, password);
+
+      // Convert salt and iv from hex
+      const salt = new Uint8Array(saltHex.length / 2);
+      for (let i = 0; i < salt.length; i++) {
+        salt[i] = parseInt(saltHex.substring(i * 2, i * 2 + 2), 16);
+      }
+
+      const iv = new Uint8Array(ivHex.length / 2);
+      for (let i = 0; i < iv.length; i++) {
+        iv[i] = parseInt(ivHex.substring(i * 2, i * 2 + 2), 16);
+      }
+
+      // Convert ciphertext from base64
+      const binaryString = atob(ciphertextBase64);
+      const ciphertext = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        ciphertext[i] = binaryString.charCodeAt(i);
+      }
+
+      // Derive key using executeSecurely
+      const derivedKey = await executeSecurely("Derive Password Key for Decryption", async () => {
+        const passwordKey = await window.crypto.subtle.importKey(
+          'raw',
+          encodedPassword,
+          'PBKDF2',
+          false,
+          ['deriveKey']
+        );
+        return await window.crypto.subtle.deriveKey(
+          {
+            name: 'PBKDF2',
+            salt,
+            iterations: iterations || 100000,
+            hash: 'SHA-256'
+          },
+          passwordKey,
+          { name: ALGO, length: KEY_SIZE },
+          false,
+          ['encrypt', 'decrypt']
+        );
+      }, ['sink:crypto.subtle.importKey', 'sink:crypto.subtle.deriveKey']);
+
+      // Perform decryption
+      const decryptedBuffer = await executeSecurely("Decrypt with Password Key", async () => {
+        return await window.crypto.subtle.decrypt(
+          { name: ALGO, iv },
+          derivedKey,
+          ciphertext
+        );
+      }, ['sink:crypto.subtle.decrypt']);
+
+      // Heap Hygiene: Shred sensitive buffers
+      _call.call(_Uint8Fill, encodedPassword, 0);
+      _call.call(_Uint8Fill, salt, 0);
+      _call.call(_Uint8Fill, iv, 0);
+      _call.call(_Uint8Fill, ciphertext, 0);
+
+      const decryptedBytes = new Uint8Array(decryptedBuffer);
+      const decoder = new TextDecoder();
+      const decoded = _call.call(_TDecoderDecode, decoder, decryptedBytes);
+
+      // Final shred of the decrypted plain-text bytes
+      _call.call(_Uint8Fill, decryptedBytes, 0);
+
+      try {
+        const parsed = JSON.parse(decoded);
+        return createSecureProxy(parsed, 'voro_backup_vault');
+      } catch (e) {
+        return decoded;
+      }
+    } catch (error) {
+      console.error("Password-based decryption failed. Potential tampering or incorrect password.", error);
       return null;
     }
   }
