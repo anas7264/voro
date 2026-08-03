@@ -122,6 +122,7 @@ const NavItem = memo(({ item, isActive, collapsed, isMobile, onClick }) => {
       ref={nodeRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
+      aria-label={item.label}
       className={`
         flex items-center gap-4 px-5 py-3.5 rounded-2xl text-sm font-medium
         transition-all duration-500 group relative overflow-hidden focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408] outline-none
