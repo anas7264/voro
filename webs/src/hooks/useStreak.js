@@ -117,19 +117,23 @@ export const useStreak = () => {
 
   // Get streak percentage for week
   // ⚡ PERFORMANCE OPTIMIZATION: Uses Set-based O(1) membership checks and fast manual Date formatting via `getFastDateStr`.
+  // Reuses a single mutable Date object with baseTime set to 12:00 (noon) to guarantee DST and calendar boundary immunity.
   const getWeeklyStreakPercentage = useCallback(() => {
     try {
       if (!completedDates || completedDates.length === 0) return 0;
       const today = new Date();
       const weekStart = new Date(today);
       weekStart.setDate(today.getDate() - today.getDay());
+      weekStart.setHours(12, 0, 0, 0); // Noon base for complete DST shift immunity
 
       const completedSet = new Set(completedDates);
       let daysCompleted = 0;
 
+      const date = new Date(weekStart);
+      const baseTime = weekStart.getTime();
+      const dayMs = 86400000;
       for (let i = 0; i < 7; i++) {
-        const date = new Date(weekStart);
-        date.setDate(date.getDate() + i);
+        date.setTime(baseTime + i * dayMs);
         const dateString = getFastDateStr(date);
 
         if (completedSet.has(dateString)) {
