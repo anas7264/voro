@@ -22,6 +22,7 @@ class CryptoManager {
   constructor() {
     this.key = null;
     this.hkdfKey = null;
+    this._hmacKey = null;
     this.domainKeyCache = new Map();
     this.initialized = false;
     this.initPromise = null;
@@ -56,6 +57,7 @@ class CryptoManager {
   shredKeys() {
     this.key = null;
     this.hkdfKey = null;
+    this._hmacKey = null;
     this.domainKeyCache.clear();
     this.initialized = false;
     this.initPromise = null;
@@ -220,6 +222,82 @@ class CryptoManager {
     const handle = registerSecureKey(derivedKey);
     this.domainKeyCache.set(domain, handle);
     return handle;
+  }
+
+  /**
+   * Derives a stable HMAC key for State Integrity.
+   */
+  async deriveHmacKey() {
+    await this.init();
+    if (this._hmacKey) return this._hmacKey;
+
+    const infoBuffer = _call.call(_TEncoderEncode, ENCODER, "voro_state_integrity_hmac");
+    this._hmacKey = await executeSecurely("Derive HMAC State Key", async () => {
+      return await window.crypto.subtle.deriveKey(
+        {
+          name: 'HKDF',
+          salt: new Uint8Array(),
+          info: infoBuffer,
+          hash: 'SHA-256'
+        },
+        this.hkdfKey,
+        { name: 'HMAC', hash: 'SHA-256', length: 256 },
+        false,
+        ['sign', 'verify']
+      );
+    }, ['sink:crypto.subtle.deriveKey']);
+
+    _call.call(_Uint8Fill, infoBuffer, 0);
+    return this._hmacKey;
+  }
+
+  /**
+   * Computes a keyed HMAC-SHA-256 signature of a given string.
+   * This provides cryptographic state integrity verification.
+   */
+  async computeHmacSignature(str) {
+    if (!str) return '';
+    try {
+      const hmacKey = await this.deriveHmacKey();
+      const data = ENCODER.encode(str);
+      const signatureBuffer = await window.crypto.subtle.sign(
+        'HMAC',
+        hmacKey,
+        data
+      );
+      const signatureArray = Array.from(new Uint8Array(signatureBuffer));
+      return signatureArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch (e) {
+      console.error("Security Sentinel: HMAC signature generation failed:", e);
+      // Deterministic fallback if WebCrypto is unavailable or errors
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = (hash << 5) - hash + str.charCodeAt(i);
+        hash |= 0;
+      }
+      return 'fallback_' + Math.abs(hash).toString(16);
+    }
+  }
+
+  /**
+   * Constant-time string comparator to prevent timing side-channel attacks.
+   */
+  constantTimeCompare(a, b) {
+    if (typeof a !== 'string' || typeof b !== 'string') return false;
+    if (a.length !== b.length) {
+      // Dummy loop to keep timing uniform
+      let dummyResult = 0;
+      const dummy = a;
+      for (let i = 0; i < dummy.length; i++) {
+        dummyResult |= dummy.charCodeAt(i) ^ dummy.charCodeAt(i);
+      }
+      return false;
+    }
+    let result = 0;
+    for (let i = 0; i < a.length; i++) {
+      result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    }
+    return result === 0;
   }
 
   /**

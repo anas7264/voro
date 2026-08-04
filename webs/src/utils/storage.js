@@ -202,29 +202,12 @@ class StorageManager {
   }
 
   /**
-   * Computes a deterministic SHA-256 hash of a serialized string.
-   * Resilient fallback supports test runners and headless non-browser scopes.
+   * Computes a secure cryptographically keyed HMAC signature of a serialized string.
+   * Leverages VORO's Master Key for State Integrity Attestation.
    */
   async computeHash(str) {
     if (!str) return '';
-    try {
-      if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle && window.crypto.subtle.digest) {
-        const data = ENCODER.encode(str);
-        const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-      }
-    } catch (e) {
-      // Fallback on error/unsupported environment
-    }
-    // Deterministic fallback hashing if native digest is unavailable
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash |= 0;
-    }
-    return 'fallback_' + Math.abs(hash).toString(16);
+    return await voroCrypto.computeHmacSignature(str);
   }
 
   async ensureInitialized() {
@@ -368,7 +351,7 @@ class StorageManager {
 
       if (item) {
         const calculatedHash = await this.computeHash(item);
-        if (expectedHash && calculatedHash !== expectedHash) {
+        if (expectedHash && !voroCrypto.constantTimeCompare(calculatedHash, expectedHash)) {
           console.error(`Security Sentinel [CDDSA]: Tamper detected for ${baseKey}! Hash mismatch.`);
           executeLockdown();
           return getDecoyData(baseKey);
