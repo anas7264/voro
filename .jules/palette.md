@@ -49,3 +49,7 @@
 ## 2026-07-29 - Screen-Reader Label Integrity in Collapsed Sidebar Navigation
 **Learning:** Sidebar layouts in responsive web architectures frequently hide or omit text labels entirely when collapsed into an icon-only mode to conserve screen space. This practice leaves standard navigation elements completely unlabelled for screen reader users, who rely on underlying DOM text structures.
 **Action:** Always declare explicit, stable `aria-label` properties on responsive navigation links. This ensures screen readers consistently announce link destinations (e.g. "Food Diary", "Dashboard") regardless of the current visual presentation scale or layout collapse states.
+
+## 2026-07-30 - Interactive Segment and Filter Buttons Accessibility Indicator
+**Learning:** Segment and filter matrices (such as category filters in the Education Hub) lack clear states for assistive technologies and keyboard navigators. Screen readers cannot tell which button is selected, and keyboard focus states are often neglected or muddy the luxury dark frame.
+**Action:** Always declare explicit `aria-pressed={isActive}` on filter buttons, and inject consistent, clean `focus-visible:ring-2` with a `ring-offset-2` styling aligned to Voro's primary brand theme to offer equitable visibility for keyboard power users.

@@ -320,7 +320,8 @@ const EducationHub = () => {
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
-                  className={`px-5 py-2 rounded-full text-[0.55rem] font-black uppercase tracking-[0.2em] transition-all border ${
+                  aria-pressed={activeCategory === cat}
+                  className={`px-5 py-2 rounded-full text-[0.55rem] font-black uppercase tracking-[0.2em] transition-all border focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408] outline-none ${
                     activeCategory === cat
                       ? 'bg-voro-primary text-white border-voro-primary shadow-lg shadow-voro-primary/20'
                       : 'bg-white/[0.02] text-gray-500 border-white/5 hover:border-white/10 hover:text-gray-300'
