@@ -103,10 +103,29 @@ export const calculateStreak = (completedDates) => {
   for (let i = 0; i < completedDates.length; i++) {
     const d = completedDates[i];
     if (!d) continue;
-    const dt = new Date(d);
-    if (isNaN(dt.getTime())) continue;
-    dt.setHours(0, 0, 0, 0);
-    localMidnights.push(dt.getTime());
+
+    let time;
+    // ⚡ PERFORMANCE OPTIMIZATION: Fast path for standard YYYY-MM-DD ISO strings.
+    // Avoids slow VM-level generic string parsing while matching standard UTC parsing behavior.
+    if (typeof d === 'string' && d.length === 10 && d.charCodeAt(4) === 45 && d.charCodeAt(7) === 45) {
+      const y = parseInt(d.slice(0, 4), 10);
+      const m = parseInt(d.slice(5, 7), 10);
+      const day = parseInt(d.slice(8, 10), 10);
+      if (y >= 1000 && y <= 9999 && m >= 1 && m <= 12 && day >= 1 && day <= 31) {
+        const utcTime = Date.UTC(y, m - 1, day);
+        const dt = new Date(utcTime);
+        dt.setHours(0, 0, 0, 0);
+        time = dt.getTime();
+      }
+    }
+
+    if (time === undefined) {
+      const dt = new Date(d);
+      if (isNaN(dt.getTime())) continue;
+      dt.setHours(0, 0, 0, 0);
+      time = dt.getTime();
+    }
+    localMidnights.push(time);
   }
 
   if (localMidnights.length === 0) return { current: 0, best: 0 };
