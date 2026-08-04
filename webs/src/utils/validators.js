@@ -213,6 +213,11 @@ export const isValidChatQuery = (query) => {
   return typeof query === 'string' && query.length <= 2000;
 };
 
+// Display name validation (1-50 characters to prevent DoS/memory bloat and XSS)
+export const isValidName = (name) => {
+  return typeof name === 'string' && name.trim().length > 0 && name.length <= 50;
+};
+
 // ⚡ PERFORMANCE OPTIMIZATION: Hoisted homoglyph map and pre-compiled regex patterns.
 // Prevents dynamic allocations on every keystroke and executes single-pass native DFA-based searches.
 const HOMOGLYPHS_MAP = {
@@ -357,6 +362,7 @@ export const isValidDifficulty = (difficulty) => {
 export const validateFitnessProfile = (profile) => {
   const errors = {};
 
+  if (profile.name !== undefined && !isValidName(profile.name)) errors.name = "Name must be between 1 and 50 characters";
   if (!isValidAge(profile.age)) errors.age = "Age must be between 13-120";
   if (!isValidHeight(profile.height)) errors.height = "Height must be between 100-250 cm";
   if (!isValidWeight(profile.weight)) errors.weight = "Weight must be between 30-500 kg";
@@ -581,5 +587,6 @@ export default {
   isValidWaterAmount,
   isValidJournalNote,
   isValidChatQuery,
+  isValidName,
   isPromptInjection
 };

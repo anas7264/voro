@@ -34,6 +34,7 @@ const Profile = () => {
 
   const handleSave = () => {
     const { valid, errors } = validateFitnessProfile({
+      name: formData.name,
       age: formData.age,
       height: formData.heightCm,
       weight: formData.currentWeight,
@@ -130,6 +131,7 @@ const Profile = () => {
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
+                  maxLength={50}
                 />
                 <Input
                   label="Biological Age"

@@ -12,6 +12,7 @@ import Checkbox from '@/components/Checkbox';
 import VoroLogo from '@/components/VoroLogo';
 import Confetti from '@/components/Confetti';
 import { calculateBMI, calculateBMR } from '@/utils/calculators';
+import { isValidName } from '@/utils/validators';
 
 const Onboarding = () => {
   const navigate = useNavigate();
@@ -153,7 +154,7 @@ const Onboarding = () => {
   };
 
   const handleNext = () => {
-    if (step === 1 && !formData.name) return;
+    if (step === 1 && (!formData.name || !isValidName(formData.name))) return;
     if (step === 2 && (!formData.age || !formData.heightCm || !formData.weightKg)) return;
     if (step === 5) {
       const profileData = calculateProfileData();
@@ -217,6 +218,7 @@ const Onboarding = () => {
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   autoFocus
+                  maxLength={50}
                   className="text-center text-2xl font-serif italic font-bold text-voro-primary bg-white/[0.02] border-white/5"
                 />
               </div>
