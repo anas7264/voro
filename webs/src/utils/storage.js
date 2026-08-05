@@ -166,7 +166,7 @@ class StorageManager {
   constructor() {
     this.isAvailable = this.checkAvailability();
     this.canaryKeys = CANARY_KEYS;
-    this.encryptedKeys = new Set(Object.values(STORAGE_KEYS));
+    this.encryptedKeys = new Set([...Object.values(STORAGE_KEYS), 'session_anchor']);
     this.listeners = new Set();
     this.cache = new Map();
     this._lastUpdate = new Map(); // Track timestamps for optimistic rollbacks
@@ -220,7 +220,11 @@ class StorageManager {
      * reduce app startup latency.
      */
     this.initPromise = (async () => {
-      // CDDSA: Retrieve expected hashes asynchronously from the secure IndexedDB enclave
+      // 1. Initialize crypto to get the master key and session anchor
+      await voroCrypto.init();
+      const currentAnchor = voroCrypto.sessionAnchor;
+
+      // 2. Retrieve expected hashes asynchronously from the secure IndexedDB enclave
       try {
         const storedHashes = await voroCrypto.getStoredHashes();
         this.stateLedger = new Map(Object.entries(storedHashes));
@@ -229,10 +233,49 @@ class StorageManager {
         this.stateLedger = new Map();
       }
 
-      const keys = this.list();
+      // Filter list keys to ignore the session_anchor to avoid double processing
+      const keys = this.list().filter(k => k !== 'session_anchor');
 
-      // CDDSA Self-Healing baseline: Populate ledger on initial migration if empty
-      if (this.stateLedger.size === 0 && keys.length > 0) {
+      // 3. Cryptographic Session-Binding Anchor (CSBA) Check
+      const hasLocalStorageKeys = keys.length > 0;
+      let isAnchorValid = false;
+
+      if (hasLocalStorageKeys) {
+        try {
+          const encryptedAnchor = localStorage.getItem(this.getFullKey('session_anchor'));
+          if (encryptedAnchor) {
+            const decryptedAnchor = await voroCrypto.decrypt(encryptedAnchor, this.getFullKey('session_anchor'));
+            if (decryptedAnchor && typeof decryptedAnchor === 'string' && decryptedAnchor.length > 0 && voroCrypto.constantTimeCompare(decryptedAnchor, currentAnchor)) {
+              isAnchorValid = true;
+            }
+          } else if (voroCrypto.isUpgradeSession) {
+            // This is a legitimate upgrade from an older version where session_anchor didn't exist yet,
+            // but the master keys are valid. We can safely write the session anchor to Local Storage!
+            isAnchorValid = true;
+            await this.set('session_anchor', currentAnchor);
+          }
+        } catch (anchorErr) {
+          console.error("Security Sentinel [CSBA]: Failed to decrypt session anchor:", anchorErr);
+        }
+      } else {
+        // If Local Storage is empty, we are on a legitimate fresh run.
+        isAnchorValid = true;
+        // Persist the current session anchor to Local Storage
+        await this.set('session_anchor', currentAnchor);
+      }
+
+      if (!isAnchorValid && hasLocalStorageKeys) {
+        // If we have existing keys but the anchor is missing or invalid,
+        // it means IndexedDB was cleared, or Local Storage is a malicious injection.
+        console.error("Security Sentinel [CSBA]: Critical Storage Desynchronization or Tampering detected! Anchor mismatch.");
+        executeLockdown();
+        this.initialized = true;
+        this.notify('*', this.getAllSync());
+        return;
+      }
+
+      // CDDSA Self-Healing baseline: Only populate ledger on initial migration if empty AND anchor is valid
+      if (this.stateLedger.size === 0 && keys.length > 0 && isAnchorValid) {
         for (const key of keys) {
           const fullKey = this.getFullKey(key);
           const item = localStorage.getItem(fullKey);
