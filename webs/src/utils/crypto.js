@@ -11,6 +11,7 @@ const DB_NAME = 'VORO_SECURE_STORAGE';
 const STORE_NAME = 'KEYS';
 const KEY_NAME = 'MASTER_KEY';
 const HKDF_KEY_NAME = 'HKDF_BASE_KEY';
+const SESSION_ANCHOR_NAME = 'SESSION_ANCHOR';
 const ALGO = 'AES-GCM';
 const KEY_SIZE = 256;
 
@@ -23,6 +24,8 @@ class CryptoManager {
     this.key = null;
     this.hkdfKey = null;
     this._hmacKey = null;
+    this.sessionAnchor = null;
+    this.isUpgradeSession = false;
     this.domainKeyCache = new Map();
     this.initialized = false;
     this.initPromise = null;
@@ -58,6 +61,8 @@ class CryptoManager {
     this.key = null;
     this.hkdfKey = null;
     this._hmacKey = null;
+    this.sessionAnchor = null;
+    this.isUpgradeSession = false;
     this.domainKeyCache.clear();
     this.initialized = false;
     this.initPromise = null;
@@ -79,6 +84,7 @@ class CryptoManager {
         const keys = await this.getOrGenerateKeys();
         this.key = keys.masterKey;
         this.hkdfKey = keys.hkdfKey;
+        this.sessionAnchor = keys.sessionAnchor;
         this.initialized = true;
       } catch (error) {
         this.initPromise = null; // Allow retry on failure
@@ -119,57 +125,79 @@ class CryptoManager {
             getHKDF.onsuccess = async () => {
               hkdfKey = getHKDF.result;
 
-              if (masterKey && hkdfKey) {
-                // Enclave: Register retrieved keys and resolve handles
-                resolve({
-                  masterKey: registerSecureKey(masterKey),
-                  hkdfKey: registerSecureKey(hkdfKey)
-                });
-              } else {
-                // Generate missing keys
-                try {
-                  if (!masterKey) {
-                    masterKey = await window.crypto.subtle.generateKey(
-                      { name: ALGO, length: KEY_SIZE },
-                      false,
-                      ['encrypt', 'decrypt']
-                    );
-                    await new Promise((res, rej) => {
-                      const putMaster = store.put(masterKey, KEY_NAME);
-                      putMaster.onsuccess = res;
-                      putMaster.onerror = rej;
-                    });
-                  }
+              const getAnchor = store.get(SESSION_ANCHOR_NAME);
+              getAnchor.onsuccess = async () => {
+                let sessionAnchor = getAnchor.result;
 
-                  if (!hkdfKey) {
-                    // Generate random entropy for HKDF
-                    const entropy = window.crypto.getRandomValues(new Uint8Array(32));
-                    hkdfKey = await window.crypto.subtle.importKey(
-                      'raw',
-                      entropy,
-                      'HKDF',
-                      false,
-                      ['deriveKey']
-                    );
-
-                    // Memory Hygiene: Atomically shred entropy buffer after key import
-                    entropy.fill(0);
-                    await new Promise((res, rej) => {
-                      const putHKDF = store.put(hkdfKey, HKDF_KEY_NAME);
-                      putHKDF.onsuccess = res;
-                      putHKDF.onerror = rej;
-                    });
-                  }
-
-                  // Enclave: Register generated keys and resolve handles
+                if (masterKey && hkdfKey && sessionAnchor) {
+                  // Enclave: Register retrieved keys and resolve handles
                   resolve({
                     masterKey: registerSecureKey(masterKey),
-                    hkdfKey: registerSecureKey(hkdfKey)
+                    hkdfKey: registerSecureKey(hkdfKey),
+                    sessionAnchor
                   });
-                } catch (err) {
-                  reject(err);
+                } else {
+                  // Generate missing keys
+                  try {
+                    if (masterKey && !sessionAnchor) {
+                      this.isUpgradeSession = true;
+                    }
+                    if (!masterKey) {
+                      masterKey = await window.crypto.subtle.generateKey(
+                        { name: ALGO, length: KEY_SIZE },
+                        false,
+                        ['encrypt', 'decrypt']
+                      );
+                      await new Promise((res, rej) => {
+                        const putMaster = store.put(masterKey, KEY_NAME);
+                        putMaster.onsuccess = res;
+                        putMaster.onerror = rej;
+                      });
+                    }
+
+                    if (!hkdfKey) {
+                      // Generate random entropy for HKDF
+                      const entropy = window.crypto.getRandomValues(new Uint8Array(32));
+                      hkdfKey = await window.crypto.subtle.importKey(
+                        'raw',
+                        entropy,
+                        'HKDF',
+                        false,
+                        ['deriveKey']
+                      );
+
+                      // Memory Hygiene: Atomically shred entropy buffer after key import
+                      entropy.fill(0);
+                      await new Promise((res, rej) => {
+                        const putHKDF = store.put(hkdfKey, HKDF_KEY_NAME);
+                        putHKDF.onsuccess = res;
+                        putHKDF.onerror = rej;
+                      });
+                    }
+
+                    if (!sessionAnchor) {
+                      const anchorBytes = window.crypto.getRandomValues(new Uint8Array(32));
+                      sessionAnchor = Array.from(anchorBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+                      anchorBytes.fill(0);
+                      await new Promise((res, rej) => {
+                        const putAnchor = store.put(sessionAnchor, SESSION_ANCHOR_NAME);
+                        putAnchor.onsuccess = res;
+                        putAnchor.onerror = rej;
+                      });
+                    }
+
+                    // Enclave: Register generated keys and resolve handles
+                    resolve({
+                      masterKey: registerSecureKey(masterKey),
+                      hkdfKey: registerSecureKey(hkdfKey),
+                      sessionAnchor
+                    });
+                  } catch (err) {
+                    reject(err);
+                  }
                 }
-              }
+              };
+              getAnchor.onerror = () => reject(new Error('Failed to retrieve session anchor'));
             };
           };
 
