@@ -1,6 +1,50 @@
 // VORO Calculation Utilities
 // Complete set of fitness, nutrition, and performance calculations
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted and Frozen Configuration Objects.
+ * These are frozen with Object.freeze() at the module scope to completely
+ * prevent heap-allocation and Garbage Collection (GC) churn in hot paths.
+ */
+const TDEE_MULTIPLIERS = Object.freeze({
+  sedentary: 1.2,
+  lightly_active: 1.375,
+  moderately_active: 1.55,
+  very_active: 1.725,
+  extremely_active: 1.9
+});
+
+const PROTEIN_TARGET_MULTIPLIERS = Object.freeze({
+  weight_loss: 2.2,
+  maintenance: 1.6,
+  muscle_gain: 2.2
+});
+
+const CALORIC_BURN_METS = Object.freeze({
+  walking_slow: 2.8,
+  walking_moderate: 3.5,
+  running_slow: 5.8,
+  running_moderate: 8.3,
+  running_fast: 11.5,
+  cycling_moderate: 7.5,
+  cycling_vigorous: 12.0,
+  swimming: 8.0,
+  hiit: 10.0,
+  strength_training: 6.0,
+  yoga: 2.5,
+  pilates: 4.0
+});
+
+const GOAL_CALORIC_ADJUSTMENTS = Object.freeze({
+  aggressive_cut: 0.75, // 25% deficit
+  moderate_cut: 0.85, // 15% deficit
+  slight_cut: 0.90, // 10% deficit
+  maintenance: 1.0, // No change
+  slight_surplus: 1.10, // 10% surplus
+  moderate_surplus: 1.15, // 15% surplus
+  aggressive_bulk: 1.25 // 25% surplus
+});
+
 // BMI Calculation: weight(kg) / height(m)²
 export const calculateBMI = (weightKg, heightCm) => {
   const heightM = heightCm / 100;
@@ -16,7 +60,9 @@ export const getBMICategory = (bmi) => {
 
 // Basal Metabolic Rate - Mifflin-St Jeor (most accurate)
 export const calculateBMR = (weightKg, heightCm, age, gender) => {
-  if (gender.toLowerCase() === "male") {
+  // Performance optimization: Avoid repeated lowercasing where possible.
+  const isMale = typeof gender === 'string' && (gender === 'male' || gender.toLowerCase() === "male");
+  if (isMale) {
     return (10 * weightKg + 6.25 * heightCm - 5 * age + 5).toFixed(0);
   } else {
     return (10 * weightKg + 6.25 * heightCm - 5 * age - 161).toFixed(0);
@@ -25,24 +71,12 @@ export const calculateBMR = (weightKg, heightCm, age, gender) => {
 
 // Total Daily Energy Expenditure using activity multiplier
 export const calculateTDEE = (bmr, activityLevel) => {
-  const multipliers = {
-    sedentary: 1.2,
-    lightly_active: 1.375,
-    moderately_active: 1.55,
-    very_active: 1.725,
-    extremely_active: 1.9
-  };
-  return Math.round(bmr * (multipliers[activityLevel] || 1.55));
+  return Math.round(bmr * (TDEE_MULTIPLIERS[activityLevel] || 1.55));
 };
 
 // Protein targets based on goal and weight
 export const calculateProteinTarget = (weightKg, goal = "maintenance") => {
-  const targets = {
-    weight_loss: 2.2, // g/kg
-    maintenance: 1.6, // g/kg
-    muscle_gain: 2.2  // g/kg
-  };
-  return Math.round(weightKg * (targets[goal] || 1.6));
+  return Math.round(weightKg * (PROTEIN_TARGET_MULTIPLIERS[goal] || 1.6));
 };
 
 // Water intake recommendation in liters
@@ -59,24 +93,30 @@ export const calculateOneRepMax = {
   lander: (weight, reps) => Math.round((100 * weight) / (101.3 - 2.67123 * reps)),
   reynolds: (weight, reps) => Math.round(weight * (1 + reps / 15)),
   adamson: (weight, reps) => Math.round(weight * (1 + reps / 20)),
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Zero-allocation average calculation.
+   * Completely bypasses array allocation `[estimates]`, closure execution, and `.reduce()` logic.
+   * Directly sums and computes the mean.
+   */
   average: (weight, reps) => {
-    const estimates = [
-      Math.round(weight * (1 + reps / 30)),
-      Math.round(weight * (36 / (37 - reps))),
-      Math.round((100 * weight) / (101.3 - 2.67123 * reps)),
-      Math.round(weight * (1 + reps / 15)),
-      Math.round(weight * (1 + reps / 20))
-    ];
-    return Math.round(estimates.reduce((a, b) => a + b) / estimates.length);
+    const epley = weight * (1 + reps / 30);
+    const brzycki = weight * (36 / (37 - reps));
+    const lander = (100 * weight) / (101.3 - 2.67123 * reps);
+    const reynolds = weight * (1 + reps / 15);
+    const adamson = weight * (1 + reps / 20);
+    return Math.round((epley + brzycki + lander + reynolds + adamson) / 5);
   }
 };
 
 // Wilks Coefficient (strength-to-bodyweight ratio for comparing lifters)
 export const calculateWilksCoefficient = (totalWeight, bodyweightKg, gender) => {
-  const a = gender.toLowerCase() === "male" ? -216.0475 : -594.31;
-  const b = gender.toLowerCase() === "male" ? 16.2606 : 27.91957;
-  const c = gender.toLowerCase() === "male" ? -0.002388 : -0.12835;
-  const coefficient = 500 / (a + b * bodyweightKg + c * Math.pow(bodyweightKg, 2));
+  const isMale = typeof gender === 'string' && (gender === 'male' || gender.toLowerCase() === "male");
+  const a = isMale ? -216.0475 : -594.31;
+  const b = isMale ? 16.2606 : 27.91957;
+  const c = isMale ? -0.002388 : -0.12835;
+  // Performance optimization: Avoid Math.pow and compute direct multiplication
+  const bodyweightSq = bodyweightKg * bodyweightKg;
+  const coefficient = 500 / (a + b * bodyweightKg + c * bodyweightSq);
   return (totalWeight * coefficient).toFixed(2);
 };
 
@@ -137,22 +177,7 @@ export const convertPace = (pace, unit = "kmh_to_pace") => {
 
 // Caloric burn estimates by activity
 export const estimateCaloriesBurned = (weightKg, durationMinutes, activity) => {
-  const mets = {
-    walking_slow: 2.8,
-    walking_moderate: 3.5,
-    running_slow: 5.8,
-    running_moderate: 8.3,
-    running_fast: 11.5,
-    cycling_moderate: 7.5,
-    cycling_vigorous: 12.0,
-    swimming: 8.0,
-    hiit: 10.0,
-    strength_training: 6.0,
-    yoga: 2.5,
-    pilates: 4.0
-  };
-
-  const met = mets[activity] || 5.0;
+  const met = CALORIC_BURN_METS[activity] || 5.0;
   return Math.round((met * weightKg * durationMinutes) / 60);
 };
 
@@ -167,17 +192,7 @@ export const calculateMacroRatios = (calories, goalProteinG, goalCarbG, goalFatG
 
 // Calculate surplus/deficit for goal
 export const calculateCalorieAdjustment = (tdee, goal) => {
-  const adjustments = {
-    aggressive_cut: 0.75, // 25% deficit
-    moderate_cut: 0.85, // 15% deficit
-    slight_cut: 0.90, // 10% deficit
-    maintenance: 1.0, // No change
-    slight_surplus: 1.10, // 10% surplus
-    moderate_surplus: 1.15, // 15% surplus
-    aggressive_bulk: 1.25 // 25% surplus
-  };
-
-  const multiplier = adjustments[goal] || 1.0;
+  const multiplier = GOAL_CALORIC_ADJUSTMENTS[goal] || 1.0;
   return Math.round(tdee * multiplier);
 };
 
@@ -263,7 +278,8 @@ export default {
 // Ideal Body Weight - Devine Formula
 export const calculateIdealWeight = (heightCm, gender = 'Male') => {
   const heightInches = (heightCm - 152.4) / 2.54;
-  if (gender === 'Male') {
+  const isMale = typeof gender === 'string' && (gender === 'Male' || gender.toLowerCase() === "male");
+  if (isMale) {
     return Math.max(50 + (2.3 * heightInches), 40);
   } else {
     return Math.max(45.5 + (2.3 * heightInches), 38);
