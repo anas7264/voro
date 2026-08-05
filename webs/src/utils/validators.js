@@ -277,8 +277,46 @@ const decodeHTMLEntities = (str) => {
     });
 };
 
+// Helper to safely decode Base64 strings with auto-padding and printable-ASCII verification (XSS/DoS safe)
+const safeAtob = (str) => {
+  try {
+    if (!/^[A-Za-z0-9+/]+={0,2}$/.test(str) || str.length < 8) {
+      return null;
+    }
+    let padded = str;
+    while (padded.length % 4 !== 0) {
+      padded += '=';
+    }
+    const decoded = typeof atob !== 'undefined' ? atob(padded) : Buffer.from(padded, 'base64').toString('utf-8');
+    if (/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F-\xFF]/.test(decoded)) {
+      return null;
+    }
+    return decoded;
+  } catch (e) {
+    return null;
+  }
+};
+
+// Helper to safely decode Hex strings with alignment and printable-ASCII verification
+const safeDecodeHex = (str) => {
+  try {
+    if (!/^[0-9a-fA-F]{8,}$/.test(str) || str.length % 2 !== 0) {
+      return null;
+    }
+    let decoded = '';
+    for (let i = 0; i < str.length; i += 2) {
+      const code = parseInt(str.substring(i, i + 2), 16);
+      if (code < 32 || code > 126) return null; // Ensure only printable ASCII to prevent false positives
+      decoded += String.fromCharCode(code);
+    }
+    return decoded;
+  } catch (e) {
+    return null;
+  }
+};
+
 // Prompt injection / jailbreak / delimiter hijacking detection
-export const isPromptInjection = (query) => {
+export const isPromptInjection = (query, isNested = false) => {
   if (!query || typeof query !== 'string') return false;
 
   // Security: Decode URL percent-encoding and HTML entities first
@@ -306,6 +344,25 @@ export const isPromptInjection = (query) => {
   if (OVERRIDE_RE.test(normalizedQuery)) return true;
   if (HARVESTING_RE.test(normalizedQuery)) return true;
   if (ROLEPLAY_RE.test(normalizedQuery)) return true;
+
+  // Security: Scan and decode Base64-obfuscated and Hex-obfuscated prompt injection payloads (Defense-in-Depth)
+  if (!isNested) {
+    const hexMatches = query.match(/[0-9a-fA-F]{8,}/g) || [];
+    for (const match of hexMatches) {
+      const decoded = safeDecodeHex(match);
+      if (decoded && isPromptInjection(decoded, true)) {
+        return true;
+      }
+    }
+
+    const base64Matches = query.match(/[A-Za-z0-9+/]{8,}=*/g) || [];
+    for (const match of base64Matches) {
+      const decoded = safeAtob(match);
+      if (decoded && isPromptInjection(decoded, true)) {
+        return true;
+      }
+    }
+  }
 
   return false;
 };
