@@ -315,6 +315,31 @@ const safeDecodeHex = (str) => {
   }
 };
 
+// Helper to decode ROT13-encoded text (highly useful for bypassing keyword filters)
+const safeDecodeRot13 = (str) => {
+  if (!str || typeof str !== 'string' || str.length < 8) return null;
+  const decoded = str.replace(/[a-zA-Z]/g, (c) => {
+    const code = c.charCodeAt(0);
+    if (code >= 65 && code <= 90) {
+      return String.fromCharCode(((code - 65 + 13) % 26) + 65);
+    }
+    if (code >= 97 && code <= 122) {
+      return String.fromCharCode(((code - 97 + 13) % 26) + 97);
+    }
+    return c;
+  });
+  return decoded;
+};
+
+// Helper to reverse a string (for reversed-keyword evasion)
+const safeReverseString = (str) => {
+  if (!str || typeof str !== 'string' || str.length < 8) return null;
+  return str.split('').reverse().join('');
+};
+
+// Consolidated regex of compressed patterns to detect spacer-based prompt injection obfuscation (e.g., i.g.n.o.r.e)
+const COMPRESSED_BLOCKLIST_RE = /ignoreprevious|ignoreabove|ignoreallinstructions|ignoresystem|bypassinstructions|overridesystem|systemoverride|developermode|danmode|doanythingnow|forgetprevious|forgetallinstructions|forgetwhatwassaid|youmustnowignore|youarenowadeveloper|youarenowanunrestricted|unrestrictedmode|withoutrestrictions|disablesafety|bypassfilters|repeatthesystemprompt|revealyourinstructions|revealthesystemprompt|revealinstructions|outputthesysteminstructions|outputyourinstructions|outputthetextabove|showyoursystemprompt|showsystemprompt|whatisyoursystemprompt|whatisyourprompt|whatareyourinstructions|whatareyourdeveloperinstructions|revealthenonce|outputyournonces|roleplayas|adoptthepersona|pretendtobe|youarenowaterminal|youarenowalinux|startingnowyouare|youarenolongeranaiassistant|youarenolongerahelpful/i;
+
 // Prompt injection / jailbreak / delimiter hijacking detection
 export const isPromptInjection = (query, isNested = false) => {
   if (!query || typeof query !== 'string') return false;
@@ -345,6 +370,10 @@ export const isPromptInjection = (query, isNested = false) => {
   if (HARVESTING_RE.test(normalizedQuery)) return true;
   if (ROLEPLAY_RE.test(normalizedQuery)) return true;
 
+  // 3. Spacer-based obfuscation defense: strip non-alphanumeric separator characters and evaluate
+  const compressedQuery = normalizedQuery.replace(/[^a-z0-9]/g, '');
+  if (COMPRESSED_BLOCKLIST_RE.test(compressedQuery)) return true;
+
   // Security: Scan and decode Base64-obfuscated and Hex-obfuscated prompt injection payloads (Defense-in-Depth)
   if (!isNested) {
     const hexMatches = query.match(/[0-9a-fA-F]{8,}/g) || [];
@@ -361,6 +390,18 @@ export const isPromptInjection = (query, isNested = false) => {
       if (decoded && isPromptInjection(decoded, true)) {
         return true;
       }
+    }
+
+    // Security: Handle ROT13-encoded obfuscation and evaluate recursively
+    const rot13Decoded = safeDecodeRot13(query);
+    if (rot13Decoded && isPromptInjection(rot13Decoded, true)) {
+      return true;
+    }
+
+    // Security: Handle reversed-string/words obfuscation and evaluate recursively
+    const reversedStr = safeReverseString(query);
+    if (reversedStr && isPromptInjection(reversedStr, true)) {
+      return true;
     }
   }
 
