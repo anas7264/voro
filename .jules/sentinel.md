@@ -228,3 +228,13 @@ Neutralizing encoding-based evasion requires executing a pre-normalization decod
 
 **Prevention:**
 Always run recursive URL and HTML entity decoding on user queries at the absolute entry boundary of prompt-injection and delimiter validation engines, before any normalizations, formatting stripping, or pattern-matching checks.
+
+## 2026-06-18 - Base64 & Hexadecimal Obfuscation Evasion in Prompt Injection Shields
+**Vulnerability:**
+Prompt injection filters that analyze decoded plain text are vulnerable to payload obfuscation using encoding schemes like Base64 or Hexadecimal (e.g. `aWdub3JlIHByZXZpb3Vz` or `69676e6f72652070726576696f7573` for `ignore previous`). Modern LLMs are capable of autonomously decoding and executing these instructions, allowing the payload to bypass text-based blocklists and boundary validations during input ingestion.
+
+**Learning:**
+Effective input defense requires scanning queries for potential encoded block structures. Since arbitrary strings can resemble Base64/Hex and trigger false positives, decoding helpers must enforce strict layout alignment constraints (e.g., matching length multiples and padding) and explicitly verify that the output decoded string contains only printable ASCII/whitespace characters.
+
+**Prevention:**
+Always implement non-destructive Base64 and Hex parsing layers in query validators. Extract matching substrings, attempt decoding under strict ASCII-only constraints, and evaluate the decoded content against key-phrase blocklists prior to downstream model transmission.
