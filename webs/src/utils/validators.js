@@ -277,12 +277,101 @@ const decodeHTMLEntities = (str) => {
     });
 };
 
+// Safe base64 decoding helper
+const safeAtob = (str) => {
+  try {
+    if (!str || str.length < 8) return null;
+    const base64Regex = /^[A-Za-z0-9+/]+={0,2}$/;
+    if (!base64Regex.test(str)) return null;
+    if (str.length % 4 === 1) return null;
+
+    let decoded;
+    if (typeof atob === 'function') {
+      try {
+        const binary = atob(str);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        decoded = new TextDecoder().decode(bytes);
+      } catch (err) {
+        if (typeof Buffer !== 'undefined') {
+          decoded = Buffer.from(str, 'base64').toString('utf8');
+        } else {
+          return null;
+        }
+      }
+    } else if (typeof Buffer !== 'undefined') {
+      decoded = Buffer.from(str, 'base64').toString('utf8');
+    } else {
+      return null;
+    }
+
+    // Strict printable-ASCII/UTF-8 check
+    for (let i = 0; i < decoded.length; i++) {
+      const code = decoded.charCodeAt(i);
+      if (code < 32 && code !== 9 && code !== 10 && code !== 13) {
+        return null;
+      }
+    }
+    return decoded;
+  } catch (e) {
+    return null;
+  }
+};
+
+// Safe hexadecimal decoding helper
+const safeDecodeHex = (str) => {
+  try {
+    if (!str || str.length < 8 || str.length % 2 !== 0) return null;
+    const hexRegex = /^[0-9a-fA-F]+$/;
+    if (!hexRegex.test(str)) return null;
+
+    let decoded = "";
+    for (let i = 0; i < str.length; i += 2) {
+      const code = parseInt(str.substring(i, i + 2), 16);
+      if (code < 32 && code !== 9 && code !== 10 && code !== 13) {
+        return null;
+      }
+      decoded += String.fromCharCode(code);
+    }
+    return decoded;
+  } catch (e) {
+    return null;
+  }
+};
+
 // Prompt injection / jailbreak / delimiter hijacking detection
-export const isPromptInjection = (query) => {
+export const isPromptInjection = (query, isNested = false) => {
   if (!query || typeof query !== 'string') return false;
 
   // Security: Decode URL percent-encoding and HTML entities first
   const decodedQuery = decodePercentEncoding(decodeHTMLEntities(query));
+
+  // --- De-obfuscation Layer for Base64 and Hexadecimal encoded strings ---
+  if (!isNested) {
+    // 1. Scan and extract potential Base64 segments
+    const potentialB64Matches = decodedQuery.match(/[A-Za-z0-9+/]{8,}={0,2}/g) || [];
+    for (const match of potentialB64Matches) {
+      const decoded = safeAtob(match);
+      if (decoded && decoded.trim().length > 0) {
+        if (isPromptInjection(decoded, true)) {
+          return true;
+        }
+      }
+    }
+
+    // 2. Scan and extract potential Hex segments
+    const potentialHexMatches = decodedQuery.match(/\b[0-9a-fA-F]{8,}\b/g) || [];
+    for (const match of potentialHexMatches) {
+      const decoded = safeDecodeHex(match);
+      if (decoded && decoded.trim().length > 0) {
+        if (isPromptInjection(decoded, true)) {
+          return true;
+        }
+      }
+    }
+  }
 
   let normalizedQuery = decodedQuery.normalize('NFKD').toLowerCase();
   // Strip combining diacritical marks across all standard Unicode diacritic blocks (including extended, supplement, symbols, and half-marks)
