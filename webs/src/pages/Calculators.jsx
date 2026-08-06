@@ -22,6 +22,12 @@ import {
 } from 'lucide-react';
 
 /**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted singletons.
+ * Pre-instantiated and hoisted formatter singleton to avoid redundant allocations in loops.
+ */
+const numberFormatter = new Intl.NumberFormat('en-US');
+
+/**
  * ⚡ PERFORMANCE OPTIMIZATION & PREMIUM FORGE RE-ENGINEERING:
  * Isolated Active Calculator Components.
  * Re-engineered to the 'Forge' luxury standard with custom visualizers,
@@ -376,7 +382,7 @@ const FFMICalculator = memo(({ weight, height, bodyFat, calculateFFMI }) => {
 
   // Muscular classification tiers
   const tiers = useMemo(() => [
-    { label: 'Below Average / Lean', range: '< 18.0', key: 'lean', desc: 'Typical baseline somatic mass or athletic fat-free structure.' },
+    { label: 'Below Average / Lean', range: '< 18.0', key: 'lean', desc: 'Typical somatic baseline mass or athletic fat-free structure.' },
     { label: 'Average / Active', range: '18.0 - 20.0', key: 'active', desc: 'Consistent active training adaptation, healthy dense matrix.' },
     { label: 'Advanced Athletic', range: '20.1 - 22.0', key: 'advanced', desc: 'Extensive progression overload training, outstanding skeletal muscle.' },
     { label: 'Elite Tier', range: '22.1 - 25.0', key: 'elite', desc: 'Near physiological limit of natural biological muscular density.' },
@@ -503,7 +509,7 @@ const DeficitCalculator = memo(({ weight, height, age, gender, activityLevel, ca
         week: wk,
         weight: currentWt.toFixed(1),
         cumulativeFatLoss: (fatLostKg * wk).toFixed(1),
-        cumulativeDeficit: (deficitTarget * 7 * wk).toLocaleString()
+        cumulativeDeficit: numberFormatter.format(deficitTarget * 7 * wk)
       });
     }
     return list;
@@ -601,6 +607,184 @@ const DeficitCalculator = memo(({ weight, height, age, gender, activityLevel, ca
 });
 
 DeficitCalculator.displayName = "DeficitCalculator";
+
+
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Memoized calibration sliders panel.
+ * Keeps slider interaction updates completely isolated from the parent view.
+ */
+const BiometricSliders = memo(({ weight, setWeight, height, setHeight, age, setAge, bodyFat, setBodyFat }) => {
+  return (
+    <>
+      {/* 1. Weight Slider */}
+      <div className="space-y-3">
+        <div className="flex justify-between items-baseline">
+          <label className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest cursor-pointer select-none">
+            Current Mass
+          </label>
+          <span className="text-lg font-serif italic font-bold text-white">
+            {weight} <span className="text-[0.55rem] font-mono font-black text-voro-primary uppercase tracking-widest">kg</span>
+          </span>
+        </div>
+        <input
+          type="range"
+          min="30"
+          max="200"
+          step="0.5"
+          value={weight}
+          onChange={(e) => setWeight(parseFloat(e.target.value))}
+          className="accent-voro-primary h-1.5 w-full bg-white/5 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-voro-primary hover:bg-white/10 transition-colors"
+        />
+        <div className="flex justify-between text-[0.45rem] font-mono font-black text-gray-700 uppercase tracking-widest select-none">
+          <span>30 kg</span>
+          <span>200 kg</span>
+        </div>
+      </div>
+
+      {/* 2. Height Slider */}
+      <div className="space-y-3">
+        <div className="flex justify-between items-baseline">
+          <label className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest cursor-pointer select-none">
+            Height Dimension
+          </label>
+          <span className="text-lg font-serif italic font-bold text-white">
+            {height} <span className="text-[0.55rem] font-mono font-black text-voro-primary uppercase tracking-widest">cm</span>
+          </span>
+        </div>
+        <input
+          type="range"
+          min="100"
+          max="250"
+          step="1"
+          value={height}
+          onChange={(e) => setHeight(parseInt(e.target.value))}
+          className="accent-voro-primary h-1.5 w-full bg-white/5 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-voro-primary hover:bg-white/10 transition-colors"
+        />
+        <div className="flex justify-between text-[0.45rem] font-mono font-black text-gray-700 uppercase tracking-widest select-none">
+          <span>100 cm</span>
+          <span>250 cm</span>
+        </div>
+      </div>
+
+      {/* 3. Age Slider */}
+      <div className="space-y-3">
+        <div className="flex justify-between items-baseline">
+          <label className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest cursor-pointer select-none">
+            Temporal Age
+          </label>
+          <span className="text-lg font-serif italic font-bold text-white">
+            {age} <span className="text-[0.55rem] font-mono font-black text-voro-primary uppercase tracking-widest">yrs</span>
+          </span>
+        </div>
+        <input
+          type="range"
+          min="10"
+          max="100"
+          step="1"
+          value={age}
+          onChange={(e) => setAge(parseInt(e.target.value))}
+          className="accent-voro-primary h-1.5 w-full bg-white/5 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-voro-primary hover:bg-white/10 transition-colors"
+        />
+        <div className="flex justify-between text-[0.45rem] font-mono font-black text-gray-700 uppercase tracking-widest select-none">
+          <span>10 yrs</span>
+          <span>100 yrs</span>
+        </div>
+      </div>
+
+      {/* 4. Body Fat Slider */}
+      <div className="space-y-3">
+        <div className="flex justify-between items-baseline">
+          <label className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest cursor-pointer select-none">
+            Body Fat Ratio
+          </label>
+          <span className="text-lg font-serif italic font-bold text-white">
+            {bodyFat} <span className="text-[0.55rem] font-mono font-black text-voro-primary uppercase tracking-widest">%</span>
+          </span>
+        </div>
+        <input
+          type="range"
+          min="5"
+          max="50"
+          step="0.5"
+          value={bodyFat}
+          onChange={(e) => setBodyFat(parseFloat(e.target.value))}
+          className="accent-voro-primary h-1.5 w-full bg-white/5 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-voro-primary hover:bg-white/10 transition-colors"
+        />
+        <div className="flex justify-between text-[0.45rem] font-mono font-black text-gray-700 uppercase tracking-widest select-none">
+          <span>5 %</span>
+          <span>50 %</span>
+        </div>
+      </div>
+    </>
+  );
+});
+BiometricSliders.displayName = "BiometricSliders";
+
+
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Memoized PhenotypicSexSelector component.
+ * Prevents unnecessary re-render of sex selection nodes during unrelated value sliders.
+ */
+const PhenotypicSexSelector = memo(({ gender, setGender }) => {
+  return (
+    <div className="space-y-3">
+      <span className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest block select-none">
+        Phenotypic Sex
+      </span>
+      <div className="grid grid-cols-2 gap-4">
+        {['male', 'female'].map((g) => (
+          <button
+            key={g}
+            onClick={() => setGender(g)}
+            className={`
+              py-3.5 rounded-2xl text-[0.65rem] font-black uppercase tracking-[0.3em] border transition-all duration-500
+              active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14]
+              ${gender === g
+                ? "bg-voro-primary text-white border-voro-primary shadow-[0_10px_20px_rgba(124,58,237,0.2)]"
+                : "bg-white/[0.01] text-gray-500 border-white/5 hover:border-white/20 hover:text-gray-300"
+              }
+            `}
+          >
+            {g}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+});
+PhenotypicSexSelector.displayName = "PhenotypicSexSelector";
+
+
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Memoized ActivityCoefficientSelector component.
+ * Prevents redundant activity coefficient node re-rendering.
+ */
+const ActivityCoefficientSelector = memo(({ activityLevel, setActivityLevel }) => {
+  return (
+    <div className="space-y-3">
+      <span className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest block select-none">
+        Activity Coefficient
+      </span>
+      <div className="relative">
+        <select
+          value={activityLevel}
+          onChange={(e) => setActivityLevel(e.target.value)}
+          className="w-full bg-[#020408]/80 border border-white/5 rounded-2xl py-4.5 px-6 text-xs font-mono text-white tracking-widest uppercase focus:outline-none focus:border-voro-primary focus:ring-1 focus:ring-voro-primary transition-all cursor-pointer appearance-none"
+        >
+          <option value="sedentary">Sedentary (No Exercise)</option>
+          <option value="lightly_active">Lightly Active</option>
+          <option value="moderately_active">Moderately Active</option>
+          <option value="very_active">Very Active</option>
+          <option value="extremely_active">Extremely Active</option>
+        </select>
+        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+          <ChevronRight size={14} className="rotate-90" />
+        </div>
+      </div>
+    </div>
+  );
+});
+ActivityCoefficientSelector.displayName = "ActivityCoefficientSelector";
 
 
 // MAIN MASTERCLASS PAGE
@@ -795,153 +979,29 @@ const Calculators = () => {
               </div>
 
               <div className="space-y-8">
-                {/* 1. Weight Slider */}
-                <div className="space-y-3">
-                  <div className="flex justify-between items-baseline">
-                    <label className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest cursor-pointer select-none">
-                      Current Mass
-                    </label>
-                    <span className="text-lg font-serif italic font-bold text-white">
-                      {weight} <span className="text-[0.55rem] font-mono font-black text-voro-primary uppercase tracking-widest">kg</span>
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min="30"
-                    max="200"
-                    step="0.5"
-                    value={weight}
-                    onChange={(e) => setWeight(parseFloat(e.target.value))}
-                    className="accent-voro-primary h-1.5 w-full bg-white/5 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-voro-primary hover:bg-white/10 transition-colors"
-                  />
-                  <div className="flex justify-between text-[0.45rem] font-mono font-black text-gray-700 uppercase tracking-widest select-none">
-                    <span>30 kg</span>
-                    <span>200 kg</span>
-                  </div>
-                </div>
+                {/* Isolated Biometric Sliders */}
+                <BiometricSliders
+                  weight={weight}
+                  setWeight={setWeight}
+                  height={height}
+                  setHeight={setHeight}
+                  age={age}
+                  setAge={setAge}
+                  bodyFat={bodyFat}
+                  setBodyFat={setBodyFat}
+                />
 
-                {/* 2. Height Slider */}
-                <div className="space-y-3">
-                  <div className="flex justify-between items-baseline">
-                    <label className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest cursor-pointer select-none">
-                      Height Dimension
-                    </label>
-                    <span className="text-lg font-serif italic font-bold text-white">
-                      {height} <span className="text-[0.55rem] font-mono font-black text-voro-primary uppercase tracking-widest">cm</span>
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min="100"
-                    max="250"
-                    step="1"
-                    value={height}
-                    onChange={(e) => setHeight(parseInt(e.target.value))}
-                    className="accent-voro-primary h-1.5 w-full bg-white/5 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-voro-primary hover:bg-white/10 transition-colors"
-                  />
-                  <div className="flex justify-between text-[0.45rem] font-mono font-black text-gray-700 uppercase tracking-widest select-none">
-                    <span>100 cm</span>
-                    <span>250 cm</span>
-                  </div>
-                </div>
+                {/* Isolated Gender Picker */}
+                <PhenotypicSexSelector
+                  gender={gender}
+                  setGender={setGender}
+                />
 
-                {/* 3. Age Slider */}
-                <div className="space-y-3">
-                  <div className="flex justify-between items-baseline">
-                    <label className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest cursor-pointer select-none">
-                      Temporal Age
-                    </label>
-                    <span className="text-lg font-serif italic font-bold text-white">
-                      {age} <span className="text-[0.55rem] font-mono font-black text-voro-primary uppercase tracking-widest">yrs</span>
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min="10"
-                    max="100"
-                    step="1"
-                    value={age}
-                    onChange={(e) => setAge(parseInt(e.target.value))}
-                    className="accent-voro-primary h-1.5 w-full bg-white/5 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-voro-primary hover:bg-white/10 transition-colors"
-                  />
-                  <div className="flex justify-between text-[0.45rem] font-mono font-black text-gray-700 uppercase tracking-widest select-none">
-                    <span>10 yrs</span>
-                    <span>100 yrs</span>
-                  </div>
-                </div>
-
-                {/* 4. Body Fat Slider */}
-                <div className="space-y-3">
-                  <div className="flex justify-between items-baseline">
-                    <label className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest cursor-pointer select-none">
-                      Body Fat Ratio
-                    </label>
-                    <span className="text-lg font-serif italic font-bold text-white">
-                      {bodyFat} <span className="text-[0.55rem] font-mono font-black text-voro-primary uppercase tracking-widest">%</span>
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min="5"
-                    max="50"
-                    step="0.5"
-                    value={bodyFat}
-                    onChange={(e) => setBodyFat(parseFloat(e.target.value))}
-                    className="accent-voro-primary h-1.5 w-full bg-white/5 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-voro-primary hover:bg-white/10 transition-colors"
-                  />
-                  <div className="flex justify-between text-[0.45rem] font-mono font-black text-gray-700 uppercase tracking-widest select-none">
-                    <span>5 %</span>
-                    <span>50 %</span>
-                  </div>
-                </div>
-
-                {/* 5. Gender Selection Buttons */}
-                <div className="space-y-3">
-                  <span className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest block select-none">
-                    Phenotypic Sex
-                  </span>
-                  <div className="grid grid-cols-2 gap-4">
-                    {['male', 'female'].map((g) => (
-                      <button
-                        key={g}
-                        onClick={() => setGender(g)}
-                        className={`
-                          py-3.5 rounded-2xl text-[0.65rem] font-black uppercase tracking-[0.3em] border transition-all duration-500
-                          active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14]
-                          ${gender === g
-                            ? "bg-voro-primary text-white border-voro-primary shadow-[0_10px_20px_rgba(124,58,237,0.2)]"
-                            : "bg-white/[0.01] text-gray-500 border-white/5 hover:border-white/20 hover:text-gray-300"
-                          }
-                        `}
-                      >
-                        {g}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 6. Activity Level Selector */}
-                <div className="space-y-3">
-                  <span className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest block select-none">
-                    Activity Coefficient
-                  </span>
-                  <div className="relative">
-                    <select
-                      value={activityLevel}
-                      onChange={(e) => setActivityLevel(e.target.value)}
-                      className="w-full bg-[#020408]/80 border border-white/5 rounded-2xl py-4.5 px-6 text-xs font-mono text-white tracking-widest uppercase focus:outline-none focus:border-voro-primary focus:ring-1 focus:ring-voro-primary transition-all cursor-pointer appearance-none"
-                    >
-                      <option value="sedentary">Sedentary (No Exercise)</option>
-                      <option value="lightly_active">Lightly Active</option>
-                      <option value="moderately_active">Moderately Active</option>
-                      <option value="very_active">Very Active</option>
-                      <option value="extremely_active">Extremely Active</option>
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-                      <ChevronRight size={14} className="rotate-90" />
-                    </div>
-                  </div>
-                </div>
+                {/* Isolated Activity coefficient Selector */}
+                <ActivityCoefficientSelector
+                  activityLevel={activityLevel}
+                  setActivityLevel={setActivityLevel}
+                />
               </div>
             </Card>
           </section>
