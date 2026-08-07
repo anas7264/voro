@@ -11,12 +11,16 @@ export const isValidEmail = (email) => {
 };
 
 // Password validation (min 8 chars, 1 uppercase, 1 lowercase, 1 number)
+// Enhanced to avoid restrictive character limits in accordance with OWASP guidelines.
+// This allows strong passwords with any special characters, spaces, or symbols while avoiding ReDoS.
 export const isValidPassword = (password) => {
   if (!password || typeof password !== 'string' || password.length > 128) {
     return false; // Security: Prevent client-side ReDoS and backend password hashing Denial of Service on extremely large strings
   }
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/;
-  return passwordRegex.test(password);
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumber = /\d/.test(password);
+  return password.length >= 8 && hasUppercase && hasLowercase && hasNumber;
 };
 
 // Get password strength feedback
@@ -278,12 +282,15 @@ const decodeHTMLEntities = (str) => {
 };
 
 // Helper to safely decode Base64 strings with auto-padding and printable-ASCII verification (XSS/DoS safe)
+// Supports standard (RFC 4648 Section 4) and URL-safe (RFC 4648 Section 5) Base64 variants.
 const safeAtob = (str) => {
   try {
-    if (!/^[A-Za-z0-9+/]+={0,2}$/.test(str) || str.length < 8) {
+    // Standardize URL-safe base64 characters (- and _) to standard base64 (+ and /)
+    const normalized = str.replace(/-/g, '+').replace(/_/g, '/');
+    if (!/^[A-Za-z0-9+/]+={0,2}$/.test(normalized) || normalized.length < 8) {
       return null;
     }
-    let padded = str;
+    let padded = normalized;
     while (padded.length % 4 !== 0) {
       padded += '=';
     }
@@ -355,7 +362,7 @@ export const isPromptInjection = (query, isNested = false) => {
       }
     }
 
-    const base64Matches = query.match(/[A-Za-z0-9+/]{8,}=*/g) || [];
+    const base64Matches = query.match(/[A-Za-z0-9+/_\-]{8,}=*/g) || [];
     for (const match of base64Matches) {
       const decoded = safeAtob(match);
       if (decoded && isPromptInjection(decoded, true)) {

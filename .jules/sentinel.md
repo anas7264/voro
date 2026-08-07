@@ -238,3 +238,13 @@ Effective input defense requires scanning queries for potential encoded block st
 
 **Prevention:**
 Always implement non-destructive Base64 and Hex parsing layers in query validators. Extract matching substrings, attempt decoding under strict ASCII-only constraints, and evaluate the decoded content against key-phrase blocklists prior to downstream model transmission.
+
+## 2026-06-19 - URL-Safe Base64 and OWASP Password Standard Enhancements
+**Vulnerability:**
+Prompt injection filters that decode Base64 are vulnerable to bypasses if they fail to detect and normalize URL-safe Base64 encoded strings (which replace standard + and / with - and _). Furthermore, overly restrictive password validators degrade password security and user experience by rejecting strong passwords with valid symbols or spaces.
+
+**Learning:**
+Supporting standard and URL-safe Base64 variants requires updating pattern-matching boundaries to include hyphens and underscores, then normalizing those characters prior to standard Base64 decoding. In addition, password complexity checks are most robust when they enforce character entropy (uppercase, lowercase, digits, and minimum length) rather than restricting specific characters.
+
+**Prevention:**
+Ensure all Base64 decoders normalize URL-safe symbols. Enforce password complexity policies using simple individual checks that do not restrict character sets, conforming to modern OWASP guidelines.

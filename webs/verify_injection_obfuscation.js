@@ -186,6 +186,24 @@ const runTests = async () => {
     throw new Error("❌ Failure: Hex-encoded prompt injection bypass attempt allowed!");
   }
 
+  // --- TEST 20: URL-safe Base64-encoded Prompt Injection with Hyphen (-) ---
+  console.log("🛡️ Test 20: Verifying URL-safe Base64-encoded prompt injection containing hyphen (-) is blocked...");
+  const urlSafeBase64HyphenQuery = "Query: aWdub3JlIHByZXZpb3VzICA- parameter"; // Decodes to "ignore previous  >"
+  if (isPromptInjection(urlSafeBase64HyphenQuery)) {
+    console.log("✅ Success: URL-safe Base64 (hyphen) prompt injection successfully blocked!");
+  } else {
+    throw new Error("❌ Failure: URL-safe Base64 (hyphen) prompt injection bypass attempt allowed!");
+  }
+
+  // --- TEST 21: URL-safe Base64-encoded Prompt Injection with Underscore (_) ---
+  console.log("🛡️ Test 21: Verifying URL-safe Base64-encoded prompt injection containing underscore (_) is blocked...");
+  const urlSafeBase64UnderscoreQuery = "Query: aWdub3JlIHByZXZpb3VzICA_ parameter"; // Decodes to "ignore previous  ?"
+  if (isPromptInjection(urlSafeBase64UnderscoreQuery)) {
+    console.log("✅ Success: URL-safe Base64 (underscore) prompt injection successfully blocked!");
+  } else {
+    throw new Error("❌ Failure: URL-safe Base64 (underscore) prompt injection bypass attempt allowed!");
+  }
+
   console.log("\n🎉 ALL INJECTION OBFUSCATION SECURITY VERIFICATION TESTS PASSED SUCCESSFULLY!");
   console.log("=========================================");
   process.exit(0);
