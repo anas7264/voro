@@ -127,6 +127,15 @@ const VitalsSlider = memo(({ id, label, value, min = 1, max = 10, onChange, colo
 
   const statusInfo = stateLabel(value);
 
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Memoize ticks array generation based on min and max bounds.
+   * Prevents allocating a new array on every render cycle during high-frequency slider dragging,
+   * while fully preserving the component's generic flexibility.
+   */
+  const ticks = useMemo(() => {
+    return Array.from({ length: max - min + 1 }, (_, i) => min + i);
+  }, [min, max]);
+
   return (
     <div className="group/slider space-y-4">
       <div className="flex justify-between items-end">
@@ -179,8 +188,7 @@ const VitalsSlider = memo(({ id, label, value, min = 1, max = 10, onChange, colo
 
       {/* Numerical ticks beneath slider */}
       <div className="flex justify-between px-1 text-[0.45rem] font-mono font-bold text-gray-700 tracking-tighter select-none">
-        {Array.from({ length: max - min + 1 }).map((_, i) => {
-          const val = min + i;
+        {ticks.map((val) => {
           const isActive = val === value;
           return (
             <span
@@ -224,10 +232,28 @@ const VitalsTracker = () => {
   }, []);
 
   /**
-   * ⚡ OPTIMIZATION: Memoized recent history transformation.
-   * Prevents redundant slice/reverse operations on every render.
+   * ⚡ PERFORMANCE OPTIMIZATION: Memoized recent history transformation with pre-formatted dates.
+   * Shifting the Date instantiation and fullDateFormatter.format out of the
+   * high-frequency rendering path (triggered on every slider drag) prevents
+   * redundant CPU cycles and garbage collection churn.
    */
-  const recentHistory = useMemo(() => history.slice(-6).reverse(), [history]);
+  const recentHistory = useMemo(() => {
+    return history
+      .slice(-6)
+      .reverse()
+      .map(entry => {
+        let formattedDate = '';
+        try {
+          formattedDate = fullDateFormatter.format(new Date(entry.date));
+        } catch (e) {
+          formattedDate = entry.date;
+        }
+        return {
+          ...entry,
+          _formattedDate: formattedDate
+        };
+      });
+  }, [history]);
 
   const handleSaveVitals = async () => {
     const { valid, errors } = validateVitals(vitals);
@@ -572,7 +598,7 @@ const VitalsTracker = () => {
 
                     <div className="space-y-6">
                       <div className="text-[0.55rem] font-mono font-black text-gray-600 uppercase tracking-[0.25em] border-b border-white/5 pb-4">
-                        {fullDateFormatter.format(new Date(entry.date))}
+                        {entry._formattedDate}
                       </div>
 
                       <div className="space-y-4">
