@@ -173,6 +173,7 @@ class StorageManager {
     this.memoizedData = null;
     this.memoizedDecoyData = null;
     this.initialized = false;
+    this.ledgerReady = false;
     this.initPromise = null;
     this.stateLedger = new Map(); // SHA-256 State Ledger for CDDSA
 
@@ -225,12 +226,17 @@ class StorageManager {
       const currentAnchor = voroCrypto.sessionAnchor;
 
       // 2. Retrieve expected hashes asynchronously from the secure IndexedDB enclave
+      let isLedgerEmpty = false;
       try {
         const storedHashes = await voroCrypto.getStoredHashes();
         this.stateLedger = new Map(Object.entries(storedHashes));
+        this.ledgerReady = true;
+        isLedgerEmpty = this.stateLedger.size === 0;
       } catch (e) {
         console.error("Security Sentinel [CDDSA]: Failed to load state ledger hashes:", e);
         this.stateLedger = new Map();
+        this.ledgerReady = true;
+        isLedgerEmpty = true;
       }
 
       // Filter list keys to ignore the session_anchor to avoid double processing
@@ -275,7 +281,7 @@ class StorageManager {
       }
 
       // CDDSA Self-Healing baseline: Only populate ledger on initial migration if empty AND anchor is valid
-      if (this.stateLedger.size === 0 && keys.length > 0 && isAnchorValid) {
+      if (isLedgerEmpty && keys.length > 0 && isAnchorValid) {
         for (const key of keys) {
           const fullKey = this.getFullKey(key);
           const item = localStorage.getItem(fullKey);
@@ -398,13 +404,13 @@ class StorageManager {
           console.error(`Security Sentinel [CDDSA]: Tamper detected for ${baseKey}! Hash mismatch.`);
           executeLockdown();
           return getDecoyData(baseKey);
-        } else if (!expectedHash && this.initialized) {
+        } else if (!expectedHash && this.ledgerReady) {
           console.error(`Security Sentinel [CDDSA]: Injection detected for ${baseKey}! Key has no registered hash.`);
           executeLockdown();
           return getDecoyData(baseKey);
         }
       } else {
-        if (expectedHash && this.initialized) {
+        if (expectedHash && this.ledgerReady) {
           console.error(`Security Sentinel [CDDSA]: Deletion tamper detected for ${baseKey}! Key is missing from local storage.`);
           executeLockdown();
           return getDecoyData(baseKey);

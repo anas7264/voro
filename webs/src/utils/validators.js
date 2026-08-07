@@ -238,6 +238,8 @@ const HARVESTING_RE = /repeat the system prompt|reveal your instructions|reveal 
 
 const ROLEPLAY_RE = /roleplay as|adopt the persona|pretend to be|you are now a terminal|you are now a linux|starting now you are|you are no longer an ai assistant|you are no longer a helpful/i;
 
+const COMPRESSED_BLOCKLIST_RE = /ignoreprevious|ignoreabove|ignoreallinstructions|ignoresystem|bypassinstructions|overridesystem|systemoverride|developermode|danmode|doanythingnow|forgetprevious|forgetallinstructions|forgetwhatwassaid|youmustnowignore|revealinstructions|revealyourinstructions|revealthesystemprompt|repeatthesystemprompt|outputthesysteminstructions|outputyourinstructions|showyoursystemprompt|showsystemprompt|whatisyoursystemprompt|whatisyourprompt|whatareyourinstructions|revealthenonce|outputyournonces/i;
+
 // Helper to decode URL percent encoding (handles double/recursive encoding up to 5 times)
 const decodePercentEncoding = (str) => {
   try {
@@ -315,9 +317,34 @@ const safeDecodeHex = (str) => {
   }
 };
 
+// Helper to safely decode ROT13 strings
+const safeDecodeRot13 = (str) => {
+  try {
+    if (typeof str !== 'string' || str.length < 8) return null;
+    return str.replace(/[a-zA-Z]/g, (c) => {
+      const code = c.charCodeAt(0);
+      const isUpper = code >= 65 && code <= 90;
+      const base = isUpper ? 65 : 97;
+      return String.fromCharCode(((code - base + 13) % 26) + base);
+    });
+  } catch (e) {
+    return null;
+  }
+};
+
+// Helper to safely reverse a string
+const safeReverseString = (str) => {
+  try {
+    if (typeof str !== 'string' || str.length < 8) return null;
+    return str.split('').reverse().join('');
+  } catch (e) {
+    return null;
+  }
+};
+
 // Prompt injection / jailbreak / delimiter hijacking detection
-export const isPromptInjection = (query, isNested = false) => {
-  if (!query || typeof query !== 'string') return false;
+export const isPromptInjection = (query, nestingLevel = 0) => {
+  if (!query || typeof query !== 'string' || nestingLevel > 2) return false;
 
   // Security: Decode URL percent-encoding and HTML entities first
   const decodedQuery = decodePercentEncoding(decodeHTMLEntities(query));
@@ -345,20 +372,34 @@ export const isPromptInjection = (query, isNested = false) => {
   if (HARVESTING_RE.test(normalizedQuery)) return true;
   if (ROLEPLAY_RE.test(normalizedQuery)) return true;
 
-  // Security: Scan and decode Base64-obfuscated and Hex-obfuscated prompt injection payloads (Defense-in-Depth)
-  if (!isNested) {
-    const hexMatches = query.match(/[0-9a-fA-F]{8,}/g) || [];
+  // Spacer/separator bypass check
+  const compressedQuery = normalizedQuery.replace(/[^a-z0-9]/g, '');
+  if (COMPRESSED_BLOCKLIST_RE.test(compressedQuery)) return true;
+
+  // Security: Scan and decode Base64, Hex, ROT13, and Reversed prompt injection payloads (Defense-in-Depth)
+  if (nestingLevel < 2) {
+    const rot13Decoded = safeDecodeRot13(decodedQuery);
+    if (rot13Decoded && isPromptInjection(rot13Decoded, nestingLevel + 1)) {
+      return true;
+    }
+
+    const reversedDecoded = safeReverseString(decodedQuery);
+    if (reversedDecoded && isPromptInjection(reversedDecoded, nestingLevel + 1)) {
+      return true;
+    }
+
+    const hexMatches = decodedQuery.match(/[0-9a-fA-F]{8,}/g) || [];
     for (const match of hexMatches) {
       const decoded = safeDecodeHex(match);
-      if (decoded && isPromptInjection(decoded, true)) {
+      if (decoded && isPromptInjection(decoded, nestingLevel + 1)) {
         return true;
       }
     }
 
-    const base64Matches = query.match(/[A-Za-z0-9+/]{8,}=*/g) || [];
+    const base64Matches = decodedQuery.match(/[A-Za-z0-9+/]{8,}=*/g) || [];
     for (const match of base64Matches) {
       const decoded = safeAtob(match);
-      if (decoded && isPromptInjection(decoded, true)) {
+      if (decoded && isPromptInjection(decoded, nestingLevel + 1)) {
         return true;
       }
     }
