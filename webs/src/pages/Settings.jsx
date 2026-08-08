@@ -6,7 +6,7 @@ import Select from '@/components/Select';
 import Toggle from '@/components/Toggle';
 import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useAppContext as useApp } from '@/hooks/useAppContext';
-import { executeSecurely } from '@/utils/security';
+import { executeSecurely, safeJSONParse } from '@/utils/security';
 import { useNotifications } from '@/hooks/useNotifications';
 
 const Settings = () => {
@@ -105,7 +105,7 @@ const Settings = () => {
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
-        const backup = JSON.parse(event.target.result);
+        const backup = safeJSONParse(event.target.result);
         const success = await importData(backup);
         if (success) {
           addNotification('Data matrix successfully restored', 'success');
