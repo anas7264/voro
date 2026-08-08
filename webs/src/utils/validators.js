@@ -57,43 +57,43 @@ export const isInteger = (value) => {
 // Weight validation (reasonable range in kg: 30-500kg)
 export const isValidWeight = (weight) => {
   const w = parseFloat(weight);
-  return !isNaN(w) && w >= 30 && w <= 500;
+  return Number.isFinite(w) && w >= 30 && w <= 500;
 };
 
 // Exercise weight validation (reasonable range in kg: 0-1000kg)
 export const isValidExerciseWeight = (weight) => {
   const w = parseFloat(weight);
-  return !isNaN(w) && w >= 0 && w <= 1000;
+  return Number.isFinite(w) && w >= 0 && w <= 1000;
 };
 
 // Height validation (reasonable range in cm: 100-250cm)
 export const isValidHeight = (height) => {
   const h = parseFloat(height);
-  return !isNaN(h) && h >= 100 && h <= 250;
+  return Number.isFinite(h) && h >= 100 && h <= 250;
 };
 
 // Age validation (reasonable range: 13-120)
 export const isValidAge = (age) => {
   const a = parseInt(age);
-  return !isNaN(a) && a >= 13 && a <= 120;
+  return Number.isFinite(a) && a >= 13 && a <= 120;
 };
 
 // Body fat percentage validation (0-100%)
 export const isValidBodyFat = (percentage) => {
   const bf = parseFloat(percentage);
-  return !isNaN(bf) && bf >= 0 && bf <= 100;
+  return Number.isFinite(bf) && bf >= 0 && bf <= 100;
 };
 
 // Calorie validation (daily intake: 500-10000)
 export const isValidCalories = (calories) => {
   const cal = parseFloat(calories);
-  return !isNaN(cal) && cal >= 500 && cal <= 10000;
+  return Number.isFinite(cal) && cal >= 500 && cal <= 10000;
 };
 
 // Macro validation (g: 0-500g)
 export const isValidMacro = (value) => {
   const v = parseFloat(value);
-  return !isNaN(v) && v >= 0 && v <= 500;
+  return Number.isFinite(v) && v >= 0 && v <= 500;
 };
 
 // Macro ratio validation (protein 10-50%, carbs 20-70%, fat 10-50%)
@@ -157,7 +157,7 @@ export const isValidURL = (url) => {
 // Heart rate validation (bpm: 30-220)
 export const isValidHeartRate = (bpm) => {
   const hr = parseInt(bpm);
-  return !isNaN(hr) && hr >= 30 && hr <= 220;
+  return Number.isFinite(hr) && hr >= 30 && hr <= 220;
 };
 
 // Blood pressure validation (systolic: 70-200, diastolic: 40-120)
@@ -166,7 +166,8 @@ export const isValidBloodPressure = (systolic, diastolic) => {
   const dia = parseInt(diastolic);
 
   return (
-    !isNaN(sys) && !isNaN(dia) &&
+    Number.isFinite(sys) &&
+    Number.isFinite(dia) &&
     sys >= 70 && sys <= 200 &&
     dia >= 40 && dia <= 120 &&
     sys > dia
@@ -176,31 +177,31 @@ export const isValidBloodPressure = (systolic, diastolic) => {
 // Temperature validation (Celsius: -50 to 50)
 export const isValidTemperature = (temp) => {
   const t = parseFloat(temp);
-  return !isNaN(t) && t >= -50 && t <= 50;
+  return Number.isFinite(t) && t >= -50 && t <= 50;
 };
 
 // Rep range validation (1-100 reps)
 export const isValidReps = (reps) => {
   const r = parseInt(reps);
-  return !isNaN(r) && r >= 1 && r <= 100;
+  return Number.isFinite(r) && r >= 1 && r <= 100;
 };
 
 // Set count validation (1-50 sets)
 export const isValidSets = (sets) => {
   const s = parseInt(sets);
-  return !isNaN(s) && s >= 1 && s <= 50;
+  return Number.isFinite(s) && s >= 1 && s <= 50;
 };
 
 // Duration validation (seconds, 1-3600)
 export const isValidDuration = (seconds) => {
   const dur = parseInt(seconds);
-  return !isNaN(dur) && dur >= 1 && dur <= 3600;
+  return Number.isFinite(dur) && dur >= 1 && dur <= 3600;
 };
 
 // Water intake validation (ml: 0-5000)
 export const isValidWaterAmount = (amount) => {
   const ml = parseInt(amount);
-  return !isNaN(ml) && ml >= 0 && ml <= 5000;
+  return Number.isFinite(ml) && ml >= 0 && ml <= 5000;
 };
 
 // Journal note length validation (max 2048 characters to mitigate client-side DoS/memory bloat)
