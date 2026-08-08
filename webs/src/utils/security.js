@@ -2688,11 +2688,64 @@ const startAutonomousPulse = () => {
 };
 
 /**
+ * Recursively neutralizes prototype pollution vectors (e.g. __proto__, constructor, prototype)
+ * from a parsed object structure, safely bound to a maximum depth of 6 to prevent stack overflow DoS.
+ */
+export const deepSanitizeObject = (data, depth = 0, seen = new WeakSet()) => {
+  if (depth > 6) return data;
+  if (!data || typeof data !== 'object') return data;
+  if (seen.has(data)) return data;
+  seen.add(data);
+
+  if (Array.isArray(data)) {
+    for (let i = 0; i < data.length; i++) {
+      data[i] = deepSanitizeObject(data[i], depth + 1, seen);
+    }
+    return data;
+  }
+
+  const cleaned = {};
+  const keys = Object.getOwnPropertyNames(data);
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i];
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+      continue; // Strip prototype pollution keys
+    }
+    cleaned[key] = deepSanitizeObject(data[key], depth + 1, seen);
+  }
+  return cleaned;
+};
+
+/**
+ * Safely parses a JSON string, ensuring the resulting object has no prototype pollution vectors.
+ * Recursively cleans __proto__, constructor, and prototype properties.
+ * Designed to be zero-trust and highly performant.
+ */
+export const safeJSONParse = (text, reviver = null) => {
+  if (typeof text !== 'string') return text;
+
+  const secureReviver = function(key, value) {
+    if (key === '__proto__') {
+      return undefined; // Strip legacy prototype pollution vector safely
+    }
+    if (reviver) {
+      return reviver.call(this, key, value);
+    }
+    return value;
+  };
+
+  const parsed = _JSON.parse(text, secureReviver);
+  return deepSanitizeObject(parsed);
+};
+
+/**
  * Sentinel Self-Protection
  * Freezes the public API and core utilities to prevent runtime tampering.
  */
 const sentinelExports = {
   sanitizeInput,
+  safeJSONParse,
+  deepSanitizeObject,
   sanitizeObject,
   maskBiometrics,
   redactData,
