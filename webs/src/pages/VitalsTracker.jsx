@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useId, memo } from 'react';
+import React, { useEffect, useState, useMemo, useId, memo, useCallback } from 'react';
 import { TrendingUp, Heart, Moon, Zap, Activity, Info, ShieldAlert, Clock, BarChart2 } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
@@ -60,6 +60,103 @@ const getEnergyStatus = (val) => {
   if (val <= 8) return { label: 'Hyper-Anabolic Resonance', color: 'text-voro-secondary' };
   return { label: 'Peak Kinetic Velocity', color: 'text-white' };
 };
+
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Memoized RecentHistoryTimeline.
+ * Isolates the rendering of historical sequence card entries to prevent
+ * expensive Virtual DOM reconciliation and formatting on high-frequency parent state changes.
+ */
+const RecentHistoryTimeline = memo(({ recentHistory }) => {
+  if (!recentHistory || !Array.isArray(recentHistory) || recentHistory.length === 0) return null;
+
+  return (
+    <section className="mt-24 space-y-12">
+      <div className="flex items-center justify-between border-b border-white/5 pb-6">
+        <div>
+          <span className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-[0.4em] block mb-1">Historical Sequence</span>
+          <h3 className="text-2xl font-serif italic font-bold text-white tracking-tight">Temporal Manifest</h3>
+        </div>
+        <div className="px-4 py-2 bg-white/5 rounded-xl border border-white/5 font-mono text-[0.45rem] text-gray-500 uppercase tracking-widest">
+          ARCHIVE // SECURED
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+        {recentHistory.map((entry, idx) => {
+          const bpmInfo = getHeartRateStatus(entry.heartRate);
+          const bpInfo = getBloodPressureStatus(entry.bloodPressure);
+          const moodInfo = getMoodStatus(entry.mood);
+          const energyInfo = getEnergyStatus(entry.energy);
+
+          return (
+            <Card
+              key={idx}
+              className="group p-8 bg-[#0A0C14]/60 border border-white/5 rounded-[2.5rem] hover:border-white/20 hover:-translate-y-2 hover:shadow-[0_40px_80px_rgba(0,0,0,0.8)] transition-all duration-700 overflow-hidden relative cursor-default bg-boutique-grain"
+            >
+              {/* Tiny visual pulse halo on the card corner */}
+              <div className="absolute top-8 right-8 w-1.5 h-1.5 rounded-full bg-voro-primary shadow-[0_0_8px_rgba(124,58,237,0.8)] animate-pulse" />
+
+              <div className="space-y-6">
+                <div className="text-[0.55rem] font-mono font-black text-gray-600 uppercase tracking-[0.25em] border-b border-white/5 pb-4">
+                  {entry._formattedDate}
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex justify-between items-baseline">
+                    <div className="space-y-0.5">
+                      <span className="text-[0.5rem] font-mono text-gray-500 uppercase tracking-widest block">Metabolic Pulse</span>
+                      <span className={`text-[0.45rem] font-mono font-bold uppercase tracking-wider ${bpmInfo.color}`}>
+                        {bpmInfo.label}
+                      </span>
+                    </div>
+                    <span className="text-xl font-serif italic text-white font-bold">
+                      {entry.heartRate} <span className="text-[0.55rem] not-italic font-sans text-gray-500">BPM</span>
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-baseline">
+                    <div className="space-y-0.5">
+                      <span className="text-[0.5rem] font-mono text-gray-500 uppercase tracking-widest block">Arterial Tension</span>
+                      <span className={`text-[0.45rem] font-mono font-bold uppercase tracking-wider ${bpInfo.color}`}>
+                        {bpInfo.label}
+                      </span>
+                    </div>
+                    <span className="text-xl font-serif italic text-white font-bold">
+                      {entry.bloodPressure} <span className="text-[0.55rem] not-italic font-sans text-gray-500">mmHg</span>
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-[0.5rem] font-mono text-gray-500 uppercase tracking-widest">Recovery cycle</span>
+                    <span className="text-xl font-serif italic text-white font-bold">
+                      {entry.sleep} <span className="text-[0.55rem] not-italic font-sans text-gray-500">HRS</span>
+                    </span>
+                  </div>
+
+                  <div className="pt-4 border-t border-white/[0.03] grid grid-cols-2 gap-4">
+                    <div className="space-y-0.5">
+                      <span className="text-[0.45rem] font-mono text-gray-500 uppercase tracking-widest block">Neural balance</span>
+                      <span className={`text-[0.45rem] font-mono font-bold uppercase tracking-wider truncate block ${moodInfo.color}`}>
+                        {moodInfo.label}
+                      </span>
+                    </div>
+                    <div className="space-y-0.5 text-right">
+                      <span className="text-[0.45rem] font-mono text-gray-500 uppercase tracking-widest block">Kinetic Energy</span>
+                      <span className={`text-[0.45rem] font-mono font-bold uppercase tracking-wider truncate block ${energyInfo.color}`}>
+                        {energyInfo.label}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+    </section>
+  );
+});
+RecentHistoryTimeline.displayName = "RecentHistoryTimeline";
 
 /**
  * ⚡ REFINEMENT: ECGMachine re-engineered as an elite, high-fidelity oscilloscope visualizer.
@@ -232,12 +329,38 @@ const VitalsTracker = () => {
   }, []);
 
   /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Stable state updater callbacks.
+   * Prevents re-creating callback functions on every parent component render,
+   * guaranteeing prop identity stability for memoized slider inputs.
+   */
+  const handleHeartRateChange = useCallback((e) => {
+    setVitals(prev => ({ ...prev, heartRate: Number(e.target.value) }));
+  }, []);
+
+  const handleBloodPressureChange = useCallback((e) => {
+    setVitals(prev => ({ ...prev, bloodPressure: e.target.value }));
+  }, []);
+
+  const handleSleepChange = useCallback((e) => {
+    setVitals(prev => ({ ...prev, sleep: Number(e.target.value) }));
+  }, []);
+
+  const handleMoodChange = useCallback((val) => {
+    setVitals(prev => ({ ...prev, mood: val }));
+  }, []);
+
+  const handleEnergyChange = useCallback((val) => {
+    setVitals(prev => ({ ...prev, energy: val }));
+  }, []);
+
+  /**
    * ⚡ PERFORMANCE OPTIMIZATION: Memoized recent history transformation with pre-formatted dates.
    * Shifting the Date instantiation and fullDateFormatter.format out of the
    * high-frequency rendering path (triggered on every slider drag) prevents
    * redundant CPU cycles and garbage collection churn.
    */
   const recentHistory = useMemo(() => {
+    if (!history || !Array.isArray(history)) return [];
     return history
       .slice(-6)
       .reverse()
@@ -275,7 +398,8 @@ const VitalsTracker = () => {
        * ⚡ OPTIMIZATION: Perform immutable update on the snapshot and persist.
        * Component will reactively update via useStorageKey.
        */
-      const updated = [...history, entry];
+      const historyArr = Array.isArray(history) ? history : [];
+      const updated = [...historyArr, entry];
       await setItem('vitals', updated);
       addNotification('Biometric data synchronized', 'success');
     } finally {
@@ -432,7 +556,7 @@ const VitalsTracker = () => {
                         label="Metabolic Pulse (bpm)"
                         type="number"
                         value={vitals.heartRate}
-                        onChange={(e) => setVitals({ ...vitals, heartRate: Number(e.target.value) })}
+                        onChange={handleHeartRateChange}
                         className="bg-white/[0.02] border-white/5 italic font-serif"
                         aria-describedby="heart-rate-desc"
                       />
@@ -448,7 +572,7 @@ const VitalsTracker = () => {
                       <Input
                         label="Pressure Gradient (mmHg)"
                         value={vitals.bloodPressure}
-                        onChange={(e) => setVitals({ ...vitals, bloodPressure: e.target.value })}
+                        onChange={handleBloodPressureChange}
                         placeholder="120/80"
                         className="bg-white/[0.02] border-white/5 italic font-serif"
                         aria-describedby="bp-desc"
@@ -466,7 +590,7 @@ const VitalsTracker = () => {
                         label="Recovery Duration (hours)"
                         type="number"
                         value={vitals.sleep}
-                        onChange={(e) => setVitals({ ...vitals, sleep: Number(e.target.value) })}
+                        onChange={handleSleepChange}
                         className="bg-white/[0.02] border-white/5 italic font-serif"
                         aria-describedby="sleep-desc"
                       />
@@ -482,7 +606,7 @@ const VitalsTracker = () => {
                       value={vitals.mood}
                       min={1}
                       max={10}
-                      onChange={(val) => setVitals({ ...vitals, mood: val })}
+                      onChange={handleMoodChange}
                       color="primary"
                       stateLabel={getMoodStatus}
                     />
@@ -493,7 +617,7 @@ const VitalsTracker = () => {
                       value={vitals.energy}
                       min={1}
                       max={10}
-                      onChange={(val) => setVitals({ ...vitals, energy: val })}
+                      onChange={handleEnergyChange}
                       color="secondary"
                       stateLabel={getEnergyStatus}
                     />
@@ -568,93 +692,7 @@ const VitalsTracker = () => {
           </div>
         </div>
 
-        {/* History Log Timeline: Redesigned as exquisite glassmorphic timeline panels */}
-        {recentHistory.length > 0 && (
-          <section className="mt-24 space-y-12">
-            <div className="flex items-center justify-between border-b border-white/5 pb-6">
-              <div>
-                <span className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-[0.4em] block mb-1">Historical Sequence</span>
-                <h3 className="text-2xl font-serif italic font-bold text-white tracking-tight">Temporal Manifest</h3>
-              </div>
-              <div className="px-4 py-2 bg-white/5 rounded-xl border border-white/5 font-mono text-[0.45rem] text-gray-500 uppercase tracking-widest">
-                ARCHIVE // SECURED
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-              {recentHistory.map((entry, idx) => {
-                const bpmInfo = getHeartRateStatus(entry.heartRate);
-                const bpInfo = getBloodPressureStatus(entry.bloodPressure);
-                const moodInfo = getMoodStatus(entry.mood);
-                const energyInfo = getEnergyStatus(entry.energy);
-
-                return (
-                  <Card
-                    key={idx}
-                    className="group p-8 bg-[#0A0C14]/60 border border-white/5 rounded-[2.5rem] hover:border-white/20 hover:-translate-y-2 hover:shadow-[0_40px_80px_rgba(0,0,0,0.8)] transition-all duration-700 overflow-hidden relative cursor-default bg-boutique-grain"
-                  >
-                    {/* Tiny visual pulse halo on the card corner */}
-                    <div className="absolute top-8 right-8 w-1.5 h-1.5 rounded-full bg-voro-primary shadow-[0_0_8px_rgba(124,58,237,0.8)] animate-pulse" />
-
-                    <div className="space-y-6">
-                      <div className="text-[0.55rem] font-mono font-black text-gray-600 uppercase tracking-[0.25em] border-b border-white/5 pb-4">
-                        {entry._formattedDate}
-                      </div>
-
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-baseline">
-                          <div className="space-y-0.5">
-                            <span className="text-[0.5rem] font-mono text-gray-500 uppercase tracking-widest block">Metabolic Pulse</span>
-                            <span className={`text-[0.45rem] font-mono font-bold uppercase tracking-wider ${bpmInfo.color}`}>
-                              {bpmInfo.label}
-                            </span>
-                          </div>
-                          <span className="text-xl font-serif italic text-white font-bold">
-                            {entry.heartRate} <span className="text-[0.55rem] not-italic font-sans text-gray-500">BPM</span>
-                          </span>
-                        </div>
-
-                        <div className="flex justify-between items-baseline">
-                          <div className="space-y-0.5">
-                            <span className="text-[0.5rem] font-mono text-gray-500 uppercase tracking-widest block">Arterial Tension</span>
-                            <span className={`text-[0.45rem] font-mono font-bold uppercase tracking-wider ${bpInfo.color}`}>
-                              {bpInfo.label}
-                            </span>
-                          </div>
-                          <span className="text-xl font-serif italic text-white font-bold">
-                            {entry.bloodPressure} <span className="text-[0.55rem] not-italic font-sans text-gray-500">mmHg</span>
-                          </span>
-                        </div>
-
-                        <div className="flex justify-between items-baseline">
-                          <span className="text-[0.5rem] font-mono text-gray-500 uppercase tracking-widest">Recovery cycle</span>
-                          <span className="text-xl font-serif italic text-white font-bold">
-                            {entry.sleep} <span className="text-[0.55rem] not-italic font-sans text-gray-500">HRS</span>
-                          </span>
-                        </div>
-
-                        <div className="pt-4 border-t border-white/[0.03] grid grid-cols-2 gap-4">
-                          <div className="space-y-0.5">
-                            <span className="text-[0.45rem] font-mono text-gray-500 uppercase tracking-widest block">Neural balance</span>
-                            <span className={`text-[0.45rem] font-mono font-bold uppercase tracking-wider truncate block ${moodInfo.color}`}>
-                              {moodInfo.label}
-                            </span>
-                          </div>
-                          <div className="space-y-0.5 text-right">
-                            <span className="text-[0.45rem] font-mono text-gray-500 uppercase tracking-widest block">Kinetic Energy</span>
-                            <span className={`text-[0.45rem] font-mono font-bold uppercase tracking-wider truncate block ${energyInfo.color}`}>
-                              {energyInfo.label}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          </section>
-        )}
+        <RecentHistoryTimeline recentHistory={recentHistory} />
       </div>
     </div>
   );
