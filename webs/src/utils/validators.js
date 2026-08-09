@@ -10,13 +10,13 @@ export const isValidEmail = (email) => {
   return emailRegex.test(email);
 };
 
-// Password validation (min 8 chars, 1 uppercase, 1 lowercase, 1 number)
+// Password validation (min 8 chars, 1 uppercase, 1 lowercase, 1 number) - OWASP aligned (no character restriction)
 export const isValidPassword = (password) => {
-  if (!password || typeof password !== 'string' || password.length > 128) {
+  if (!password || typeof password !== 'string' || password.length < 8 || password.length > 128) {
     return false; // Security: Prevent client-side ReDoS and backend password hashing Denial of Service on extremely large strings
   }
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/;
-  return passwordRegex.test(password);
+  // Verify standard complexity (at least one uppercase, lowercase, and digit) without restricting character set to prevent bypass or artificial restrictions
+  return /[a-z]/.test(password) && /[A-Z]/.test(password) && /\d/.test(password);
 };
 
 // Get password strength feedback
@@ -279,12 +279,15 @@ const decodeHTMLEntities = (str) => {
 };
 
 // Helper to safely decode Base64 strings with auto-padding and printable-ASCII verification (XSS/DoS safe)
+// Supports both standard and URL-safe Base64 encodings (handles '-' and '_')
 const safeAtob = (str) => {
   try {
-    if (!/^[A-Za-z0-9+/]+={0,2}$/.test(str) || str.length < 8) {
+    if (!/^[A-Za-z0-9+/_-]+={0,2}$/.test(str) || str.length < 8) {
       return null;
     }
-    let padded = str;
+    // Normalize URL-safe Base64 to standard Base64
+    let normalized = str.replace(/-/g, '+').replace(/_/g, '/');
+    let padded = normalized;
     while (padded.length % 4 !== 0) {
       padded += '=';
     }
@@ -385,7 +388,7 @@ export const isPromptInjection = (query, isNested = false) => {
       }
     }
 
-    const base64Matches = query.match(/[A-Za-z0-9+/]{8,}=*/g) || [];
+    const base64Matches = query.match(/[A-Za-z0-9+/_-]{8,}=*/g) || [];
     for (const match of base64Matches) {
       const decoded = safeAtob(match);
       if (decoded && isPromptInjection(decoded, true)) {
