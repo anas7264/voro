@@ -10,6 +10,7 @@ import AppLayout from "./components/AppLayout";
 import OnboardingGuard from "./components/OnboardingGuard";
 import SecurityLockdown from "./components/SecurityLockdown";
 import ScreenPrivacyGuard from "./components/ScreenPrivacyGuard";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 // Lazy-loaded pages
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -76,11 +77,12 @@ export const App = () => {
         <ThemeProvider>
           <NotificationProvider>
             <Router>
-              <SecurityLockdown />
-              <ScreenPrivacyGuard />
-              <NotificationContainer />
-              <Suspense fallback={<LoadingFallback />}>
-                <Routes>
+              <ErrorBoundary>
+                <SecurityLockdown />
+                <ScreenPrivacyGuard />
+                <NotificationContainer />
+                <Suspense fallback={<LoadingFallback />}>
+                  <Routes>
                   {/* Root redirect */}
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
@@ -160,8 +162,9 @@ export const App = () => {
                   {/* 404 */}
                   <Route path="/404" element={<NotFound />} />
                   <Route path="*"    element={<Navigate to="/404" replace />} />
-                </Routes>
-              </Suspense>
+                  </Routes>
+                </Suspense>
+              </ErrorBoundary>
             </Router>
           </NotificationProvider>
         </ThemeProvider>
