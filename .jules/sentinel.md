@@ -238,3 +238,13 @@ Effective input defense requires scanning queries for potential encoded block st
 
 **Prevention:**
 Always implement non-destructive Base64 and Hex parsing layers in query validators. Extract matching substrings, attempt decoding under strict ASCII-only constraints, and evaluate the decoded content against key-phrase blocklists prior to downstream model transmission.
+
+## 2026-06-19 - OWASP Password Standard Alignments & Backup Hardening
+**Vulnerability:**
+ आर्टिफिसियल (artificial) password requirements that restrict choices to specific character subsets violate OWASP guidelines, prevent users from using highly secure passwords, and often rely on complex, vulnerable lookahead regular expressions that introduce high-severity ReDoS (Regular Expression Denial of Service) risks. Additionally, leaving export and backup utilities unprotected by strong password requirements exposes local backups to weak-encryption brute-force attacks.
+
+**Learning:**
+Hardening input validation requires balancing password security with usability. Replacing overly restrictive regex character classes with simple, non-backtracking presence validations (e.g. separate checks for uppercase, lowercase, and numeric presence) completely eliminates ReDoS paths. Concurrently, importing and enforcing these validation bounds on user export utilities ensures that data archives are protected with standard-conforming passwords before they are generated.
+
+**Prevention:**
+Always avoid complex, single-pattern lookahead regexes for multi-criteria password validations. Check criteria (uppercase, lowercase, digits, and length) via simple, separate non-backtracking checks, and make sure that any custom password-driven data operations enforce these validation helpers at their entry point.

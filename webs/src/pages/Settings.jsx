@@ -8,6 +8,7 @@ import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useAppContext as useApp } from '@/hooks/useAppContext';
 import { executeSecurely, safeJSONParse } from '@/utils/security';
 import { useNotifications } from '@/hooks/useNotifications';
+import { isValidPassword } from '@/utils/validators';
 
 const Settings = () => {
   /**
@@ -60,6 +61,10 @@ const Settings = () => {
       if (password === null) return; // User cancelled
       if (!password.trim()) {
         addNotification('Password cannot be empty. Export aborted.', 'error');
+        return;
+      }
+      if (!isValidPassword(password)) {
+        addNotification('Password must be 8-128 characters and contain at least one uppercase letter, one lowercase letter, and one number.', 'error');
         return;
       }
     }

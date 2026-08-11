@@ -12,11 +12,14 @@ export const isValidEmail = (email) => {
 
 // Password validation (min 8 chars, 1 uppercase, 1 lowercase, 1 number)
 export const isValidPassword = (password) => {
-  if (!password || typeof password !== 'string' || password.length > 128) {
+  if (!password || typeof password !== 'string' || password.length < 8 || password.length > 128) {
     return false; // Security: Prevent client-side ReDoS and backend password hashing Denial of Service on extremely large strings
   }
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/;
-  return passwordRegex.test(password);
+  // Security: Align with OWASP by eliminating artificial character restrictions and ReDoS paths
+  const hasLower = /[a-z]/.test(password);
+  const hasUpper = /[A-Z]/.test(password);
+  const hasDigit = /\d/.test(password);
+  return hasLower && hasUpper && hasDigit;
 };
 
 // Get password strength feedback
