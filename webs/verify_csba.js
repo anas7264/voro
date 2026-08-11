@@ -210,6 +210,7 @@ const runTests = async () => {
   // Reset compromised flag
   resetMockWindow();
 
+  global.window.__VORO_TEST_BYPASS__ = false;
   const storageInstance3 = new StorageManager();
   await storageInstance3.ensureInitialized();
 
@@ -246,6 +247,7 @@ const runTests = async () => {
   voroCrypto.shredKeys();
   resetMockWindow();
 
+  global.window.__VORO_TEST_BYPASS__ = false;
   const storageInstance4 = new StorageManager();
   await storageInstance4.ensureInitialized();
 
