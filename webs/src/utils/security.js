@@ -2354,11 +2354,21 @@ const checkStructuralIntegrity = () => {
     const generateBackbone = () => {
       const serialize = (el) => {
         if (!el) return '';
+        const tagName = el.tagName.toLowerCase();
+        let allowedAttrs = ['id'];
+        if (tagName === 'meta') {
+          allowedAttrs = ['id', 'http-equiv', 'content', 'name'];
+        } else if (tagName === 'link') {
+          allowedAttrs = ['id', 'rel', 'href', 'integrity', 'crossorigin'];
+        } else if (tagName === 'script') {
+          allowedAttrs = ['id', 'src', 'async', 'defer', 'type', 'integrity', 'crossorigin'];
+        }
+
         // Capture tag and ID for strict architectural nodes.
         // We exclude 'class' and 'role' as they can be dynamic in complex SPAs.
         const attrStr = _call.call(_ArrayFrom, Array, el.attributes)
-          .filter(a => ['id'].includes(a.name.toLowerCase()))
-          .map(a => `${a.name}=${a.value}`)
+          .filter(a => allowedAttrs.includes(a.name.toLowerCase()))
+          .map(a => `${a.name.toLowerCase()}=${a.value}`)
           .sort()
           .join('|');
         return `${el.tagName}[${attrStr}]`;
@@ -2800,7 +2810,16 @@ const deepFreeze = (obj) => {
 
 if (typeof window !== 'undefined') {
   deepFreeze(sentinelExports);
-  window.voro_sentinel = sentinelExports;
+  try {
+    _defineProperty(window, 'voro_sentinel', {
+      value: sentinelExports,
+      writable: false,
+      configurable: false,
+      enumerable: true
+    });
+  } catch (e) {
+    window.voro_sentinel = sentinelExports;
+  }
 }
 
 /**
