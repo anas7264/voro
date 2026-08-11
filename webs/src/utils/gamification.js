@@ -4,47 +4,51 @@
 import { achievements } from "../data/achievements.js";
 import { challenges } from "../data/challenges.js";
 
+// ⚡ PERFORMANCE OPTIMIZATION: Hoisted and frozen static XP values.
+// Completely avoids allocating a 20+ key object on every single calculateXP call.
+const STATIC_XP_VALUES = Object.freeze({
+  // Workout XP
+  complete_workout: 50,
+  pr_lift: 100,
+  new_personal_record: 150,
+  complete_cardio_session: 40,
+  strength_training: 60,
+  flexibility_training: 30,
+
+  // Nutrition XP
+  log_meal: 20,
+  log_complete_nutrition: 50,
+  hit_protein_target: 40,
+  hit_calorie_target: 40,
+  track_water_intake: 20,
+  meal_prep: 75,
+
+  // Consistency XP
+  daily_streak: 25,
+  weekly_streak: 75,
+  monthly_streak: 150,
+
+  // Body metrics XP
+  body_measurement: 20,
+  weight_update: 15,
+  progress_photo: 30,
+  body_fat_measurement: 25,
+
+  // Challenges/Achievements
+  challenge_complete: 50,
+
+  // Social/Engagement
+  share_workout: 25,
+  share_achievement: 30,
+  referral_friend: 200
+});
+
 // Calculate XP earned from action
 export const calculateXP = (action, metadata = {}) => {
-  const xpValues = {
-    // Workout XP
-    complete_workout: 50,
-    pr_lift: 100,
-    new_personal_record: 150,
-    complete_cardio_session: 40,
-    strength_training: 60,
-    flexibility_training: 30,
-
-    // Nutrition XP
-    log_meal: 20,
-    log_complete_nutrition: 50,
-    hit_protein_target: 40,
-    hit_calorie_target: 40,
-    track_water_intake: 20,
-    meal_prep: 75,
-
-    // Consistency XP
-    daily_streak: 25,
-    weekly_streak: 75,
-    monthly_streak: 150,
-
-    // Body metrics XP
-    body_measurement: 20,
-    weight_update: 15,
-    progress_photo: 30,
-    body_fat_measurement: 25,
-
-    // Challenges/Achievements
-    challenge_complete: 50,
-    achievement_unlock: (metadata.xpReward || 50),
-
-    // Social/Engagement
-    share_workout: 25,
-    share_achievement: 30,
-    referral_friend: 200
-  };
-
-  return xpValues[action] || 0;
+  if (action === "achievement_unlock") {
+    return metadata.xpReward || 50;
+  }
+  return STATIC_XP_VALUES[action] || 0;
 };
 
 // Get level from total XP
@@ -65,30 +69,30 @@ export const getLevelFromXP = (totalXP) => {
   };
 };
 
+// ⚡ PERFORMANCE OPTIMIZATION: Avoids allocating a brand new check function map on every execution of checkAchievementTrigger.
+const TRIGGER_CHECKS = {
+  first_workout: (userData) => userData.totalWorkouts === 1,
+  workout_streak_7: (userData) => userData.currentStreak === 7,
+  workout_streak_30: (userData) => userData.currentStreak === 30,
+  workout_streak_365: (userData) => userData.currentStreak === 365,
+  nutrition_14days: (userData) => userData.nutritionLogDays >= 14,
+  nutrition_30days: (userData) => userData.nutritionLogDays >= 30,
+  hydration_2l: (userData) => userData.dailyWaterLiters >= 2,
+  weight_loss_5kg: (userData) => (userData.startingWeight - userData.currentWeight) >= 5,
+  weight_loss_10kg: (userData) => (userData.startingWeight - userData.currentWeight) >= 10,
+  weight_loss_20kg: (userData) => (userData.startingWeight - userData.currentWeight) >= 20,
+  muscle_gain_5kg: (userData) => (userData.currentWeight - userData.startingWeight) >= 5 && userData.bodyFatDecreased,
+  pr_hit: (userData) => userData.hitNewPR === true,
+  social_share: (userData) => userData.hasSharedWorkout === true,
+  referral_friend: (userData) => userData.referredFriends >= 1,
+  day_100: (userData) => userData.currentStreak >= 100,
+  day_365: (userData) => userData.currentStreak >= 365,
+  all_achievements: (userData) => userData.unlockedAchievements >= (achievements.length - 1)
+};
+
 // Check if achievement should be unlocked
 export const checkAchievementTrigger = (trigger, userData) => {
-  // Returns true if achievement should be unlocked
-  const triggerChecks = {
-    first_workout: () => userData.totalWorkouts === 1,
-    workout_streak_7: () => userData.currentStreak === 7,
-    workout_streak_30: () => userData.currentStreak === 30,
-    workout_streak_365: () => userData.currentStreak === 365,
-    nutrition_14days: () => userData.nutritionLogDays >= 14,
-    nutrition_30days: () => userData.nutritionLogDays >= 30,
-    hydration_2l: () => userData.dailyWaterLiters >= 2,
-    weight_loss_5kg: () => (userData.startingWeight - userData.currentWeight) >= 5,
-    weight_loss_10kg: () => (userData.startingWeight - userData.currentWeight) >= 10,
-    weight_loss_20kg: () => (userData.startingWeight - userData.currentWeight) >= 20,
-    muscle_gain_5kg: () => (userData.currentWeight - userData.startingWeight) >= 5 && userData.bodyFatDecreased,
-    pr_hit: () => userData.hitNewPR === true,
-    social_share: () => userData.hasSharedWorkout === true,
-    referral_friend: () => userData.referredFriends >= 1,
-    day_100: () => userData.currentStreak >= 100,
-    day_365: () => userData.currentStreak >= 365,
-    all_achievements: () => userData.unlockedAchievements >= (achievements.length - 1)
-  };
-
-  return triggerChecks[trigger] ? triggerChecks[trigger]() : false;
+  return TRIGGER_CHECKS[trigger] ? TRIGGER_CHECKS[trigger](userData) : false;
 };
 
 // Calculate streak
@@ -213,6 +217,13 @@ export const getRankTier = (level) => {
   return { tier, icon, color, level };
 };
 
+// ⚡ PERFORMANCE OPTIMIZATION: Hoisted and compiled static regular expressions.
+// Avoids compiling multiple RegExp instances on every single function call.
+const WORKOUTS_RE = /(\d+)\+?\s*workouts/i;
+const DAYS_RE = /(\d+)\s*days/i;
+const LITERS_RE = /(\d+)\+?\s*liters/i;
+const STEPS_RE = /(\d+)\+?\s*steps/i;
+
 // Check challenge completion
 export const checkChallengeCompletion = (challenge, userProgress) => {
   // Returns object with isComplete and progress
@@ -222,8 +233,7 @@ export const checkChallengeCompletion = (challenge, userProgress) => {
 
   // Parse criteria and check completion
   if (criteria.includes("workouts")) {
-    const regex = /(\d+)\+?\s*workouts/i;
-    const match = criteria.match(regex);
+    const match = criteria.match(WORKOUTS_RE);
     if (match) {
       const required = parseInt(match[1]);
       progress = (userProgress.workoutsThisPeriod / required) * 100;
@@ -232,8 +242,7 @@ export const checkChallengeCompletion = (challenge, userProgress) => {
   }
 
   if (criteria.includes("nutrition")) {
-    const regex = /(\d+)\s*days/i;
-    const match = criteria.match(regex);
+    const match = criteria.match(DAYS_RE);
     if (match) {
       const required = parseInt(match[1]);
       progress = (userProgress.nutritionDays / required) * 100;
@@ -242,8 +251,7 @@ export const checkChallengeCompletion = (challenge, userProgress) => {
   }
 
   if (criteria.includes("water")) {
-    const regex = /(\d+)\+?\s*liters/i;
-    const match = criteria.match(regex);
+    const match = criteria.match(LITERS_RE);
     if (match) {
       const required = parseInt(match[1]);
       progress = (userProgress.waterLiters / required) * 100;
@@ -252,8 +260,7 @@ export const checkChallengeCompletion = (challenge, userProgress) => {
   }
 
   if (criteria.includes("steps")) {
-    const regex = /(\d+)\+?\s*steps/i;
-    const match = criteria.match(regex);
+    const match = criteria.match(STEPS_RE);
     if (match) {
       const required = parseInt(match[1]);
       progress = (userProgress.steps / required) * 100;
@@ -373,16 +380,22 @@ export const getGamificationStats = (userData) => {
   };
 };
 
+// ⚡ PERFORMANCE OPTIMIZATION: Hoist digit matcher RegExp for predicting next achievement
+const DIGIT_RE = /\d+/;
+
 // Predict next achievement
 export const predictNextAchievement = (userData) => {
   // Returns most likely next achievement to unlock
   let nextAchievements = [];
 
+  // Convert array to Set for O(1) lookups
+  const unlockedSet = new Set(userData.unlockedAchievements || []);
+
   achievements.forEach(ach => {
-    if (!userData.unlockedAchievements.includes(ach.id)) {
+    if (!unlockedSet.has(ach.id)) {
       // Rough prediction based on trigger proximity
       if (ach.trigger?.includes("streak")) {
-        const daysFromStreak = parseInt(ach.trigger.match(/\d+/)?.[0]) - userData.currentStreak;
+        const daysFromStreak = parseInt(ach.trigger.match(DIGIT_RE)?.[0]) - userData.currentStreak;
         if (daysFromStreak > 0 && daysFromStreak < 30) {
           nextAchievements.push({ ...ach, daysUntil: daysFromStreak });
         }
