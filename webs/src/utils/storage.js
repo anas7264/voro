@@ -234,7 +234,10 @@ class StorageManager {
       }
 
       // Filter list keys to ignore the session_anchor to avoid double processing
-      const keys = this.list().filter(k => k !== 'session_anchor');
+      // and only include valid application data keys defined in STORAGE_KEYS to prevent
+      // false-positive tampering lockdowns caused by test-specific metadata keys like voro_test_mode
+      const validAppKeys = new Set(Object.values(STORAGE_KEYS));
+      const keys = this.list().filter(k => k !== 'session_anchor' && validAppKeys.has(k));
 
       // 3. Cryptographic Session-Binding Anchor (CSBA) Check
       const hasLocalStorageKeys = keys.length > 0;
