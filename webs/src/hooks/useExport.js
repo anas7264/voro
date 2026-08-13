@@ -17,11 +17,11 @@ export const useExport = () => {
       setExportProgress(0);
 
       setExportProgress(30);
-      const doc = pdfExport.exportWeeklyReport(userData, workouts, nutrition);
+      const doc = await pdfExport.exportWeeklyReport(userData, workouts, nutrition);
 
       setExportProgress(80);
       const filename = `VORO-Weekly-Report-${new Date().toISOString().split("T")[0]}.pdf`;
-      pdfExport.downloadPDF(doc, filename);
+      await pdfExport.downloadPDF(doc, filename);
 
       setExportProgress(100);
       setExporting(false);
@@ -44,11 +44,11 @@ export const useExport = () => {
       setExportProgress(0);
 
       setExportProgress(30);
-      const doc = pdfExport.exportMonthlyReport(userData, allWorkouts, allNutrition, metrics);
+      const doc = await pdfExport.exportMonthlyReport(userData, allWorkouts, allNutrition, metrics);
 
       setExportProgress(80);
       const filename = `VORO-Monthly-Report-${new Date().getFullYear()}-${(new Date().getMonth() + 1).toString().padStart(2, "0")}.pdf`;
-      pdfExport.downloadPDF(doc, filename);
+      await pdfExport.downloadPDF(doc, filename);
 
       setExportProgress(100);
       setExporting(false);
@@ -71,11 +71,11 @@ export const useExport = () => {
       setExportProgress(0);
 
       setExportProgress(30);
-      const doc = pdfExport.exportMealPlan(mealPlan, userData);
+      const doc = await pdfExport.exportMealPlan(mealPlan, userData);
 
       setExportProgress(80);
       const filename = `VORO-Meal-Plan-${new Date().toISOString().split("T")[0]}.pdf`;
-      pdfExport.downloadPDF(doc, filename);
+      await pdfExport.downloadPDF(doc, filename);
 
       setExportProgress(100);
       setExporting(false);
@@ -98,11 +98,11 @@ export const useExport = () => {
       setExportProgress(0);
 
       setExportProgress(30);
-      const doc = pdfExport.exportTrainingPlan(trainingPlan, userData);
+      const doc = await pdfExport.exportTrainingPlan(trainingPlan, userData);
 
       setExportProgress(80);
       const filename = `VORO-Training-Plan-${new Date().toISOString().split("T")[0]}.pdf`;
-      pdfExport.downloadPDF(doc, filename);
+      await pdfExport.downloadPDF(doc, filename);
 
       setExportProgress(100);
       setExporting(false);
