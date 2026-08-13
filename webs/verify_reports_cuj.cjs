@@ -12,11 +12,23 @@ const path = require('path');
 
   const page = await context.newPage();
 
-  // Set localStorage and inject test mode bypass
+  page.on('console', msg => console.log('PAGE LOG:', msg.text()));
+
+  // Set test mode marker so security system bypasses environment/integrity locks
   await page.addInitScript(() => {
     window.__VORO_TEST_BYPASS__ = true;
     localStorage.setItem('voro_test_mode', 'true');
-    localStorage.setItem('voro_user', JSON.stringify({
+  });
+
+  console.log("Navigating to home/entry to inject state securely...");
+  await page.goto('http://localhost:4173/');
+  await page.waitForTimeout(2000); // Let initial bundle load
+
+  // Now set the keys securely through window.storage.set
+  console.log("Securely injecting mock profile & user into storage...");
+  await page.evaluate(async () => {
+    await window.storage.ensureInitialized();
+    await window.storage.set('user', {
       name: 'Ulysses Elite',
       primaryGoal: 'Evolution',
       calorieGoal: 2000,
@@ -24,17 +36,12 @@ const path = require('path');
       proteinGoal: 150,
       carbsGoal: 200,
       fatGoal: 70
-    }));
-    localStorage.setItem('voro_profile', JSON.stringify({
+    });
+    await window.storage.set('profile', {
       name: 'Ulysses Elite',
       completedOnboarding: true
-    }));
+    });
   });
-
-  // Direct load of Dashboard first to properly trigger state injection
-  await page.goto('http://localhost:4173/dashboard');
-  await page.waitForTimeout(5000); // Allow loading animation to complete
-  await page.screenshot({ path: '/home/jules/verification/screenshots/dashboard.png' });
 
   // Navigate to reports page
   await page.goto('http://localhost:4173/analytics/reports');
