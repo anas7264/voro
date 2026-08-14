@@ -109,30 +109,30 @@ const Reports = () => {
     }
   }, [getItem, addNotification]);
 
-  const triggerDownload = (reportId) => {
+  const triggerDownload = async (reportId) => {
     if (!user) return;
     try {
       let doc;
       let filename;
 
       if (reportId === 1) {
-        doc = exportWeeklyReport(user, rawWorkouts, rawNutrition);
+        doc = await exportWeeklyReport(user, rawWorkouts, rawNutrition);
         filename = `voro_weekly_report_${new Date().toISOString().split('T')[0]}.pdf`;
       } else if (reportId === 2) {
         // Re-use monthly as weekly training breakdown
-        doc = exportMonthlyReport(user, rawWorkouts, rawNutrition, rawMetrics);
+        doc = await exportMonthlyReport(user, rawWorkouts, rawNutrition, rawMetrics);
         filename = `voro_training_report_${new Date().toISOString().split('T')[0]}.pdf`;
       } else if (reportId === 3) {
-        doc = exportMonthlyReport(user, rawWorkouts, rawNutrition, rawMetrics);
+        doc = await exportMonthlyReport(user, rawWorkouts, rawNutrition, rawMetrics);
         filename = `voro_monthly_report_${new Date().toISOString().split('T')[0]}.pdf`;
       } else if (reportId === 4) {
         // Fallback for body composition analysis
-        doc = exportMonthlyReport(user, rawWorkouts, rawNutrition, rawMetrics);
+        doc = await exportMonthlyReport(user, rawWorkouts, rawNutrition, rawMetrics);
         filename = `voro_body_composition_${new Date().toISOString().split('T')[0]}.pdf`;
       }
 
       if (doc) {
-        savePDF(doc, filename);
+        await savePDF(doc, filename);
         addNotification("Forensic Dossier successfully downloaded.", "success");
       }
     } catch (e) {
