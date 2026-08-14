@@ -3,6 +3,36 @@
 
 import { calculateOneRepMax, calculateTrainingVolume, suggestProgressiveOverload } from "./calculators.js";
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted and Frozen Configuration Objects.
+ * These are frozen with Object.freeze() at the module scope to completely
+ * prevent heap-allocation and Garbage Collection (GC) churn in hot paths.
+ */
+const REST_RECOMMENDATIONS = Object.freeze({
+  strength: Object.freeze({ min: 180, max: 300, description: "3-5 minutes for CNS recovery" }),
+  hypertrophy: Object.freeze({ min: 60, max: 90, description: "1-1.5 minutes for metabolic stress" }),
+  endurance: Object.freeze({ min: 30, max: 60, description: "30-60 seconds to maintain heart rate" }),
+  power: Object.freeze({ min: 180, max: 300, description: "3-5 minutes for complete nervous system recovery" })
+});
+
+const RED_FLAGS = Object.freeze([
+  "loose form",
+  "rounded back",
+  "knee cave",
+  "bounce rep",
+  "short range",
+  "unstable",
+  "compensating",
+  "momentum"
+]);
+
+const EXERCISE_VARIATIONS = Object.freeze({
+  "Bench Press": Object.freeze(["Incline Bench", "Dumbbell Press", "Machine Press", "Board Press", "Close Grip Bench"]),
+  "Squat": Object.freeze(["Front Squat", "Hack Squat", "Leg Press", "Split Squat", "Goblet Squat"]),
+  "Deadlift": Object.freeze(["Sumo Deadlift", "Trap Bar Deadlift", "Deficit Deadlift", "Block Pulls", "Rack Pulls"]),
+  "Pull-ups": Object.freeze(["Assisted Pull-ups", "Lat Pulldown", "Machine Lat Pull", "Resistance Band Pull-ups", "Chin-ups"])
+});
+
 // Analyze training volume across time period
 export const analyzeTrainingVolume = (workouts) => {
   // workouts: array of { date, exercise, sets, reps, weight }
@@ -149,14 +179,7 @@ export const calculateTrainingStress = (sets, reps, weight, oneRepMax, trainingA
 
 // Rest period recommendations
 export const getRestPeriodRecommendation = (exercise, goal = "hypertrophy", previousRestTime = null) => {
-  const restRecommendations = {
-    strength: { min: 180, max: 300, description: "3-5 minutes for CNS recovery" },
-    hypertrophy: { min: 60, max: 90, description: "1-1.5 minutes for metabolic stress" },
-    endurance: { min: 30, max: 60, description: "30-60 seconds to maintain heart rate" },
-    power: { min: 180, max: 300, description: "3-5 minutes for complete nervous system recovery" }
-  };
-
-  const recommendation = restRecommendations[goal] || restRecommendations.hypertrophy;
+  const recommendation = REST_RECOMMENDATIONS[goal] || REST_RECOMMENDATIONS.hypertrophy;
 
   return {
     minSeconds: recommendation.min,
@@ -170,22 +193,15 @@ export const getRestPeriodRecommendation = (exercise, goal = "hypertrophy", prev
 
 // Form quality assessment (based on notes/tags)
 export const assessFormQuality = (workoutNotes, exerciseDifficulty) => {
-  const redFlags = [
-    "loose form",
-    "rounded back",
-    "knee cave",
-    "bounce rep",
-    "short range",
-    "unstable",
-    "compensating",
-    "momentum"
-  ];
-
   let formScore = 100;
   let issues = [];
 
-  redFlags.forEach(flag => {
-    if (workoutNotes?.toLowerCase().includes(flag)) {
+  // ⚡ PERFORMANCE OPTIMIZATION: Avoid repeatedly executing .toLowerCase() (8 times) inside the loop.
+  // Converting workoutNotes to lowercase once outside the loop completely eliminates redundant allocations.
+  const notesLower = workoutNotes?.toLowerCase() || "";
+
+  RED_FLAGS.forEach(flag => {
+    if (notesLower.includes(flag)) {
       formScore -= 15;
       issues.push(flag);
     }
@@ -274,14 +290,7 @@ export const getPeriodizationPhaseRecommendations = (weekNumber, totalWeeks, goa
 
 // Exercise variation suggestions for muscular adaptation
 export const suggestExerciseVariations = (exercise, previousVariations = []) => {
-  const variations = {
-    "Bench Press": ["Incline Bench", "Dumbbell Press", "Machine Press", "Board Press", "Close Grip Bench"],
-    "Squat": ["Front Squat", "Hack Squat", "Leg Press", "Split Squat", "Goblet Squat"],
-    "Deadlift": ["Sumo Deadlift", "Trap Bar Deadlift", "Deficit Deadlift", "Block Pulls", "Rack Pulls"],
-    "Pull-ups": ["Assisted Pull-ups", "Lat Pulldown", "Machine Lat Pull", "Resistance Band Pull-ups", "Chin-ups"]
-  };
-
-  const availableVariations = variations[exercise] || [];
+  const availableVariations = EXERCISE_VARIATIONS[exercise] || [];
   const unusedVariations = availableVariations.filter(v => !previousVariations.includes(v));
 
   return {
