@@ -1,10 +1,20 @@
 import React, { useEffect, useState, useMemo, useRef, useCallback, memo, useId } from 'react';
-import { Play, Pause, RotateCcw, Clock, Zap, Target, Activity, ShieldCheck, Flame } from 'lucide-react';
+import { Play, Pause, RotateCcw, Clock, Zap, Target, Activity, ShieldCheck, Flame, ShieldAlert, Sparkles, Brain, RefreshCw } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
-import Select from '@/components/Select';
 import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
+
+/**
+ * ⚡ PROTOCOL OPTIONS: Hoisted metadata.
+ * Module-level frozen constants for elite performance and zero-allocation.
+ */
+const WINDOW_OPTIONS = Object.freeze([
+  { id: '16:8', label: '16:8 Intermittent', desc: 'Optimal Intermittent Efficiency & Growth Hormone boost', fastHours: 16, breakHours: 8 },
+  { id: '18:6', label: '18:6 Advanced', desc: 'Enhanced Autophagy Sequence & cellular recycling', fastHours: 18, breakHours: 6 },
+  { id: '20:4', label: '20:4 Warrior', desc: 'Decongested eating phase & heightened lipid oxidation', fastHours: 20, breakHours: 4 },
+  { id: '23:1', label: '23:1 OMAD', desc: 'One Meal A Day peak therapeutic performance', fastHours: 23, breakHours: 1 },
+]);
 
 /**
  * ⚡ REFINEMENT: MetabolicChronometer re-engineered as an elite luxury standard instrument.
@@ -298,14 +308,237 @@ const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive
   );
 });
 
+MetabolicChronometer.displayName = 'MetabolicChronometer';
+
+/**
+ * ⚡ SUBCOMPONENT: Custom Luxury Window Card
+ * Tactile glassmorphic selector button matching the "Forge" standard.
+ */
+const WindowCard = memo(({ option, isSelected, onClick }) => {
+  const cardRef = useRef(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+
+  const handleMouseMove = (e) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Volumetric 3D tilt
+    const tiltY = ((x / rect.width) - 0.5) * 12;
+    const tiltX = (0.5 - (y / rect.height)) * 12;
+
+    cardRef.current.style.setProperty('--mouse-x', `${x}px`);
+    cardRef.current.style.setProperty('--mouse-y', `${y}px`);
+    cardRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+    cardRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    if (cardRef.current) {
+      // 4-degree static tilt on focus
+      cardRef.current.style.setProperty('--tilt-x', '4deg');
+      cardRef.current.style.setProperty('--tilt-y', '-4deg');
+    }
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    if (cardRef.current) {
+      cardRef.current.style.setProperty('--tilt-x', '0deg');
+      cardRef.current.style.setProperty('--tilt-y', '0deg');
+    }
+  };
+
+  const interactionActive = isHovered || isFocused;
+
+  return (
+    <button
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      onClick={onClick}
+      aria-pressed={isSelected}
+      style={{
+        transform: interactionActive
+          ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-3px)'
+          : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: isHovered ? 'none' : 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+        transformStyle: 'preserve-3d'
+      }}
+      className={`
+        relative p-6 rounded-[2rem] border text-left outline-none transition-all duration-500 overflow-hidden w-full group
+        focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408]
+        ${isSelected
+          ? 'bg-[#0D121F]/80 border-voro-primary/30 shadow-[0_20px_45px_rgba(124,58,237,0.12)]'
+          : 'bg-[#0A0C14]/30 border-white/[0.03] hover:border-white/10 hover:bg-[#0A0C14]/50'
+        }
+      `}
+    >
+      <div className="absolute inset-0 bg-scanline opacity-[0.02] pointer-events-none" />
+
+      {/* Luminous laser spot */}
+      <div
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+        style={{
+          background: `radial-gradient(120px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(124, 58, 237, 0.08), transparent 80%)`
+        }}
+      />
+
+      <div className="relative z-10 flex flex-col justify-between h-full" style={{ transform: 'translateZ(30px)' }}>
+        <div className="flex items-center justify-between mb-4">
+          <span className="font-mono text-[0.55rem] font-black uppercase tracking-[0.3em] text-gray-500">
+            Window Configuration
+          </span>
+          <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-voro-primary shadow-[0_0_10px_rgba(124,58,237,0.8)] animate-pulse' : 'bg-gray-800'}`} />
+        </div>
+
+        <div>
+          <h4 className="text-xl font-serif italic font-medium tracking-tight text-white group-hover:text-voro-primary transition-colors">
+            {option.label}
+          </h4>
+          <p className="text-[0.65rem] font-mono text-gray-500 tracking-wider uppercase mt-2 leading-relaxed">
+            {option.desc}
+          </p>
+        </div>
+
+        <div className="mt-6 pt-4 border-t border-white/5 flex justify-between items-center text-[0.6rem] font-mono text-gray-500">
+          <span className="flex items-center gap-1"><Flame size={10} className="text-voro-accent" /> Deprivation: <strong className="text-white">{option.fastHours}h</strong></span>
+          <span className="flex items-center gap-1"><ShieldCheck size={10} className="text-voro-secondary" /> Synthesis: <strong className="text-white">{option.breakHours}h</strong></span>
+        </div>
+      </div>
+    </button>
+  );
+});
+WindowCard.displayName = 'WindowCard';
+
+/**
+ * ⚡ SUBCOMPONENT: Biomarker Dashboard Diagnostic Cell
+ * Direct DOM hover transforms and high-fidelity simulated biomeasures.
+ */
+const DiagnosticCell = memo(({ title, value, unit, progress, description, icon: Icon, color, glow }) => {
+  const cellRef = useRef(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+
+  const handleMouseMove = (e) => {
+    if (!cellRef.current) return;
+    const rect = cellRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const tiltY = ((x / rect.width) - 0.5) * 12;
+    const tiltX = (0.5 - (y / rect.height)) * 12;
+
+    cellRef.current.style.setProperty('--mouse-x', `${x}px`);
+    cellRef.current.style.setProperty('--mouse-y', `${y}px`);
+    cellRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+    cellRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    if (cellRef.current) {
+      cellRef.current.style.setProperty('--tilt-x', '4deg');
+      cellRef.current.style.setProperty('--tilt-y', '-4deg');
+    }
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    if (cellRef.current) {
+      cellRef.current.style.setProperty('--tilt-x', '0deg');
+      cellRef.current.style.setProperty('--tilt-y', '0deg');
+    }
+  };
+
+  const interactionActive = isHovered || isFocused;
+
+  return (
+    <div
+      ref={cellRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      tabIndex="0"
+      style={{
+        transform: interactionActive
+          ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
+          : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: isHovered ? 'none' : 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+        transformStyle: 'preserve-3d'
+      }}
+      className="relative p-6 rounded-[2rem] bg-[#0A0C14] border border-white/5 overflow-hidden group outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408]"
+    >
+      <div className="absolute inset-0 bg-scanline opacity-[0.02] pointer-events-none" />
+      <div
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
+        style={{
+          background: `radial-gradient(150px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ${glow}, transparent 80%)`
+        }}
+      />
+
+      <div className="relative z-10 flex flex-col justify-between h-full" style={{ transform: 'translateZ(30px)' }}>
+        <div className="flex items-center justify-between mb-4">
+          <span className="font-mono text-[0.55rem] font-black uppercase tracking-[0.3em] text-gray-500">
+            {title}
+          </span>
+          <div className={`p-1.5 rounded-lg bg-white/[0.02] border border-white/5 ${color}`}>
+            <Icon size={14} />
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-baseline gap-1">
+            <span className="text-3xl font-serif italic font-bold text-white tracking-tight">
+              {value}
+            </span>
+            <span className="text-[0.65rem] font-mono text-gray-500 uppercase tracking-widest">
+              {unit}
+            </span>
+          </div>
+          <p className="text-[0.6rem] font-medium text-gray-400 mt-2 leading-relaxed">
+            {description}
+          </p>
+        </div>
+
+        {/* Cinematic progress bar */}
+        <div className="mt-6 space-y-2">
+          <div className="flex justify-between text-[0.5rem] font-mono text-gray-600 uppercase tracking-widest">
+            <span>Saturation</span>
+            <span>{Math.round(progress)}%</span>
+          </div>
+          <div className="h-1.5 w-full bg-white/[0.02] border border-white/5 rounded-full overflow-hidden p-0.5 relative">
+            <div
+              className={`h-full rounded-full transition-transform duration-1000 origin-left`}
+              style={{
+                transform: `scaleX(${progress / 100})`,
+                backgroundColor: glow || '#7C3AED',
+                boxShadow: `0 0 10px ${glow}`
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
+DiagnosticCell.displayName = 'DiagnosticCell';
+
 const FastingTracker = () => {
   const { setItem } = useStorageMethods();
   const { addNotification } = useNotifications();
 
   /**
    * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
-   * Replaced broad useStorageKey with useStorageKeySelector to subscribe only to
-   * the 'fasting' state.
+   * Subscribe only to the 'fasting' key.
    */
   const fastingData = useStorageKeySelector(
     'fasting',
@@ -314,6 +547,14 @@ const FastingTracker = () => {
 
   const [elapsed, setElapsed] = useState(0);
   const [isPaused, setIsPaused] = useState(true);
+  const [isInitiating, setIsInitiating] = useState(false);
+  const [alignmentStep, setAlignmentStep] = useState(0);
+
+  // Safety Confirmation Reset states
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [resetCountdown, setResetCountdown] = useState(3.0);
+  const countdownTimerRef = useRef(null);
+
   const timerRef = useRef(null);
 
   useEffect(() => {
@@ -321,8 +562,11 @@ const FastingTracker = () => {
   }, []);
 
   const windowStr = fastingData?.window || '16:8';
-  const [fastHours, breakHours] = windowStr.split(':').map(Number);
-  const totalSeconds = fastHours * 3600;
+  const activeWindow = useMemo(() => {
+    return WINDOW_OPTIONS.find(opt => opt.id === windowStr) || WINDOW_OPTIONS[0];
+  }, [windowStr]);
+
+  const totalSeconds = activeWindow.fastHours * 3600;
 
   useEffect(() => {
     if (fastingData.started && fastingData.status === 'active') {
@@ -348,10 +592,42 @@ const FastingTracker = () => {
     return () => clearInterval(timerRef.current);
   }, [isPaused]);
 
+  // Clean up all timers on unmount to prevent leaks
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+    };
+  }, []);
+
+  // Handle simulated alignment status logs
+  useEffect(() => {
+    if (isInitiating) {
+      const interval = setInterval(() => {
+        setAlignmentStep(s => {
+          if (s >= 4) {
+            clearInterval(interval);
+            return s;
+          }
+          return s + 1;
+        });
+      }, 500);
+      return () => clearInterval(interval);
+    } else {
+      setAlignmentStep(0);
+    }
+  }, [isInitiating]);
+
   const handleStart = async () => {
-    const now = new Date().toISOString();
-    await setItem('fasting', { ...fastingData, started: now, status: 'active' });
-    addNotification('Metabolic transition initiated. Autophagy sequence started.', 'success');
+    setIsInitiating(true);
+
+    // Simulate cinematic alignment sequence
+    setTimeout(async () => {
+      const now = new Date().toISOString();
+      await setItem('fasting', { ...fastingData, started: now, status: 'active' });
+      setIsInitiating(false);
+      addNotification('Metabolic transition initiated. Autophagy sequence started.', 'success');
+    }, 2500);
   };
 
   const handlePause = () => {
@@ -362,18 +638,82 @@ const FastingTracker = () => {
     await setItem('fasting', { ...fastingData, started: null, status: 'idle' });
     setElapsed(0);
     setIsPaused(true);
-    addNotification('Fasting cycle reset.', 'info');
+    addNotification('Fasting cycle reset and metadata archived.', 'info');
   };
 
-  const handleWindowChange = async (e) => {
-    const newWindow = e.target.value;
-    await setItem('fasting', { ...fastingData, window: newWindow });
+  // Protective sequence reset handler
+  const initiateResetSequence = () => {
+    if (confirmReset) {
+      handleReset();
+      cancelResetSequence();
+    } else {
+      setConfirmReset(true);
+      setResetCountdown(3.0);
+
+      const start = Date.now();
+      countdownTimerRef.current = setInterval(() => {
+        const remaining = Math.max(0, 3.0 - (Date.now() - start) / 1000);
+        setResetCountdown(remaining);
+        if (remaining <= 0) {
+          cancelResetSequence();
+        }
+      }, 50);
+    }
+  };
+
+  const cancelResetSequence = () => {
+    setConfirmReset(false);
+    setResetCountdown(3.0);
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+  };
+
+  const handleWindowChange = async (optionId) => {
+    await setItem('fasting', { ...fastingData, window: optionId });
+    addNotification(`Deprivation window switched to ${optionId}.`, 'success');
   };
 
   const progress = Math.min((elapsed / totalSeconds) * 100, 100);
   const hours = Math.floor(elapsed / 3600);
   const minutes = Math.floor((elapsed % 3600) / 60);
   const seconds = elapsed % 60;
+
+  // Live Simulated Metabolic Bio-measures
+  const simulatedMeasures = useMemo(() => {
+    const hoursElapsed = elapsed / 3600;
+
+    // Liver glycogen depletion
+    const glycogenVal = Math.max(0, 100 - (hoursElapsed / 12) * 100);
+
+    // Autophagy Index (starts at 12 hours)
+    let autophagyVal = 0;
+    if (hoursElapsed > 12) {
+      autophagyVal = Math.min(100, ((hoursElapsed - 12) / 12) * 100);
+    }
+
+    // Fat Oxidation rate (scales up to 95%)
+    const fatVal = Math.min(95, 5 + (hoursElapsed / 14) * 90);
+
+    // Growth hormone multiplier
+    const hghVal = (1.0 + Math.min(4.0, (hoursElapsed / 24) * 4)).toFixed(1);
+
+    return {
+      glycogen: { val: glycogenVal.toFixed(0), progress: 100 - glycogenVal, desc: glycogenVal > 0 ? "Glycogen depletion in progress" : "Hepatic glycogen fully exhausted" },
+      autophagy: { val: autophagyVal.toFixed(0), progress: autophagyVal, desc: hoursElapsed < 12 ? "Cellular cleanup dormant (requires 12h)" : "Active autophagic cellular recycling" },
+      fat: { val: fatVal.toFixed(0), progress: fatVal, desc: "Shifting substrate dominance to lipids" },
+      hgh: { val: hghVal, progress: Math.min(100, (parseFloat(hghVal) / 5) * 100), desc: "Growth hormone production maximized" }
+    };
+  }, [elapsed]);
+
+  const alignmentLogs = [
+    "MEASURING HEPATIC GLYCOGEN STORES...",
+    "CALIBRATING CORE KINETIC SWITCHES...",
+    "ATTESTING SECURE CDDSA DATABASE HANDSHAKE...",
+    "NUTRITIONAL SHIELD DEPLOYED...",
+    "METABOLIC BIOMARKER MATRIX SYNCED // READY"
+  ];
 
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] pb-32 selection:bg-voro-primary/30">
@@ -401,52 +741,96 @@ const FastingTracker = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           <div className="lg:col-span-7 space-y-10">
-            <Card className="p-16 flex flex-col items-center justify-center bg-gradient-to-b from-[#0D121F]/40 to-[#020408]/40 border-white/5 relative overflow-hidden group">
-              {/* Corner Accents */}
-              <div className="absolute top-0 left-0 w-24 h-24 border-t border-l border-white/[0.03] rounded-tl-[2rem]" />
-              <div className="absolute bottom-0 right-0 w-24 h-24 border-b border-r border-white/[0.03] rounded-br-[2rem]" />
+            {/* Cinematic Calibration Sequence Loading State */}
+            {isInitiating ? (
+              <Card className="p-16 flex flex-col items-center justify-center min-h-[460px] bg-gradient-to-b from-[#0D121F]/60 to-[#020408]/60 border-voro-primary/20 relative overflow-hidden">
+                <div className="absolute inset-0 bg-scanline opacity-[0.04] pointer-events-none" />
+                <div className="absolute inset-0 bg-grid-white opacity-5 pointer-events-none" />
 
-              <MetabolicChronometer
-                progress={progress}
-                hours={hours}
-                minutes={minutes}
-                seconds={seconds}
-                isActive={!isPaused && fastingData.status === 'active'}
-              />
+                {/* Rotating concentric calibration loading indicator */}
+                <div className="relative mb-12">
+                  <div className="w-24 h-24 rounded-full border-2 border-dashed border-voro-primary/20 animate-[spin_10s_linear_infinite_reverse] flex items-center justify-center" />
+                  <div className="absolute inset-2 rounded-full border-2 border-dashed border-voro-secondary/40 animate-[spin_6s_linear_infinite]" />
+                  <div className="absolute inset-0 flex items-center justify-center text-voro-primary">
+                    <RefreshCw size={24} className="animate-spin" />
+                  </div>
+                </div>
 
-              <div className="mt-16 flex gap-6 w-full max-w-md relative z-20">
-                {!fastingData.started || fastingData.status === 'idle' ? (
-                  <Button
-                    onClick={handleStart}
-                    className="flex-1 py-8 shadow-2xl shadow-voro-primary/20 text-lg tracking-widest font-bold"
-                  >
-                    <Play size={20} className="mr-3 fill-current" />
-                    INITIATE PROTOCOL
-                  </Button>
-                ) : (
-                  <>
+                <div className="space-y-4 text-center max-w-md">
+                  <h3 className="text-lg font-serif italic font-medium text-white tracking-tight">
+                    Aligning Metabolic Sequence...
+                  </h3>
+                  <div className="font-mono text-[0.6rem] text-voro-primary font-bold tracking-[0.25em] space-y-1">
+                    {alignmentLogs.slice(0, alignmentStep + 1).map((log, i) => (
+                      <p key={i} className="animate-fade-in opacity-80">
+                        {log}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              </Card>
+            ) : (
+              <Card className="p-16 flex flex-col items-center justify-center bg-gradient-to-b from-[#0D121F]/40 to-[#020408]/40 border-white/5 relative overflow-hidden group">
+                {/* Corner Accents */}
+                <div className="absolute top-0 left-0 w-24 h-24 border-t border-l border-white/[0.03] rounded-tl-[2rem]" />
+                <div className="absolute bottom-0 right-0 w-24 h-24 border-b border-r border-white/[0.03] rounded-br-[2rem]" />
+
+                <MetabolicChronometer
+                  progress={progress}
+                  hours={hours}
+                  minutes={minutes}
+                  seconds={seconds}
+                  isActive={!isPaused && fastingData.status === 'active'}
+                />
+
+                <div className="mt-16 flex gap-6 w-full max-w-md relative z-20">
+                  {!fastingData.started || fastingData.status === 'idle' ? (
                     <Button
-                      onClick={handlePause}
-                      variant="secondary"
-                      className="flex-1 py-8 text-sm tracking-[0.2em] font-bold border-white/10"
+                      onClick={handleStart}
+                      className="flex-1 py-8 shadow-2xl shadow-voro-primary/20 text-lg tracking-widest font-bold"
                     >
-                      {isPaused ? <Play size={18} className="mr-3 fill-current" /> : <Pause size={18} className="mr-3 fill-current" />}
-                      {isPaused ? 'RESUME SEQUENCE' : 'PAUSE TEMPORALITY'}
+                      <Play size={20} className="mr-3 fill-current" />
+                      INITIATE PROTOCOL
                     </Button>
-                    <button
-                      onClick={handleReset}
-                      className="p-6 rounded-[1.5rem] bg-white/[0.03] border border-white/5 text-gray-500 hover:text-white hover:bg-white/10 transition-all duration-500 focus-visible:ring-2 focus-visible:ring-voro-primary/50 outline-none"
-                      aria-label="Reset metabolic cycle"
-                    >
-                      <RotateCcw size={20} />
-                    </button>
-                  </>
-                )}
-              </div>
-            </Card>
+                  ) : (
+                    <>
+                      <Button
+                        onClick={handlePause}
+                        variant="secondary"
+                        className="flex-1 py-8 text-sm tracking-[0.2em] font-bold border-white/10"
+                      >
+                        {isPaused ? <Play size={18} className="mr-3 fill-current" /> : <Pause size={18} className="mr-3 fill-current" />}
+                        {isPaused ? 'RESUME SEQUENCE' : 'PAUSE TEMPORALITY'}
+                      </Button>
 
+                      {/* Double Confirmation Protective sequence reset button */}
+                      <button
+                        onClick={initiateResetSequence}
+                        aria-label={confirmReset ? `Confirm cycle purge. Countdown ${resetCountdown.toFixed(1)} seconds.` : "Reset metabolic cycle"}
+                        className={`p-6 rounded-[1.5rem] border outline-none transition-all duration-500 flex items-center justify-center gap-2 ${
+                          confirmReset
+                            ? 'bg-red-500/10 border-red-500/30 text-red-500 shadow-[0_0_20px_rgba(239,68,68,0.25)]'
+                            : 'bg-white/[0.03] border-white/5 text-gray-500 hover:text-white hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-voro-primary/50'
+                        }`}
+                      >
+                        {confirmReset ? (
+                          <>
+                            <ShieldAlert size={20} className="animate-pulse" />
+                            <span className="font-mono text-xs font-bold leading-none tracking-widest">{resetCountdown.toFixed(1)}s</span>
+                          </>
+                        ) : (
+                          <RotateCcw size={20} />
+                        )}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </Card>
+            )}
+
+            {/* Overhauled window selection: Grid organization Organism */}
             <section className="bg-[#0A0C14] border border-white/5 p-12 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
-               <div className="flex items-center gap-4 mb-10">
+              <div className="flex items-center gap-4 mb-10">
                 <div className="p-3 bg-voro-primary/5 rounded-2xl">
                   <Target size={20} className="text-voro-primary" />
                 </div>
@@ -456,50 +840,71 @@ const FastingTracker = () => {
                 </div>
               </div>
 
-              <div className="relative group">
-                <Select
-                  value={fastingData.window}
-                  onChange={handleWindowChange}
-                  className="w-full bg-[#020408]/60 border-white/10 h-20 pl-8 pr-12 rounded-2xl text-lg font-serif italic tracking-wide appearance-none focus:ring-voro-primary/20"
-                >
-                  <option value="16:8">16:8 — Intermittent Efficiency</option>
-                  <option value="18:6">18:6 — Advanced Autophagy</option>
-                  <option value="20:4">20:4 — Warrior Adaptation</option>
-                  <option value="23:1">23:1 — OMAD Peak Performance</option>
-                </Select>
-                <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-gray-600">
-                   <Activity size={18} />
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {WINDOW_OPTIONS.map(option => (
+                  <WindowCard
+                    key={option.id}
+                    option={option}
+                    isSelected={fastingData.window === option.id}
+                    onClick={() => handleWindowChange(option.id)}
+                  />
+                ))}
               </div>
             </section>
           </div>
 
           <div className="lg:col-span-5 space-y-10">
-            {/* Cycle Composition Card */}
+            {/* Dynamic Simulated Clinical Diagnostics Panel */}
             <Card className="p-12 bg-gradient-to-br from-[#0D121F]/40 to-[#020408]/20 border-white/10 flex flex-col justify-between min-h-[360px]">
               <div className="flex items-center justify-between mb-12">
-                <p className="text-[0.6rem] font-black text-gray-500 uppercase tracking-[0.5em]">Cycle Composition</p>
+                <p className="text-[0.6rem] font-black text-gray-500 uppercase tracking-[0.5em]">Metabolic Diagnostic Core</p>
                 <ShieldCheck size={16} className="text-voro-secondary opacity-50" />
               </div>
 
-              <div className="space-y-12">
-                <div className="group">
-                  <div className="text-[0.6rem] font-mono font-bold text-voro-primary uppercase tracking-[0.3em] mb-3 group-hover:translate-x-1 transition-transform">Deprivation Phase</div>
-                  <div className="flex items-baseline gap-3">
-                    <span className="text-5xl font-serif italic font-medium text-white">{fastHours}</span>
-                    <span className="text-sm font-mono text-gray-600 uppercase tracking-widest">Hours</span>
-                  </div>
-                </div>
+              <div className="grid grid-cols-1 gap-6">
+                <DiagnosticCell
+                  title="Hepatic Glycogen"
+                  value={simulatedMeasures.glycogen.val}
+                  unit="%"
+                  progress={simulatedMeasures.glycogen.progress}
+                  description={simulatedMeasures.glycogen.desc}
+                  icon={Activity}
+                  color="text-amber-500"
+                  glow="rgba(245,158,11,0.06)"
+                />
 
-                <div className="w-full h-px bg-gradient-to-r from-white/10 to-transparent" />
+                <DiagnosticCell
+                  title="Autophagy Index"
+                  value={simulatedMeasures.autophagy.val}
+                  unit="%"
+                  progress={simulatedMeasures.autophagy.progress}
+                  description={simulatedMeasures.autophagy.desc}
+                  icon={Brain}
+                  color="text-indigo-400"
+                  glow="rgba(129,140,248,0.06)"
+                />
 
-                <div className="group">
-                  <div className="text-[0.6rem] font-mono font-bold text-voro-secondary uppercase tracking-[0.3em] mb-3 group-hover:translate-x-1 transition-transform">Synthesis Phase</div>
-                  <div className="flex items-baseline gap-3">
-                    <span className="text-5xl font-serif italic font-medium text-white">{breakHours}</span>
-                    <span className="text-sm font-mono text-gray-600 uppercase tracking-widest">Hours</span>
-                  </div>
-                </div>
+                <DiagnosticCell
+                  title="Lipid Oxidation"
+                  value={simulatedMeasures.fat.val}
+                  unit="%"
+                  progress={simulatedMeasures.fat.progress}
+                  description={simulatedMeasures.fat.desc}
+                  icon={Flame}
+                  color="text-emerald-400"
+                  glow="rgba(16,185,129,0.06)"
+                />
+
+                <DiagnosticCell
+                  title="HGH Multiplier"
+                  value={simulatedMeasures.hgh.val}
+                  unit="x"
+                  progress={simulatedMeasures.hgh.progress}
+                  description={simulatedMeasures.hgh.desc}
+                  icon={Sparkles}
+                  color="text-cyan-400"
+                  glow="rgba(6,182,212,0.06)"
+                />
               </div>
 
               <div className="mt-12 flex items-center gap-3 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
