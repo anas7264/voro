@@ -8,6 +8,7 @@ import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useAppContext as useApp } from '@/hooks/useAppContext';
 import { executeSecurely, safeJSONParse } from '@/utils/security';
 import { useNotifications } from '@/hooks/useNotifications';
+import { isValidPassword } from '@/utils/validators';
 
 const Settings = () => {
   /**
@@ -58,8 +59,9 @@ const Settings = () => {
     if (usePassword) {
       password = window.prompt("Enter a strong password to encrypt your data archive (write this down, it cannot be recovered):");
       if (password === null) return; // User cancelled
-      if (!password.trim()) {
-        addNotification('Password cannot be empty. Export aborted.', 'error');
+      // Security: Validate password strength using OWASP-compliant rules
+      if (!isValidPassword(password)) {
+        addNotification('Password must be 8-128 characters, with at least one uppercase letter, one lowercase letter, and one number.', 'error');
         return;
       }
     }

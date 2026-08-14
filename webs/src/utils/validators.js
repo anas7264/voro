@@ -11,12 +11,24 @@ export const isValidEmail = (email) => {
 };
 
 // Password validation (min 8 chars, 1 uppercase, 1 lowercase, 1 number)
+// OWASP-compliant: allows all special characters and spaces, immune to ReDoS
 export const isValidPassword = (password) => {
-  if (!password || typeof password !== 'string' || password.length > 128) {
-    return false; // Security: Prevent client-side ReDoS and backend password hashing Denial of Service on extremely large strings
+  if (!password || typeof password !== 'string' || password.length < 8 || password.length > 128) {
+    return false; // Security: Prevent client-side ReDoS and backend password hashing Denial of Service on extremely large/small strings
   }
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/;
-  return passwordRegex.test(password);
+
+  let hasLower = false;
+  let hasUpper = false;
+  let hasDigit = false;
+
+  for (let i = 0; i < password.length; i++) {
+    const char = password[i];
+    if (char >= 'a' && char <= 'z') hasLower = true;
+    else if (char >= 'A' && char <= 'Z') hasUpper = true;
+    else if (char >= '0' && char <= '9') hasDigit = true;
+  }
+
+  return hasLower && hasUpper && hasDigit;
 };
 
 // Get password strength feedback
