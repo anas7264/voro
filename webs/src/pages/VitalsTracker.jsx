@@ -7,12 +7,13 @@ import { Stat } from '@/components/Stat';
 import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { validateVitals } from '@/utils/validators';
+import { CachedDateTimeFormat } from '@/utils/formatters';
 
 /**
- * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
- * Prevents redundant object instantiation of Intl.DateTimeFormat in loops.
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted cached formatters.
+ * Prevents redundant object instantiation of Intl.DateTimeFormat and new Date in loops.
  */
-const fullDateFormatter = new Intl.DateTimeFormat('en-US', {
+const fullDateFormatter = new CachedDateTimeFormat('en-US', {
   month: 'short',
   day: 'numeric',
   year: 'numeric'
@@ -244,7 +245,7 @@ const VitalsTracker = () => {
       .map(entry => {
         let formattedDate = '';
         try {
-          formattedDate = fullDateFormatter.format(new Date(entry.date));
+          formattedDate = fullDateFormatter.format(entry.date);
         } catch (e) {
           formattedDate = entry.date;
         }
