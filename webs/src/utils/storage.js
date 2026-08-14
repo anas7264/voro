@@ -233,8 +233,9 @@ class StorageManager {
         this.stateLedger = new Map();
       }
 
-      // Filter list keys to ignore the session_anchor to avoid double processing
-      const keys = this.list().filter(k => k !== 'session_anchor');
+      // Filter list keys to only include valid application data keys and ignore session_anchor/metadata
+      const validStorageValues = new Set(Object.values(STORAGE_KEYS));
+      const keys = this.list().filter(k => k !== 'session_anchor' && validStorageValues.has(k));
 
       // 3. Cryptographic Session-Binding Anchor (CSBA) Check
       const hasLocalStorageKeys = keys.length > 0;
