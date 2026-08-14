@@ -384,6 +384,7 @@ const WorkoutHistory = () => {
                       setSelectedArchetype(arch);
                       setExpandedIdx(null);
                     }}
+                    aria-pressed={selectedArchetype === arch}
                     className={`relative px-8 py-4 rounded-full text-xs font-mono font-bold tracking-[0.15em] uppercase transition-all duration-500 overflow-hidden focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408] outline-none ${
                       selectedArchetype === arch
                         ? 'bg-voro-primary text-white shadow-[0_15px_30px_rgba(124,58,237,0.3)] ring-1 ring-white/10'
