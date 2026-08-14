@@ -5,12 +5,13 @@ import Card from '@/components/Card';
 import Badge from '@/components/Badge';
 import { useStorageKey } from '@/hooks/useStorage';
 import { useNavigate } from 'react-router-dom';
+import { CachedDateTimeFormat } from '@/utils/formatters';
 
 /**
- * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
- * Prevents redundant object instantiation of Intl.DateTimeFormat in loops.
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted cached formatters.
+ * Prevents redundant object instantiation of Intl.DateTimeFormat and new Date in loops.
  */
-const fullDateFormatter = new Intl.DateTimeFormat('en-US', {
+const fullDateFormatter = new CachedDateTimeFormat('en-US', {
   weekday: 'short',
   month: 'short',
   day: 'numeric',
@@ -249,7 +250,7 @@ const WorkoutHistory = () => {
       .map(([date, w]) => ({
         date,
         ...w,
-        formattedDate: fullDateFormatter.format(new Date(date))
+        formattedDate: fullDateFormatter.format(date)
       }))
       /* ⚡ PERFORMANCE OPTIMIZATION: Raw Relational Sort Optimization.
          Utilizes raw string relational comparison to avoid both dynamic Date

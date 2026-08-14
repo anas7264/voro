@@ -23,6 +23,51 @@ const dateFormatterCache = new Map();
 const numberFormatterCache = new Map();
 
 /**
+ * ⚡ PERFORMANCE OPTIMIZATION: Cached wrapper for Intl.DateTimeFormat.
+ * Significantly speeds up date formatting inside loops and renders by caching
+ * string results, avoiding repeated object allocation and CPU-heavy formatting logic.
+ */
+export class CachedDateTimeFormat {
+  constructor(locale, options) {
+    this.formatter = new Intl.DateTimeFormat(locale, options);
+    this.cache = new Map();
+  }
+
+  format(dateInput) {
+    if (!dateInput) return '';
+
+    if (typeof dateInput === 'string') {
+      let cached = this.cache.get(dateInput);
+      if (cached !== undefined) return cached;
+
+      let formatted;
+      try {
+        formatted = this.formatter.format(new Date(dateInput));
+      } catch (e) {
+        formatted = dateInput;
+      }
+      this.cache.set(dateInput, formatted);
+      return formatted;
+    }
+
+    if (dateInput instanceof Date) {
+      const ts = dateInput.getTime();
+      const key = isNaN(ts) ? '' : ts;
+      if (key) {
+        let cached = this.cache.get(key);
+        if (cached !== undefined) return cached;
+        const formatted = this.formatter.format(dateInput);
+        this.cache.set(key, formatted);
+        return formatted;
+      }
+      return this.formatter.format(dateInput);
+    }
+
+    return this.formatter.format(dateInput);
+  }
+}
+
+/**
  * ⚡ PERFORMANCE OPTIMIZATION: Ultra-fast option serializer.
  * Replaces slow JSON.stringify to significantly accelerate key generation.
  */
@@ -329,6 +374,7 @@ export const formatUnits = (value, unit) => {
 };
 
 export default {
+  CachedDateTimeFormat,
   getFastDateStr,
   getFastShortDate,
   formatDate,

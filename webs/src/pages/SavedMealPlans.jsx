@@ -5,12 +5,13 @@ import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
+import { CachedDateTimeFormat } from '@/utils/formatters';
 
 /**
- * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
- * Prevents redundant object instantiation of Intl.DateTimeFormat in loops or high-frequency renders.
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted cached formatters.
+ * Prevents redundant object instantiation of Intl.DateTimeFormat and new Date in loops or high-frequency renders.
  */
-const dateStrFormatter = new Intl.DateTimeFormat('en-US', {
+const dateStrFormatter = new CachedDateTimeFormat('en-US', {
   month: 'short',
   day: 'numeric',
   year: 'numeric'
@@ -62,7 +63,7 @@ const SavedMealPlans = () => {
       let formattedDate = 'N/A';
       if (plan.createdAt) {
         try {
-          formattedDate = dateStrFormatter.format(new Date(plan.createdAt));
+          formattedDate = dateStrFormatter.format(plan.createdAt);
         } catch (e) {
           // Fail-safe fallback
         }

@@ -4,12 +4,13 @@ import Card from '@/components/Card';
 import Badge from '@/components/Badge';
 import { useStorageKey } from '@/hooks/useStorage';
 import { exercises } from '@/data/exercises';
+import { CachedDateTimeFormat } from '@/utils/formatters';
 
 /**
- * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
- * Prevents redundant object instantiation of Intl.DateTimeFormat in loops.
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted cached formatters.
+ * Prevents redundant object instantiation of Intl.DateTimeFormat and new Date in loops.
  */
-const fullDateFormatter = new Intl.DateTimeFormat('en-US', {
+const fullDateFormatter = new CachedDateTimeFormat('en-US', {
   month: 'short',
   day: 'numeric',
   year: 'numeric'
@@ -267,7 +268,7 @@ const PRRecords = () => {
           return dA < dB ? 1 : dA > dB ? -1 : 0;
         }).map(r => ({
           ...r,
-          formattedDate: fullDateFormatter.format(new Date(r.date))
+          formattedDate: fullDateFormatter.format(r.date)
         })) : [],
       };
     }).filter(pr => pr.records.length > 0);
