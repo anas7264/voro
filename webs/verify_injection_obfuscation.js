@@ -3,7 +3,7 @@
  * This runs in Node.js and asserts that obfuscated or padded queries are successfully blocked.
  */
 
-import { isPromptInjection } from './src/utils/validators.js';
+import { isPromptInjection, isValidURL } from './src/utils/validators.js';
 
 const runTests = async () => {
   console.log("=========================================");
@@ -213,6 +213,30 @@ const runTests = async () => {
     console.log("✅ Success: Spacer-based prompt injection successfully blocked!");
   } else {
     throw new Error("❌ Failure: Spacer-based prompt injection bypass attempt allowed!");
+  }
+
+  // --- TEST 23: URL Validation Security Hardening (Credential Smuggling & SSRF) ---
+  console.log("🛡️ Test 23: Verifying URL validation blocks userinfo credential smuggling and SSRF/internal targets...");
+  const validPublicUrl = "https://voro.health/privacy";
+  const credentialSmuggledUrl = "https://user:pass@voro.health/privacy";
+  const localhostUrl = "http://localhost:8080/admin";
+  const loopbackUrl = "http://127.0.0.1/secret";
+  const metadataUrl = "http://169.254.169.254/latest/meta-data/";
+  const privateClassA = "http://10.0.0.1/internal";
+  const privateClassC = "http://192.168.1.1/router";
+
+  if (
+    isValidURL(validPublicUrl) &&
+    !isValidURL(credentialSmuggledUrl) &&
+    !isValidURL(localhostUrl) &&
+    !isValidURL(loopbackUrl) &&
+    !isValidURL(metadataUrl) &&
+    !isValidURL(privateClassA) &&
+    !isValidURL(privateClassC)
+  ) {
+    console.log("✅ Success: URL validation successfully blocked credential smuggling and SSRF targets!");
+  } else {
+    throw new Error("❌ Failure: URL validation permitted credential smuggling or internal SSRF targets!");
   }
 
   console.log("\n🎉 ALL INJECTION OBFUSCATION SECURITY VERIFICATION TESTS PASSED SUCCESSFULLY!");

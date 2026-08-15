@@ -153,10 +153,30 @@ export const isValidURL = (url) => {
       return false;
     }
 
+    // Security: Reject userinfo credentials (user:pass@host) to prevent credential smuggling and authority hijacking
+    if (parsed.username || parsed.password) {
+      return false;
+    }
+
     // Security: Homoglyph-based URL deception / IDN spoofing prevention
-    const hostname = parsed.hostname;
-    const hasHomoglyphs = /[^\x00-\x7F]/.test(hostname) || hostname.toLowerCase().startsWith('xn--');
+    const hostname = parsed.hostname.toLowerCase();
+    const hasHomoglyphs = /[^\x00-\x7F]/.test(hostname) || hostname.startsWith('xn--');
     if (hasHomoglyphs) {
+      return false;
+    }
+
+    // Security: SSRF / Internal IP / Metadata endpoint restriction (rejects loopback, private RFC 1918, link-local, cloud metadata)
+    if (
+      hostname === 'localhost' ||
+      hostname === '0.0.0.0' ||
+      hostname === '[::1]' ||
+      hostname === '::1' ||
+      /^127\.\d+\.\d+\.\d+$/.test(hostname) ||
+      /^10\.\d+\.\d+\.\d+$/.test(hostname) ||
+      /^169\.254\.\d+\.\d+$/.test(hostname) ||
+      /^192\.168\.\d+\.\d+$/.test(hostname) ||
+      /^172\.(1[6-9]|2[0-9]|3[01])\.\d+\.\d+$/.test(hostname)
+    ) {
       return false;
     }
 
