@@ -4,6 +4,30 @@
 import { calculateCaloriesBurned, estimateCaloriesBurned } from "./calculators.js";
 import { foods } from "../data/foods.js";
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted and Frozen Configuration Objects.
+ * These are frozen with Object.freeze() at module scope to avoid heap-allocation
+ * and Garbage Collection (GC) thrashing when calling calculateDailyWaterNeeds
+ * or optimizeMicronutrientTiming repeatedly.
+ */
+const WATER_ACTIVITY_MULTIPLIERS = Object.freeze({
+  sedentary: 1.0,
+  light: 1.2,
+  moderate: 1.5,
+  intense: 1.8,
+  very_intense: 2.0
+});
+
+const MICRONUTRIENT_TIMING_RECOMMENDATIONS = Object.freeze({
+  ironAndCalcium: "Separate by at least 2 hours - iron absorption reduced by calcium",
+  vitaminD: "With meals containing fat for better absorption",
+  magnesium: "Evening before bed for relaxation and sleep",
+  zinc: "With food to reduce nausea",
+  bVitamins: "With breakfast for energy",
+  omega3: "With meals for better absorption",
+  vitaminC: "With iron sources to enhance absorption"
+});
+
 // Calculate nutrition score (0-100) based on macronutrient distribution
 export const calculateNutritionScore = (protein, carbs, fat, calories) => {
   if (calories === 0) return 0;
@@ -148,7 +172,8 @@ export const findSimilarFoods = (targetFood, tolerance = 10) => {
   if (!targetFood) return [];
 
   const similar = foods.filter(food => {
-    const proteinDiff = Math.abs(food.protein - targetFood.protein) / targetFood.protein * 100;
+    // Math.max safeguard prevents NaN/Infinity when protein is 0
+    const proteinDiff = Math.abs(food.protein - targetFood.protein) / Math.max(targetFood.protein, 1) * 100;
     const carbsDiff = Math.abs(food.carbs - targetFood.carbs) / Math.max(targetFood.carbs, 1) * 100;
     const fatDiff = Math.abs(food.fat - targetFood.fat) / Math.max(targetFood.fat, 1) * 100;
 
@@ -191,16 +216,7 @@ export const calculateDailyWaterNeeds = (weightKg, activityLevel = "moderate") =
   // Base: 35ml per kg
   let baseWater = weightKg * 0.035; // liters
 
-  // Activity adjustments
-  const activityMultipliers = {
-    sedentary: 1.0,
-    light: 1.2,
-    moderate: 1.5,
-    intense: 1.8,
-    very_intense: 2.0
-  };
-
-  const adjustedWater = baseWater * (activityMultipliers[activityLevel] || 1.5);
+  const adjustedWater = baseWater * (WATER_ACTIVITY_MULTIPLIERS[activityLevel] || 1.5);
 
   return {
     litersPerDay: parseFloat(adjustedWater.toFixed(1)),
@@ -263,18 +279,7 @@ export const detectNutrientDeficits = (dailyIntake, targets) => {
 
 // Micronutrient timing optimization
 export const optimizeMicronutrientTiming = (meals) => {
-  // Suggests when to take certain supplements
-  const timing = {
-    ironAndCalcium: "Separate by at least 2 hours - iron absorption reduced by calcium",
-    vitaminD: "With meals containing fat for better absorption",
-    magnesium: "Evening before bed for relaxation and sleep",
-    zinc: "With food to reduce nausea",
-    bVitamins: "With breakfast for energy",
-    omega3: "With meals for better absorption",
-    vitaminC: "With iron sources to enhance absorption"
-  };
-
-  return timing;
+  return MICRONUTRIENT_TIMING_RECOMMENDATIONS;
 };
 
 export default {
