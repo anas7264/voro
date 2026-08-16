@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Trash2, Droplets, Target, Utensils, Zap } from 'lucide-react';
 import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useAppContext as useApp } from '@/hooks/useAppContext';
