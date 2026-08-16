@@ -53,3 +53,7 @@
 ## 2026-07-30 - Interactive Segment and Filter Buttons Accessibility Indicator
 **Learning:** Segment and filter matrices (such as category filters in the Education Hub) lack clear states for assistive technologies and keyboard navigators. Screen readers cannot tell which button is selected, and keyboard focus states are often neglected or muddy the luxury dark frame.
 **Action:** Always declare explicit `aria-pressed={isActive}` on filter buttons, and inject consistent, clean `focus-visible:ring-2` with a `ring-offset-2` styling aligned to Voro's primary brand theme to offer equitable visibility for keyboard power users.
+
+## 2026-07-31 - Resilient Focus Trapping and Restoration in Modal Component Trees
+**Learning:** In React architectures, passing inline, unmemoized `onClose` callbacks (`onClose={() => setOpen(false)}`) to modal dialogs causes `useEffect` hooks with `[isOpen, onClose]` dependencies to re-run on every parent component render (such as typing into a form field inside the modal). If the cleanup function restores focus to `previousFocusRef`, keyboard focus gets forcibly stolen from the input field on every keystroke.
+**Action:** Store the latest `onClose` callback in a mutable `useRef` updated on every render (`useEffect(() => { onCloseRef.current = onClose; })`), and restrict the focus trapping/restoration `useEffect` dependency array strictly to `[isOpen]`. This prevents focus hijacking on parent state updates while retaining safe keyboard traps and focus restoration on unmount.

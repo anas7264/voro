@@ -1,10 +1,10 @@
-import React, { useEffect, useId, useMemo } from "react";
+import React, { useEffect, useId, useMemo, useRef } from "react";
 import { X } from "lucide-react";
 
 /**
  * ⚡ REFINEMENT: Luxury Neural Interruption Chamber (Modal).
  * Re-engineered with the Forge design system: high-fidelity charcoal architecture,
- * kinetic backdrop blurs, and industrial system telemetry.
+ * kinetic backdrop blurs, focus trapping, and industrial system telemetry.
  *
  * DESIGN PHILOSOPHY:
  * 1. Authority: Box-model architecture suggests a secure, isolated execution environment.
@@ -15,6 +15,13 @@ import { X } from "lucide-react";
 export const Modal = ({ isOpen, onClose, title, children, size = "md", ...props }) => {
   const generatedId = useId();
   const titleId = `${generatedId}-title`;
+  const modalRef = useRef(null);
+  const previousFocusRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   // Generate a stable system ID for the modal node
   const nodeId = useMemo(() => {
@@ -23,23 +30,65 @@ export const Modal = ({ isOpen, onClose, title, children, size = "md", ...props 
   }, [generatedId]);
 
   useEffect(() => {
-    const handleEscape = (e) => {
+    if (!isOpen) return;
+
+    previousFocusRef.current = document.activeElement;
+    const originalOverflow = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = "hidden";
+
+    const focusableSelector = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+    const handleKeyDown = (e) => {
       if (e.key === "Escape") {
-        onClose();
+        e.preventDefault();
+        if (onCloseRef.current) onCloseRef.current();
+        return;
+      }
+
+      if (e.key === "Tab" && modalRef.current) {
+        const focusables = Array.from(modalRef.current.querySelectorAll(focusableSelector))
+          .filter(el => !el.hasAttribute('disabled') && el.offsetParent !== null);
+
+        if (focusables.length === 0) {
+          e.preventDefault();
+          return;
+        }
+
+        const firstEl = focusables[0];
+        const lastEl = focusables[focusables.length - 1];
+
+        if (e.shiftKey && document.activeElement === firstEl) {
+          e.preventDefault();
+          lastEl.focus();
+        } else if (!e.shiftKey && document.activeElement === lastEl) {
+          e.preventDefault();
+          firstEl.focus();
+        }
       }
     };
 
-    if (isOpen) {
-      const originalOverflow = window.getComputedStyle(document.body).overflow;
-      window.addEventListener("keydown", handleEscape);
-      document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
 
-      return () => {
-        window.removeEventListener("keydown", handleEscape);
-        document.body.style.overflow = originalOverflow;
-      };
-    }
-  }, [isOpen, onClose]);
+    const timer = setTimeout(() => {
+      if (modalRef.current) {
+        const firstFocusable = modalRef.current.querySelectorAll(focusableSelector)[0];
+        if (firstFocusable && typeof firstFocusable.focus === "function") {
+          firstFocusable.focus();
+        } else {
+          modalRef.current.focus();
+        }
+      }
+    }, 50);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = originalOverflow;
+      if (previousFocusRef.current && typeof previousFocusRef.current.focus === "function") {
+        previousFocusRef.current.focus();
+      }
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -62,10 +111,12 @@ export const Modal = ({ isOpen, onClose, title, children, size = "md", ...props 
 
       {/* Modal Container: Architectural Interruption Chamber */}
       <div
+        ref={modalRef}
+        tabIndex={-1}
         className={`
           relative w-full max-h-full rounded-[3rem] bg-[#0A0C14] border border-white/5
           shadow-[0_80px_160px_-40px_rgba(0,0,0,0.8),inset_0_1px_1px_0_rgba(255,255,255,0.05)]
-          flex flex-col overflow-hidden animate-scale-in
+          flex flex-col overflow-hidden animate-scale-in focus:outline-none
           ${sizes[size] || sizes.md}
         `}
         role="dialog"
