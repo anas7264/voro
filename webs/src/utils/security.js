@@ -174,7 +174,7 @@ let _lastIntegrityPulse = 0;
 let _activeContext = null;
 
 // User Presence Attestation (UPA) Constants
-let _lastUserInteraction = 0;
+let _lastUserInteraction = _perfNow ? _call.call(_perfNow, performance) : Date.now();
 const USER_PRESENCE_THRESHOLD = 30000; // 30s
 
 // Keystroke Dynamics & Interaction Cadence Attestation (KDICA) state
@@ -605,8 +605,11 @@ export const validateCallStack = () => {
       const line = lines[i];
       if (!line || _call.call(_SIncludes, line, 'validateCallStack')) continue;
 
-      // Detection 1: Anonymous / Evaluated Code
-      if (_call.call(_SIncludes, line, '<anonymous>') || _call.call(_SIncludes, line, 'eval at') || _call.call(_SIncludes, line, 'at eval')) {
+      // Ignore Node.js internal runtime module loader frames during stack analysis
+      if (_call.call(_SIncludes, line, 'node:internal') || _call.call(_SIncludes, line, 'node:diagnostics_channel') || _call.call(_SIncludes, line, 'ModuleLoader')) continue;
+
+      // Detection 1: Anonymous / Evaluated Code (excluding native V8 Promise executor frames and Node dynamic module loaders)
+      if ((_call.call(_SIncludes, line, '<anonymous>') && !_call.call(_SIncludes, line, 'Promise (<anonymous>)') && !_call.call(_SIncludes, line, 'moduleResolve') && !_call.call(_SIncludes, line, 'defaultImportModuleDynamically')) || _call.call(_SIncludes, line, 'eval at') || _call.call(_SIncludes, line, 'at eval')) {
         if (_console.error) _call.call(_console.error, console, "Security Sentinel: Unauthorized execution context (eval/anonymous) detected in call stack.");
         executeLockdown();
         return false;

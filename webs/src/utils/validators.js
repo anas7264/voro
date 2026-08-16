@@ -245,6 +245,19 @@ const HOMOGLYPHS_MAP = {
   'υ': 'y', 'φ': 'f', 'χ': 'x', 'ψ': 'ps', 'ω': 'w'
 };
 
+const LEETSPEAK_MAP = {
+  '0': 'o',
+  '1': 'i',
+  '3': 'e',
+  '4': 'a',
+  '5': 's',
+  '7': 't',
+  '8': 'b',
+  '@': 'a',
+  '$': 's',
+  '!': 'i'
+};
+
 const OVERRIDE_RE = /ignore previous|ignore above|ignore all instructions|ignore system|bypass instructions|override system|system override|developer mode|dan mode|do anything now|forget previous|forget all instructions|forget what was said|you must now ignore|you are now a developer|you are now an unrestricted|unrestricted mode|without restrictions|disable safety|bypass filters/i;
 
 const HARVESTING_RE = /repeat the system prompt|reveal your instructions|reveal the system prompt|reveal instructions|output the system instructions|output your instructions|output the text above|show your system prompt|show system prompt|what is your system prompt|what is your prompt|what are your instructions|what are your developer instructions|reveal the nonce|output your nonces/i;
@@ -378,14 +391,18 @@ export const isPromptInjection = (query, isNested = false) => {
   // Clean Markdown obfuscation (asterisks, underscores, tildes, backticks) specifically for keyword matching
   normalizedQuery = normalizedQuery.replace(/[\*_~`]/g, '');
 
-  // 2. Override, Harvesting, and Roleplay bypass patterns matched in single-pass compiled regexes
-  if (OVERRIDE_RE.test(normalizedQuery)) return true;
-  if (HARVESTING_RE.test(normalizedQuery)) return true;
-  if (ROLEPLAY_RE.test(normalizedQuery)) return true;
+  // 2. LeetSpeak translation for obfuscated keyword evaluation
+  const leetTranslatedQuery = normalizedQuery.replace(/[0134578@$!]/g, char => LEETSPEAK_MAP[char] || char);
 
-  // 3. Spacer-based obfuscation defense: strip non-alphanumeric separator characters and evaluate
+  // 3. Override, Harvesting, and Roleplay bypass patterns matched in single-pass compiled regexes
+  if (OVERRIDE_RE.test(normalizedQuery) || OVERRIDE_RE.test(leetTranslatedQuery)) return true;
+  if (HARVESTING_RE.test(normalizedQuery) || HARVESTING_RE.test(leetTranslatedQuery)) return true;
+  if (ROLEPLAY_RE.test(normalizedQuery) || ROLEPLAY_RE.test(leetTranslatedQuery)) return true;
+
+  // 4. Spacer-based obfuscation defense: strip non-alphanumeric separator characters and evaluate
   const compressedQuery = normalizedQuery.replace(/[^a-z0-9]/g, '');
-  if (COMPRESSED_BLOCKLIST_RE.test(compressedQuery)) return true;
+  const compressedLeetQuery = leetTranslatedQuery.replace(/[^a-z0-9]/g, '');
+  if (COMPRESSED_BLOCKLIST_RE.test(compressedQuery) || COMPRESSED_BLOCKLIST_RE.test(compressedLeetQuery)) return true;
 
   // Security: Scan and decode Base64-obfuscated and Hex-obfuscated prompt injection payloads (Defense-in-Depth)
   if (!isNested) {

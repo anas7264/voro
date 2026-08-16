@@ -267,8 +267,8 @@ class StorageManager {
 
       if (!isAnchorValid && hasLocalStorageKeys) {
         // Bypass lockdown in authorized E2E test environments
-        const isTestMode = typeof window !== 'undefined' && (window.__VORO_TEST_BYPASS__ === true || localStorage.getItem('voro_test_mode') === 'true');
-        if (isTestMode) {
+        const isTestBypass = typeof window !== 'undefined' && (window.__VORO_TEST_BYPASS__ === true || localStorage.getItem('voro_test_mode') === 'true');
+        if (isTestBypass) {
           console.warn("Security Sentinel [CSBA]: Anchor mismatch in authorized E2E test environment. Bypassing lockdown.");
           isAnchorValid = true;
         } else {
