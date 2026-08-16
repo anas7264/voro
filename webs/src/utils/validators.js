@@ -366,9 +366,9 @@ export const isPromptInjection = (query, isNested = false) => {
   // Translate Cyrillic and Greek homoglyphs (matching full Unicode Cyrillic and Greek/Coptic blocks) to Latin equivalents
   normalizedQuery = normalizedQuery.replace(/[\u0400-\u04FF\u0370-\u03FF]/g, char => HOMOGLYPHS_MAP[char] || char);
 
-  // 3. Clean zero-width, formatting, and invisible characters, and condense consecutive whitespaces
+  // 3. Clean zero-width, control, Hangul filler, and invisible characters, and condense consecutive whitespaces
   normalizedQuery = normalizedQuery
-    .replace(/[\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff\u00ad]/g, '')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff\u00ad\u115f\u1160\u3164\uffa0]/g, '')
     .replace(/\s+/g, ' ');
 
   // 1. Delimiter hijacking detection (VORO specific nonced blocks or closing tags)

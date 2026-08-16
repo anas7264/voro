@@ -239,6 +239,16 @@ Effective input defense requires scanning queries for potential encoded block st
 **Prevention:**
 Always implement non-destructive Base64 and Hex parsing layers in query validators. Extract matching substrings, attempt decoding under strict ASCII-only constraints, and evaluate the decoded content against key-phrase blocklists prior to downstream model transmission.
 
+## 2026-06-20 - Control Character & Hangul Filler Prompt Injection Obfuscation
+**Vulnerability:**
+Prompt injection filters that strip zero-width spaces or directional formatting markers can be bypassed if an attacker inserts ASCII control characters (e.g., `\x00-\x08`, `\x0B`, `\x0C`, `\x0E-\x1F`, `\x7F`) or Hangul filler Unicode characters (`\u115F`, `\u1160`, `\u3164`, `\uFFA0`) into nonced block tags (e.g., `[USER\u3164_DATA]`) or prompt injection phrases. Because LLMs or rendering contexts ignore or strip these non-printable characters, the malicious payload executes while bypassing delimiter hijacking and keyword blocklist checks.
+
+**Learning:**
+Normalization pipelines across security modules must utilize a unified, comprehensive character cleaning regex. Stripping control characters and Hangul fillers prior to delimiter and keyword checks neutralizes character-level obfuscation attacks without impacting standard whitespace handling.
+
+**Prevention:**
+Ensure query normalization regexes explicitly include control characters (`\x00-\x08\x0B\x0C\x0E-\x1F\x7F`) and Hangul fillers (`\u115F`, `\u1160`, `\u3164`, `\uFFA0`) alongside standard zero-width and formatting markers before evaluating blocklists or delimiter structures.
+
 ## 2026-06-19 - OWASP-Compliant ReDoS-Immune Password Validation
 **Vulnerability:**
 Traditional password validation regexes (like those using multiple lookahead assertions over general character sets) often restrict what special characters (or spaces) users can use. This violates OWASP standards, limiting password choices and passphrase security. Additionally, complex regular expressions on un-truncated user inputs are highly vulnerable to client-side or server-side Regular Expression Denial of Service (ReDoS) via catastrophic backtracking.
