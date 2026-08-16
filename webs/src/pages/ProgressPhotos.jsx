@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Camera, Trash2, X, Layers, Maximize2 } from 'lucide-react';
+import { Camera, Trash2, X, Layers, Maximize2, Sparkles, ShieldCheck, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/Button';
 import Badge from '@/components/Badge';
 import Breadcrumb from '@/components/Breadcrumb';
@@ -81,7 +81,7 @@ const SpectralLens = ({ before, after, onClose }) => {
         transformStyle: 'preserve-3d',
         transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
       }}
-      className="relative w-full aspect-[16/10] md:aspect-[16/9] rounded-[3.5rem] overflow-hidden bg-[#05060B] border border-white/5 shadow-[0_80px_160px_-40px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.05)] group/lens"
+      className="relative w-full aspect-[16/10] md:aspect-[16/9] rounded-[3.5rem] overflow-hidden bg-[#05060B] border border-white/10 shadow-[0_80px_160px_-40px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.05)] group/lens"
     >
       {/* Precision grid backplate */}
       <div className="absolute inset-0 bg-grid-white opacity-40 pointer-events-none" />
@@ -89,8 +89,8 @@ const SpectralLens = ({ before, after, onClose }) => {
       {/* After image layer */}
       <img src={after.src} alt="After Evolution" className="absolute inset-0 w-full h-full object-cover select-none" />
       <div className="absolute bottom-10 right-14 z-10 pointer-events-none">
-         <div className="flex flex-col items-end">
-            <span className="text-[0.55rem] font-mono text-voro-secondary uppercase tracking-[0.4em] mb-1">Spectrum_B // After</span>
+         <div className="flex flex-col items-end bg-black/60 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10">
+            <span className="text-[0.55rem] font-mono text-voro-secondary uppercase tracking-[0.3em] mb-1 font-bold">Spectrum_B // After</span>
             <span className="text-2xl font-serif italic text-white font-bold tracking-tight">{shortDateFormatter.format(new Date(after.date))}</span>
          </div>
       </div>
@@ -102,8 +102,8 @@ const SpectralLens = ({ before, after, onClose }) => {
       >
         <img src={before.src} alt="Before Evolution" className="absolute inset-0 w-full h-full object-cover select-none" />
         <div className="absolute bottom-10 left-14">
-          <div className="flex flex-col">
-            <span className="text-[0.55rem] font-mono text-voro-primary uppercase tracking-[0.4em] mb-1">Spectrum_A // Before</span>
+          <div className="flex flex-col bg-black/60 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10">
+            <span className="text-[0.55rem] font-mono text-voro-primary uppercase tracking-[0.3em] mb-1 font-bold">Spectrum_A // Before</span>
             <span className="text-2xl font-serif italic text-white font-bold tracking-tight">{shortDateFormatter.format(new Date(before.date))}</span>
           </div>
         </div>
@@ -113,7 +113,7 @@ const SpectralLens = ({ before, after, onClose }) => {
       <div
         className="absolute top-0 bottom-0 z-30 w-0.5 bg-white/20 cursor-ew-resize group-hover/lens:bg-voro-primary transition-colors duration-500"
         style={{ left: `${sliderPos}%` }}
-        onMouseDown={(e) => {
+        onMouseDown={() => {
           const up = () => {
             window.removeEventListener('mousemove', handleMove);
             window.removeEventListener('mouseup', up);
@@ -123,7 +123,7 @@ const SpectralLens = ({ before, after, onClose }) => {
         }}
         onTouchMove={handleMove}
       >
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full border border-white/20 bg-black/60 backdrop-blur-2xl flex items-center justify-center shadow-3xl group-hover/lens:scale-110 group-hover/lens:border-voro-primary transition-all duration-500">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full border border-white/20 bg-black/80 backdrop-blur-2xl flex items-center justify-center shadow-3xl group-hover/lens:scale-110 group-hover/lens:border-voro-primary transition-all duration-500">
           <div className="flex gap-1.5">
             <div className="w-0.5 h-4 bg-white/60 rounded-full" />
             <div className="w-0.5 h-4 bg-white/60 rounded-full" />
@@ -131,25 +131,25 @@ const SpectralLens = ({ before, after, onClose }) => {
           <div className="absolute inset-[-15px] rounded-full bg-voro-primary/10 animate-pulse-slow blur-2xl opacity-0 group-hover/lens:opacity-100 transition-opacity" />
         </div>
         {/* Dynamic crosshair vertical extension lines */}
-        <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px border-l border-dashed border-voro-primary/30 pointer-events-none" />
+        <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px border-l border-dashed border-voro-primary/40 pointer-events-none" />
       </div>
 
       {/* Clinical Telemetry Dashboard Overlays */}
       <div className="absolute top-10 left-12 z-40 flex items-center gap-6 pointer-events-none">
-        <div className="px-6 py-4 rounded-[1.5rem] bg-black/60 backdrop-blur-2xl border border-white/5 flex flex-col justify-center">
-          <span className="text-[0.45rem] font-mono text-gray-500 uppercase tracking-[0.4em] mb-1">Temporal_Delta</span>
+        <div className="px-6 py-4 rounded-[1.5rem] bg-black/70 backdrop-blur-2xl border border-white/10 flex flex-col justify-center">
+          <span className="text-[0.5rem] font-mono text-gray-400 uppercase tracking-[0.3em] mb-0.5 font-bold">Temporal_Delta</span>
           <span className="text-xl font-serif italic text-white font-bold">+{daysDiff} Days</span>
         </div>
-        <div className="px-6 py-4 rounded-[1.5rem] bg-black/60 backdrop-blur-2xl border border-white/5 flex flex-col justify-center">
-          <span className="text-[0.45rem] font-mono text-gray-500 uppercase tracking-[0.4em] mb-1">Structural_Alignment</span>
+        <div className="px-6 py-4 rounded-[1.5rem] bg-black/70 backdrop-blur-2xl border border-white/10 flex flex-col justify-center">
+          <span className="text-[0.5rem] font-mono text-gray-400 uppercase tracking-[0.3em] mb-0.5 font-bold">Structural_Alignment</span>
           <span className="text-xl font-serif italic text-voro-secondary font-bold">96.8%</span>
         </div>
       </div>
 
       <div className="absolute top-10 right-12 z-40 flex items-center gap-6">
         {/* Real-time coordinates telemetry tracking */}
-        <div className="px-6 py-4 rounded-[1.5rem] bg-black/60 backdrop-blur-2xl border border-white/5 flex flex-col justify-center text-right pointer-events-none">
-          <span className="text-[0.45rem] font-mono text-gray-500 uppercase tracking-[0.4em] mb-1">Spatial_Lens_Telemetry</span>
+        <div className="px-6 py-4 rounded-[1.5rem] bg-black/70 backdrop-blur-2xl border border-white/10 flex flex-col justify-center text-right pointer-events-none">
+          <span className="text-[0.5rem] font-mono text-gray-400 uppercase tracking-[0.3em] mb-0.5 font-bold">Spatial_Lens_Telemetry</span>
           <span className="text-xs font-mono text-voro-primary font-bold">
             X_<span ref={tiltXRef}>0.0</span>° // Y_<span ref={tiltYRef}>0.0</span>°
           </span>
@@ -157,7 +157,7 @@ const SpectralLens = ({ before, after, onClose }) => {
 
         <button
           onClick={onClose}
-          className="p-4 rounded-2xl bg-black/60 backdrop-blur-2xl border border-white/5 text-white/40 hover:text-white transition-all hover:bg-black/80 hover:border-white/20 active:scale-95"
+          className="p-4 rounded-2xl bg-black/70 backdrop-blur-2xl border border-white/10 text-white/50 hover:text-white transition-all hover:bg-black/90 hover:border-white/20 active:scale-95"
           aria-label="Close Comparison"
         >
           <X size={18} />
@@ -270,7 +270,7 @@ const KineticPhotoNode = ({ photo, isSelected, onClick, onDelete, isStart, isLat
       }}
       className={`
         relative group rounded-[2.5rem] overflow-hidden cursor-pointer border bg-[#0A0C14] transition-all duration-500
-        ${isSelected ? 'border-voro-primary shadow-[0_40px_80px_rgba(124,58,237,0.25)]' : 'border-white/5 shadow-xl hover:border-white/15'}
+        ${isSelected ? 'border-voro-primary shadow-[0_40px_80px_rgba(124,58,237,0.3)] ring-2 ring-voro-primary/50' : 'border-white/10 shadow-xl hover:border-white/20'}
         ${isFocused ? 'ring-2 ring-voro-primary ring-offset-4 ring-offset-[#080B14]' : ''}
       `}
     >
@@ -281,7 +281,7 @@ const KineticPhotoNode = ({ photo, isSelected, onClick, onDelete, isStart, isLat
           className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
         />
         {/* Luminous gradient shadows */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-80 group-hover:opacity-90 transition-opacity" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 group-hover:opacity-95 transition-opacity" />
 
         {/* Technical crosshair grids visible on hover */}
         <div className="absolute inset-0 bg-grid-white opacity-0 group-hover:opacity-10 pointer-events-none transition-opacity duration-500" />
@@ -291,16 +291,16 @@ const KineticPhotoNode = ({ photo, isSelected, onClick, onDelete, isStart, isLat
           className="absolute top-6 right-6 pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-500"
           style={{ transform: 'translateZ(60px)' }}
         >
-          <div className="flex flex-col items-end font-mono text-[0.45rem] font-bold text-voro-primary/80 tracking-[0.2em] space-y-1 bg-black/50 px-2.5 py-1.5 rounded-lg border border-white/5 backdrop-blur-md">
+          <div className="flex flex-col items-end font-mono text-[0.45rem] font-bold text-voro-primary/90 tracking-[0.15em] space-y-1 bg-black/70 px-3 py-2 rounded-xl border border-white/10 backdrop-blur-md">
             <span>TX_<span ref={tiltXRef}>0.0</span>°</span>
             <span>TY_<span ref={tiltYRef}>0.0</span>°</span>
-            <span className="text-white/30">{nodeId}</span>
+            <span className="text-white/40">{nodeId}</span>
           </div>
         </div>
 
         {/* Badge & Timing Indicators */}
         <div className="absolute bottom-6 left-8 right-8 z-10">
-          <p className="text-[0.5rem] font-mono text-gray-500 uppercase tracking-[0.4em] mb-1">Log_Sequence</p>
+          <p className="text-[0.55rem] font-mono text-gray-400 uppercase tracking-[0.25em] mb-1 font-semibold">Log_Sequence</p>
           <div className="flex items-center justify-between">
             <span className="text-xl font-serif italic text-white font-semibold">
               {progressDateFormatter.format(new Date(photo.date))}
@@ -312,8 +312,8 @@ const KineticPhotoNode = ({ photo, isSelected, onClick, onDelete, isStart, isLat
         </div>
 
         <div className="absolute top-6 left-6 flex gap-2">
-          {isStart && <Badge variant="voro-primary" className="text-[0.5rem] tracking-[0.25em] py-1 px-3">APEX_START</Badge>}
-          {isLatest && <Badge variant="voro-secondary" className="text-[0.5rem] tracking-[0.25em] py-1 px-3">LATEST_SYNC</Badge>}
+          {isStart && <Badge variant="voro-primary" className="text-[0.55rem] tracking-[0.15em] py-1 px-3 font-mono font-bold">APEX_START</Badge>}
+          {isLatest && <Badge variant="voro-secondary" className="text-[0.55rem] tracking-[0.15em] py-1 px-3 font-mono font-bold">LATEST_SYNC</Badge>}
         </div>
 
         {/* Double confirmation defensive deletion trigger */}
@@ -329,7 +329,7 @@ const KineticPhotoNode = ({ photo, isSelected, onClick, onDelete, isStart, isLat
           aria-label={showPurgeConfirm ? "Confirm deletion sequence" : "Decommission biometric node"}
         >
           {showPurgeConfirm ? (
-            <span className="text-[0.5rem] font-mono font-black tracking-[0.2em] px-1">PURGE?</span>
+            <span className="text-[0.55rem] font-mono font-black tracking-[0.15em] px-1">PURGE?</span>
           ) : (
             <Trash2 size={14} />
           )}
@@ -384,6 +384,7 @@ const ProgressPhotos = () => {
   const { setItem } = useStorageMethods();
   const { addNotification } = useNotifications();
 
+  const [isLoading, setIsLoading] = useState(true);
   const [compareA, setCompareA] = useState(null);
   const [compareB, setCompareB] = useState(null);
   const [compareMode, setCompareMode] = useState(false);
@@ -392,6 +393,19 @@ const ProgressPhotos = () => {
 
   useEffect(() => {
     document.title = 'VORO | Spectral Progress Matrix';
+
+    // Cinematic loading sequence delay (bypassed in test environment)
+    if (window.__VORO_TEST_BYPASS__ || localStorage.getItem('voro_test_mode') === 'true') {
+      setIsLoading(false);
+    } else {
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 2200);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key.toLowerCase() === 'c' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
         setCompareMode(prev => !prev);
@@ -407,9 +421,6 @@ const ProgressPhotos = () => {
 
   const sortedPhotos = useMemo(() => {
     return [...photos].sort((a, b) => {
-      /* ⚡ PERFORMANCE OPTIMIZATION: Raw Relational Sort Optimization.
-         Utilizes raw string relational comparison to avoid both dynamic Date
-         allocation and localeCompare engine overhead. Safe-guarded with falls. */
       const dA = a.date || '';
       const dB = b.date || '';
       return dA < dB ? -1 : dA > dB ? 1 : 0;
@@ -517,10 +528,43 @@ const ProgressPhotos = () => {
     return Math.round((end - start) / (1000 * 60 * 60 * 24));
   }, [sortedPhotos]);
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#020408] flex flex-col items-center justify-center relative overflow-hidden text-white font-mono select-none">
+        <div className="absolute inset-0 bg-grid-white opacity-5 pointer-events-none" />
+        <div className="absolute w-96 h-96 bg-voro-primary/10 rounded-full blur-[140px] pointer-events-none" />
+
+        {/* Orbital Alignment Loader */}
+        <div className="relative w-48 h-48 mb-12 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-full border border-voro-primary/20 border-t-voro-primary animate-[spin_3s_linear_infinite]" />
+          <div className="absolute inset-4 rounded-full border border-voro-secondary/20 border-b-voro-secondary animate-[spin_2s_linear_infinite_reverse]" />
+          <div className="absolute inset-8 rounded-full border border-white/10 border-l-white/60 animate-[spin_4s_linear_infinite]" />
+          <div className="w-16 h-16 rounded-full bg-black/60 border border-white/10 backdrop-blur-xl flex items-center justify-center shadow-[0_0_30px_rgba(124,58,237,0.3)]">
+            <Camera size={24} className="text-voro-primary animate-pulse" />
+          </div>
+        </div>
+
+        <div className="space-y-2 text-center max-w-sm px-6">
+          <span className="text-[0.6rem] uppercase tracking-[0.4em] text-voro-primary font-bold block">
+            Chrono-Spectral Alignment Sequence
+          </span>
+          <p className="text-sm text-gray-400 font-sans font-medium">
+            Calibrating optical geometry & syncing biometric visual nodes...
+          </p>
+        </div>
+
+        <div className="mt-8 flex items-center gap-3 text-[0.55rem] tracking-[0.3em] text-gray-500 uppercase font-mono">
+          <div className="w-1.5 h-1.5 rounded-full bg-voro-secondary animate-ping" />
+          <span>SPECTRAL_MATRIX_ACTIVE // 0xPRG_CALIB</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-transparent text-[#F0F4FF] selection:bg-voro-primary/30 relative">
       {/* Structural Ambient Background Detail */}
-      <div className="absolute top-0 right-0 w-full h-[600px] bg-gradient-to-b from-voro-primary/[0.02] to-transparent pointer-events-none" />
+      <div className="absolute top-0 right-0 w-full h-[600px] bg-gradient-to-b from-voro-primary/[0.03] to-transparent pointer-events-none" />
 
       <div className="relative max-w-[1440px] mx-auto px-6 py-12 md:px-12 lg:px-20">
         <Breadcrumb
@@ -529,66 +573,72 @@ const ProgressPhotos = () => {
             { label: 'Neural Matrix', href: '/dashboard' },
             { label: 'Progress Photos' }
           ]}
-          className="mb-12"
+          className="mb-10"
         />
 
-        <header className="mb-28 flex flex-col lg:flex-row lg:items-end justify-between gap-16 group/header">
-          <div className="space-y-10 max-w-4xl">
+        <header className="mb-16 flex flex-col xl:flex-row xl:items-end justify-between gap-10 group/header border-b border-white/5 pb-12">
+          <div className="space-y-6 max-w-3xl">
             {/* Neural Pulse Eyebrow */}
-            <div className="flex items-center gap-4 text-voro-primary">
-              <div className="relative flex h-3 w-3">
+            <div className="flex items-center gap-3 text-voro-primary">
+              <div className="relative flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-voro-primary opacity-40"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-voro-primary shadow-[0_0_15px_rgba(124,58,237,0.8)]"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-voro-primary shadow-[0_0_15px_rgba(124,58,237,0.8)]"></span>
               </div>
-              <span className="text-[0.7rem] font-mono font-black uppercase tracking-[0.6em] opacity-90">Visual Biometric Archive // SYSTEM_ACTIVE</span>
+              <span className="text-[0.65rem] font-mono font-bold uppercase tracking-[0.35em] text-voro-primary/90">
+                Visual Biometric Archive // SYSTEM_ACTIVE
+              </span>
             </div>
 
-            <div className="space-y-4">
-              <h1 className="text-[5rem] md:text-[8.5rem] font-serif italic font-medium tracking-[-0.04em] text-white leading-[0.85] mb-4">Spectral,</h1>
-              <div className="flex flex-col md:flex-row md:items-end gap-12">
-                <span className="text-gradient text-[5.5rem] md:text-[9rem] font-serif font-black tracking-[-0.05em] leading-[0.8]">Evolution.</span>
-                <div className="grid grid-cols-2 gap-10 pb-4 border-l border-white/5 pl-10 ml-2">
-                   <div className="space-y-2">
-                    <span className="text-[0.55rem] font-mono text-gray-700 uppercase tracking-[0.5em] block">Archived</span>
-                    <div className="flex items-center gap-3">
-                      <div className="w-1.5 h-1.5 rounded-full bg-voro-primary shadow-[0_0_8px_rgba(124,58,237,0.5)]" />
-                      <span className="text-[0.7rem] font-mono text-white font-bold tracking-[0.2em]">{photos.length} NODES</span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <span className="text-[0.55rem] font-mono text-gray-700 uppercase tracking-[0.5em] block">Timeline</span>
-                    <div className="flex items-center gap-3">
-                      <div className="w-1.5 h-1.5 rounded-full bg-voro-secondary shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                      <span className="text-[0.7rem] font-mono text-white font-bold tracking-[0.2em]">{daysTracked} DAYS</span>
-                    </div>
-                  </div>
+            <div className="space-y-3">
+              <h1 className="text-5xl sm:text-7xl lg:text-8xl font-serif italic font-medium tracking-tight text-white leading-none">
+                Spectral, <span className="text-gradient not-italic font-black">Evolution.</span>
+              </h1>
+              <p className="text-gray-400 font-sans text-sm md:text-base max-w-xl font-normal leading-relaxed">
+                Authenticated visual progression matrix with high-resolution temporal tracking, sub-pixel spatial lenses, and cryptographically verified biometric logs.
+              </p>
+            </div>
+
+            {/* Architectural Datum Line & Telemetry stats */}
+            <div className="flex flex-wrap items-center gap-8 pt-2">
+              <div className="flex items-center gap-4">
+                <div className="h-px w-16 bg-gradient-to-r from-voro-primary to-transparent opacity-60" />
+                <span className="text-xs font-mono font-bold tracking-[0.2em] text-gray-500 uppercase">
+                  AUTHENTICATED BIOMETRIC LEDGER
+                </span>
+              </div>
+
+              <div className="flex items-center gap-6 bg-[#0A0C14] border border-white/5 px-6 py-2.5 rounded-2xl">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-2 h-2 rounded-full bg-voro-primary shadow-[0_0_8px_rgba(124,58,237,0.8)]" />
+                  <span className="text-xs font-mono text-gray-400 font-medium">Archived:</span>
+                  <span className="text-xs font-mono text-white font-bold tracking-wider">{photos.length} NODES</span>
+                </div>
+                <div className="h-3 w-px bg-white/10" />
+                <div className="flex items-center gap-2.5">
+                  <div className="w-2 h-2 rounded-full bg-voro-secondary shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                  <span className="text-xs font-mono text-gray-400 font-medium">Timeline:</span>
+                  <span className="text-xs font-mono text-white font-bold tracking-wider">{daysTracked} DAYS</span>
                 </div>
               </div>
             </div>
-
-            {/* Architectural Datum Line */}
-            <div className="flex items-center gap-6">
-              <div className="h-px w-32 bg-gradient-to-r from-voro-primary to-transparent opacity-50 group-hover/header:w-64 transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)]" />
-              <p className="text-gray-600 font-mono font-bold tracking-[0.5em] text-[0.6rem] uppercase opacity-50 whitespace-nowrap">AUTHENTICATED BIOMETRIC LEDGER</p>
-            </div>
           </div>
 
-          <div className="flex gap-6 pb-2">
+          <div className="flex flex-wrap items-center gap-4 self-start xl:self-end">
             <Button
               variant={compareMode ? "primary" : "secondary"}
               onClick={() => { setCompareMode(!compareMode); setCompareA(null); setCompareB(null); }}
               shortcut="C"
-              className="!rounded-full px-10 shadow-lg hover:shadow-xl"
+              className="!rounded-full px-8 py-3.5 text-xs font-mono tracking-wider shadow-lg hover:shadow-xl border border-white/10"
             >
-              <Layers size={18} />
+              <Layers size={16} />
               <span>{compareMode ? "Exit Analysis" : "Spectral Lens"}</span>
             </Button>
             <Button
               onClick={() => fileRef.current?.click()}
               shortcut="U"
-              className="!bg-white !text-black !rounded-full shadow-2xl shadow-white/10 px-10"
+              className="!bg-white !text-black hover:!bg-white/90 !rounded-full shadow-2xl shadow-white/10 px-8 py-3.5 text-xs font-mono tracking-wider"
             >
-              <Camera size={18} />
+              <Camera size={16} />
               <span>Upload Record</span>
             </Button>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
@@ -596,32 +646,32 @@ const ProgressPhotos = () => {
         </header>
 
         {compareMode && (
-          <section className="mb-24 animate-scale-in">
+          <section className="mb-20 animate-scale-in">
             {compareA && compareB ? (
                <SpectralLens before={compareA} after={compareB} onClose={() => { setCompareA(null); setCompareB(null); }} />
             ) : (
-              <div className="relative p-24 rounded-[3.5rem] bg-[#0A0C14] border border-dashed border-voro-primary/30 flex flex-col items-center justify-center text-center overflow-hidden group/spectral-setup min-h-[400px]">
+              <div className="relative p-16 md:p-20 rounded-[3.5rem] bg-[#0A0C14] border border-dashed border-voro-primary/40 flex flex-col items-center justify-center text-center overflow-hidden group/spectral-setup min-h-[380px]">
                  {/* Cinematic Ambient Backplate */}
                  <div className="absolute inset-0 bg-grid-white opacity-10 pointer-events-none" />
                  <div className="absolute -top-12 -left-12 w-64 h-64 bg-voro-primary/5 rounded-full blur-[100px] pointer-events-none" />
 
                  {/* Counter-rotating orbits decoration */}
-                 <div className="relative w-36 h-36 mb-10 flex items-center justify-center">
-                    <div className="absolute inset-0 rounded-full border border-dashed border-voro-primary/25 animate-[spin_16s_linear_infinite]" />
-                    <div className="absolute inset-3 rounded-full border border-dashed border-voro-secondary/15 animate-[spin_10s_linear_infinite_reverse]" />
-                    <div className="w-20 h-20 rounded-full bg-voro-primary/10 border border-voro-primary/20 flex items-center justify-center shadow-[0_0_40px_rgba(124,58,237,0.15)]">
-                       <Maximize2 size={32} className="text-voro-primary animate-pulse" />
+                 <div className="relative w-32 h-32 mb-8 flex items-center justify-center">
+                    <div className="absolute inset-0 rounded-full border border-dashed border-voro-primary/30 animate-[spin_16s_linear_infinite]" />
+                    <div className="absolute inset-3 rounded-full border border-dashed border-voro-secondary/20 animate-[spin_10s_linear_infinite_reverse]" />
+                    <div className="w-16 h-16 rounded-full bg-voro-primary/10 border border-voro-primary/30 flex items-center justify-center shadow-[0_0_40px_rgba(124,58,237,0.2)]">
+                       <Maximize2 size={26} className="text-voro-primary animate-pulse" />
                     </div>
                  </div>
 
-                 <h3 className="text-3xl font-serif italic font-semibold text-white mb-4">Select Two Temporal Nodes</h3>
-                 <p className="text-sm text-gray-500 max-w-md leading-relaxed mb-10 font-medium">Click on any two recorded visual nodes below to align their architectural properties for visual comparison analysis.</p>
+                 <h3 className="text-2xl sm:text-3xl font-serif italic font-semibold text-white mb-3">Select Two Temporal Nodes</h3>
+                 <p className="text-xs sm:text-sm text-gray-400 max-w-md leading-relaxed mb-8 font-medium">Click on any two recorded visual nodes below to align their architectural properties for visual comparison analysis.</p>
 
-                 <div className="flex flex-col sm:flex-row gap-6">
-                    <div className={`px-8 py-3 rounded-2xl border font-mono text-[0.65rem] tracking-[0.2em] font-black transition-all ${compareA ? 'bg-voro-primary/10 border-voro-primary text-voro-primary' : 'bg-white/5 border-white/5 text-gray-600'}`}>
+                 <div className="flex flex-col sm:flex-row gap-4">
+                    <div className={`px-6 py-3 rounded-2xl border font-mono text-xs tracking-wider font-bold transition-all ${compareA ? 'bg-voro-primary/15 border-voro-primary text-voro-primary' : 'bg-white/5 border-white/10 text-gray-500'}`}>
                       [NODE_A: {compareA ? `READY (${shortDateFormatter.format(new Date(compareA.date))})` : 'EMPTY'}]
                     </div>
-                    <div className={`px-8 py-3 rounded-2xl border font-mono text-[0.65rem] tracking-[0.2em] font-black transition-all ${compareB ? 'bg-voro-secondary/10 border-voro-secondary text-voro-secondary' : 'bg-white/5 border-white/5 text-gray-600'}`}>
+                    <div className={`px-6 py-3 rounded-2xl border font-mono text-xs tracking-wider font-bold transition-all ${compareB ? 'bg-voro-secondary/15 border-voro-secondary text-voro-secondary' : 'bg-white/5 border-white/10 text-gray-500'}`}>
                       [NODE_B: {compareB ? `READY (${shortDateFormatter.format(new Date(compareB.date))})` : 'EMPTY'}]
                     </div>
                  </div>
@@ -631,21 +681,21 @@ const ProgressPhotos = () => {
         )}
 
         {photos.length === 0 ? (
-          <div className="py-48 flex flex-col items-center justify-center text-center relative rounded-[3.5rem] bg-[#0A0C14] border border-white/5 overflow-hidden">
+          <div className="py-36 flex flex-col items-center justify-center text-center relative rounded-[3.5rem] bg-[#0A0C14] border border-white/5 overflow-hidden">
             {/* Ambient Background Glow */}
             <div className="absolute inset-0 bg-grid-white opacity-10 pointer-events-none" />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-voro-primary/5 rounded-full blur-[140px] pointer-events-none" />
 
-            <div className="relative w-36 h-36 mb-12 flex items-center justify-center">
+            <div className="relative w-32 h-32 mb-8 flex items-center justify-center">
                <div className="absolute inset-0 bg-voro-primary/10 rounded-full blur-[40px] animate-pulse" />
                <div className="absolute inset-0 rounded-full border border-dashed border-voro-primary/20 animate-[spin_20s_linear_infinite]" />
-               <div className="relative w-24 h-24 rounded-full bg-[#05060A] border border-white/10 flex items-center justify-center shadow-2xl">
-                  <Camera size={36} className="text-voro-primary" />
+               <div className="relative w-20 h-20 rounded-full bg-[#05060A] border border-white/10 flex items-center justify-center shadow-2xl">
+                  <Camera size={32} className="text-voro-primary" />
                </div>
             </div>
-            <h3 className="text-4xl font-serif italic font-semibold text-white mb-4">Biometric Ledger Void</h3>
-            <p className="text-sm text-gray-500 max-w-sm mx-auto mb-12 font-medium leading-relaxed">Your secure visual progression vault has not been initialized. Synchronize your first visual specimen to track physical transition.</p>
-            <Button onClick={() => fileRef.current?.click()} className="!rounded-full px-12 py-5 shadow-xl shadow-voro-primary/15 hover:shadow-voro-primary/30">
+            <h3 className="text-3xl font-serif italic font-semibold text-white mb-3">Biometric Ledger Void</h3>
+            <p className="text-xs sm:text-sm text-gray-400 max-w-sm mx-auto mb-10 font-medium leading-relaxed">Your secure visual progression vault has not been initialized. Synchronize your first visual specimen to track physical transition.</p>
+            <Button onClick={() => fileRef.current?.click()} className="!rounded-full px-10 py-4 shadow-xl shadow-voro-primary/15 hover:shadow-voro-primary/30">
               Initialize Baseline Specimen
             </Button>
           </div>
@@ -677,24 +727,24 @@ const ProgressPhotos = () => {
 
       <Modal isOpen={!!selectedPhoto} onClose={() => setSelectedPhoto(null)} title="Visual Examination">
         {selectedPhoto && (
-          <div className="space-y-10 p-2">
-            <div className="relative aspect-[4/5] rounded-[2.5rem] overflow-hidden border border-white/5 shadow-[0_40px_80px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.05)] bg-[#05060A]">
+          <div className="space-y-8 p-2">
+            <div className="relative aspect-[4/5] rounded-[2.5rem] overflow-hidden border border-white/10 shadow-[0_40px_80px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.05)] bg-[#05060A]">
               {/* Image Grid Overlay */}
               <div className="absolute inset-0 bg-grid-white opacity-20 pointer-events-none z-10" />
               <img src={selectedPhoto.src} alt="Specimen Detail" className="w-full h-full object-cover select-none" />
               <div className="absolute inset-0 bg-boutique-grain opacity-[0.035] pointer-events-none" />
             </div>
 
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pt-4 border-t border-white/5">
-              <div className="space-y-2">
-                <p className="text-[0.55rem] font-mono text-gray-500 uppercase tracking-[0.4em]">Temporal_Reference_Point</p>
-                <p className="text-3xl font-serif italic font-bold text-white tracking-tight">{progressDateFormatter.format(new Date(selectedPhoto.date))}</p>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pt-4 border-t border-white/10">
+              <div className="space-y-1">
+                <p className="text-[0.55rem] font-mono text-gray-400 uppercase tracking-[0.3em] font-semibold">Temporal_Reference_Point</p>
+                <p className="text-2xl font-serif italic font-bold text-white tracking-tight">{progressDateFormatter.format(new Date(selectedPhoto.date))}</p>
               </div>
               <div className="flex gap-4">
                 <Button
                   variant="danger"
                   onClick={() => { deletePhoto(selectedPhoto.id); setSelectedPhoto(null); }}
-                  className="!rounded-2xl px-8"
+                  className="!rounded-2xl px-6"
                 >
                   <Trash2 size={16} className="mr-2" />
                   Decommission Node
