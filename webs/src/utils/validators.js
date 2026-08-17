@@ -251,6 +251,18 @@ const HARVESTING_RE = /repeat the system prompt|reveal your instructions|reveal 
 
 const ROLEPLAY_RE = /roleplay as|adopt the persona|pretend to be|you are now a terminal|you are now a linux|starting now you are|you are no longer an ai assistant|you are no longer a helpful/i;
 
+// Helper to decode Unicode Tag characters (ASCII Smuggling / Invisible Tag Characters U+E0020-U+E007E)
+const decodeUnicodeTagCharacters = (str) => {
+  if (!str || typeof str !== 'string') return str;
+  return str.replace(/[\u{E0001}-\u{E007F}]/gu, (char) => {
+    const cp = char.codePointAt(0);
+    if (cp >= 0xE0020 && cp <= 0xE007E) {
+      return String.fromCharCode(cp - 0xE0000); // Map tag character to corresponding printable ASCII character
+    }
+    return ''; // Strip non-printable tag control characters (U+E0001 Language Tag, U+E007F Cancel Tag)
+  });
+};
+
 // Helper to decode URL percent encoding (handles double/recursive encoding up to 5 times)
 const decodePercentEncoding = (str) => {
   try {
@@ -357,8 +369,8 @@ const COMPRESSED_BLOCKLIST_RE = /ignoreprevious|ignoreabove|ignoreallinstruction
 export const isPromptInjection = (query, isNested = false) => {
   if (!query || typeof query !== 'string') return false;
 
-  // Security: Decode URL percent-encoding and HTML entities first
-  const decodedQuery = decodePercentEncoding(decodeHTMLEntities(query));
+  // Security: Decode Unicode Tag characters (ASCII smuggling), URL percent-encoding, and HTML entities first
+  const decodedQuery = decodeUnicodeTagCharacters(decodePercentEncoding(decodeHTMLEntities(query)));
 
   let normalizedQuery = decodedQuery.normalize('NFKD').toLowerCase();
   // Strip combining diacritical marks across all standard Unicode diacritic blocks (including extended, supplement, symbols, and half-marks)
