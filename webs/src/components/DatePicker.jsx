@@ -18,6 +18,7 @@ export const DatePicker = memo(({
   onChange,
   label,
   error = false,
+  required = false,
   className = "",
   ...props
 }) => {
@@ -40,6 +41,7 @@ export const DatePicker = memo(({
             className="block text-[0.6rem] font-mono font-black uppercase tracking-[0.4em] text-gray-500 group-focus-within/date-container:text-voro-primary transition-colors cursor-pointer"
           >
             {label}
+            {required && <span className="text-red-500 ml-1">*</span>}
           </label>
         )}
         <span className="text-[0.45rem] font-mono font-bold text-gray-700 uppercase tracking-widest opacity-0 group-focus-within/date-container:opacity-100 transition-opacity duration-500">
@@ -81,6 +83,7 @@ export const DatePicker = memo(({
               type="date"
               value={value}
               onChange={(e) => onChange(e.target.value)}
+              required={required}
               className={`
                 w-full bg-transparent px-6 py-5 text-white font-mono text-sm
                 focus:outline-none transition-all duration-500

@@ -37,6 +37,7 @@ const Ring = memo(({ value, max, size = 180, unit = 'kcal', color = '#7C3AED', l
       aria-valuenow={value}
       aria-valuemin="0"
       aria-valuemax={max}
+      aria-label={label || 'Metabolic Progress'}
       className="relative flex flex-col items-center justify-center select-none transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
       style={{
         width: size,

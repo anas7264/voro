@@ -41,7 +41,14 @@ export const Progress = memo(({
   const activeSize = sizes[size] || sizes.md;
 
   return (
-    <div className={`w-full group/progress ${className}`} role="progressbar" aria-valuenow={value} aria-valuemin="0" aria-valuemax={max}>
+    <div
+      className={`w-full group/progress ${className}`}
+      role="progressbar"
+      aria-valuenow={value}
+      aria-valuemin="0"
+      aria-valuemax={max}
+      aria-label={label || "Progress"}
+    >
       {label && (
         <div className="flex justify-between items-end mb-3">
           <span className="text-[0.6rem] font-mono font-black uppercase tracking-[0.3em] text-gray-500 group-focus-within/progress:text-voro-primary transition-colors">
