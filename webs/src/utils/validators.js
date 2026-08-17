@@ -290,6 +290,23 @@ const decodeHTMLEntities = (str) => {
     });
 };
 
+// Helper to decode Unicode Tag characters (ASCII Smuggling: U+E0020 to U+E007E -> ASCII codePoint - 0xE0000)
+const decodeUnicodeTagCharacters = (str) => {
+  if (!str || typeof str !== 'string') return str;
+  let decoded = '';
+  for (const char of str) {
+    const code = char.codePointAt(0);
+    if (code >= 0xE0020 && code <= 0xE007E) {
+      decoded += String.fromCharCode(code - 0xE0000);
+    } else if (code === 0xE0001 || code === 0xE007F) {
+      continue; // Skip tag control characters
+    } else {
+      decoded += char;
+    }
+  }
+  return decoded;
+};
+
 // Helper to safely decode Base64 strings with auto-padding and printable-ASCII verification (XSS/DoS safe)
 const safeAtob = (str) => {
   try {
@@ -357,8 +374,8 @@ const COMPRESSED_BLOCKLIST_RE = /ignoreprevious|ignoreabove|ignoreallinstruction
 export const isPromptInjection = (query, isNested = false) => {
   if (!query || typeof query !== 'string') return false;
 
-  // Security: Decode URL percent-encoding and HTML entities first
-  const decodedQuery = decodePercentEncoding(decodeHTMLEntities(query));
+  // Security: Decode Unicode Tag characters (ASCII Smuggling), URL percent-encoding, and HTML entities first
+  const decodedQuery = decodePercentEncoding(decodeHTMLEntities(decodeUnicodeTagCharacters(query)));
 
   let normalizedQuery = decodedQuery.normalize('NFKD').toLowerCase();
   // Strip combining diacritical marks across all standard Unicode diacritic blocks (including extended, supplement, symbols, and half-marks)
@@ -366,9 +383,10 @@ export const isPromptInjection = (query, isNested = false) => {
   // Translate Cyrillic and Greek homoglyphs (matching full Unicode Cyrillic and Greek/Coptic blocks) to Latin equivalents
   normalizedQuery = normalizedQuery.replace(/[\u0400-\u04FF\u0370-\u03FF]/g, char => HOMOGLYPHS_MAP[char] || char);
 
-  // 3. Clean zero-width, formatting, and invisible characters, and condense consecutive whitespaces
+  // 3. Clean zero-width, ASCII control, formatting, and invisible characters, and condense consecutive whitespaces
+  // eslint-disable-next-line no-control-regex
   normalizedQuery = normalizedQuery
-    .replace(/[\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff\u00ad]/g, '')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff\u00ad\u115F\u1160\u3164\uFFA0]/g, '')
     .replace(/\s+/g, ' ');
 
   // 1. Delimiter hijacking detection (VORO specific nonced blocks or closing tags)

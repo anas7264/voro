@@ -241,10 +241,20 @@ Always implement non-destructive Base64 and Hex parsing layers in query validato
 
 ## 2026-06-19 - OWASP-Compliant ReDoS-Immune Password Validation
 **Vulnerability:**
-Traditional password validation regexes (like those using multiple lookahead assertions over general character sets) often restrict what special characters (or spaces) users can use. This violates OWASP standards, limiting password choices and passphrase security. Additionally, complex regular expressions on un-truncated user inputs are highly vulnerable to client-side or server-side Regular Expression Denial of Service (ReDoS) via catastrophic backtracking.
+Traditional password validation regexes (like those using multiple lookahead assertions over general character sets) often restrict what special characters (or spaces) users can use. This violates OWASP standards, limiting password choices and passphrase security. Additionally, complex regular expressions on un-truncated user inputs are highly vulnerable to catastrophic backtracking Regular Expression Denial of Service (ReDoS).
 
 **Learning:**
 Adopting a linear-scan string verification model (O(N) single-pass iteration) rather than complex regex lookaheads guarantees immunity against ReDoS attacks. This approach ensures robust complexity checks (verifying the existence of lowercase, uppercase, and numeric characters within a strict 8-128 character window) without imposing restrictive character set limitations, fully aligning with OWASP's focus on allowing passphrases and wide character support.
 
 **Prevention:**
 Avoid complex lookahead regex patterns for password validation. Utilize linear, single-pass character iteration loops to verify complexity criteria, and establish strict maximum length limits at validation entry points.
+
+## 2026-06-20 - Unicode Tag Character (ASCII Smuggling) & Control Character Injection Shield
+**Vulnerability:**
+Prompt injection filters can be bypassed using Unicode Tag characters (`U+E0020` - `U+E007E`), ASCII control characters (`\x00-\x1F`), or Hangul fillers (`\u115F`, `\u1160`, `\u3164`, `\uFFA0`). Unicode Tag characters map 1:1 to printable ASCII characters minus `0xE0000`, rendering invisible text in UI displays that LLMs still parse and execute as instructions.
+
+**Learning:**
+Neutralizing ASCII smuggling requires decoding Unicode Tag characters (`codePoint - 0xE0000`) and stripping tag control delimiters (`U+E0001`, `U+E007F`) at the very entry point of the input validation pipeline. Combining this decoding step with ASCII control and Hangul filler character removal converts hidden prompt injection instructions into literal plain text before evaluating against blocklist patterns.
+
+**Prevention:**
+Always execute Unicode Tag character decoding and control character stripping at the entry point of prompt injection validators prior to normalizations, delimiter checks, or pattern matching.
