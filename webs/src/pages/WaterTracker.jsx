@@ -6,6 +6,9 @@ import { validateWaterEntry } from '@/utils/validators';
 import { getFastShortDate } from '@/utils/formatters';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
+import Header from '@/components/Header';
+import Breadcrumb from '@/components/Breadcrumb';
+import Card from '@/components/Card';
 import LineChartComponent from '@/components/LineChartComponent';
 
 /**
@@ -20,9 +23,10 @@ const longDateFormatter = new Intl.DateTimeFormat('en-US', {
 
 /**
  * ⚡ LUXURY REFINEMENT: Volumetric 3D HydroVessel with static 4-degree keyboard focus tilts,
- * mouse-tracking depth, active reflection lenses, and clinical-grade real-time indicators.
+ * mouse-tracking depth, active reflection lenses, holographic coordinate telemetry,
+ * and clinical-grade real-time indicators.
  */
-const HydroVessel = memo(({ percentage, biologicalState, nodeId }) => {
+const HydroVessel = memo(({ percentage, biologicalState, nodeId = "VESSEL_NODE" }) => {
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
@@ -87,11 +91,11 @@ const HydroVessel = memo(({ percentage, biologicalState, nodeId }) => {
         transition: isHovered ? 'none' : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
       }}
-      className="relative w-56 h-96 mx-auto group outline-none rounded-[3.5rem]"
+      className="relative w-64 h-[26rem] mx-auto group outline-none rounded-[3.5rem] cursor-pointer"
     >
       {/* Dynamic Aura Backglow matching blue liquid theme */}
       <div
-        className="absolute inset-[-12px] rounded-[3.5rem] bg-blue-500/10 opacity-30 blur-2xl group-hover:bg-blue-400/20 transition-all duration-1000"
+        className="absolute inset-[-12px] rounded-[3.5rem] bg-blue-500/10 opacity-30 blur-2xl group-hover:bg-blue-400/25 transition-all duration-1000"
         style={{ transform: 'translateZ(-10px)' }}
       />
 
@@ -101,18 +105,18 @@ const HydroVessel = memo(({ percentage, biologicalState, nodeId }) => {
         style={{ transform: 'translateZ(90px)' }}
       >
         <div className="flex flex-col items-end font-mono text-[0.45rem] font-bold text-blue-400/60 tracking-[0.2em] space-y-0.5">
-          <span>T_X <span ref={tiltXRef}>0.0</span>°</span>
-          <span>T_Y <span ref={tiltYRef}>0.0</span>°</span>
+          <span>TX_<span ref={tiltXRef}>0.0</span>°</span>
+          <span>TY_<span ref={tiltYRef}>0.0</span>°</span>
           <span className="text-white/20">[{nodeId}]</span>
         </div>
       </div>
 
       {/* Outer Vessel Shadow Plate */}
-      <div className="absolute inset-0 rounded-[3rem] bg-[#0A0C14]/80 border border-white/5 shadow-[0_50px_100px_rgba(0,0,0,0.8)]" />
+      <div className="absolute inset-0 rounded-[3.5rem] bg-[#0A0C14]/90 border border-white/5 shadow-[0_50px_100px_rgba(0,0,0,0.85)]" />
 
-      {/* The Vessel */}
+      {/* The Vessel Body */}
       <div
-        className="relative w-full h-full rounded-[3rem] border-2 border-white/10 bg-[#0D121F]/40 backdrop-blur-3xl overflow-hidden shadow-2xl"
+        className="relative w-full h-full rounded-[3.5rem] border-2 border-white/10 bg-[#0D121F]/40 backdrop-blur-3xl overflow-hidden shadow-2xl"
         style={{ transform: 'translateZ(30px)', transformStyle: 'preserve-3d' }}
       >
         {/* Dynamic Water Body */}
@@ -131,7 +135,7 @@ const HydroVessel = memo(({ percentage, biologicalState, nodeId }) => {
           </div>
 
           {/* Liquid Mass */}
-          <div className="absolute top-[20px] left-0 w-full h-[1000px] bg-gradient-to-b from-blue-600/50 via-blue-800/30 to-blue-950/60" />
+          <div className="absolute top-[20px] left-0 w-full h-[1000px] bg-gradient-to-b from-blue-600/50 via-blue-800/35 to-blue-950/70" />
 
           <svg className="hidden">
             <defs>
@@ -147,24 +151,24 @@ const HydroVessel = memo(({ percentage, biologicalState, nodeId }) => {
         <div
           className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
           style={{
-            background: `radial-gradient(220px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(59, 130, 246, 0.12), transparent 80%)`,
+            background: `radial-gradient(220px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(59, 130, 246, 0.15), transparent 80%)`,
             transform: 'translateZ(50px)'
           }}
         />
 
         {/* Glass Reflection */}
-        <div className="absolute top-8 left-6 w-1.5 h-3/4 bg-gradient-to-b from-white/20 via-white/5 to-transparent rounded-full blur-[1px] pointer-events-none" style={{ transform: 'translateZ(60px)' }} />
+        <div className="absolute top-8 left-6 w-1.5 h-3/4 bg-gradient-to-b from-white/25 via-white/5 to-transparent rounded-full blur-[1px] pointer-events-none" style={{ transform: 'translateZ(60px)' }} />
         <div className="absolute top-10 left-10 w-6 h-6 bg-white/5 rounded-full blur-xl pointer-events-none" style={{ transform: 'translateZ(40px)' }} />
       </div>
 
       {/* Measurement Matrix (Precomputed scale lines) */}
       <div
-        className="absolute left-[-50px] inset-y-12 flex flex-col justify-between items-end py-6 z-20 pointer-events-none"
+        className="absolute left-[-54px] inset-y-12 flex flex-col justify-between items-end py-6 z-20 pointer-events-none"
         style={{ transform: 'translateZ(40px)' }}
       >
         {[2000, 1500, 1000, 500].map(val => (
           <div key={val} className="flex items-center gap-3">
-             <span className="text-[0.55rem] font-mono font-semibold text-gray-600 tracking-tighter">{val}ml</span>
+             <span className="text-[0.55rem] font-mono font-semibold text-gray-500 tracking-tighter">{val}ml</span>
              <div className="w-3.5 h-[1.5px] bg-white/15" />
           </div>
         ))}
@@ -173,9 +177,11 @@ const HydroVessel = memo(({ percentage, biologicalState, nodeId }) => {
   );
 });
 
+HydroVessel.displayName = "HydroVessel";
+
 /**
  * ⚡ LUXURY REFINEMENT: Micro-Interaction Catalyst Injector Button
- * Features high-end volumetric hover tilts, keyboard outlines, and responsive kinetic states.
+ * Features high-end volumetric hover tilts, reactive liquid border illumination, and responsive kinetic states.
  */
 const CatalystCard = memo(({ amount, onAdd }) => {
   const containerRef = useRef(null);
@@ -226,28 +232,40 @@ const CatalystCard = memo(({ amount, onAdd }) => {
       onClick={() => onAdd(amount)}
       style={{
         transform: isActive
-          ? 'perspective(800px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)'
+          ? 'perspective(800px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-3px)'
           : 'perspective(800px) rotateX(0deg) rotateY(0deg) translateY(0px)',
         transition: isHovered ? 'none' : 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
       }}
       className={`
-        group relative p-8 rounded-[2rem] bg-[#0A0C14] border border-white/5
-        transition-all duration-300 text-center overflow-hidden outline-none
-        focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:border-blue-500
+        group relative p-8 rounded-[2.25rem] bg-[#0A0C14] border border-white/5
+        transition-all duration-500 text-center overflow-hidden outline-none cursor-pointer
+        hover:border-blue-500/30 hover:shadow-[0_20px_40px_rgba(59,130,246,0.15)]
+        focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408]
       `}
     >
+      {/* 🛰️ Liquid Border Intelligence */}
+      <div
+        className="absolute inset-0 rounded-[2.25rem] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+        style={{
+          padding: '1px',
+          background: `radial-gradient(150px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(59, 130, 246, 0.4), transparent 80%)`,
+          WebkitMask: 'linear-gradient(#fff, #fff) content-box, linear-gradient(#fff, #fff)',
+          WebkitMaskComposite: 'xor',
+          maskComposite: 'exclude',
+        }}
+      />
+
       {/* Light Lens Effect */}
       <div
         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
         style={{
-          background: `radial-gradient(120px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(59, 130, 246, 0.08), transparent 85%)`
+          background: `radial-gradient(140px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(59, 130, 246, 0.1), transparent 85%)`
         }}
       />
-      <div className="absolute inset-0 bg-blue-500/[0.01] opacity-0 group-hover:opacity-100 transition-opacity" />
 
       <div style={{ transform: 'translateZ(30px)' }} className="relative z-10">
-        <Droplet size={16} className="text-blue-500 mx-auto mb-4 group-hover:scale-125 transition-transform duration-500" />
+        <Droplet size={18} className="text-blue-500 mx-auto mb-4 group-hover:scale-125 transition-transform duration-500" />
         <p className="text-3xl font-serif italic font-medium text-white mb-1">
           {amount >= 1000 ? (amount / 1000).toFixed(1) : amount}
         </p>
@@ -258,6 +276,8 @@ const CatalystCard = memo(({ amount, onAdd }) => {
     </button>
   );
 });
+
+CatalystCard.displayName = "CatalystCard";
 
 /**
  * ⚡ DEFENSIVE UX: Double-Confirmation Deletion Item
@@ -289,10 +309,10 @@ const HydrationHistoryItem = memo(({ log, onDelete }) => {
   return (
     <div
       className={`
-        group flex items-center justify-between p-6 rounded-[1.5rem] bg-white/[0.02] border
+        group flex items-center justify-between p-6 rounded-[1.75rem] bg-white/[0.02] border
         transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]
         ${purgeState
-          ? 'border-red-500/40 bg-red-950/10 shadow-[0_15px_30px_rgba(239,68,68,0.1)]'
+          ? 'border-red-500/40 bg-red-950/10 shadow-[0_15px_30px_rgba(239,68,68,0.15)]'
           : 'border-white/5 hover:bg-white/[0.04] hover:border-white/10'
         }
       `}
@@ -300,7 +320,7 @@ const HydrationHistoryItem = memo(({ log, onDelete }) => {
       <div className="flex items-center gap-6">
         <div
           className={`
-            w-2 h-2 rounded-full transition-all duration-500
+            w-2.5 h-2.5 rounded-full transition-all duration-500
             ${purgeState
               ? 'bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)] animate-pulse'
               : 'bg-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.6)] animate-pulse'
@@ -319,7 +339,7 @@ const HydrationHistoryItem = memo(({ log, onDelete }) => {
       <button
         onClick={triggerDelete}
         className={`
-          p-3.5 rounded-xl transition-all duration-300 flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider
+          p-3.5 rounded-xl transition-all duration-300 flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider cursor-pointer
           ${purgeState
             ? 'text-red-500 bg-red-500/15 border border-red-500/30 shadow-[0_4px_12px_rgba(239,68,68,0.2)] scale-105'
             : 'text-gray-600 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-red-500'
@@ -339,6 +359,8 @@ const HydrationHistoryItem = memo(({ log, onDelete }) => {
     </div>
   );
 });
+
+HydrationHistoryItem.displayName = "HydrationHistoryItem";
 
 const WaterTracker = () => {
   const { updateItem, getItem } = useStorageMethods();
@@ -454,65 +476,67 @@ const WaterTracker = () => {
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] pb-32 selection:bg-blue-500/30">
       {/* Premium Ambient Background Lighting */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-600/5 rounded-full blur-[140px]" />
-        <div className="absolute bottom-[10%] right-[-5%] w-[40%] h-[40%] bg-voro-primary/5 rounded-full blur-[120px]" />
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-600/5 rounded-full blur-[140px] animate-pulse-slow" />
+        <div className="absolute bottom-[10%] right-[-5%] w-[40%] h-[40%] bg-voro-primary/5 rounded-full blur-[120px] animate-pulse-slow" />
       </div>
 
-      <div className="relative max-w-6xl mx-auto px-6 lg:px-12 py-16">
-        {/* Editorial Boutique Header */}
-        <header className="mb-24 flex flex-col md:flex-row md:items-end justify-between gap-12">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 text-blue-500">
-              <Droplet size={16} />
-              <span className="text-[0.65rem] font-mono font-bold uppercase tracking-[0.5em] text-blue-500">Aqueous Flow Synthesis</span>
-            </div>
-            <h1 className="text-5xl md:text-7xl font-serif italic font-medium text-white tracking-tight leading-none">
-              Hydration <span className="text-blue-600 not-italic font-bold">Dynamics</span>
-            </h1>
-            <p className="text-gray-500 font-mono text-[0.6rem] uppercase tracking-[0.3em] opacity-80">CELLULAR HOMEOSTASIS & METABOLIC SWEEP FLUID GATEWAY</p>
-          </div>
+      <div className="relative max-w-[1440px] mx-auto px-6 md:px-12 lg:px-20 py-12 z-10">
+        <Breadcrumb
+          items={[
+            { label: 'System', href: '/dashboard' },
+            { label: 'Metabolic Matrix', href: '/nutrition/diary' },
+            { label: 'Aqueous Flow Synthesis' }
+          ]}
+          className="mb-12"
+        />
 
-          <div className="flex items-center gap-6 bg-[#0A0C14]/90 border border-white/5 rounded-[2.5rem] p-3 shadow-2xl backdrop-blur-3xl">
-            <button
-              onClick={() => handleDateChange(-1)}
-              className="p-4 hover:bg-white/5 rounded-[1.75rem] text-gray-500 hover:text-white transition-all active:scale-90 focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:border-blue-500/50 outline-none"
-              aria-label="Previous chronological index"
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <div className="px-6 text-center min-w-[150px]">
-              <p className="text-[0.55rem] font-mono font-black uppercase tracking-[0.4em] text-gray-600 mb-1">Temporal Index</p>
-              <p className="text-sm font-serif italic font-bold text-white uppercase tracking-wider">{formattedDate}</p>
+        <Header
+          eyebrow="Aqueous Flow Synthesis // Node 0x04"
+          title={<>Hydration <span className="text-voro-primary not-italic font-bold">Dynamics</span></>}
+          subtitle="CELLULAR HOMEOSTASIS & METABOLIC SWEEP FLUID GATEWAY"
+          action={
+            <div className="flex items-center gap-6 bg-[#0A0C14]/90 border border-white/5 rounded-[2.5rem] p-3 shadow-2xl backdrop-blur-3xl">
+              <button
+                onClick={() => handleDateChange(-1)}
+                className="p-4 hover:bg-white/5 rounded-[1.75rem] text-gray-500 hover:text-white transition-all active:scale-90 focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:border-blue-500/50 outline-none cursor-pointer"
+                aria-label="Previous chronological index"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <div className="px-6 text-center min-w-[150px]">
+                <p className="text-[0.55rem] font-mono font-black uppercase tracking-[0.4em] text-gray-600 mb-1">Temporal Index</p>
+                <p className="text-sm font-serif italic font-bold text-white uppercase tracking-wider">{formattedDate}</p>
+              </div>
+              <button
+                onClick={() => handleDateChange(1)}
+                className="p-4 hover:bg-white/5 rounded-[1.75rem] text-gray-500 hover:text-white transition-all active:scale-90 focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:border-blue-500/50 outline-none cursor-pointer"
+                aria-label="Next chronological index"
+              >
+                <ChevronRight size={20} />
+              </button>
             </div>
-            <button
-              onClick={() => handleDateChange(1)}
-              className="p-4 hover:bg-white/5 rounded-[1.75rem] text-gray-500 hover:text-white transition-all active:scale-90 focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:border-blue-500/50 outline-none"
-              aria-label="Next chronological index"
-            >
-              <ChevronRight size={20} />
-            </button>
-          </div>
-        </header>
+          }
+        />
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
           {/* Main Hydration Volumetric Core */}
-          <div className="lg:col-span-5 space-y-16">
-            <div className="relative pt-12">
+          <div className="lg:col-span-5 space-y-12">
+            <div className="relative pt-6">
               <HydroVessel percentage={percentage} biologicalState={biologicalState} nodeId="VESSEL_NODE" />
 
-              <div className="mt-16 text-center space-y-3">
+              <div className="mt-12 text-center space-y-3">
                 <p className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-[0.4em]">Current Saturation</p>
                 <div className="flex items-baseline justify-center gap-2">
                   <span className="text-8xl font-serif italic font-medium text-white tracking-tighter leading-none">{todayTotal}</span>
                   <span className="text-sm font-mono font-semibold text-blue-500 uppercase tracking-[0.2em]">/ {dailyGoal} ml</span>
                 </div>
-                <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-[0.6rem] font-bold text-blue-400 uppercase tracking-[0.15em] shadow-[0_4px_12px_rgba(59,130,246,0.15)]">
-                  <Waves size={12} className="animate-pulse" />
+                <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-[0.6rem] font-bold text-blue-400 uppercase tracking-[0.15em] shadow-[0_4px_12px_rgba(59,130,246,0.15)]">
+                  <Waves size={14} className="animate-pulse" />
                   {Math.round(percentage)}% Aqueous Limit
                 </div>
-                <p className="text-[0.6rem] font-mono font-black text-gray-600 uppercase tracking-[0.25em] mt-3 animate-pulse">
-                  State: {biologicalState}
+                <p className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-[0.25em] mt-3 animate-pulse">
+                  State: <span className="text-blue-400">{biologicalState}</span>
                 </p>
               </div>
             </div>
@@ -528,7 +552,7 @@ const WaterTracker = () => {
             </div>
 
             {/* Manual Fluid Entry Port */}
-            <section className="bg-[#0A0C14] border border-white/5 p-8 rounded-[2.5rem] shadow-2xl transition-all hover:border-white/10">
+            <Card variant="premium" nodeId="CUSTOM_ENTRY" className="p-8 shadow-2xl transition-all hover:border-white/10">
               <div className="flex items-center gap-4 mb-6">
                 <div className="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20">
                   <Plus size={18} className="text-blue-500" />
@@ -552,19 +576,19 @@ const WaterTracker = () => {
                     className="italic font-serif"
                   />
                 </div>
-                <Button type="submit" size="sm" className="h-[62px] rounded-[1.25rem] px-8 flex-shrink-0 !bg-white !text-black shadow-lg shadow-white/5">
+                <Button type="submit" size="sm" className="h-[62px] rounded-[1.25rem] px-8 flex-shrink-0 !bg-white !text-black shadow-lg shadow-white/5 hover:scale-[1.02] active:scale-[0.98]">
                   Inject
                 </Button>
               </form>
-            </section>
+            </Card>
           </div>
 
           {/* History & Chronological Sequence */}
-          <div className="lg:col-span-7 space-y-16">
-            <section className="bg-[#0A0C14] border border-white/5 p-10 rounded-[2.5rem] shadow-2xl transition-all hover:border-white/10 relative overflow-hidden">
+          <div className="lg:col-span-7 space-y-12">
+            <Card variant="premium" nodeId="CHRONO_LOG" className="p-10 shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/[0.02] rounded-full blur-[100px] pointer-events-none" />
 
-              <div className="flex items-center justify-between mb-12">
+              <div className="flex items-center justify-between mb-10">
                 <div className="flex items-center gap-4">
                   <div className="p-3 bg-white/5 rounded-2xl">
                     <Target size={18} className="text-blue-500" />
@@ -591,12 +615,12 @@ const WaterTracker = () => {
                   <p className="text-[0.55rem] font-mono text-gray-600 uppercase tracking-widest mt-2">Awaiting biological molecular initialization</p>
                 </div>
               )}
-            </section>
+            </Card>
 
             {/* 30-Day Molecular Trend Analyzer */}
             {waterHistory.length > 1 && (
-              <section className="bg-[#0A0C14] border border-white/5 p-10 rounded-[2.5rem] shadow-2xl">
-                <div className="flex items-center gap-4 mb-12">
+              <Card variant="premium" nodeId="SHIFT_MATRIX" className="p-10 shadow-2xl">
+                <div className="flex items-center gap-4 mb-10">
                   <div className="p-3 bg-white/5 rounded-2xl">
                     <TrendingUp size={18} className="text-blue-500" />
                   </div>
@@ -615,7 +639,7 @@ const WaterTracker = () => {
                     strokeWidth={3}
                   />
                 </div>
-              </section>
+              </Card>
             )}
           </div>
         </div>
