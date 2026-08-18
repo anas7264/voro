@@ -239,6 +239,17 @@ Effective input defense requires scanning queries for potential encoded block st
 **Prevention:**
 Always implement non-destructive Base64 and Hex parsing layers in query validators. Extract matching substrings, attempt decoding under strict ASCII-only constraints, and evaluate the decoded content against key-phrase blocklists prior to downstream model transmission.
 
+## 2026-06-20 - Unicode Tag Character (ASCII Smuggling) Prompt Injection Defense
+
+**Vulnerability:**
+Prompt injection filters that analyze standard Unicode strings can be bypassed using invisible Unicode Tag characters (`U+E0020` to `U+E007E`). Attackers can embed hidden ASCII instructions (e.g., "ignore previous instructions") inside benign text. While visually invisible to human reviewers and invisible to standard ASCII keyword checks, these tag characters are interpreted by downstream language models as literal instructions.
+
+**Learning:**
+Neutralizing ASCII smuggling requires decoding Unicode Tag characters (`cp - 0xE0000`) and stripping tag control characters (`U+E0001`, `U+E007F`) at the very entry boundary of prompt validation, prior to percent-decoding, HTML entity decoding, Unicode normalizations, and blocklist matching.
+
+**Prevention:**
+Always execute Unicode Tag character decoding before performing pattern-matching or boundary analysis on untrusted inputs bound for LLM prompts.
+
 ## 2026-06-19 - OWASP-Compliant ReDoS-Immune Password Validation
 **Vulnerability:**
 Traditional password validation regexes (like those using multiple lookahead assertions over general character sets) often restrict what special characters (or spaces) users can use. This violates OWASP standards, limiting password choices and passphrase security. Additionally, complex regular expressions on un-truncated user inputs are highly vulnerable to client-side or server-side Regular Expression Denial of Service (ReDoS) via catastrophic backtracking.
