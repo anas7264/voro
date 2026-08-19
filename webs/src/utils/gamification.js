@@ -72,6 +72,31 @@ const LITERS_RE = /(\d+)\+?\s*liters/i;
 const STEPS_RE = /(\d+)\+?\s*steps/i;
 const DIGIT_RE = /\d+/;
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Module-scoped pre-computed streak achievements.
+ * Pre-evaluates streak-based achievements at module load time to avoid runtime
+ * string inspections, regex executions (`DIGIT_RE`), and array parsing during
+ * hot-path `predictNextAchievement` executions.
+ */
+const STREAK_ACHIEVEMENTS = Object.freeze(
+  achievements
+    .map(ach => {
+      const triggerStr = ach.trigger || ach.triggerType || "";
+      if (triggerStr.includes("streak") || ach.category === "Streaks") {
+        let target = ach.triggerValue;
+        if (!target && triggerStr) {
+          const match = triggerStr.match(DIGIT_RE);
+          if (match) target = parseInt(match[0], 10);
+        }
+        if (target) {
+          return Object.freeze({ ach, target });
+        }
+      }
+      return null;
+    })
+    .filter(Boolean)
+);
+
 // Calculate XP earned from action
 export const calculateXP = (action, metadata = {}) => {
   if (action === "achievement_unlock") {
@@ -382,25 +407,31 @@ export const getGamificationStats = (userData) => {
 };
 
 // Predict next achievement
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Zero-allocation, single-pass prediction algorithm.
+ * Bypasses `achievements.forEach` array allocations, `.push()`, `.sort()`, and regex matching.
+ * Uses module-scoped `STREAK_ACHIEVEMENTS` to find the nearest unlockable achievement in O(N).
+ */
 export const predictNextAchievement = (userData) => {
-  // Returns most likely next achievement to unlock
-  let nextAchievements = [];
-  const unlockedSet = new Set(userData?.unlockedAchievements || []);
+  if (!userData) return undefined;
+  const unlockedSet = new Set(userData.unlockedAchievements || []);
+  const currentStreak = userData.currentStreak || 0;
 
-  achievements.forEach(ach => {
+  let bestAchievement = null;
+  let minDays = Infinity;
+
+  for (let i = 0; i < STREAK_ACHIEVEMENTS.length; i++) {
+    const { ach, target } = STREAK_ACHIEVEMENTS[i];
     if (!unlockedSet.has(ach.id)) {
-      // Rough prediction based on trigger proximity
-      if (ach.trigger?.includes("streak")) {
-        const match = ach.trigger.match(DIGIT_RE);
-        const daysFromStreak = match ? parseInt(match[0]) - userData.currentStreak : NaN;
-        if (daysFromStreak > 0 && daysFromStreak < 30) {
-          nextAchievements.push({ ...ach, daysUntil: daysFromStreak });
-        }
+      const daysFromStreak = target - currentStreak;
+      if (daysFromStreak > 0 && daysFromStreak < 30 && daysFromStreak < minDays) {
+        minDays = daysFromStreak;
+        bestAchievement = { ...ach, daysUntil: daysFromStreak };
       }
     }
-  });
+  }
 
-  return nextAchievements.sort((a, b) => a.daysUntil - b.daysUntil)[0];
+  return bestAchievement || undefined;
 };
 
 export default {
