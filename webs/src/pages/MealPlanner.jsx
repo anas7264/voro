@@ -14,7 +14,7 @@ import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Select from '@/components/Select';
 import Textarea from '@/components/Textarea';
-import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
+import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useNotifications } from '@/hooks/useNotifications';
 
@@ -69,7 +69,11 @@ const generateMockMealPlan = (duration) => {
 };
 
 const MealPlanner = () => {
-  const plans = useStorageKey('plans') || {};
+  const plansObj = useStorageKeySelector(
+    'plans',
+    useCallback((plansData) => plansData || {}, [])
+  );
+  const savedMealPlans = useMemo(() => plansObj.savedMealPlans || [], [plansObj]);
   const { setItem } = useStorageMethods();
   const { addNotification } = useNotifications();
   const { user } = useAppContext();
@@ -135,11 +139,15 @@ const MealPlanner = () => {
   }, [formData, addNotification]);
 
   const savePlan = useCallback(async () => {
-    if (!mealPlan) return;
-    setSavingState('saving');
+    if (!mealPlan || isSaved) return;
 
-    setTimeout(async () => {
-      const allSavedPlans = plans.savedMealPlans || [];
+    // Optimistic UI updates - immediate user feedback
+    setSavingState('saved');
+    setIsSaved(true);
+    addNotification('Trophic blueprint archived in secure local repository.', 'success');
+
+    try {
+      const allSavedPlans = savedMealPlans || [];
       const updatedPlans = [
         ...allSavedPlans,
         {
@@ -148,12 +156,14 @@ const MealPlanner = () => {
         }
       ];
 
-      await setItem('plans', { ...plans, savedMealPlans: updatedPlans });
-      setSavingState('saved');
-      setIsSaved(true);
-      addNotification('Trophic blueprint archived in secure local repository.', 'success');
-    }, 1200);
-  }, [plans, mealPlan, setItem, addNotification]);
+      const currentPlansObj = plansObj || {};
+      await setItem('plans', { ...currentPlansObj, savedMealPlans: updatedPlans });
+    } catch (err) {
+      setSavingState('idle');
+      setIsSaved(false);
+      addNotification('Archiving protocol failed.', 'error');
+    }
+  }, [mealPlan, isSaved, savedMealPlans, plansObj, setItem, addNotification]);
 
   const handleExportJSON = useCallback(() => {
     if (!mealPlan) return;

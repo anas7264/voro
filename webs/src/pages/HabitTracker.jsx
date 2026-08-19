@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo, useId, useCallback, memo, useRef }
 import { Plus, Trash2, Check, Zap, Target, Star, AlertTriangle, X } from 'lucide-react';
 import { Button, Card, Input, Header } from '@/components';
 import Confetti from '@/components/Confetti';
-import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
+import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { validateHabit } from '@/utils/validators';
 import { defaultHabits } from '@/data/defaultHabits';
@@ -280,7 +280,10 @@ HabitItem.displayName = 'HabitItem';
 const HabitTracker = () => {
   const iconInputId = useId();
   const { getItemAsync, setItem } = useStorageMethods();
-  const storageHabits = useStorageKey('habits');
+  const storageHabitsData = useStorageKeySelector(
+    'habits',
+    useCallback((data) => data || { list: [], log: {} }, [])
+  );
   const { addNotification } = useNotifications();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newHabit, setNewHabit] = useState({ name: '', icon: '✓', color: 'voro-primary' });
@@ -294,18 +297,20 @@ const HabitTracker = () => {
     document.title = 'VORO | Habit Tracker';
   }, []);
 
-  /**
-   * ⚡ OPTIMIZATION: Synchronous data derivation using useMemo.
-   * Eliminates the initial mount-time double-render cycle and ensures
-   * reactivity to StorageContext updates without manual load calls.
-   */
   const { habits, todayHabits } = useMemo(() => {
-    const data = storageHabits || { list: [], log: {} };
+    const data = storageHabitsData || { list: [], log: {} };
     const list = data.list && data.list.length > 0 ? data.list : defaultHabits;
     const today = new Date().toISOString().split('T')[0];
     const log = data.log?.[today] || {};
     return { habits: list, todayHabits: log };
-  }, [storageHabits]);
+  }, [storageHabitsData]);
+
+  // Optimistic state for 0ms habit check toggling
+  const [optimisticTodayHabits, setOptimisticTodayHabits] = useState(todayHabits);
+
+  useEffect(() => {
+    setOptimisticTodayHabits(todayHabits);
+  }, [todayHabits]);
 
   const addHabit = useCallback(async () => {
     const { valid, errors } = validateHabit(newHabit);
@@ -335,19 +340,36 @@ const HabitTracker = () => {
   }, [newHabit, addNotification, getItemAsync, setItem]);
 
   const toggleHabit = useCallback(async (habitId) => {
-    const data = await getItemAsync('habits') || { list: [], log: {} };
     const today = new Date().toISOString().split('T')[0];
+    let prevVal;
+    let newVal;
 
-    const updatedLog = {
-      ...(data.log || {}),
-      [today]: {
-        ...(data.log?.[today] || {}),
-        [habitId]: !data.log?.[today]?.[habitId]
-      }
-    };
+    // 0ms Optimistic UI update via functional state setter
+    setOptimisticTodayHabits(prev => {
+      prevVal = !!prev[habitId];
+      newVal = !prevVal;
+      return {
+        ...prev,
+        [habitId]: newVal
+      };
+    });
 
-    const updatedData = { ...data, log: updatedLog };
-    await setItem('habits', updatedData);
+    try {
+      const data = await getItemAsync('habits') || { list: [], log: {} };
+      const updatedLog = {
+        ...(data.log || {}),
+        [today]: {
+          ...(data.log?.[today] || {}),
+          [habitId]: newVal
+        }
+      };
+      await setItem('habits', { ...data, log: updatedLog });
+    } catch (err) {
+      setOptimisticTodayHabits(prev => ({
+        ...prev,
+        [habitId]: prevVal
+      }));
+    }
   }, [getItemAsync, setItem]);
 
   const removeHabit = useCallback(async (habitId) => {
@@ -484,7 +506,7 @@ const HabitTracker = () => {
             <HabitItem
               key={habit.id}
               habit={habit}
-              isDone={todayHabits[habit.id]}
+              isDone={optimisticTodayHabits[habit.id]}
               onToggle={toggleHabit}
               onRemove={removeHabit}
             />

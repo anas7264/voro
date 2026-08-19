@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Plus, Trash2, ShoppingCart, Zap, CheckCircle2, Package, AlertTriangle, ShieldAlert, Sparkles, RefreshCw } from 'lucide-react';
-import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
+import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
@@ -215,10 +215,21 @@ const ProcuredResourceCard = React.memo(({ item, index, onToggle, onDelete, node
 ProcuredResourceCard.displayName = 'ProcuredResourceCard';
 
 const ShoppingList = () => {
-  const shoppingListData = useStorageKey('shopping_list');
-  const shoppingList = useMemo(() => Array.isArray(shoppingListData) ? shoppingListData : [], [shoppingListData]);
+  const storedShoppingList = useStorageKeySelector(
+    'shopping_list',
+    useCallback((data) => (Array.isArray(data) ? data : []), [])
+  );
   const { setItem } = useStorageMethods();
 
+  // Optimistic local state for immediate 0ms UI feedback
+  const [optimisticList, setOptimisticList] = useState(storedShoppingList);
+
+  // Sync optimistic list when storage external updates occur
+  useEffect(() => {
+    setOptimisticList(storedShoppingList);
+  }, [storedShoppingList]);
+
+  const shoppingList = optimisticList;
   const [inputValue, setInputValue] = useState('');
   const [activeLogIndex, setActiveLogIndex] = useState(0);
 
@@ -266,22 +277,49 @@ const ShoppingList = () => {
 
   const handleAddItem = async () => {
     if (!inputValue.trim()) return;
-    const updated = [...shoppingList, { id: Date.now(), text: inputValue.trim(), checked: false }];
-    await setItem('shopping_list', updated);
+    const newItem = { id: Date.now(), text: inputValue.trim(), checked: false };
+    const updated = [...shoppingList, newItem];
+    setOptimisticList(updated);
     setInputValue('');
+
+    try {
+      await setItem('shopping_list', updated);
+    } catch (err) {
+      setOptimisticList(shoppingList);
+    }
   };
 
   const handleToggleItem = useCallback(async (id) => {
-    const updated = shoppingList.map(item =>
-      item.id === id ? { ...item, checked: !item.checked } : item
-    );
-    await setItem('shopping_list', updated);
-  }, [shoppingList, setItem]);
+    let updated;
+    let prevList;
+    setOptimisticList((prev) => {
+      prevList = prev;
+      updated = prev.map(item => item.id === id ? { ...item, checked: !item.checked } : item);
+      return updated;
+    });
+
+    try {
+      await setItem('shopping_list', updated);
+    } catch (err) {
+      if (prevList) setOptimisticList(prevList);
+    }
+  }, [setItem]);
 
   const handleDeleteItem = useCallback(async (id) => {
-    const updated = shoppingList.filter(item => item.id !== id);
-    await setItem('shopping_list', updated);
-  }, [shoppingList, setItem]);
+    let updated;
+    let prevList;
+    setOptimisticList((prev) => {
+      prevList = prev;
+      updated = prev.filter(item => item.id !== id);
+      return updated;
+    });
+
+    try {
+      await setItem('shopping_list', updated);
+    } catch (err) {
+      if (prevList) setOptimisticList(prevList);
+    }
+  }, [setItem]);
 
   // Global Purge confirmation flow
   const initiateGlobalPurge = () => {
@@ -313,8 +351,15 @@ const ShoppingList = () => {
   const executeGlobalPurge = async () => {
     if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
     if (autoCancelTimerRef.current) clearTimeout(autoCancelTimerRef.current);
-    await setItem('shopping_list', []);
+    const prev = shoppingList;
+    setOptimisticList([]);
     resetGlobalPurgeState();
+
+    try {
+      await setItem('shopping_list', []);
+    } catch (err) {
+      setOptimisticList(prev);
+    }
   };
 
   const resetGlobalPurgeState = () => {
