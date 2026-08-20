@@ -421,52 +421,59 @@ export const isPromptInjection = (query, isNested = false) => {
   return false;
 };
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted static option sets for O(1) lookups and zero heap allocations.
+ * Completely eliminates dynamic array allocations (`const validArr = [...]`) and O(N) `.includes()` scans
+ * on every validation cycle.
+ */
+const VALID_GENDERS = Object.freeze(new Set(["male", "female", "other", "prefer_not_to_say"]));
+const VALID_GOALS = Object.freeze(new Set([
+  "weight_loss", "muscle_gain", "maintenance", "athletic_performance", "health_optimization",
+  "lose weight", "build muscle", "improve fitness", "body recomposition", "general health"
+]));
+const VALID_EXPERIENCE_LEVELS = Object.freeze(new Set(["beginner", "intermediate", "advanced", "elite"]));
+const VALID_ACTIVITY_LEVELS = Object.freeze(new Set([
+  "sedentary", "lightly_active", "moderately_active", "very_active", "extremely_active",
+  "lightly active", "moderately active", "very active", "extremely active"
+]));
+const VALID_MEAL_TYPES = Object.freeze(new Set(["breakfast", "lunch", "dinner", "snack", "pre_workout", "post_workout"]));
+const VALID_EQUIPMENT = Object.freeze(new Set(["barbell", "dumbbell", "machine", "cable", "bodyweight", "kettlebell", "bands", "cardio", "medicine_ball"]));
+const VALID_DIFFICULTIES = Object.freeze(new Set(["beginner", "intermediate", "advanced", "expert"]));
+const VALID_HABIT_COLORS = Object.freeze(new Set(["voro-primary", "voro-secondary", "voro-accent"]));
+
 // Gender validation
 export const isValidGender = (gender) => {
-  const validGenders = ["male", "female", "other", "prefer_not_to_say"];
-  return validGenders.includes(gender?.toLowerCase());
+  return typeof gender === 'string' && VALID_GENDERS.has(gender.toLowerCase());
 };
 
 // Goal validation
 export const isValidGoal = (goal) => {
-  const validGoals = [
-    "weight_loss", "muscle_gain", "maintenance", "athletic_performance", "health_optimization",
-    "lose weight", "build muscle", "improve fitness", "body recomposition", "general health"
-  ];
-  return validGoals.includes(goal?.toLowerCase());
+  return typeof goal === 'string' && VALID_GOALS.has(goal.toLowerCase());
 };
 
 // Experience level validation
 export const isValidExperienceLevel = (level) => {
-  const validLevels = ["beginner", "intermediate", "advanced", "elite"];
-  return validLevels.includes(level?.toLowerCase());
+  return typeof level === 'string' && VALID_EXPERIENCE_LEVELS.has(level.toLowerCase());
 };
 
 // Activity level validation
 export const isValidActivityLevel = (level) => {
-  const validLevels = [
-    "sedentary", "lightly_active", "moderately_active", "very_active", "extremely_active",
-    "lightly active", "moderately active", "very active", "extremely active"
-  ];
-  return validLevels.includes(level?.toLowerCase());
+  return typeof level === 'string' && VALID_ACTIVITY_LEVELS.has(level.toLowerCase());
 };
 
 // Meal type validation
 export const isValidMealType = (type) => {
-  const validTypes = ["breakfast", "lunch", "dinner", "snack", "pre_workout", "post_workout"];
-  return validTypes.includes(type?.toLowerCase());
+  return typeof type === 'string' && VALID_MEAL_TYPES.has(type.toLowerCase());
 };
 
 // Exercise equipment validation
 export const isValidEquipment = (equipment) => {
-  const validEquipment = ["barbell", "dumbbell", "machine", "cable", "bodyweight", "kettlebell", "bands", "cardio", "medicine_ball"];
-  return validEquipment.includes(equipment?.toLowerCase());
+  return typeof equipment === 'string' && VALID_EQUIPMENT.has(equipment.toLowerCase());
 };
 
 // Difficulty validation
 export const isValidDifficulty = (difficulty) => {
-  const validDifficulties = ["beginner", "intermediate", "advanced", "expert"];
-  return validDifficulties.includes(difficulty?.toLowerCase());
+  return typeof difficulty === 'string' && VALID_DIFFICULTIES.has(difficulty.toLowerCase());
 };
 
 // Form validation for fitness profile
@@ -608,8 +615,7 @@ export const validateHabit = (habit) => {
     errors.icon = "Icon is too long";
   }
 
-  const validColors = ["voro-primary", "voro-secondary", "voro-accent"];
-  if (habit.color && !validColors.includes(habit.color)) {
+  if (habit.color && !VALID_HABIT_COLORS.has(habit.color)) {
     errors.color = "Invalid color selection";
   }
 
