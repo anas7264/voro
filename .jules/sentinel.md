@@ -248,3 +248,13 @@ Adopting a linear-scan string verification model (O(N) single-pass iteration) ra
 
 **Prevention:**
 Avoid complex lookahead regex patterns for password validation. Utilize linear, single-pass character iteration loops to verify complexity criteria, and establish strict maximum length limits at validation entry points.
+
+## 2026-06-20 - Escape Sequence Obfuscation Bypass in Prompt Injection Shields
+**Vulnerability:**
+Prompt injection filters that analyze plain text and URL/HTML-encoded inputs are vulnerable to evasion via JavaScript/C-style hexadecimal (`\xHH`), Unicode (`\uHHHH`), and bracketed Unicode code point (`\u{H...}`) escape sequences (e.g. `\x69\x67\x6e\x6f\x72\x65 \x70\x72\x65\x76\x69\x6f\x75\x73`). When these escape sequences are processed by JSON parsers, template engines, or LLMs downstream, they evaluate to literal prompt instructions while bypassing raw string blocklists and regex boundary checks during input ingestion.
+
+**Learning:**
+Neutralizing escape-based evasion requires decoding `\xHH`, `\uHHHH`, and `\u{H...}` sequences into literal characters during the initial pre-normalization decoding pipeline. Integrating an escape sequence decoder alongside URL percent and HTML entity decoders ensures that obfuscated text is mapped back to its literal representation before delimiter checking, normalization, and pattern matching occur.
+
+**Prevention:**
+Always execute JS/Unicode escape sequence decoding on untrusted queries at the absolute entry boundary of prompt-injection validators, before applying Unicode normalization, formatting removal, or blocklist pattern matching.

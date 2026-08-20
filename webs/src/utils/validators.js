@@ -290,6 +290,21 @@ const decodeHTMLEntities = (str) => {
     });
 };
 
+// Helper to decode JS/Unicode escape sequences (\xHH, \uHHHH, \u{H...}) to mitigate escape-based prompt injection obfuscation
+const decodeEscapeSequences = (str) => {
+  if (!str || typeof str !== 'string') return str;
+  return str
+    .replace(/\\x([0-9a-fA-F]{2})/g, (_, hex) => {
+      try { return String.fromCharCode(parseInt(hex, 16)); } catch (e) { return _; }
+    })
+    .replace(/\\u\{([0-9a-fA-F]+)\}/g, (_, hex) => {
+      try { return String.fromCodePoint(parseInt(hex, 16)); } catch (e) { return _; }
+    })
+    .replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => {
+      try { return String.fromCharCode(parseInt(hex, 16)); } catch (e) { return _; }
+    });
+};
+
 // Helper to safely decode Base64 strings with auto-padding and printable-ASCII verification (XSS/DoS safe)
 const safeAtob = (str) => {
   try {
@@ -357,8 +372,8 @@ const COMPRESSED_BLOCKLIST_RE = /ignoreprevious|ignoreabove|ignoreallinstruction
 export const isPromptInjection = (query, isNested = false) => {
   if (!query || typeof query !== 'string') return false;
 
-  // Security: Decode URL percent-encoding and HTML entities first
-  const decodedQuery = decodePercentEncoding(decodeHTMLEntities(query));
+  // Security: Decode JS/Unicode escape sequences, URL percent-encoding, and HTML entities first
+  const decodedQuery = decodePercentEncoding(decodeHTMLEntities(decodeEscapeSequences(query)));
 
   let normalizedQuery = decodedQuery.normalize('NFKD').toLowerCase();
   // Strip combining diacritical marks across all standard Unicode diacritic blocks (including extended, supplement, symbols, and half-marks)
