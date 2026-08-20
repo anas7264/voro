@@ -18,6 +18,8 @@ export const DatePicker = memo(({
   onChange,
   label,
   error = false,
+  required = false,
+  disabled = false,
   className = "",
   ...props
 }) => {
@@ -40,6 +42,7 @@ export const DatePicker = memo(({
             className="block text-[0.6rem] font-mono font-black uppercase tracking-[0.4em] text-gray-500 group-focus-within/date-container:text-voro-primary transition-colors cursor-pointer"
           >
             {label}
+            {required && <span className="text-red-500 ml-1">*</span>}
           </label>
         )}
         <span className="text-[0.45rem] font-mono font-bold text-gray-700 uppercase tracking-widest opacity-0 group-focus-within/date-container:opacity-100 transition-opacity duration-500">
@@ -55,6 +58,7 @@ export const DatePicker = memo(({
             ? "border-red-500/40 bg-red-500/[0.02]"
             : "border-white/5 bg-white/[0.02] group-hover/date-container:border-white/10 group-focus-within/date-container:border-voro-primary/40 group-focus-within/date-container:bg-voro-primary/[0.01]"
           }
+          ${disabled ? "opacity-30 cursor-not-allowed" : ""}
         `}>
           {/* Boutique Grain Texture */}
           <div className="absolute inset-0 bg-boutique-grain opacity-[0.02] pointer-events-none" />
@@ -81,10 +85,13 @@ export const DatePicker = memo(({
               type="date"
               value={value}
               onChange={(e) => onChange(e.target.value)}
+              disabled={disabled}
+              required={required}
               className={`
                 w-full bg-transparent px-6 py-5 text-white font-mono text-sm
                 focus:outline-none transition-all duration-500
                 [color-scheme:dark]
+                ${disabled ? "cursor-not-allowed" : ""}
               `}
               aria-invalid={!!error}
               aria-describedby={error ? errorId : undefined}
