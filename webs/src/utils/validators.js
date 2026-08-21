@@ -245,6 +245,27 @@ const HOMOGLYPHS_MAP = {
   'υ': 'y', 'φ': 'f', 'χ': 'x', 'ψ': 'ps', 'ω': 'w'
 };
 
+// Helper to decode Unicode Tag Characters (ASCII Smuggling / Invisible Language Tags)
+// Maps Unicode Tag code points (U+E0020 - U+E007E) to printable ASCII (0x20 - 0x7E)
+const decodeUnicodeTagCharacters = (str) => {
+  if (!str || typeof str !== 'string') return str;
+  let decoded = '';
+  let hasTagChars = false;
+  for (const char of str) {
+    const code = char.codePointAt(0);
+    if (code >= 0xE0020 && code <= 0xE007E) {
+      decoded += String.fromCharCode(code - 0xE0000);
+      hasTagChars = true;
+    } else if (code === 0xE0001 || code === 0xE007F) {
+      hasTagChars = true;
+      continue;
+    } else {
+      decoded += char;
+    }
+  }
+  return hasTagChars ? decoded : str;
+};
+
 const OVERRIDE_RE = /ignore previous|ignore above|ignore all instructions|ignore system|bypass instructions|override system|system override|developer mode|dan mode|do anything now|forget previous|forget all instructions|forget what was said|you must now ignore|you are now a developer|you are now an unrestricted|unrestricted mode|without restrictions|disable safety|bypass filters/i;
 
 const HARVESTING_RE = /repeat the system prompt|reveal your instructions|reveal the system prompt|reveal instructions|output the system instructions|output your instructions|output the text above|show your system prompt|show system prompt|what is your system prompt|what is your prompt|what are your instructions|what are your developer instructions|reveal the nonce|output your nonces/i;
@@ -357,8 +378,8 @@ const COMPRESSED_BLOCKLIST_RE = /ignoreprevious|ignoreabove|ignoreallinstruction
 export const isPromptInjection = (query, isNested = false) => {
   if (!query || typeof query !== 'string') return false;
 
-  // Security: Decode URL percent-encoding and HTML entities first
-  const decodedQuery = decodePercentEncoding(decodeHTMLEntities(query));
+  // Security: Decode Unicode Tag characters (ASCII Smuggling), URL percent-encoding, and HTML entities first
+  const decodedQuery = decodePercentEncoding(decodeHTMLEntities(decodeUnicodeTagCharacters(query)));
 
   let normalizedQuery = decodedQuery.normalize('NFKD').toLowerCase();
   // Strip combining diacritical marks across all standard Unicode diacritic blocks (including extended, supplement, symbols, and half-marks)
