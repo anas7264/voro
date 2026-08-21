@@ -26,16 +26,16 @@ jobs:
         with:
           fetch-depth: 0
       
+      - name: 📦 Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'pnpm'
-      
-      - name: 📦 Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
       
       - name: 🔍 Install Dependencies
         working-directory: webs
@@ -69,16 +69,16 @@ jobs:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
       
+      - name: 📦 Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'pnpm'
-      
-      - name: 📦 Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
       
       - name: 🔍 Install Dependencies
         working-directory: webs
@@ -100,7 +100,7 @@ jobs:
       
       - name: 📤 Upload Test Results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: playwright-results
           path: webs/test-results.json
