@@ -1,7 +1,12 @@
-import React from "react";
+import React, { memo } from "react";
 import { Input } from "./Input";
 
-export const FormInput = ({ name, label, type = "text", error, required, ...props }) => {
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Memoized FormInput wrapper component.
+ * Prevents unnecessary re-renders when parent form state updates (e.g., during
+ * high-frequency typing in sibling form fields), eliminating virtual DOM churn.
+ */
+export const FormInput = memo(({ name, label, type = "text", error, required, ...props }) => {
   return (
     <div className="mb-4">
       <Input
@@ -15,6 +20,8 @@ export const FormInput = ({ name, label, type = "text", error, required, ...prop
       />
     </div>
   );
-};
+});
+
+FormInput.displayName = "FormInput";
 
 export default FormInput;
