@@ -136,12 +136,16 @@ const TrainingPlan = () => {
 
           {currentPlan && (
             <div className="flex gap-4">
-              <button className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-gray-400 hover:text-white transition-all">
+              <button
+                aria-label="Export training plan"
+                className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-gray-400 hover:text-white transition-all focus-visible:ring-2 focus-visible:ring-voro-primary outline-none"
+              >
                 <Download size={20} />
               </button>
               <button
                 onClick={clearPlan}
-                className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-gray-400 hover:text-red-400 transition-all"
+                aria-label="Clear training plan"
+                className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-gray-400 hover:text-red-400 transition-all focus-visible:ring-2 focus-visible:ring-red-500 outline-none"
               >
                 <Trash2 size={20} />
               </button>
