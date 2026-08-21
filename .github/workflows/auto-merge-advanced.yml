@@ -36,6 +36,7 @@ jobs:
         with:
           node-version: '18'
           cache: 'pnpm'
+          cache-dependency-path: 'webs/pnpm-lock.yaml'
       
       - name: 🔍 Install Dependencies
         working-directory: webs
@@ -79,6 +80,7 @@ jobs:
         with:
           node-version: '18'
           cache: 'pnpm'
+          cache-dependency-path: 'webs/pnpm-lock.yaml'
       
       - name: 🔍 Install Dependencies
         working-directory: webs
