@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useMemo, useRef, memo } from 'react';
-import { Calendar, Trophy, Clock, CheckCircle2, Zap, Target, TrendingDown, Sparkles, ShieldAlert } from 'lucide-react';
+import React, { useEffect, useState, useMemo, useRef, memo, useId } from 'react';
+import { Calendar, Trophy, Clock, CheckCircle2, Zap, Target, TrendingDown, Sparkles, ShieldAlert, Cpu, Activity, Compass } from 'lucide-react';
 import { Card, Button, Divider, DatePicker } from '@/components';
 import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -7,7 +7,7 @@ import { isDateInFuture } from '@/utils/validators';
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
- * Prevents redundant object instantiation of Intl.DateTimeFormat.
+ * Prevents redundant object instantiation of Intl.DateTimeFormat in loops.
  */
 const longDateFormatter = new Intl.DateTimeFormat('en-US', {
   weekday: 'short',
@@ -78,23 +78,58 @@ ChronoTicker.displayName = "ChronoTicker";
 
 /**
  * ⚡ SUBCOMPONENT: ProtocolCard
- * Implements the Accessible 3D Interaction Pattern:
- * Focus captures focus states, applies a static 4-degree tilt on keyboard focus,
- * and renders TX/TY coordinate telemetry alongside ARIA live announcements.
+ * Implements 60fps direct-DOM 3D Volumetric Hover Tilts,
+ * dynamic luminous lens spotlighting, reactive liquid border illumination,
+ * static 4-degree keyboard focus tilts, and ARIA polite live announcements.
  */
 const ProtocolCard = memo(({ title, desc, icon: Icon, color, nodeId, index }) => {
+  const containerRef = useRef(null);
+  const tiltXRef = useRef(null);
+  const tiltYRef = useRef(null);
+  const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [announcement, setAnnouncement] = useState('');
+
+  const handleMouseMove = (e) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Volumetric tilt calculation (max 15 degrees)
+    const tiltY = ((x / rect.width) - 0.5) * 30;
+    const tiltX = (0.5 - (y / rect.height)) * 30;
+
+    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
+    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
+    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+
+    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+  };
 
   const handleFocus = () => {
     setIsFocused(true);
     setAnnouncement(`Protocol Card: ${title}. ${desc}. Currently focused.`);
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('--tilt-x', '4deg');
+      containerRef.current.style.setProperty('--tilt-y', '-4deg');
+      if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
+    }
   };
 
   const handleBlur = () => {
     setIsFocused(false);
     setAnnouncement('');
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('--tilt-x', '0deg');
+      containerRef.current.style.setProperty('--tilt-y', '0deg');
+    }
   };
+
+  const interactionActive = isHovered || isFocused;
 
   return (
     <>
@@ -103,31 +138,78 @@ const ProtocolCard = memo(({ title, desc, icon: Icon, color, nodeId, index }) =>
           {announcement}
         </div>
       )}
-      <Card
-        variant="premium"
-        nodeId={nodeId}
-        tabIndex="0"
+      <div
+        ref={containerRef}
+        onMouseMove={handleMouseMove}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         onFocus={handleFocus}
         onBlur={handleBlur}
-        className="p-10 transition-all duration-700 hover:border-voro-primary/30 relative outline-none focus-visible:ring-2 focus-visible:ring-voro-primary/80 cursor-pointer"
-        style={isFocused ? {
-          transform: 'perspective(1200px) rotateX(4deg) rotateY(-4deg) translateY(-4px)',
-          transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)'
-        } : undefined}
+        tabIndex="0"
+        role="article"
+        aria-label={`Protocol Card: ${title}. ${desc}`}
+        style={{
+          transform: interactionActive
+            ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
+            : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+          transition: isHovered ? 'none' : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+          transformStyle: 'preserve-3d'
+        }}
+        className="relative bg-[#0A0C14] border border-white/5 rounded-[2.5rem] p-10 overflow-hidden group cursor-pointer transition-all duration-700 hover:border-voro-primary/30 hover:shadow-[0_40px_80px_rgba(0,0,0,0.8)] outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408]"
       >
-        <div className="flex gap-8 relative z-10">
-          <div className={`mt-1 p-4 rounded-2xl bg-white/[0.02] border border-white/5 ${color} shadow-lg group-hover/card:scale-110 transition-transform duration-500`}>
+        {/* Precision Grid & Grain Architecture */}
+        <div className="absolute inset-0 rounded-[2.5rem] overflow-hidden pointer-events-none">
+          <div className="absolute inset-0 bg-grid-white opacity-0 group-hover:opacity-[0.03] transition-opacity duration-1000" />
+          <div className="absolute inset-0 bg-boutique-grain opacity-[0.02]" />
+
+          {/* Dynamic Luminous Lens Spotlight */}
+          <div
+            className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
+            style={{
+              background: `radial-gradient(350px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(124, 58, 237, 0.12), transparent 70%)`,
+              transform: 'translateZ(20px)'
+            }}
+          />
+        </div>
+
+        {/* Reactive Liquid Perimeter Lighting */}
+        <div
+          className="absolute inset-0 rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
+          style={{
+            padding: '1px',
+            background: `radial-gradient(300px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(124, 58, 237, 0.4), transparent 80%)`,
+            WebkitMask: 'linear-gradient(#fff, #fff) content-box, linear-gradient(#fff, #fff)',
+            WebkitMaskComposite: 'xor',
+            maskComposite: 'exclude',
+          }}
+        />
+
+        {/* Coordinate Telemetry Overlay */}
+        <div
+          className="absolute top-6 right-8 pointer-events-none opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-500 z-30"
+          style={{ transform: 'translateZ(60px)' }}
+        >
+          <div className="flex flex-col items-end font-mono text-[0.45rem] font-bold text-voro-primary/60 tracking-[0.2em] space-y-0.5">
+            <span>TX_<span ref={tiltXRef}>0.0</span>°</span>
+            <span>TY_<span ref={tiltYRef}>0.0</span>°</span>
+            <span className="text-white/20">[{nodeId}]</span>
+          </div>
+        </div>
+
+        <div className="flex gap-8 relative z-10" style={{ transform: 'translateZ(40px)' }}>
+          <div className={`mt-1 p-4 rounded-2xl bg-white/[0.02] border border-white/5 ${color} shadow-lg group-hover:scale-110 transition-transform duration-500`}>
             <Icon size={24} />
           </div>
-          <div className="space-y-3">
-            <h4 className="text-2xl font-serif italic font-bold text-white tracking-tight">{title}</h4>
+          <div className="space-y-3 flex-1">
+            <h4 className="text-2xl font-serif italic font-bold text-white tracking-tight group-hover:text-voro-primary transition-colors duration-500">{title}</h4>
             <p className="text-base text-gray-500 leading-relaxed font-medium tracking-tight">{desc}</p>
           </div>
         </div>
-        <div className="absolute bottom-4 right-6 pointer-events-none font-mono text-[0.45rem] font-black text-white/5 uppercase tracking-[0.2em] group-hover/card:text-voro-primary/10 transition-colors select-none">
+
+        <div className="absolute bottom-4 right-6 pointer-events-none font-mono text-[0.45rem] font-black text-white/10 uppercase tracking-[0.2em] group-hover:text-voro-primary/30 transition-colors select-none">
           CTRL_SYS // 0x0{index + 1}
         </div>
-      </Card>
+      </div>
     </>
   );
 });
@@ -186,26 +268,105 @@ ChronoChecklistButton.displayName = "ChronoChecklistButton";
 /**
  * ⚡ SUBCOMPONENT: ChronosNode
  * The primary countdown and protocol telemetry control board.
+ * Refactored with 60fps 3D volumetric hover tilt tracking, coordinate telemetry,
+ * and static 4-degree keyboard focus tilts.
  */
 const ChronosNode = memo(({ daysUntilComp, targetDate, activePhase, onDeleteTrigger, isDecommissioning, decommissionCount }) => {
+  const containerRef = useRef(null);
+  const tiltXRef = useRef(null);
+  const tiltYRef = useRef(null);
+  const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
-  return (
-    <Card
-      variant="premium"
-      nodeId="CHRONOS_S_01"
-      tabIndex="0"
-      onFocus={() => setIsFocused(true)}
-      onBlur={() => setIsFocused(false)}
-      className="relative overflow-hidden shadow-2xl shadow-black/60 outline-none focus-visible:ring-2 focus-visible:ring-voro-primary/80"
-      style={isFocused ? {
-        transform: 'perspective(1200px) rotateX(4deg) rotateY(-4deg) translateY(-4px)',
-        transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
-      } : undefined}
-    >
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-voro-primary/10 rounded-full blur-[120px] -mr-64 -mt-64 group-hover/card:bg-voro-primary/15 transition-colors duration-1000 pointer-events-none" />
+  const handleMouseMove = (e) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
 
-      <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-20 items-center">
+    // Volumetric tilt calculation (max 12 degrees)
+    const tiltY = ((x / rect.width) - 0.5) * 24;
+    const tiltX = (0.5 - (y / rect.height)) * 24;
+
+    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
+    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
+    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+
+    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('--tilt-x', '4deg');
+      containerRef.current.style.setProperty('--tilt-y', '-4deg');
+      if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
+    }
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('--tilt-x', '0deg');
+      containerRef.current.style.setProperty('--tilt-y', '0deg');
+    }
+  };
+
+  const interactionActive = isHovered || isFocused;
+
+  return (
+    <div
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      tabIndex="0"
+      role="region"
+      aria-label={`Chronos Countdown Control Board. T-Minus ${daysUntilComp} days until competition target on ${targetDate}`}
+      style={{
+        transform: interactionActive
+          ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
+          : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: isHovered ? 'none' : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+        transformStyle: 'preserve-3d'
+      }}
+      className="relative bg-[#0A0C14] border border-white/5 rounded-[3rem] p-12 md:p-16 overflow-hidden shadow-2xl shadow-black/60 outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408] group"
+    >
+      {/* Precision Grid & Grain Architecture */}
+      <div className="absolute inset-0 rounded-[3rem] overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 bg-grid-white opacity-0 group-hover:opacity-[0.03] transition-opacity duration-1000" />
+        <div className="absolute inset-0 bg-boutique-grain opacity-[0.02]" />
+
+        {/* Dynamic Luminous Lens Spotlight */}
+        <div
+          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
+          style={{
+            background: `radial-gradient(500px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(124, 58, 237, 0.12), transparent 70%)`,
+            transform: 'translateZ(20px)'
+          }}
+        />
+      </div>
+
+      {/* Coordinate Telemetry Overlay */}
+      <div
+        className="absolute top-8 right-10 pointer-events-none opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-500 z-30"
+        style={{ transform: 'translateZ(60px)' }}
+      >
+        <div className="flex flex-col items-end font-mono text-[0.45rem] font-bold text-voro-primary/60 tracking-[0.2em] space-y-0.5">
+          <span>TX_<span ref={tiltXRef}>0.0</span>°</span>
+          <span>TY_<span ref={tiltYRef}>0.0</span>°</span>
+          <span className="text-white/20">[CHRONOS_S_01]</span>
+        </div>
+      </div>
+
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-voro-primary/10 rounded-full blur-[120px] -mr-64 -mt-64 group-hover:bg-voro-primary/15 transition-colors duration-1000 pointer-events-none" />
+
+      <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-20 items-center z-10" style={{ transform: 'translateZ(40px)' }}>
         <div className="lg:col-span-5 flex flex-col items-center justify-center border-b lg:border-b-0 lg:border-r border-white/5 pb-16 lg:pb-0 lg:pr-20">
           <div className="relative">
             <div className="w-72 h-72 rounded-full border border-white/5 flex items-center justify-center bg-black/40 backdrop-blur-2xl shadow-[0_0_100px_rgba(124,58,237,0.15)]">
@@ -270,7 +431,7 @@ const ChronosNode = memo(({ daysUntilComp, targetDate, activePhase, onDeleteTrig
           </div>
         </div>
       </div>
-    </Card>
+    </div>
   );
 });
 
