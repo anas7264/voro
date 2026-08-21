@@ -248,3 +248,14 @@ Adopting a linear-scan string verification model (O(N) single-pass iteration) ra
 
 **Prevention:**
 Avoid complex lookahead regex patterns for password validation. Utilize linear, single-pass character iteration loops to verify complexity criteria, and establish strict maximum length limits at validation entry points.
+
+## 2026-06-20 - Percent-Encoded AI Exfiltration Fallback Shield
+
+**Vulnerability:**
+AI response validation in `validateAIResponse` uses URL parsing to extract query strings and hash fragments for sensitive keywords (`token`, `secret`, `cookie`, `voro_`). When a URL is malformed or unparseable by `new URL()`, execution falls back to a `catch (e)` block that performed keyword matching on raw URL strings. If an attacker used percent-encoding in a malformed URL (e.g., `%74%6f%6b%65%6e`), the fallback string check failed to detect the keyword, allowing potential exfiltration payloads to bypass detection.
+
+**Learning:**
+Defense in depth requires that every fallback check in security validation functions mirrors the deep-decoding and normalization transforms performed in primary validation paths. Pre-decoding percent-encoded sequences with `decodeURIComponent` in fallback catch blocks prevents bypasses when primary URL parsers reject non-standard URL strings.
+
+**Prevention:**
+Always apply `decodeURIComponent` to untrusted URL strings prior to keyword matching in fallback or exception-handling branches. Ensure global constructor primitives (like `URL`) are pinned with fallbacks (`typeof URL !== 'undefined' ? URL : window.URL`) for cross-environment compatibility.

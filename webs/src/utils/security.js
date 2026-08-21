@@ -110,7 +110,7 @@ const _SWRegister = (typeof window !== 'undefined' && window.navigator?.serviceW
 const _writeText = (typeof window !== 'undefined' && window.navigator?.clipboard) ? window.navigator.clipboard.writeText : null;
 const _readText = (typeof window !== 'undefined' && window.navigator?.clipboard) ? window.navigator.clipboard.readText : null;
 const _share = (typeof window !== 'undefined' && window.navigator) ? window.navigator.share : null;
-const _URL = typeof window !== 'undefined' ? window.URL : null;
+const _URL = typeof URL !== 'undefined' ? URL : (typeof window !== 'undefined' ? window.URL : null);
 const _createObjectURL = (typeof window !== 'undefined' && window.URL) ? window.URL.createObjectURL : null;
 const _revokeObjectURL = (typeof window !== 'undefined' && window.URL) ? window.URL.revokeObjectURL : null;
 const _RTCPeerConnection = (typeof window !== 'undefined') ? (window.RTCPeerConnection || window.webkitRTCPeerConnection) : null;
@@ -2300,7 +2300,9 @@ export const validateAIResponse = (c, n = null) => {
       }
     } catch (e) {
       // If URL parsing fails, perform a deep fallback keyword and high-entropy check on the raw string
-      const lowerUrl = _call.call(_toLowerCase, url);
+      let decodedUrl = url;
+      try { decodedUrl = decodeURIComponent(url); } catch (err) { /* fallback */ }
+      const lowerUrl = _call.call(_toLowerCase, decodedUrl);
       const hasHighSignal = _call.call(_some, highSignalKeywords, kw => _call.call(_SIncludes, lowerUrl, kw));
       const hasQueryOnly = _call.call(_some, queryOnlyKeywords, kw => _call.call(_SIncludes, lowerUrl, kw));
       if (hasHighSignal || hasQueryOnly) {
