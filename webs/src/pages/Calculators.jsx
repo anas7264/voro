@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, memo } from 'react';
+import React, { useEffect, useState, useMemo, memo, useRef } from 'react';
 import Card from '@/components/Card';
 import Tabs from '@/components/Tabs';
 import { useCalculators } from '@/hooks/useCalculators';
@@ -10,14 +10,9 @@ import {
   Target,
   Dumbbell,
   TrendingDown,
-  Sparkles,
   Scale,
   Info,
-  Layers,
   ChevronRight,
-  TrendingUp,
-  Brain,
-  ShieldAlert,
   CalendarDays
 } from 'lucide-react';
 
@@ -28,13 +23,12 @@ import {
 const numberFormatter = new Intl.NumberFormat('en-US');
 
 /**
- * ⚡ PERFORMANCE OPTIMIZATION & PREMIUM FORGE RE-ENGINEERING:
- * Isolated Active Calculator Components.
- * Re-engineered to the 'Forge' luxury standard with custom visualizers,
- * mathematical whitespace, and interactive micro-animations.
+ * ⚡ PERFORMANCE OPTIMIZATION & LUXURY FORGE MASTERCLASS RE-ENGINEERING:
+ * Isolated Active Calculator Components with 60fps direct-DOM 3D volumetric hover tilts,
+ * coordinate telemetries, Playfair Display typography, and golden ratio spatial architecture.
  */
 
-// 1. BMI CALCULATOR
+// 1. BMI CALCULATOR (BIOMETRIC INDEX ENCLAVE)
 const BMICalculator = memo(({ weight, height, calculateBMI, getBMICategory }) => {
   const bmi = useMemo(() => calculateBMI(weight, height), [weight, height, calculateBMI]);
   const category = useMemo(() => getBMICategory(bmi), [bmi, getBMICategory]);
@@ -50,7 +44,7 @@ const BMICalculator = memo(({ weight, height, calculateBMI, getBMICategory }) =>
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-[0.65rem] font-mono font-black text-voro-primary uppercase tracking-[0.4em] mb-2">Biometric Index // V_BMI</h3>
-          <p className="text-4xl font-serif italic font-medium text-white tracking-tight">Body Mass Index</p>
+          <p className="text-4xl md:text-5xl font-serif italic font-medium text-white tracking-tight">Body Mass Index</p>
         </div>
         <div className="px-4 py-2 bg-white/[0.02] border border-white/5 rounded-xl font-mono text-[0.45rem] text-gray-500 uppercase tracking-[0.2em] select-none">
           NODE // BMI_SPEC_01
@@ -61,7 +55,7 @@ const BMICalculator = memo(({ weight, height, calculateBMI, getBMICategory }) =>
         {/* Left Side: Cinematic value display */}
         <div className="lg:col-span-5 space-y-4">
           <div className="flex items-baseline gap-4">
-            <span className="text-[7rem] md:text-[8rem] font-serif italic font-medium tracking-tighter text-white select-none leading-none">
+            <span className="text-[6.5rem] md:text-[8rem] font-serif italic font-medium tracking-tighter text-white select-none leading-none filter drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]">
               {bmi}
             </span>
             <span className="text-xs font-mono font-black text-voro-primary uppercase tracking-[0.3em] relative -top-8">
@@ -85,14 +79,14 @@ const BMICalculator = memo(({ weight, height, calculateBMI, getBMICategory }) =>
             </div>
 
             {/* Gradient Track */}
-            <div className="relative h-4 w-full rounded-full bg-gradient-to-r from-blue-500/80 via-green-500/80 via-yellow-500/80 to-red-500/80 shadow-inner overflow-visible">
+            <div className="relative h-4 w-full rounded-full bg-gradient-to-r from-blue-500/80 via-green-500/80 via-yellow-500/80 to-red-500/80 shadow-inner overflow-visible border border-white/10">
               {/* Caret Indicator */}
               <div
                 className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
                 style={{ left: `${bmiPct}%` }}
               >
                 <div className="relative flex flex-col items-center">
-                  <div className="w-5 h-5 rounded-full bg-white border-2 border-voro-primary shadow-[0_0_15px_rgba(124,58,237,0.8)] relative z-10 animate-pulse" />
+                  <div className="w-5 h-5 rounded-full bg-white border-2 border-voro-primary shadow-[0_0_20px_rgba(124,58,237,0.9)] relative z-10 animate-pulse" />
                   <div className="w-0.5 h-6 bg-white/60 absolute top-2" />
                 </div>
               </div>
@@ -114,7 +108,7 @@ const BMICalculator = memo(({ weight, height, calculateBMI, getBMICategory }) =>
 BMICalculator.displayName = "BMICalculator";
 
 
-// 2. BMR CALCULATOR
+// 2. BMR CALCULATOR (METABOLIC VELOCITY CORE)
 const BMRCalculator = memo(({ weight, height, age, gender, calculateBMR }) => {
   const bmr = useMemo(() => calculateBMR(weight, height, age, gender), [weight, height, age, gender, calculateBMR]);
 
@@ -128,7 +122,7 @@ const BMRCalculator = memo(({ weight, height, age, gender, calculateBMR }) => {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-[0.65rem] font-mono font-black text-voro-secondary uppercase tracking-[0.4em] mb-2">Metabolic Velocity Core // V_BMR</h3>
-          <p className="text-4xl font-serif italic font-medium text-white tracking-tight">Basal Metabolic Rate</p>
+          <p className="text-4xl md:text-5xl font-serif italic font-medium text-white tracking-tight">Basal Metabolic Rate</p>
         </div>
         <div className="px-4 py-2 bg-white/[0.02] border border-white/5 rounded-xl font-mono text-[0.45rem] text-gray-500 uppercase tracking-[0.2em] select-none">
           ALGO // MIFFLIN_ST_JEOR
@@ -139,7 +133,7 @@ const BMRCalculator = memo(({ weight, height, age, gender, calculateBMR }) => {
         {/* Left display */}
         <div className="lg:col-span-5 space-y-4">
           <div className="flex items-baseline gap-4">
-            <span className="text-[7rem] md:text-[8rem] font-serif italic font-medium tracking-tighter text-white leading-none">
+            <span className="text-[6.5rem] md:text-[8rem] font-serif italic font-medium tracking-tighter text-white leading-none filter drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]">
               {bmr}
             </span>
             <span className="text-xs font-mono font-black text-voro-secondary uppercase tracking-[0.3em] relative -top-8">
@@ -186,7 +180,7 @@ const BMRCalculator = memo(({ weight, height, age, gender, calculateBMR }) => {
 BMRCalculator.displayName = "BMRCalculator";
 
 
-// 3. TDEE CALCULATOR
+// 3. TDEE CALCULATOR (ACTIVE KINETIC VELOCITY)
 const TDEECalculator = memo(({ weight, height, age, gender, activityLevel, calculateBMR, calculateTDEE }) => {
   const bmr = useMemo(() => calculateBMR(weight, height, age, gender), [weight, height, age, gender, calculateBMR]);
   const tdee = useMemo(() => calculateTDEE(bmr, activityLevel), [bmr, activityLevel, calculateTDEE]);
@@ -204,7 +198,7 @@ const TDEECalculator = memo(({ weight, height, age, gender, activityLevel, calcu
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-[0.65rem] font-mono font-black text-voro-accent uppercase tracking-[0.4em] mb-2">Active Kinetic Velocity // V_TDEE</h3>
-          <p className="text-4xl font-serif italic font-medium text-white tracking-tight">Total Daily Energy Expenditure</p>
+          <p className="text-4xl md:text-5xl font-serif italic font-medium text-white tracking-tight">Total Daily Energy Expenditure</p>
         </div>
         <div className="px-4 py-2 bg-white/[0.02] border border-white/5 rounded-xl font-mono text-[0.45rem] text-gray-500 uppercase tracking-[0.2em] select-none">
           NODE // TDEE_ACTIVE_03
@@ -216,7 +210,7 @@ const TDEECalculator = memo(({ weight, height, age, gender, activityLevel, calcu
         <div className="lg:col-span-5 space-y-6">
           <div className="space-y-4">
             <div className="flex items-baseline gap-4">
-              <span className="text-[7rem] md:text-[8rem] font-serif italic font-medium tracking-tighter text-white leading-none">
+              <span className="text-[6.5rem] md:text-[8rem] font-serif italic font-medium tracking-tighter text-white leading-none filter drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]">
                 {tdee}
               </span>
               <span className="text-xs font-mono font-black text-voro-accent uppercase tracking-[0.3em] relative -top-8">
@@ -297,7 +291,7 @@ const TDEECalculator = memo(({ weight, height, age, gender, activityLevel, calcu
 TDEECalculator.displayName = "TDEECalculator";
 
 
-// 4. IDEAL WEIGHT CALCULATOR
+// 4. IDEAL WEIGHT CALCULATOR (BIOLOGICAL CALIBRATION)
 const IdealWeightCalculator = memo(({ height, gender, calculateIdealWeight }) => {
   const idealWeight = useMemo(() => calculateIdealWeight(height, gender), [height, gender, calculateIdealWeight]);
 
@@ -310,7 +304,7 @@ const IdealWeightCalculator = memo(({ height, gender, calculateIdealWeight }) =>
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-[0.65rem] font-mono font-black text-voro-primary uppercase tracking-[0.4em] mb-2">Biological Calibration // V_IBW</h3>
-          <p className="text-4xl font-serif italic font-medium text-white tracking-tight">Ideal Body Weight</p>
+          <p className="text-4xl md:text-5xl font-serif italic font-medium text-white tracking-tight">Ideal Body Weight</p>
         </div>
         <div className="px-4 py-2 bg-white/[0.02] border border-white/5 rounded-xl font-mono text-[0.45rem] text-gray-500 uppercase tracking-[0.2em] select-none">
           FORMULA // DEVINE_HEIGHT_CAL
@@ -321,7 +315,7 @@ const IdealWeightCalculator = memo(({ height, gender, calculateIdealWeight }) =>
         {/* Left Side display */}
         <div className="lg:col-span-5 space-y-4">
           <div className="flex items-baseline gap-4">
-            <span className="text-[7rem] md:text-[8rem] font-serif italic font-medium tracking-tighter text-white leading-none">
+            <span className="text-[6.5rem] md:text-[8rem] font-serif italic font-medium tracking-tighter text-white leading-none filter drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]">
               {Number(idealWeight).toFixed(1)}
             </span>
             <span className="text-xs font-mono font-black text-voro-primary uppercase tracking-[0.3em] relative -top-8">
@@ -376,7 +370,7 @@ const IdealWeightCalculator = memo(({ height, gender, calculateIdealWeight }) =>
 IdealWeightCalculator.displayName = "IdealWeightCalculator";
 
 
-// 5. FFMI CALCULATOR
+// 5. FFMI CALCULATOR (ANABOLIC MUSCULAR DENSITY)
 const FFMICalculator = memo(({ weight, height, bodyFat, calculateFFMI }) => {
   const ffmi = useMemo(() => calculateFFMI(weight, bodyFat, height), [weight, bodyFat, height, calculateFFMI]);
 
@@ -403,7 +397,7 @@ const FFMICalculator = memo(({ weight, height, bodyFat, calculateFFMI }) => {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-[0.65rem] font-mono font-black text-voro-secondary uppercase tracking-[0.4em] mb-2">Anabolic Muscular Density // V_FFMI</h3>
-          <p className="text-4xl font-serif italic font-medium text-white tracking-tight">Fat-Free Mass Index</p>
+          <p className="text-4xl md:text-5xl font-serif italic font-medium text-white tracking-tight">Fat-Free Mass Index</p>
         </div>
         <div className="px-4 py-2 bg-white/[0.02] border border-white/5 rounded-xl font-mono text-[0.45rem] text-gray-500 uppercase tracking-[0.2em] select-none">
           NODE // FFMI_ANABOLIC_05
@@ -415,7 +409,7 @@ const FFMICalculator = memo(({ weight, height, bodyFat, calculateFFMI }) => {
         <div className="lg:col-span-5 space-y-6">
           <div className="space-y-4">
             <div className="flex items-baseline gap-4">
-              <span className="text-[7rem] md:text-[8rem] font-serif italic font-medium tracking-tighter text-white leading-none">
+              <span className="text-[6.5rem] md:text-[8rem] font-serif italic font-medium tracking-tighter text-white leading-none filter drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]">
                 {ffmi}
               </span>
               <span className="text-xs font-mono font-black text-voro-secondary uppercase tracking-[0.3em] relative -top-8">
@@ -520,7 +514,7 @@ const DeficitCalculator = memo(({ weight, height, age, gender, activityLevel, ca
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-[0.65rem] font-mono font-black text-voro-danger uppercase tracking-[0.4em] mb-2">Kinetic Loss Forecast // V_SIM</h3>
-          <p className="text-4xl font-serif italic font-medium text-white tracking-tight">Thermodynamic Projection</p>
+          <p className="text-4xl md:text-5xl font-serif italic font-medium text-white tracking-tight">Thermodynamic Projection</p>
         </div>
         <div className="px-4 py-2 bg-white/[0.02] border border-white/5 rounded-xl font-mono text-[0.45rem] text-gray-500 uppercase tracking-[0.2em] select-none">
           SIM // CALORIC_DEF_12W
@@ -787,6 +781,124 @@ const ActivityCoefficientSelector = memo(({ activityLevel, setActivityLevel }) =
 ActivityCoefficientSelector.displayName = "ActivityCoefficientSelector";
 
 
+/**
+ * ⚡ LUXURY MASTERCLASS CONTAINER CARD: Volumetric 3D Interactive Container
+ * Encloses the calculation display inside a luxury 3D container node with magnetic
+ * mouse tracking, liquid border illumination, and static 4-degree focus tilt.
+ */
+const VolumetricComputationNode = memo(({ children, nodeId }) => {
+  const containerRef = useRef(null);
+  const tiltXRef = useRef(null);
+  const tiltYRef = useRef(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+
+  const handleMouseMove = (e) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const tiltY = ((x / rect.width) - 0.5) * 16;
+    const tiltX = (0.5 - (y / rect.height)) * 16;
+
+    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
+    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
+    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+
+    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('--tilt-x', '4deg');
+      containerRef.current.style.setProperty('--tilt-y', '-4deg');
+      if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
+    }
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('--tilt-x', '0deg');
+      containerRef.current.style.setProperty('--tilt-y', '0deg');
+      if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
+    }
+  };
+
+  const interactionActive = isHovered || isFocused;
+
+  return (
+    <div
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        if (containerRef.current) {
+          containerRef.current.style.setProperty('--tilt-x', '0deg');
+          containerRef.current.style.setProperty('--tilt-y', '0deg');
+        }
+      }}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      tabIndex={0}
+      role="region"
+      aria-label={`Biometric calculation projection node: ${nodeId}`}
+      style={{
+        transform: interactionActive
+          ? 'perspective(1500px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
+          : 'perspective(1500px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: isHovered ? 'none' : 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)',
+        transformStyle: 'preserve-3d'
+      }}
+      className="relative p-10 md:p-14 rounded-[3rem] bg-[#0A0C14] border border-white/5 shadow-[0_60px_120px_-20px_rgba(0,0,0,0.8)] hover:border-white/10 group/comp cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408] overflow-hidden min-h-[480px] flex flex-col justify-center"
+    >
+      {/* Precision Grid & Grain Background */}
+      <div className="absolute inset-0 rounded-[3rem] overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 bg-grid-white opacity-0 group-hover/comp:opacity-100 group-focus-visible/comp:opacity-100 transition-opacity duration-1000" />
+        <div className="absolute inset-0 bg-boutique-grain opacity-[0.02]" />
+
+        {/* Dynamic Luminous Lens */}
+        <div
+          className="absolute inset-0 opacity-0 group-hover/comp:opacity-100 group-focus-visible/comp:opacity-100 transition-opacity duration-700"
+          style={{
+            background: `radial-gradient(600px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(124, 58, 237, 0.08), transparent 50%)`,
+            transform: 'translateZ(20px)'
+          }}
+        />
+      </div>
+
+      {/* Coordinate Telemetry Overlay */}
+      <div
+        className="absolute top-6 right-8 pointer-events-none opacity-0 group-hover/comp:opacity-100 group-focus-visible/comp:opacity-100 transition-all duration-500 z-20"
+        style={{ transform: 'translateZ(60px)' }}
+      >
+        <div className="flex flex-col items-end font-mono text-[0.4rem] font-bold text-voro-primary/60 tracking-[0.2em] space-y-1">
+          <span>TX_<span ref={tiltXRef}>0.0</span>°</span>
+          <span>TY_<span ref={tiltYRef}>0.0</span>°</span>
+          <span className="text-white/20">[{nodeId}]</span>
+        </div>
+      </div>
+
+      <div className="relative z-10" style={{ transform: 'translateZ(40px)' }}>
+        {children}
+      </div>
+
+      {/* Bottom Glow Edge */}
+      <div className="absolute bottom-0 left-12 right-12 h-px bg-gradient-to-r from-transparent via-white/5 to-transparent group-hover/comp:via-voro-primary/40 transition-all duration-1000" />
+    </div>
+  );
+});
+
+VolumetricComputationNode.displayName = "VolumetricComputationNode";
+
+
 // MAIN MASTERCLASS PAGE
 const Calculators = () => {
   const {
@@ -822,12 +934,10 @@ const Calculators = () => {
   }, [user]);
 
   useEffect(() => {
-    document.title = 'VORO | Biometric Calculators';
+    document.title = 'VORO | Biometric Computation Engine';
   }, []);
 
   const calculatorTabs = useMemo(() => {
-    if (!user) return [];
-
     return [
       { id: 'bmi', label: 'BMI', icon: <Activity size={18} /> },
       { id: 'bmr', label: 'BMR', icon: <Flame size={18} /> },
@@ -836,10 +946,9 @@ const Calculators = () => {
       { id: 'ffmi', label: 'FFMI', icon: <Dumbbell size={18} /> },
       { id: 'deficit', label: 'Deficit', icon: <TrendingDown size={18} /> },
     ];
-  }, [user]);
+  }, []);
 
   const activeContent = useMemo(() => {
-    if (!user) return null;
     switch (active) {
       case 'bmi':
         return (
@@ -906,7 +1015,6 @@ const Calculators = () => {
     }
   }, [
     active,
-    user,
     weight,
     height,
     age,
@@ -921,22 +1029,11 @@ const Calculators = () => {
     calculateFFMI
   ]);
 
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-[#080B14]">
-        <div className="animate-pulse flex flex-col items-center">
-          <div className="w-12 h-12 rounded-full border-2 border-voro-primary border-t-transparent animate-spin mb-4" />
-          <p className="text-gray-500 font-medium tracking-widest text-xs uppercase">Analyzing Biometrics</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30 pb-24">
-      {/* Background Decor */}
+      {/* Ambient Background Atmosphere */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[10%] left-[20%] w-[30%] h-[30%] bg-voro-primary/5 rounded-full blur-[120px]" />
+        <div className="absolute top-[10%] left-[20%] w-[35%] h-[35%] bg-voro-primary/5 rounded-full blur-[140px]" />
         <div className="absolute bottom-[10%] right-[10%] w-[40%] h-[40%] bg-voro-secondary/5 rounded-full blur-[150px]" />
       </div>
 
@@ -944,10 +1041,10 @@ const Calculators = () => {
         <header className="mb-20">
           <div className="flex items-center gap-3 text-voro-primary mb-4">
             <Zap size={18} className="animate-pulse" />
-            <span className="text-[0.65rem] font-mono font-black uppercase tracking-[0.4em]">Computation Engine</span>
+            <span className="text-[0.65rem] font-mono font-black uppercase tracking-[0.4em]">Biometric Computation Engine</span>
           </div>
           <h1 className="text-5xl md:text-7xl font-serif italic font-medium tracking-tight text-white leading-tight">
-            Biometric <span className="text-gradient not-italic font-bold">Calculators</span>
+            Somatic <span className="text-voro-primary not-italic font-bold">Calculators</span>
           </h1>
           <p className="text-gray-500 font-medium tracking-widest text-xs uppercase mt-4 opacity-60">
             Interactive mathematical projection models for physiological evolution
@@ -1016,9 +1113,9 @@ const Calculators = () => {
               />
             </div>
 
-            <Card variant="premium" nodeId="COMP_PROJ" className="p-10 md:p-14 min-h-[480px] flex flex-col justify-center">
+            <VolumetricComputationNode nodeId={`COMP_PROJ_${active.toUpperCase()}`}>
               {activeContent}
-            </Card>
+            </VolumetricComputationNode>
           </section>
         </div>
 

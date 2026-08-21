@@ -1,5 +1,4 @@
 const { chromium } = require('@playwright/test');
-const path = require('path');
 
 (async () => {
   console.log("Launching browser for Achievements Page verification...");
@@ -7,8 +6,9 @@ const path = require('path');
   const context = await browser.newContext({
     recordVideo: {
       dir: '/home/jules/verification/videos',
-      size: { width: 1280, height: 720 }
-    }
+      size: { width: 1440, height: 900 }
+    },
+    viewport: { width: 1440, height: 900 }
   });
 
   const page = await context.newPage();
@@ -20,7 +20,7 @@ const path = require('path');
   });
 
   console.log("Navigating to home/entry to inject state securely...");
-  await page.goto('http://localhost:4173/');
+  await page.goto('http://localhost:5173/');
   await page.waitForTimeout(1000); // Let initial bundle load
 
   // Now set the keys securely through window.storage.set
@@ -49,28 +49,27 @@ const path = require('path');
 
   // Now navigate to the Achievements page
   console.log("Navigating to Achievements page...");
-  await page.goto('http://localhost:4173/gamification/achievements');
+  await page.goto('http://localhost:5173/gamification/achievements');
   await page.waitForTimeout(2000); // Wait for transition animations and state load
 
   // 1. Initial page state
   console.log("Taking screenshot of initial achievements list...");
-  await page.screenshot({ path: '/home/jules/verification/screenshots/achievements_initial.png' });
+  await page.screenshot({ path: '/home/jules/verification/screenshots/achievements_masterclass.png' });
 
   // 2. Focus the Ascension Biometric Core section (main hero container)
   console.log("Focusing the Ascension Biometric Core section...");
   const heroSection = page.locator('section[aria-label^="Ascension Biometric Core"]');
   if (await heroSection.isVisible()) {
     await heroSection.focus();
-    await page.waitForTimeout(1000);
-    await page.screenshot({ path: '/home/jules/verification/screenshots/achievements_hero_focus.png' });
+    await page.waitForTimeout(800);
   }
 
   // 3. Hovering over the Ascension Biometric Core section to test mouse-based volumetric tilt
   console.log("Hovering mouse over the Ascension Biometric Core...");
   if (await heroSection.isVisible()) {
     await heroSection.hover({ position: { x: 300, y: 120 } });
-    await page.waitForTimeout(1000);
-    await page.screenshot({ path: '/home/jules/verification/screenshots/achievements_hero_hover.png' });
+    await page.waitForTimeout(800);
+    await page.screenshot({ path: '/home/jules/verification/screenshots/achievements_masterclass.png' });
   }
 
   await context.close();
