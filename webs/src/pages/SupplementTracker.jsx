@@ -17,14 +17,16 @@ const fullDateFormatter = new Intl.DateTimeFormat('en-US', {
   year: 'numeric'
 });
 
-const PRE_PROCESSED_SUPPLEMENTS = supplements.map(s => ({
-  ...s,
-  _nameLower: s.name.toLowerCase(),
-  _categoryLower: s.category.toLowerCase(),
-  _descriptionLower: (s.description || '').toLowerCase()
-}));
+const PRE_PROCESSED_SUPPLEMENTS = Object.freeze(
+  supplements.map(s => ({
+    ...s,
+    _nameLower: s.name.toLowerCase(),
+    _categoryLower: s.category.toLowerCase(),
+    _descriptionLower: (s.description || '').toLowerCase()
+  }))
+);
 
-const STABLE_CATEGORIES = [
+const STABLE_CATEGORIES = Object.freeze([
   'All',
   'Protein',
   'Strength',
@@ -39,9 +41,9 @@ const STABLE_CATEGORIES = [
   'Recovery',
   'Hydration',
   'Sleep'
-];
+]);
 
-const DIAGNOSTIC_MESSAGES = [
+const DIAGNOSTIC_MESSAGES = Object.freeze([
   "Attuning bio-availability parameters...",
   "Aligning molecular composition pathways...",
   "Calibrating active-ingredient receptor buffers...",
@@ -50,7 +52,7 @@ const DIAGNOSTIC_MESSAGES = [
   "Registering exogenous integration protocols...",
   "Optimizing gastrointestinal absorption curves...",
   "Synchronizing cellular telemetry metadata..."
-];
+]);
 
 /**
  * ⚡ REFINEMENT: CatalogItem component.
@@ -168,21 +170,285 @@ const CatalogItem = memo(({ supp, onAdd }) => {
 
 CatalogItem.displayName = 'CatalogItem';
 
+/**
+ * ⚡ REFINEMENT: ActiveProtocolCard Component.
+ * Implements Voro's elite 'Forge' luxury system aesthetic with:
+ * - Direct inline CSS custom property updates on mouse move (60fps DOM tracking, no state re-renders).
+ * - Real-time TX/TY coordinate telemetry in JetBrains Mono.
+ * - Accessible 3D Interaction Pattern on focus (static 4-degree tilt & primary halos).
+ * - 3-second self-canceling individual purge protection mechanism.
+ */
+const ActiveProtocolCard = memo(({ supp, index, onRemove }) => {
+  const cardRef = useRef(null);
+  const txRef = useRef(null);
+  const tyRef = useRef(null);
+  const purgeTimerRef = useRef(null);
+
+  const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const [isPurging, setIsPurging] = useState(false);
+
+  // Clean up any active timers on unmount
+  useEffect(() => {
+    return () => {
+      if (purgeTimerRef.current) {
+        clearTimeout(purgeTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleMouseMove = (e) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Volumetric tilt calculation (max 15 degrees)
+    const tiltY = ((x / rect.width) - 0.5) * 30;
+    const tiltX = (0.5 - (y / rect.height)) * 30;
+
+    // Direct DOM mutation for buttery smooth 60fps tracking
+    cardRef.current.style.setProperty('--mouse-x', `${x}px`);
+    cardRef.current.style.setProperty('--mouse-y', `${y}px`);
+    cardRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+    cardRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+
+    if (txRef.current) txRef.current.innerText = tiltX.toFixed(1);
+    if (tyRef.current) tyRef.current.innerText = tiltY.toFixed(1);
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    if (cardRef.current) {
+      // 4-degree static tilt on keyboard focus for accessibility compliance
+      cardRef.current.style.setProperty('--tilt-x', '4deg');
+      cardRef.current.style.setProperty('--tilt-y', '-4deg');
+      if (txRef.current) txRef.current.innerText = "4.0";
+      if (tyRef.current) tyRef.current.innerText = "-4.0";
+    }
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    if (cardRef.current) {
+      cardRef.current.style.setProperty('--tilt-x', '0deg');
+      cardRef.current.style.setProperty('--tilt-y', '0deg');
+    }
+    // Cancel individual purge flow if user clicks away/tabs away
+    if (isPurging) {
+      setIsPurging(false);
+      if (purgeTimerRef.current) clearTimeout(purgeTimerRef.current);
+    }
+  };
+
+  const handlePurgeClick = (e) => {
+    e.stopPropagation();
+    if (isPurging) {
+      // Confirmed delete
+      if (purgeTimerRef.current) clearTimeout(purgeTimerRef.current);
+      onRemove(supp.id);
+    } else {
+      // Initiate 3s self-canceling double-confirmation guard
+      setIsPurging(true);
+      purgeTimerRef.current = setTimeout(() => {
+        setIsPurging(false);
+      }, 3000);
+    }
+  };
+
+  const displayDosage = supp.servingSize
+    ? `${supp.servingSize} ${supp.servingSizeUnit || ''}`
+    : `${supp.dosageMin}–${supp.dosageMax} ${supp.dosageUnit || ''}`;
+
+  const formattedStartDate = useMemo(() => {
+    try {
+      return fullDateFormatter.format(new Date(supp.startDate));
+    } catch {
+      return 'ACTIVE';
+    }
+  }, [supp.startDate]);
+
+  const nodeId = `SUPP_0x${supp.id?.toString().slice(-4).toUpperCase()}`;
+  const interactionActive = isHovered || isFocused;
+
+  return (
+    <div
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        if (cardRef.current) {
+          cardRef.current.style.setProperty('--tilt-x', '0deg');
+          cardRef.current.style.setProperty('--tilt-y', '0deg');
+        }
+      }}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      tabIndex={0}
+      role="article"
+      aria-label={`${supp.name}. Category: ${supp.category || 'Bioactive'}. Status: Protocol Active.`}
+      style={{
+        transform: interactionActive
+          ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
+          : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: isHovered ? 'none' : 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+        transformStyle: 'preserve-3d',
+        animationDelay: `${index * 50}ms`
+      }}
+      className="group relative p-10 rounded-[2.5rem] bg-[#0A0C14] border border-white/5 hover:border-voro-primary/30 transition-all duration-700 h-[480px] flex flex-col justify-between shadow-2xl hover:shadow-[0_40px_80px_rgba(0,0,0,0.8)] outline-none focus-visible:ring-2 focus-visible:ring-voro-primary/80 focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408] overflow-hidden"
+    >
+      {/* Precision Grid & Luminous Lens Overlay */}
+      <div className="absolute inset-0 rounded-[2.5rem] overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 bg-grid-white opacity-0 group-hover:opacity-[0.02] transition-opacity duration-700" style={{ transform: 'translateZ(10px)' }} />
+        <div className="absolute inset-0 bg-boutique-grain opacity-[0.015]" />
+        <div
+          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+          style={{
+            background: `radial-gradient(350px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(124, 58, 237, 0.08), transparent 60%)`,
+            transform: 'translateZ(20px)'
+          }}
+        />
+      </div>
+
+      {/* Coordinate Telemetry Overlay */}
+      <div
+        className="absolute top-4 right-6 pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-500"
+        style={{ transform: 'translateZ(60px)' }}
+      >
+        <div className="flex flex-col items-end font-mono text-[0.4rem] font-bold text-voro-primary/50 tracking-[0.2em] space-y-0.5">
+          <span>TX_<span ref={txRef}>0.0</span>°</span>
+          <span>TY_<span ref={tyRef}>0.0</span>°</span>
+          <span className="text-white/10">[{nodeId}]</span>
+        </div>
+      </div>
+
+      {/* Card Editorial Header */}
+      <div className="space-y-6 relative z-10" style={{ transform: 'translateZ(30px)' }}>
+        <div className="flex items-start justify-between">
+          <div className="space-y-2">
+            <p className="text-[0.55rem] font-mono font-black text-voro-primary uppercase tracking-[0.4em]">
+              {supp.category?.toUpperCase() || 'BIOACTIVE'}
+            </p>
+            <h3 className="text-3xl font-serif italic font-medium text-white tracking-[-0.02em] leading-tight">
+              {supp.name}
+            </h3>
+          </div>
+
+          {/* Defensive Purge Controller */}
+          <button
+            onClick={handlePurgeClick}
+            aria-label={isPurging ? `CONFIRM PURGE FOR ${supp.name}` : `Request decommission of ${supp.name}`}
+            className={`p-3.5 rounded-2xl transition-all duration-500 border ${
+              isPurging
+                ? 'bg-amber-500/10 text-amber-500 border-amber-500/20 shadow-lg shadow-amber-500/20'
+                : 'bg-white/[0.01] border-white/5 text-gray-600 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/10'
+            } outline-none focus-visible:ring-2 focus-visible:ring-red-500`}
+          >
+            {isPurging ? (
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={14} className="animate-pulse" />
+                <span className="text-[0.55rem] font-mono font-black tracking-widest">PURGE?</span>
+              </div>
+            ) : (
+              <Trash2 size={16} />
+            )}
+          </button>
+        </div>
+
+        <p className="text-xs text-gray-400 font-medium leading-relaxed italic line-clamp-2">
+          "{supp.description || 'No detailed pharmacological synthesis available for this specific exogenous compound.'}"
+        </p>
+      </div>
+
+      {/* Molecular Bio-Availability Grid */}
+      <div className="my-8 space-y-6 border-y border-white/5 py-6 relative z-10" style={{ transform: 'translateZ(25px)' }}>
+        <div className="grid grid-cols-2 gap-4">
+          {/* Dosage details */}
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-voro-primary">
+              <Activity size={14} />
+            </div>
+            <div>
+              <p className="text-[0.5rem] font-mono font-black text-gray-500 uppercase tracking-widest">Bio-Dose</p>
+              <p className="text-xs font-mono font-bold text-white uppercase mt-0.5">{displayDosage}</p>
+            </div>
+          </div>
+
+          {/* Timeline / Initiation */}
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-voro-primary">
+              <Calendar size={14} />
+            </div>
+            <div>
+              <p className="text-[0.5rem] font-mono font-black text-gray-500 uppercase tracking-widest">Initiated</p>
+              <p className="text-xs font-mono font-bold text-white uppercase mt-0.5">
+                {formattedStartDate}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Benefits visualization */}
+        {supp.benefits && supp.benefits.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-[0.5rem] font-mono font-black text-gray-500 uppercase tracking-widest">Bioactive Benefits</p>
+            <div className="flex flex-wrap gap-1.5 max-h-16 overflow-hidden">
+              {supp.benefits.slice(0, 3).map((benefit, idx) => (
+                <span
+                  key={idx}
+                  className="text-[0.55rem] font-mono font-medium text-gray-400 bg-white/[0.02] border border-white/[0.04] px-2 py-0.5 rounded-md uppercase tracking-wider"
+                >
+                  {benefit}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Aesthetic and Dietary Tags Footer */}
+      <div className="flex items-center justify-between border-t border-white/[0.02] pt-4 relative z-10" style={{ transform: 'translateZ(20px)' }}>
+        <div className="flex gap-2">
+          {supp.studyBacked && (
+            <div className="flex items-center gap-1 px-2.5 py-1 bg-voro-secondary/10 border border-voro-secondary/20 rounded-lg text-voro-secondary">
+              <BadgeCheck size={12} />
+              <span className="text-[0.55rem] font-mono font-black uppercase tracking-wider">Clinically Proven</span>
+            </div>
+          )}
+          {supp.vegan && (
+            <div className="flex items-center gap-1 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-400">
+              <Leaf size={11} />
+              <span className="text-[0.55rem] font-mono font-black uppercase tracking-wider">Vegan</span>
+            </div>
+          )}
+        </div>
+
+        {!supp.studyBacked && !supp.vegan && (
+          <span className="text-[0.45rem] font-mono text-gray-600 uppercase tracking-widest">
+            APOTHECARY PROTOCOL V1.0
+          </span>
+        )}
+      </div>
+    </div>
+  );
+});
+
+ActiveProtocolCard.displayName = 'ActiveProtocolCard';
+
 const SupplementTracker = () => {
   /**
    * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
    * Subscribe only to the relevant 'supplements' key. This ensures the component
    * only re-renders when the supplement protocol is modified.
    */
-  const userSupplements = useStorageKey('supplements') || [];
+  const userSupplementsRaw = useStorageKey('supplements');
+  const userSupplements = useMemo(() => Array.isArray(userSupplementsRaw) ? userSupplementsRaw : [], [userSupplementsRaw]);
+
   const { setItem } = useStorageMethods();
   const { addNotification } = useNotifications();
 
   const [showForm, setShowForm] = useState(false);
-  const [confirmingRemoveId, setConfirmingRemoveId] = useState(null);
-
-  // Focus state map to handle static 3D tilt for keyboard accessibility
-  const [focusedCardId, setFocusedCardId] = useState(null);
 
   // Interactive apothecary filters
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -202,14 +468,6 @@ const SupplementTracker = () => {
   useEffect(() => {
     activeSupplementsRef.current = userSupplements;
   }, [userSupplements]);
-
-  // Reset confirmation state after timeout
-  useEffect(() => {
-    if (confirmingRemoveId) {
-      const timer = setTimeout(() => setConfirmingRemoveId(null), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [confirmingRemoveId]);
 
   // Synthesis diagnostic loops
   useEffect(() => {
@@ -238,23 +496,18 @@ const SupplementTracker = () => {
     }
   }, [isSynthesizing, synthesizingSupp, setItem, addNotification]);
 
-  const handleAddSupplement = (supplement) => {
+  const handleAddSupplement = useCallback((supplement) => {
     setSynthesizingSupp(supplement);
     setIsSynthesizing(true);
     setDiagnosticIndex(0);
     setShowForm(false);
-  };
+  }, []);
 
-  const handleRemove = async (id) => {
-    if (confirmingRemoveId === id) {
-      const updated = userSupplements.filter(s => s.id !== id);
-      await setItem('supplements', updated);
-      addNotification('Supplement removed from protocol.', 'info');
-      setConfirmingRemoveId(null);
-    } else {
-      setConfirmingRemoveId(id);
-    }
-  };
+  const handleRemove = useCallback(async (id) => {
+    const updated = activeSupplementsRef.current.filter(s => s.id !== id);
+    await setItem('supplements', updated);
+    addNotification('Supplement removed from protocol.', 'info');
+  }, [setItem, addNotification]);
 
   // Pre-lowercase filter mapping
   const filteredCatalog = useMemo(() => {
@@ -493,136 +746,19 @@ const SupplementTracker = () => {
 
         {userSupplements.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {userSupplements.map(supp => {
-              const isCardFocused = focusedCardId === supp.id;
-              const displayDosage = supp.servingSize
-                ? `${supp.servingSize} ${supp.servingSizeUnit || ''}`
-                : `${supp.dosageMin}–${supp.dosageMax} ${supp.dosageUnit || ''}`;
-
-              return (
-                <Card
-                  key={supp.id}
-                  variant="premium"
-                  nodeId={`SUPP_0x${supp.id?.toString().slice(-4).toUpperCase()}`}
-                  className={`group relative p-10 hover:border-white/15 transition-all duration-700 h-[480px] flex flex-col justify-between`}
-                  tabIndex="0"
-                  onFocus={() => setFocusedCardId(supp.id)}
-                  onBlur={() => setFocusedCardId(null)}
-                  style={{
-                    transform: isCardFocused
-                      ? 'perspective(1200px) rotateX(4deg) rotateY(-4deg) translateY(-4px)'
-                      : undefined,
-                    transition: 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)'
-                  }}
-                >
-                  {/* Card Editorial Header */}
-                  <div className="space-y-6">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-2">
-                        <p className="text-[0.55rem] font-mono font-black text-voro-primary uppercase tracking-[0.4em]">
-                          {supp.category?.toUpperCase() || 'BIOACTIVE'}
-                        </p>
-                        <h3 className="text-3xl font-serif italic font-medium text-white tracking-[-0.02em] leading-tight">
-                          {supp.name}
-                        </h3>
-                      </div>
-
-                      {/* Double confirmation delete layout */}
-                      <button
-                        onClick={() => handleRemove(supp.id)}
-                        aria-label={confirmingRemoveId === supp.id ? `Confirm removal of ${supp.name}` : `Remove ${supp.name} from protocol`}
-                        className={`p-3 rounded-2xl transition-all duration-500 outline-none focus-visible:ring-2 focus-visible:ring-red-500 border relative ${
-                          confirmingRemoveId === supp.id
-                            ? 'bg-red-500/20 text-red-400 border-red-500/30 animate-pulse opacity-100'
-                            : 'text-gray-600 hover:text-red-400 hover:bg-red-400/10 border-white/5 opacity-0 group-hover:opacity-100 focus-visible:opacity-100'
-                        }`}
-                      >
-                        {confirmingRemoveId === supp.id ? <ShieldAlert size={16} /> : <Trash2 size={16} />}
-                      </button>
-                    </div>
-
-                    <p className="text-xs text-gray-400 font-medium leading-relaxed italic line-clamp-2">
-                      "{supp.description || 'No detailed pharmacological synthesis available for this specific exogenous compound.'}"
-                    </p>
-                  </div>
-
-                  {/* Molecular Bio-Availability Grid */}
-                  <div className="my-8 space-y-6 border-y border-white/5 py-6">
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* Dosage details */}
-                      <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-voro-primary">
-                          <Activity size={14} />
-                        </div>
-                        <div>
-                          <p className="text-[0.5rem] font-mono font-black text-gray-500 uppercase tracking-widest">Bio-Dose</p>
-                          <p className="text-xs font-mono font-bold text-white uppercase mt-0.5">{displayDosage}</p>
-                        </div>
-                      </div>
-
-                      {/* Timeline / Initiation */}
-                      <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-white/[0.02] border border-white/5 rounded-xl text-voro-primary">
-                          <Calendar size={14} />
-                        </div>
-                        <div>
-                          <p className="text-[0.5rem] font-mono font-black text-gray-500 uppercase tracking-widest">Initiated</p>
-                          <p className="text-xs font-mono font-bold text-white uppercase mt-0.5">
-                            {fullDateFormatter.format(new Date(supp.startDate))}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Benefits visualization */}
-                    {supp.benefits && supp.benefits.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-[0.5rem] font-mono font-black text-gray-500 uppercase tracking-widest">Bioactive Benefits</p>
-                        <div className="flex flex-wrap gap-1.5 max-h-16 overflow-hidden">
-                          {supp.benefits.slice(0, 3).map((benefit, idx) => (
-                            <span
-                              key={idx}
-                              className="text-[0.55rem] font-mono font-medium text-gray-400 bg-white/[0.02] border border-white/[0.04] px-2 py-0.5 rounded-md uppercase tracking-wider"
-                            >
-                              {benefit}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Aesthetic and Dietary Tags Footer */}
-                  <div className="flex items-center justify-between border-t border-white/[0.02] pt-4">
-                    <div className="flex gap-2">
-                      {supp.studyBacked && (
-                        <div className="flex items-center gap-1 px-2.5 py-1 bg-voro-secondary/10 border border-voro-secondary/20 rounded-lg text-voro-secondary">
-                          <BadgeCheck size={12} />
-                          <span className="text-[0.55rem] font-mono font-black uppercase tracking-wider">Clinically Proven</span>
-                        </div>
-                      )}
-                      {supp.vegan && (
-                        <div className="flex items-center gap-1 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-400">
-                          <Leaf size={11} />
-                          <span className="text-[0.55rem] font-mono font-black uppercase tracking-wider">Vegan</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {!supp.studyBacked && !supp.vegan && (
-                      <span className="text-[0.45rem] font-mono text-gray-600 uppercase tracking-widest">
-                        APOTHECARY PROTOCOL V1.0
-                      </span>
-                    )}
-                  </div>
-                </Card>
-              );
-            })}
+            {userSupplements.map((supp, index) => (
+              <ActiveProtocolCard
+                key={supp.id}
+                supp={supp}
+                index={index}
+                onRemove={handleRemove}
+              />
+            ))}
           </div>
         ) : (
           <div className="py-40 text-center border border-dashed border-white/5 rounded-[3rem] bg-[#0A0C14]/20 backdrop-blur-md relative overflow-hidden group">
             <div className="absolute inset-0 bg-grid-white opacity-[0.01] group-hover:opacity-[0.03] transition-opacity duration-1000" />
-            <div className="w-24 h-24 bg-white/[0.01] border border-white/5 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner group-hover:scale-110 transition-transform duration-700">
+            <div className="w-24 h-24 bg-[#0A0C14] border border-white/5 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner group-hover:scale-110 transition-transform duration-700">
               <Zap size={36} className="text-gray-700 group-hover:text-voro-primary transition-colors duration-500" />
             </div>
             <h3 className="text-3xl font-serif italic font-bold text-white mb-2">Molecular Void</h3>
