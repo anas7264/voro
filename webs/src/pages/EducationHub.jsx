@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef, memo } from 'react';
+import React, { useEffect, useState, useMemo, useRef, memo, useDeferredValue } from 'react';
 import { BookOpen, Clock, ArrowUpRight, Search, Bookmark, Share2, Sparkles, Filter, Newspaper } from 'lucide-react';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -222,6 +222,17 @@ const ARTICLES = [
   }
 ];
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Pre-processed lowercase fields.
+ * Pre-computes _titleLower and _excerptLower at module load to avoid dynamic string allocations
+ * and repeated .toLowerCase() calls inside the search filter loop.
+ */
+const PRE_PROCESSED_ARTICLES = ARTICLES.map(a => ({
+  ...a,
+  _titleLower: a.title.toLowerCase(),
+  _excerptLower: a.excerpt.toLowerCase()
+}));
+
 const CATEGORIES = ['All', ...new Set(ARTICLES.map(a => a.category))];
 
 const FEATURED_ARTICLE = ARTICLES.find(a => a.featured);
@@ -229,6 +240,7 @@ const FEATURED_ARTICLE = ARTICLES.find(a => a.featured);
 const EducationHub = () => {
   const { addNotification } = useNotifications();
   const [searchQuery, setSearchQuery] = useState('');
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const [activeCategory, setActiveCategory] = useState('All');
   const [bookmarkedIds, setBookmarkedIds] = useState([]);
 
@@ -268,15 +280,24 @@ const EducationHub = () => {
     document.title = 'VORO | Intellectual Archive';
   }, []);
 
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Concurrent Search Filtering with Deferred Value.
+   * Using deferredSearchQuery prevents typing latency on fast keystrokes while
+   * pre-processed lowercase properties eliminate lowercasing string allocations in the filter pass.
+   */
   const filteredArticles = useMemo(() => {
-    return ARTICLES.filter(article => {
-      if (article.featured && activeCategory === 'All' && !searchQuery) return false;
-      const matchesSearch = article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            article.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = activeCategory === 'All' || article.category === activeCategory;
-      return matchesSearch && matchesCategory;
+    const q = deferredSearchQuery.trim().toLowerCase();
+    const cat = activeCategory;
+
+    return PRE_PROCESSED_ARTICLES.filter(article => {
+      if (article.featured && cat === 'All' && !q) return false;
+      const matchesCategory = cat === 'All' || article.category === cat;
+      const matchesSearch = !q ||
+                            article._titleLower.includes(q) ||
+                            article._excerptLower.includes(q);
+      return matchesCategory && matchesSearch;
     });
-  }, [searchQuery, activeCategory]);
+  }, [deferredSearchQuery, activeCategory]);
 
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30 pb-24 relative overflow-hidden">
