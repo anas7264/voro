@@ -137,22 +137,36 @@ export const getFastShortDate = (str) => {
   return getFormatter(dateFormatterCache, Intl.DateTimeFormat, 'en-US', { month: 'short', day: 'numeric' }).format(dateObj);
 };
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Module-scoped CachedDateTimeFormat instances for standard date presets.
+ * Reuses results across re-renders and loop iterations, eliminating redundant new Date() parsing and Intl formatting overhead.
+ */
+const PRESET_FORMATTERS = {
+  short: new CachedDateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }),
+  long: new CachedDateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" }),
+  time: new CachedDateTimeFormat("en-US", { hour: "2-digit", minute: "2-digit" }),
+  datetime: new CachedDateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })
+};
+
 // Format date to readable string
 export const formatDate = (date, format = "short") => {
-  const dateObj = typeof date === "string" ? new Date(date) : date;
+  if (!date) return "";
 
-  if (format === "short") {
-    return getFormatter(dateFormatterCache, Intl.DateTimeFormat, "en-US", { month: "short", day: "numeric", year: "numeric" }).format(dateObj);
-  } else if (format === "long") {
-    return getFormatter(dateFormatterCache, Intl.DateTimeFormat, "en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" }).format(dateObj);
-  } else if (format === "time") {
-    return getFormatter(dateFormatterCache, Intl.DateTimeFormat, "en-US", { hour: "2-digit", minute: "2-digit" }).format(dateObj);
-  } else if (format === "datetime") {
-    return getFormatter(dateFormatterCache, Intl.DateTimeFormat, "en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(dateObj);
-  } else if (format === "iso") {
+  if (format === "iso") {
+    if (typeof date === "string" && date.length >= 10 && date.charCodeAt(4) === 45 && date.charCodeAt(7) === 45) {
+      return date.slice(0, 10);
+    }
+    const dateObj = typeof date === "string" ? new Date(date) : date;
+    if (!dateObj || (dateObj instanceof Date && isNaN(dateObj.getTime()))) return "";
     return dateObj.toISOString().split("T")[0];
   }
 
+  if (PRESET_FORMATTERS[format]) {
+    return PRESET_FORMATTERS[format].format(date);
+  }
+
+  const dateObj = typeof date === "string" ? new Date(date) : date;
+  if (!dateObj || (dateObj instanceof Date && isNaN(dateObj.getTime()))) return "";
   return getFormatter(dateFormatterCache, Intl.DateTimeFormat, undefined, {}).format(dateObj);
 };
 
