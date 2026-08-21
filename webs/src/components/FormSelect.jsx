@@ -1,7 +1,12 @@
-import React from "react";
+import React, { memo } from "react";
 import { Select } from "./Select";
 
-export const FormSelect = ({ name, label, options = [], error, required, ...props }) => {
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Memoized FormSelect wrapper component.
+ * Prevents unnecessary re-renders when parent form state updates (e.g., during
+ * high-frequency typing in sibling form fields), eliminating virtual DOM churn.
+ */
+export const FormSelect = memo(({ name, label, options = [], error, required, ...props }) => {
   return (
     <div className="mb-4">
       <Select
@@ -15,6 +20,8 @@ export const FormSelect = ({ name, label, options = [], error, required, ...prop
       />
     </div>
   );
-};
+});
+
+FormSelect.displayName = "FormSelect";
 
 export default FormSelect;

@@ -1,7 +1,12 @@
-import React from "react";
+import React, { memo } from "react";
 import { Textarea } from "./Textarea";
 
-export const FormTextarea = ({ name, label, error, required, ...props }) => {
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Memoized FormTextarea wrapper component.
+ * Prevents unnecessary re-renders when parent form state updates (e.g., during
+ * high-frequency typing in sibling form fields), eliminating virtual DOM churn.
+ */
+export const FormTextarea = memo(({ name, label, error, required, ...props }) => {
   return (
     <div className="mb-4">
       <Textarea
@@ -14,6 +19,8 @@ export const FormTextarea = ({ name, label, error, required, ...props }) => {
       />
     </div>
   );
-};
+});
+
+FormTextarea.displayName = "FormTextarea";
 
 export default FormTextarea;

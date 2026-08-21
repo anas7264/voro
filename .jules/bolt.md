@@ -181,3 +181,10 @@
 **Action:**
 1. Hoist complex regex group definitions from local utility function scopes into a module-level frozen array.
 2. Use stable arrays of tuples for iterating key-value style logic in performance-critical code blocks to avoid runtime key/value array allocation.
+
+## 2026-09-01 - Systemic Form Wrapper Memoization
+**Learning:** Form wrapper components (`FormInput`, `FormSelect`, `FormTextarea`, `FormCheckbox`) wrap standard input controls and are heavily instantiated in form-rich pages like `Calculators`, `Settings`, and `Onboarding`. When left unmemoized, every character typed in a single field forces a parent state update that re-renders all other form fields in the tree. Wrapping form field wrappers in `React.memo()` with explicit `displayName`s prevents redundant re-rendering of sibling inputs, keeping form interactions fluid at 60fps.
+
+**Action:**
+1. Wrap form field wrapper components in `React.memo()` when they delegate rendering to sub-components.
+2. Assign explicit `displayName`s to memoized form elements to ensure clear React DevTools profiling traces.

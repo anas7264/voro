@@ -1,7 +1,12 @@
-import React from "react";
+import React, { memo } from "react";
 import { Checkbox } from "./Checkbox";
 
-export const FormCheckbox = ({ name, label, error, ...props }) => {
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Memoized FormCheckbox wrapper component.
+ * Prevents unnecessary re-renders when parent form state updates (e.g., during
+ * high-frequency typing in sibling form fields), eliminating virtual DOM churn.
+ */
+export const FormCheckbox = memo(({ name, label, error, ...props }) => {
   return (
     <div className="mb-4">
       <Checkbox
@@ -12,6 +17,8 @@ export const FormCheckbox = ({ name, label, error, ...props }) => {
       />
     </div>
   );
-};
+});
+
+FormCheckbox.displayName = "FormCheckbox";
 
 export default FormCheckbox;
