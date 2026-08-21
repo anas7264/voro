@@ -1,18 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback, memo } from 'react';
 import { Calendar, RotateCcw, Zap, Target, Flame, Droplets, Moon } from 'lucide-react';
-import { useStorageKey } from '@/hooks/useStorage';
+import { useStorageKeySelector } from '@/hooks/useStorage';
 import { BarChartComponent } from '@/components';
 
 /**
- * ⚡ PERFORMANCE OPTIMIZATION: Hoisted fallback data.
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted fallback data with Object.freeze.
  * Ensures referential stability and prevents redundant object instantiation.
  */
-const DEFAULT_STREAKS = {
+const DEFAULT_STREAKS = Object.freeze({
   trainingDays: 15,
   nutritionLogging: 8,
   waterIntake: 12,
   sleepGoal: 6,
-};
+});
 
 /**
  * ⚡ LUXURY MOVEMENT: KineticMomentumNode.
@@ -167,10 +167,12 @@ KineticMomentumNode.displayName = "KineticMomentumNode";
 const DailyStreak = () => {
   /**
    * ⚡ OPTIMIZATION: Surgical Reactivity.
-   * Subscribe only to 'voro_streaks' data to prevent redundant re-renders
-   * when unrelated storage keys change.
+   * Replaced useStorageKey with useStorageKeySelector for granular reactivity.
    */
-  const streaksData = useStorageKey('voro_streaks');
+  const streaks = useStorageKeySelector(
+    'voro_streaks',
+    useCallback((data) => data || DEFAULT_STREAKS, [])
+  );
 
   const containerRef = useRef(null);
   const chartTiltXRef = useRef(null);
@@ -181,15 +183,6 @@ const DailyStreak = () => {
   useEffect(() => {
     document.title = 'VORO | Daily Streak';
   }, []);
-
-  /**
-   * ⚡ OPTIMIZATION: Synchronous data derivation using useMemo.
-   * Eliminates the initial mount-time double-render cycle and ensures
-   * reactivity to StorageContext updates without manual load calls.
-   */
-  const streaks = useMemo(() => {
-    return streaksData || DEFAULT_STREAKS;
-  }, [streaksData]);
 
   const chartData = useMemo(() => [
     { date: 'Mon', completed: 4 },
@@ -428,13 +421,11 @@ const DailyStreak = () => {
             {/* Upgraded Tactile Magnetic Reset Action */}
             <button
               onClick={() => {
-                // Tactical confirmation simulation/reset notification
                 alert("Synchronicity matrix verification sequence triggered.");
               }}
               style={{ transformStyle: 'preserve-3d' }}
               className="w-full flex items-center justify-center gap-4 py-8 rounded-[2.5rem] bg-white text-black text-[0.7rem] font-mono font-black uppercase tracking-[0.4em] transition-all duration-500 hover:scale-[1.03] active:scale-[0.97] hover:shadow-[0_40px_80px_rgba(255,255,255,0.15)] active:shadow-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408] outline-none group/reset overflow-hidden relative"
             >
-              {/* Shimmer Lead Effect */}
               <div className="absolute inset-0 bg-shimmer-gradient bg-[length:200%_100%] animate-shimmer opacity-10" />
 
               <div className="relative z-10 flex items-center gap-4">
