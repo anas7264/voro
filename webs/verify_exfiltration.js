@@ -188,6 +188,21 @@ const runTests = async () => {
     throw new Error(`❌ Failure: Extended steganographic/invisible characters were NOT blocked! res4=${res4}, compromised=${window.VORO_COMPROMISED}`);
   }
 
+  // --- TEST 5: Percent-Encoded AI Exfiltration Keyword in URL ---
+  console.log("🛡️ Test 5: Verifying percent-encoded keyword in URL exfiltration detection...");
+  lockdownCount = 0;
+  window.VORO_COMPROMISED = false;
+  window.VORO_DECEPTION_ACTIVE = false;
+
+  const percentEncodedPayload = "Click here: https://attacker.com/steal?%74%6f%6b%65%6e=secret_123_data";
+  const res5 = validateAIResponse(percentEncodedPayload);
+
+  if (res5 === "[SECURITY_VIOLATION_DETECTED]" && lockdownCount > 0 && window.VORO_COMPROMISED) {
+    console.log("✅ Success: Percent-encoded keyword in exfiltration URL was successfully detected and locked down!");
+  } else {
+    throw new Error(`❌ Failure: Percent-encoded keyword exfiltration was NOT blocked! res5=${res5}, compromised=${window.VORO_COMPROMISED}`);
+  }
+
   console.log("\n🎉 ALL EXFILTRATION SECURITY VERIFICATION TESTS PASSED SUCCESSFULLY!");
   console.log("=========================================");
   process.exit(0);
