@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useState, useRef, memo, useId } from 'react';
-import { TrendingUp, TrendingDown, Scale, Activity, Zap, Target, Heart, Info, ShieldAlert, CircleDot } from 'lucide-react';
+import { TrendingUp, TrendingDown, Scale, Activity, Zap, Target, Heart, Info, ShieldAlert, CircleDot, RefreshCw, Sparkles, Layers } from 'lucide-react';
 import Card from '@/components/Card';
 import Stat from '@/components/Stat';
 import AreaChartComponent from '@/components/AreaChartComponent';
 import Badge from '@/components/Badge';
+import Header from '@/components/Header';
+import Breadcrumb from '@/components/Breadcrumb';
 import { useStorageKey } from '@/hooks/useStorage';
 import { useApp } from '@/hooks/useAppContext';
 import { bodyFatStandards, bodyFatLevelDescriptions, bodyFatHealthMetrics } from '@/data/bodyFatStandards';
@@ -19,16 +21,31 @@ const dateShortFormatter = new Intl.DateTimeFormat('en-US', {
 });
 
 /**
+ * Check if the current runtime environment is in automated test mode or bypass mode.
+ */
+const isTestBypass = () => {
+  if (typeof window === 'undefined') return false;
+  return (
+    Boolean(window.__VORO_TEST_BYPASS__) ||
+    window.localStorage?.getItem('voro_test_mode') === 'true' ||
+    window.localStorage?.getItem('voro_bypass_loader') === 'true'
+  );
+};
+
+/**
  * ⚡ REFINEMENT: Custom SomaticSpecimenCell Component.
  * Conforms to the 'Forge' luxury system aesthetic with 3D volumetric transforms,
  * direct DOM mouse tracking (bypassing React re-renders), and real-time coordinate telemetry.
  */
-const SomaticSpecimenCell = memo(({ label, value, unit, change, icon: Icon, color = "voro-primary", nodeId }) => {
+const SomaticSpecimenCell = memo(({ label, value, unit, change, icon: Icon, color = "voro-primary", nodeId: explicitNodeId }) => {
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const reactId = useId();
+
+  const nodeId = useMemo(() => explicitNodeId || `SPEC_${reactId.replace(/:/g, '').slice(0, 4).toUpperCase()}`, [explicitNodeId, reactId]);
 
   const handleMouseMove = (e) => {
     if (!containerRef.current) return;
@@ -62,6 +79,10 @@ const SomaticSpecimenCell = memo(({ label, value, unit, change, icon: Icon, colo
 
   const handleBlur = () => {
     setIsFocused(false);
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('--tilt-x', '0deg');
+      containerRef.current.style.setProperty('--tilt-y', '0deg');
+    }
   };
 
   const interactionActive = isHovered || isFocused;
@@ -95,6 +116,8 @@ const SomaticSpecimenCell = memo(({ label, value, unit, change, icon: Icon, colo
       }}
       className="relative bg-[#0A0C14] border border-white/5 rounded-[2.5rem] p-8 overflow-hidden group/card cursor-pointer transition-all duration-700 hover:border-white/20 hover:shadow-[0_80px_160px_rgba(0,0,0,0.9)] outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408]"
     >
+      <div className="absolute inset-0 bg-scanline opacity-[0.02] pointer-events-none" />
+
       {/* Precision Grid Overlay */}
       <div className="absolute inset-0 rounded-[2.5rem] overflow-hidden pointer-events-none">
         <div className="absolute inset-0 bg-grid-white opacity-0 group-hover/card:opacity-[0.03] transition-opacity duration-1000" style={{ transform: 'translateZ(10px)' }} />
@@ -112,7 +135,7 @@ const SomaticSpecimenCell = memo(({ label, value, unit, change, icon: Icon, colo
 
       {/* Coordinate Telemetry Overlay */}
       <div
-        className="absolute top-6 right-8 pointer-events-none opacity-0 group-hover/card:opacity-100 transition-all duration-500"
+        className="absolute top-6 right-8 pointer-events-none opacity-0 group-hover/card:opacity-100 group-focus-visible:opacity-100 transition-all duration-500"
         style={{ transform: 'translateZ(80px)' }}
       >
         <div className="flex flex-col items-end font-mono text-[0.4rem] font-bold text-white/40 tracking-[0.2em] space-y-1">
@@ -168,68 +191,168 @@ SomaticSpecimenCell.displayName = "SomaticSpecimenCell";
 
 /**
  * ⚡ REFINEMENT: SomaticSegmentalLens Component.
- * Interactive custom visualization demonstrating the muscle-to-fat clinical cross section.
+ * Volumetric 3D interactive custom visualization demonstrating the muscle-to-fat clinical cross section.
  */
 const SomaticSegmentalLens = memo(({ leanMass, fatMass, bodyFat }) => {
+  const containerRef = useRef(null);
+  const txRef = useRef(null);
+  const tyRef = useRef(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+
+  const handleMouseMove = (e) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const tiltY = ((x / rect.width) - 0.5) * 16;
+    const tiltX = (0.5 - (y / rect.height)) * 16;
+
+    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
+    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
+    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+
+    if (txRef.current) txRef.current.innerText = tiltX.toFixed(1);
+    if (tyRef.current) tyRef.current.innerText = tiltY.toFixed(1);
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('--tilt-x', '4deg');
+      containerRef.current.style.setProperty('--tilt-y', '-4deg');
+      if (txRef.current) txRef.current.innerText = "4.0";
+      if (tyRef.current) tyRef.current.innerText = "-4.0";
+    }
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('--tilt-x', '0deg');
+      containerRef.current.style.setProperty('--tilt-y', '0deg');
+    }
+  };
+
   const leanPct = useMemo(() => {
     const total = leanMass + fatMass;
     if (total === 0) return 70;
     return (leanMass / total) * 100;
   }, [leanMass, fatMass]);
 
-  return (
-    <div className="relative p-8 rounded-[2.5rem] bg-[#0A0C14]/80 border border-white/5 overflow-hidden group/lens">
-      <div className="absolute inset-0 bg-boutique-grain opacity-[0.02]" />
-      <div className="absolute -left-12 -top-12 w-48 h-48 bg-voro-primary/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -right-12 -bottom-12 w-48 h-48 bg-voro-accent/5 rounded-full blur-3xl pointer-events-none" />
+  const interactionActive = isHovered || isFocused;
 
-      <div className="relative z-10 space-y-8">
+  return (
+    <div
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      tabIndex={0}
+      role="region"
+      aria-label={`Somatic Segmental Lens. Lean mass: ${leanMass.toFixed(1)}kg (${leanPct.toFixed(1)}%). Adipose mass: ${fatMass.toFixed(1)}kg (${(100 - leanPct).toFixed(1)}%). Body fat ratio: ${bodyFat.toFixed(1)}%.`}
+      style={{
+        transform: interactionActive
+          ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
+          : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: isHovered ? 'none' : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+        transformStyle: 'preserve-3d'
+      }}
+      className="relative p-8 md:p-10 rounded-[2.5rem] bg-[#0A0C14] border border-white/5 overflow-hidden group/lens outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408] transition-all duration-700 hover:border-white/20 hover:shadow-[0_80px_160px_rgba(0,0,0,0.9)]"
+    >
+      <div className="absolute inset-0 bg-scanline opacity-[0.02] pointer-events-none" />
+      <div className="absolute inset-0 bg-boutique-grain opacity-[0.02]" />
+
+      {/* Luminous Spotlight */}
+      <div
+        className="absolute inset-0 opacity-0 group-hover/lens:opacity-100 transition-opacity duration-700 pointer-events-none"
+        style={{
+          background: `radial-gradient(400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(124, 58, 237, 0.1), transparent 80%)`
+        }}
+      />
+
+      {/* Dynamic Telemetry */}
+      <div
+        className="absolute top-6 right-8 pointer-events-none opacity-0 group-hover/lens:opacity-100 group-focus-visible:opacity-100 transition-all duration-500 z-20"
+        style={{ transform: 'translateZ(80px)' }}
+      >
+        <div className="flex flex-col items-end font-mono text-[0.45rem] font-bold text-voro-primary/80 tracking-[0.2em] space-y-0.5">
+          <span>TX_<span ref={txRef}>0.0</span>°</span>
+          <span>TY_<span ref={tyRef}>0.0</span>°</span>
+          <span className="text-white/20">[SEGMENTAL_LENS]</span>
+        </div>
+      </div>
+
+      <div className="relative z-10 space-y-8" style={{ transform: 'translateZ(30px)' }}>
         <div className="flex items-center justify-between">
-          <span className="text-[0.55rem] font-mono font-black text-gray-500 uppercase tracking-widest">Somatic Segmental Lens</span>
-          <span className="text-[0.55rem] font-mono font-bold text-voro-primary uppercase tracking-widest animate-pulse">CROSS_SECTION // ACTIVE</span>
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-voro-primary/10 border border-voro-primary/20 text-voro-primary">
+              <Layers size={18} />
+            </div>
+            <div>
+              <span className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-[0.3em] block">Somatic Segmental Lens</span>
+              <span className="text-sm font-serif italic text-white font-medium">Anatomical Muscle vs Adipose Cross-Section</span>
+            </div>
+          </div>
+          <span className="text-[0.55rem] font-mono font-bold text-voro-primary uppercase tracking-widest flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-voro-primary animate-pulse" />
+            CROSS_SECTION // ACTIVE
+          </span>
         </div>
 
         {/* Anatomical Cross Section Visualizer */}
-        <div className="relative h-24 bg-[#030408] rounded-2xl border border-white/5 overflow-hidden flex items-center justify-between px-8">
+        <div className="relative h-28 bg-[#030408] rounded-[1.75rem] border border-white/5 overflow-hidden flex items-center justify-between px-8 shadow-inner">
           <div className="absolute inset-0 bg-grid-white opacity-[0.03]" />
 
           {/* Animated split slider indicator of muscle vs fat */}
           <div
-            className="absolute inset-y-0 left-0 bg-gradient-to-r from-voro-primary/10 to-voro-primary/20 border-r border-voro-primary/30 transition-all duration-1000 ease-out"
+            className="absolute inset-y-0 left-0 bg-gradient-to-r from-voro-primary/15 via-voro-primary/25 to-voro-primary/35 border-r border-voro-primary/40 transition-all duration-1000 ease-out"
             style={{ width: `${leanPct}%` }}
           >
-            <div className="absolute inset-0 bg-shimmer-gradient bg-[length:200%_100%] animate-shimmer opacity-[0.05]" />
+            <div className="absolute inset-0 bg-shimmer-gradient bg-[length:200%_100%] animate-shimmer opacity-[0.08]" />
           </div>
 
           <div
-            className="absolute inset-y-0 right-0 bg-gradient-to-l from-voro-accent/10 to-voro-accent/20 border-l border-voro-accent/30 transition-all duration-1000 ease-out"
+            className="absolute inset-y-0 right-0 bg-gradient-to-l from-voro-accent/15 via-voro-accent/25 to-voro-accent/35 border-l border-voro-accent/40 transition-all duration-1000 ease-out"
             style={{ width: `${100 - leanPct}%` }}
           />
 
           {/* Left Text Detail */}
           <div className="relative z-10 flex flex-col">
-            <span className="text-[0.5rem] font-mono text-voro-primary font-bold uppercase tracking-widest">Lean Matrix (Muscle)</span>
-            <span className="text-xl font-serif italic text-white font-medium">{leanMass.toFixed(1)} <span className="text-[0.6rem] font-mono text-gray-500">kg</span></span>
+            <span className="text-[0.5rem] font-mono text-voro-primary font-bold uppercase tracking-widest mb-0.5">Lean Matrix (Skeletal Muscle)</span>
+            <span className="text-2xl font-serif italic text-white font-medium">{leanMass.toFixed(1)} <span className="text-xs font-mono text-gray-500">kg</span></span>
+            <span className="text-[0.5rem] font-mono text-voro-primary/80 font-semibold">{leanPct.toFixed(1)}% Total Mass</span>
           </div>
 
           {/* Core Calibration Split Pin */}
           <div
-            className="absolute top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white border border-voro-primary flex items-center justify-center shadow-[0_0_15px_rgba(124,58,237,0.3)] transition-all duration-1000 ease-out z-20"
-            style={{ left: `calc(${leanPct}% - 1rem)` }}
+            className="absolute top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white border-2 border-voro-primary flex items-center justify-center shadow-[0_0_20px_rgba(124,58,237,0.5)] transition-all duration-1000 ease-out z-20"
+            style={{ left: `calc(${leanPct}% - 1.125rem)` }}
           >
-            <CircleDot size={12} className="text-voro-primary animate-pulse" />
+            <CircleDot size={14} className="text-voro-primary animate-pulse" />
           </div>
 
           {/* Right Text Detail */}
-          <div className="relative z-10 flex flex-col items-end">
-            <span className="text-[0.5rem] font-mono text-voro-accent font-bold uppercase tracking-widest">Adipose Flux (Fat)</span>
-            <span className="text-xl font-serif italic text-white font-medium">{fatMass.toFixed(1)} <span className="text-[0.6rem] font-mono text-gray-500">kg</span></span>
+          <div className="relative z-10 flex flex-col items-end text-right">
+            <span className="text-[0.5rem] font-mono text-voro-accent font-bold uppercase tracking-widest mb-0.5">Adipose Flux (Body Fat)</span>
+            <span className="text-2xl font-serif italic text-white font-medium">{fatMass.toFixed(1)} <span className="text-xs font-mono text-gray-500">kg</span></span>
+            <span className="text-[0.5rem] font-mono text-voro-accent/80 font-semibold">{(100 - leanPct).toFixed(1)}% Total Mass</span>
           </div>
         </div>
 
-        <div className="flex justify-between items-center text-[0.55rem] font-mono text-gray-500 uppercase tracking-widest">
-          <span>Active Adipose density: <strong className="text-voro-accent">{bodyFat.toFixed(1)}%</strong></span>
-          <span>Somatic density ratio: <strong className="text-voro-primary">{(leanPct/10).toFixed(2)}x</strong></span>
+        <div className="flex flex-wrap justify-between items-center text-[0.6rem] font-mono text-gray-400 uppercase tracking-widest pt-2 border-t border-white/5 gap-4">
+          <span className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-voro-accent" />
+            Adipose Density Ratio: <strong className="text-voro-accent">{bodyFat.toFixed(1)}%</strong>
+          </span>
+          <span className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-voro-primary" />
+            Somatic Density Index: <strong className="text-voro-primary">{(leanPct / 10).toFixed(2)}x</strong>
+          </span>
         </div>
       </div>
     </div>
@@ -242,18 +365,23 @@ const BodyComposition = () => {
   const { user } = useApp();
 
   // Simulated Masterclass Loading Alignment State
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !isTestBypass());
   const [loadingStep, setLoadingStep] = useState(0);
 
   const loadingMessages = useMemo(() => [
-    "Establishing Somatotype Protocol...",
-    "Aligning Lean Mass Vector...",
-    "Calibrating Adipose Flux Coordinates...",
-    "Synaptic Compilation Complete."
+    "ESTABLISHING SOMATOTYPE PROTOCOL...",
+    "ALIGNING LEAN MASS VECTORS...",
+    "CALIBRATING ADIPOSE FLUX COORDINATES...",
+    "SYNAPTIK COMPILATION COMPLETE // READY"
   ], []);
 
   useEffect(() => {
-    document.title = 'VORO | Biometric Composition';
+    document.title = 'VORO | Somatic Matrix & Body Composition';
+
+    if (isTestBypass()) {
+      setLoading(false);
+      return;
+    }
 
     // Premium loading simulated sequence
     let stepTimer;
@@ -392,20 +520,26 @@ const BodyComposition = () => {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] bg-voro-primary/5 rounded-full blur-[120px] pointer-events-none" />
         </div>
 
-        <div className="relative flex flex-col items-center z-10 space-y-10">
+        <div className="relative flex flex-col items-center z-10 space-y-10 max-w-md px-6 text-center">
           {/* Orbital loading elements */}
-          <div className="relative w-36 h-34 flex items-center justify-center">
-            <div className="absolute w-24 h-24 rounded-full border border-voro-primary/20 border-t-voro-primary animate-spin" />
-            <div className="absolute w-28 h-28 rounded-full border border-dashed border-voro-secondary/10 animate-[spin_10s_linear_infinite]" />
-            <div className="absolute w-32 h-32 rounded-full border border-voro-accent/20 border-b-voro-accent animate-[spin_6s_linear_infinite_reverse]" />
-            <Activity size={32} className="text-voro-primary animate-pulse" />
+          <div className="relative w-36 h-36 flex items-center justify-center">
+            <div className="absolute w-24 h-24 rounded-full border-2 border-dashed border-voro-primary/20 animate-[spin_10s_linear_infinite_reverse]" />
+            <div className="absolute w-28 h-28 rounded-full border-2 border-dashed border-voro-secondary/40 animate-[spin_6s_linear_infinite]" />
+            <div className="absolute w-32 h-32 rounded-full border border-voro-accent/20 border-b-voro-accent animate-[spin_8s_linear_infinite_reverse]" />
+            <RefreshCw size={32} className="text-voro-primary animate-spin" />
           </div>
 
-          <div className="text-center space-y-3">
-            <p className="text-2xl font-serif italic text-white font-bold">{loadingMessages[loadingStep]}</p>
-            <p className="text-[0.55rem] font-mono tracking-[0.40em] text-gray-500 uppercase">
-              VORO BIOMETRIC COMPOSITION SYNTHESIS // ONLINE
-            </p>
+          <div className="space-y-4">
+            <h3 className="text-xl font-serif italic text-white font-medium tracking-tight">
+              Somatic Alignment Sequence
+            </h3>
+            <div className="font-mono text-[0.6rem] text-voro-primary font-bold tracking-[0.25em] space-y-1">
+              {loadingMessages.slice(0, loadingStep + 1).map((log, i) => (
+                <p key={i} className="animate-fade-in opacity-80">
+                  {log}
+                </p>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -420,35 +554,33 @@ const BodyComposition = () => {
       </div>
 
       <div className="relative max-w-[1440px] mx-auto px-6 py-12 md:px-12 lg:px-20">
-        <header className="mb-20 flex flex-col md:flex-row md:items-end justify-between gap-12 border-b border-white/5 pb-12">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 text-voro-primary">
-              <TrendingUp size={18} />
-              <span className="text-[0.65rem] font-mono font-black uppercase tracking-[0.4em] text-voro-primary">
-                Somatic Matrix // PROTOCOL_0X9B
-              </span>
-            </div>
-            <h1 className="text-5xl md:text-7xl font-serif italic font-medium tracking-tight text-white leading-tight">
-              Biometric <span className="text-gradient not-italic font-bold">Composition</span>
-            </h1>
-            <p className="text-gray-500 font-mono text-[0.65rem] uppercase tracking-[0.3em] max-w-xl leading-relaxed">
-              Architectural analysis of skeletal lean mass indexation and adipose flux coordinates.
-            </p>
-          </div>
+        <Breadcrumb
+          items={[
+            { label: 'System', href: '/dashboard' },
+            { label: 'Biometrics', href: '/analytics/body-metrics' },
+            { label: 'Somatic Composition Matrix' }
+          ]}
+          className="mb-12"
+        />
 
-          {/* Status badge */}
-          <div className="p-6 rounded-[2rem] bg-[#0A0C14] border border-white/5 flex items-center gap-6 shadow-2xl">
-            <div className="p-4 rounded-xl bg-voro-primary/10 text-voro-primary">
-              <Scale size={24} />
-            </div>
-            <div>
-              <p className="text-[0.55rem] font-mono font-black uppercase tracking-[0.3em] text-gray-500 mb-1">Status Class</p>
-              <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-serif italic font-bold text-white leading-none">{categoryDetails?.name || 'Nominal'}</span>
+        <Header
+          eyebrow="Somatic Matrix // Protocol 0x9B"
+          title={<>Biometric <span className="text-voro-primary not-italic font-bold">Composition</span></>}
+          subtitle="ARCHITECTURAL ANALYSIS OF LEAN MASS INDEXATION & ADIPOSE FLUX COORDINATES"
+          action={
+            <div className="p-6 rounded-[2.5rem] bg-[#0A0C14] border border-white/5 flex items-center gap-6 shadow-2xl backdrop-blur-3xl">
+              <div className="p-4 rounded-xl bg-voro-primary/10 text-voro-primary border border-voro-primary/20">
+                <Scale size={24} />
+              </div>
+              <div>
+                <p className="text-[0.55rem] font-mono font-black uppercase tracking-[0.3em] text-gray-500 mb-1">Status Class</p>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-serif italic font-bold text-white leading-none">{categoryDetails?.name || 'Nominal Tier'}</span>
+                </div>
               </div>
             </div>
-          </div>
-        </header>
+          }
+        />
 
         {/* Luminous Biometric Nodes re-engineered into SomaticSpecimenCell */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
@@ -500,7 +632,7 @@ const BodyComposition = () => {
 
             {compositionHistory.length > 1 ? (
               <>
-                <Card variant="premium" className="p-10 bg-voro-card border-white/5 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
+                <Card variant="premium" className="p-10 bg-[#0A0C14] border-white/5 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
                   <div className="absolute top-0 right-0 w-64 h-64 bg-voro-primary/5 rounded-full blur-[100px] -mr-32 -mt-32 group-hover:bg-voro-primary/10 transition-colors duration-700" />
                   <div className="relative">
                     <h3 className="text-[0.65rem] font-mono font-black text-gray-500 uppercase tracking-[0.3em] mb-12 flex items-center gap-3">
@@ -520,7 +652,7 @@ const BodyComposition = () => {
                   </div>
                 </Card>
 
-                <Card variant="premium" className="p-10 bg-voro-card border-white/5 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
+                <Card variant="premium" className="p-10 bg-[#0A0C14] border-white/5 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
                   <div className="absolute bottom-0 left-0 w-64 h-64 bg-voro-secondary/5 rounded-full blur-[100px] -ml-32 -mb-32 group-hover:bg-voro-secondary/10 transition-colors duration-700" />
                   <div className="relative">
                     <h3 className="text-[0.65rem] font-mono font-black text-gray-500 uppercase tracking-[0.3em] mb-12 flex items-center gap-3">
@@ -554,15 +686,15 @@ const BodyComposition = () => {
 
           {/* Anatomical Classification Artifact */}
           <div className="col-span-12 lg:col-span-4 space-y-12">
-            <Card variant="premium" className="p-10 bg-gradient-to-br from-voro-card to-black border-voro-primary/20 relative overflow-hidden group/artifact">
+            <Card variant="premium" className="p-10 bg-gradient-to-br from-[#0D121F] to-[#020408] border-voro-primary/20 relative overflow-hidden group/artifact shadow-2xl rounded-[2.5rem]">
               <div className="absolute -right-20 -top-20 w-64 h-64 bg-voro-primary/10 rounded-full blur-[100px] group-hover/artifact:bg-voro-primary/20 transition-colors duration-1000" />
 
               <div className="relative">
                 <div className="flex items-center gap-4 mb-10">
-                  <div className="p-3 bg-voro-primary rounded-2xl shadow-lg shadow-voro-primary/30">
-                    <Info size={20} className="text-white" />
+                  <div className="p-3 bg-voro-primary/10 border border-voro-primary/30 rounded-2xl shadow-lg shadow-voro-primary/20 text-voro-primary">
+                    <Info size={20} />
                   </div>
-                  <h3 className="text-[0.65rem] font-mono font-medium uppercase tracking-[0.4em] text-voro-primary">Anatomical Classification</h3>
+                  <h3 className="text-[0.65rem] font-mono font-bold uppercase tracking-[0.4em] text-voro-primary">Anatomical Classification</h3>
                 </div>
 
                 {categoryDetails ? (
@@ -572,7 +704,7 @@ const BodyComposition = () => {
                       <h4 className="text-4xl font-serif italic font-bold text-white tracking-tight">{categoryDetails.name}</h4>
                     </div>
 
-                    <p className="text-lg font-serif italic text-gray-400 leading-relaxed">
+                    <p className="text-lg font-serif italic text-gray-300 leading-relaxed">
                       "{categoryDetails.description}"
                     </p>
 
@@ -580,34 +712,34 @@ const BodyComposition = () => {
                       <p className="text-[0.55rem] font-black text-gray-500 uppercase tracking-[0.3em]">Health Risk Synthesis</p>
                       <div className="grid grid-cols-1 gap-4">
                         <div className="flex items-center justify-between p-5 rounded-2xl bg-white/[0.02] border border-white/5">
-                          <span className="text-[0.6rem] font-black text-gray-600 uppercase tracking-widest">Cardiovascular</span>
-                          <span className="text-xs font-bold text-white uppercase tracking-tight">{healthMetrics.cardio}</span>
+                          <span className="text-[0.6rem] font-black text-gray-500 uppercase tracking-widest">Cardiovascular</span>
+                          <span className="text-xs font-bold text-white uppercase tracking-tight font-mono">{healthMetrics.cardio}</span>
                         </div>
                         <div className="flex items-center justify-between p-5 rounded-2xl bg-white/[0.02] border border-white/5">
-                          <span className="text-[0.6rem] font-black text-gray-600 uppercase tracking-widest">Metabolic</span>
-                          <span className="text-xs font-bold text-white uppercase tracking-tight">{healthMetrics.metabolic}</span>
+                          <span className="text-[0.6rem] font-black text-gray-500 uppercase tracking-widest">Metabolic</span>
+                          <span className="text-xs font-bold text-white uppercase tracking-tight font-mono">{healthMetrics.metabolic}</span>
                         </div>
                         <div className="flex items-center justify-between p-5 rounded-2xl bg-white/[0.02] border border-white/5">
-                          <span className="text-[0.6rem] font-black text-gray-600 uppercase tracking-widest">Hormonal</span>
-                          <span className="text-xs font-bold text-white uppercase tracking-tight">{healthMetrics.hormone}</span>
+                          <span className="text-[0.6rem] font-black text-gray-500 uppercase tracking-widest">Hormonal</span>
+                          <span className="text-xs font-bold text-white uppercase tracking-tight font-mono">{healthMetrics.hormone}</span>
                         </div>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-20 opacity-20">
-                    <Heart size={48} className="mx-auto mb-4" />
-                    <p className="text-[0.65rem] font-black uppercase tracking-[0.3em]">Awaiting Profile Sync</p>
+                  <div className="text-center py-20 opacity-40">
+                    <Heart size={48} className="mx-auto mb-4 text-voro-primary animate-pulse" />
+                    <p className="text-[0.65rem] font-black uppercase tracking-[0.3em] text-gray-400">Awaiting Profile Sync</p>
                   </div>
                 )}
               </div>
             </Card>
 
-            <Card variant="premium" className="p-10 bg-voro-card border-white/5 space-y-8 shadow-xl">
+            <Card variant="premium" className="p-10 bg-[#0A0C14] border-white/5 space-y-8 shadow-2xl rounded-[2.5rem]">
               <h3 className="text-[0.65rem] font-black text-gray-500 uppercase tracking-[0.3em]">Biological Standards</h3>
               <div className="space-y-6">
-                <p className="text-sm font-medium text-gray-500 leading-relaxed italic">
-                  Biometric standards are calculated based on your age ({user?.age || '—'}) and gender archetype ({user?.gender || '—'}).
+                <p className="text-sm font-serif italic text-gray-400 leading-relaxed">
+                  Biometric standards are calculated based on your age ({user?.age || '25'}) and gender archetype ({user?.gender || 'Male'}).
                 </p>
                 <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 border-dashed">
                   <p className="text-[0.55rem] font-black text-voro-primary uppercase tracking-widest mb-2">Protocol Note</p>

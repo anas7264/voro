@@ -1,73 +1,83 @@
 const { chromium } = require('@playwright/test');
 const path = require('path');
+const fs = require('fs');
 
 (async () => {
-  const browser = await chromium.launch({ headless: true });
+  console.log('🚀 Starting E2E Playwright verification for BodyComposition page...');
+
+  const browser = await chromium.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
+  });
+
   const context = await browser.newContext({
-    recordVideo: {
-      dir: '/home/jules/verification/videos',
-      size: { width: 1280, height: 720 }
-    }
+    viewport: { width: 1440, height: 900 }
   });
 
   const page = await context.newPage();
 
-  // Set localStorage and inject test mode bypass
-  await page.addInitScript(() => {
-    window.__VORO_TEST_BYPASS__ = true;
-    localStorage.setItem('voro_test_mode', 'true');
-    localStorage.setItem('voro_user', JSON.stringify({
-      name: 'Ulysses Elite',
-      primaryGoal: 'Evolution',
-      calorieGoal: 2000,
-      waterGoal: 2000,
-      proteinGoal: 150,
-      carbsGoal: 200,
-      fatGoal: 70,
-      age: 28,
-      gender: 'Male'
-    }));
-    localStorage.setItem('voro_profile', JSON.stringify({
-      name: 'Ulysses Elite',
-      completedOnboarding: true
-    }));
-    // Populate some weights and bodyFat logs
-    localStorage.setItem('voro_body_metrics', JSON.stringify({
-      weights: [
-        { date: '2025-05-01', value: 80.5 },
-        { date: '2025-05-15', value: 79.2 },
-        { date: '2025-05-30', value: 78.4 }
-      ],
-      bodyFat: [
-        { date: '2025-05-01', value: 16.5 },
-        { date: '2025-05-15', value: 15.8 },
-        { date: '2025-05-30', value: 15.2 }
-      ]
-    }));
-  });
+  try {
+    // Enable bypass for instant loader rendering
+    await page.addInitScript(() => {
+      window.__VORO_TEST_BYPASS__ = true;
+      window.localStorage.setItem('voro_test_mode', 'true');
+      window.localStorage.setItem('voro_bypass_loader', 'true');
 
-  // Load Dashboard to seed local state
-  await page.goto('http://localhost:4173/dashboard');
-  await page.waitForTimeout(3000);
+      // Populate mock body metrics data for rich visual composition display
+      const mockMetrics = {
+        weights: [
+          { date: '2025-01-01', value: 82.5 },
+          { date: '2025-01-15', value: 81.8 },
+          { date: '2025-02-01', value: 81.0 },
+          { date: '2025-02-15', value: 80.2 }
+        ],
+        bodyFat: [
+          { date: '2025-01-01', value: 16.5 },
+          { date: '2025-01-15', value: 15.8 },
+          { date: '2025-02-01', value: 15.1 },
+          { date: '2025-02-15', value: 14.5 }
+        ]
+      };
+      window.localStorage.setItem('voro_body_metrics', JSON.stringify(mockMetrics));
+    });
 
-  // Navigate to Body Composition
-  await page.goto('http://localhost:4173/body/composition');
+    console.log('🌐 Navigating to preview server at http://localhost:4173/analytics/body-composition...');
+    await page.goto('http://localhost:4173/analytics/body-composition', { waitUntil: 'networkidle' });
 
-  // Hold for the loading sequence to complete (approx 2.5s)
-  await page.waitForTimeout(4000);
+    // Wait for the main page header
+    await page.waitForSelector('h1', { timeout: 10000 });
+    console.log('✅ Page loaded successfully.');
 
-  // Take screenshot of the main premium body composition layout with Somatic Specimen Cells
-  await page.screenshot({ path: '/home/jules/verification/screenshots/body_composition_forge.png' });
+    // Hover over the first SomaticSpecimenCell card to trigger 3D volumetric tilt and telemetry
+    const specimenCard = page.locator('div[role="article"]').first();
+    await specimenCard.scrollIntoViewIfNeeded();
 
-  // Simulate mouse hovering on the body composition cards to trigger the interactive direct-DOM 3D tilt
-  const specCell = page.locator('text=Lean Mass').first();
-  if (await specCell.isVisible()) {
-    await specCell.hover();
-    await page.waitForTimeout(1000);
-    await page.screenshot({ path: '/home/jules/verification/screenshots/body_composition_cell_hover.png' });
+    const box = await specimenCard.boundingBox();
+    if (box) {
+      await page.mouse.move(box.x + box.width * 0.7, box.y + box.height * 0.3);
+      await page.waitForTimeout(500);
+      console.log('✨ Triggered 3D volumetric hover tilt on Lean Mass cell.');
+    }
+
+    // Hover over the SomaticSegmentalLens element
+    const segmentalLens = page.locator('div[role="region"]').first();
+    await segmentalLens.scrollIntoViewIfNeeded();
+    const lensBox = await segmentalLens.boundingBox();
+    if (lensBox) {
+      await page.mouse.move(lensBox.x + lensBox.width * 0.4, lensBox.y + lensBox.height * 0.4);
+      await page.waitForTimeout(500);
+      console.log('✨ Triggered 3D volumetric hover on Somatic Segmental Lens.');
+    }
+
+    // Take screenshot of the complete page
+    const screenshotPath = path.join(__dirname, '..', 'body_composition_forge_v1.png');
+    await page.screenshot({ path: screenshotPath, fullPage: true });
+    console.log(`📸 Screenshot saved to ${screenshotPath}`);
+
+  } catch (error) {
+    console.error('❌ Verification failed:', error);
+    process.exit(1);
+  } finally {
+    await browser.close();
   }
-
-  await context.close();
-  await browser.close();
-  console.log("Successfully ran E2E verification of Body Composition.");
 })();
