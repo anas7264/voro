@@ -1,20 +1,36 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef, memo, useId } from 'react';
-import { Plus, Trash2, Heart, Zap, Target, Activity, ChevronRight, ShieldCheck, Sparkles, AlertTriangle, Eye, ShieldAlert } from 'lucide-react';
-import { Button, Card, Badge, Tag, Input, Modal } from '@/components';
-import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
+import { Plus, Trash2, Heart, Target, Activity, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Button, Card, Tag, Input, Modal } from '@/components';
+import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 
 /**
- * ⚡ PERFORMANCE OPTIMIZATION: Hoisted static nutrient metadata with refined premium branding.
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted static nutrient metadata with Object.freeze.
  */
-const NUTRIENTS = [
+const NUTRIENTS = Object.freeze([
   { id: 'vitamin_d', name: 'Vitamin D', unit: 'IU', dailyGoal: 2000, warning: 'Essential for immune homeostasis & skeletal synthesis.', color: '#F59E0B', glow: 'rgba(245, 158, 11, 0.2)' },
   { id: 'iron', name: 'Iron', unit: 'mg', dailyGoal: 18, warning: 'Critical catalyst for erythrocyte structure & systemic oxygen flux.', color: '#EF4444', glow: 'rgba(239, 68, 68, 0.2)' },
   { id: 'magnesium', name: 'Magnesium', unit: 'mg', dailyGoal: 420, warning: 'Required for neuromuscular homeostasis & energetic substrate assembly.', color: '#7C3AED', glow: 'rgba(124, 58, 237, 0.2)' },
   { id: 'zinc', name: 'Zinc', unit: 'mg', dailyGoal: 11, warning: 'Essential trace element for cellular replication & genetic transcription.', color: '#10B981', glow: 'rgba(16, 185, 129, 0.2)' },
   { id: 'b12', name: 'Vitamin B12', unit: 'mcg', dailyGoal: 2.4, warning: 'Fundamental for axonal insulation & mitochondrial ATP production.', color: '#3B82F6', glow: 'rgba(59, 130, 246, 0.2)' },
   { id: 'omega3', name: 'Omega-3', unit: 'g', dailyGoal: 1.1, warning: 'Anti-inflammatory structural lipid supporting cerebral integrity.', color: '#EC4899', glow: 'rgba(236, 72, 153, 0.2)' },
-];
+]);
+
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted module-scoped SVG ticks.
+ * Completely eliminates heap allocations of 60 SVG rect elements on component renders.
+ */
+const TICKS = Object.freeze(Array.from({ length: 60 }).map((_, i) => (
+  <rect
+    key={i}
+    x="127.5"
+    y="12"
+    width="1"
+    height={i % 5 === 0 ? "10" : "4"}
+    fill={i % 5 === 0 ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.08)"}
+    transform={`rotate(${i * 6}, 128, 128)`}
+  />
+)));
 
 /**
  * ⚡ LUXURY REFINEMENT: NutrientCard Subcomponent
@@ -147,7 +163,7 @@ NutrientCard.displayName = "NutrientCard";
 /**
  * ⚡ LUXURY REFINEMENT: ConcentricVisualizer Subcomponent
  * High-end kinetic progress visualizer featuring rotating dashed concentric orbits,
- * ticks, and ambient glowing backplates syncing to the active nutrient's signature color.
+ * zero-allocation static SVG ticks, and ambient glowing backplates.
  */
 const ConcentricVisualizer = memo(({ nutrient, percentage, total, deficit }) => {
   const containerRef = useRef(null);
@@ -194,18 +210,6 @@ const ConcentricVisualizer = memo(({ nutrient, percentage, total, deficit }) => 
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
   };
-
-  const ticks = useMemo(() => Array.from({ length: 60 }).map((_, i) => (
-    <rect
-      key={i}
-      x="127.5"
-      y="12"
-      width="1"
-      height={i % 5 === 0 ? "10" : "4"}
-      fill={i % 5 === 0 ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.08)"}
-      transform={`rotate(${i * 6}, 128, 128)`}
-    />
-  )), []);
 
   const interactionActive = isHovered || isFocused;
 
@@ -282,7 +286,7 @@ const ConcentricVisualizer = memo(({ nutrient, percentage, total, deficit }) => 
               </linearGradient>
             </defs>
 
-            {ticks}
+            {TICKS}
 
             <circle
               cx="128"
@@ -342,8 +346,18 @@ const ConcentricVisualizer = memo(({ nutrient, percentage, total, deficit }) => 
 
 ConcentricVisualizer.displayName = "ConcentricVisualizer";
 
+const DEFAULT_TRACKER = Object.freeze({});
+
 const NutrientTracker = () => {
-  const tracker = useStorageKey('nutrient_tracker') || {};
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Storage Reactivity.
+   * Replaced useStorageKey with useStorageKeySelector for granular reactivity.
+   */
+  const tracker = useStorageKeySelector(
+    'nutrient_tracker',
+    useCallback((data) => data || DEFAULT_TRACKER, [])
+  );
+
   const { updateItem } = useStorageMethods();
   const { addNotification } = useNotifications();
 
