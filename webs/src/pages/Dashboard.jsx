@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef, useId } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, useId, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Activity,
@@ -16,7 +16,7 @@ import {
   Zap
 } from 'lucide-react';
 import { useAppContext } from '@/hooks/useAppContext';
-import { useStorageMethods, useStorageKey, useStorageKeySelector } from '@/hooks/useStorage';
+import { useStorageMethods, useStorageKeySelector } from '@/hooks/useStorage';
 import { useAI } from '@/hooks/useAI';
 import { useNotifications } from '@/hooks/useNotifications';
 import { getFastDateStr, getFastShortDate } from '@/utils/formatters';
@@ -30,21 +30,21 @@ import Breadcrumb from '@/components/Breadcrumb';
 import Card from '@/components/Card';
 
 const MACRO_CONFIG = [
-  { label: 'Protein', macro: 'protein', color: '#7C3AED', bg: 'bg-[#7C3AED]/10', text: 'text-[#A78BFA]', icon: '🍗' },
-  { label: 'Carbs', macro: 'carbs', color: '#10B981', bg: 'bg-[#10B981]/10', text: 'text-[#34D399]', icon: '🍚' },
-  { label: 'Fats', macro: 'fat', color: '#F59E0B', bg: 'bg-[#F59E0B]/10', text: 'text-[#FBBF24]', icon: '🥑' },
-  { label: 'Hydration', macro: 'water', color: '#3B82F6', bg: 'bg-[#3B82F6]/10', text: 'text-[#60A5FA]', icon: '💧' }
+  { label: 'Protein Density', macro: 'protein', color: 'voro-primary', icon: '🍗' },
+  { label: 'Carbohydrates', macro: 'carbs', color: 'voro-secondary', icon: '🍚' },
+  { label: 'Lipid Balance', macro: 'fat', color: 'voro-accent', icon: '🥑' },
+  { label: 'Aqueous Matrix', macro: 'water', color: 'primary', icon: '💧' }
 ];
 
 const STREAK_CONFIG = [
-  { key: 'training', label: 'Training', icon: <Flame size={18} />, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-  { key: 'logging', label: 'Logging', icon: <Zap size={18} />, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
-  { key: 'water', label: 'Hydration', icon: <Droplets size={18} />, color: 'text-blue-500', bg: 'bg-blue-500/10' }
+  { key: 'training', label: 'Kinetic Stimulus', icon: <Flame size={18} />, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+  { key: 'logging', label: 'Nutritional Audit', icon: <Zap size={18} />, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
+  { key: 'water', label: 'Cellular Hydration', icon: <Droplets size={18} />, color: 'text-blue-500', bg: 'bg-blue-500/10' }
 ];
 
 const NAV_LINKS = [
-  { label: 'Metrics', path: '/body/metrics', icon: <TrendingUp size={18} /> },
-  { label: 'Evolution', path: '/ai-coach', icon: <Activity size={18} /> }
+  { label: 'Biometrics', path: '/body/metrics', icon: <TrendingUp size={18} /> },
+  { label: 'Neural Intelligence', path: '/ai-coach', icon: <Activity size={18} /> }
 ];
 
 /**
@@ -79,6 +79,130 @@ const INITIAL_NUTRITION = {
 
 const STREAK_KEYS = ['nutrition_log', 'workout_log'];
 
+/**
+ * ⚡ LUXURY REFINEMENT: Volumetric 3D Interactive Telemetry Node
+ * Re-engineered conforming to Voro's 'Forge' design system. Features direct DOM 60fps tilt tracking,
+ * holographic coordinate overlays, static 4-degree keyboard focus tilts, and liquid border illumination.
+ */
+const VolumetricTelemetryNode = memo(({ children, className = '', nodeId = "NODE_01", ...props }) => {
+  const nodeRef = useRef(null);
+  const tiltXRef = useRef(null);
+  const tiltYRef = useRef(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+
+  const handleMouseMove = (e) => {
+    if (!nodeRef.current) return;
+    const rect = nodeRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Volumetric 3D tilt calculations (max 15 degrees)
+    const tiltY = ((x / rect.width) - 0.5) * 24;
+    const tiltX = (0.5 - (y / rect.height)) * 24;
+
+    nodeRef.current.style.setProperty('--mouse-x', `${x}px`);
+    nodeRef.current.style.setProperty('--mouse-y', `${y}px`);
+    nodeRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+    nodeRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+
+    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    if (nodeRef.current) {
+      // Accessible static 4-degree tilt on focus
+      nodeRef.current.style.setProperty('--tilt-x', '4deg');
+      nodeRef.current.style.setProperty('--tilt-y', '-4deg');
+      if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
+    }
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    if (nodeRef.current) {
+      nodeRef.current.style.setProperty('--tilt-x', '0deg');
+      nodeRef.current.style.setProperty('--tilt-y', '0deg');
+    }
+  };
+
+  const interactionActive = isHovered || isFocused;
+
+  return (
+    <div
+      ref={nodeRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        if (nodeRef.current) {
+          nodeRef.current.style.setProperty('--tilt-x', '0deg');
+          nodeRef.current.style.setProperty('--tilt-y', '0deg');
+        }
+      }}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      tabIndex={0}
+      style={{
+        transform: interactionActive
+          ? 'perspective(1500px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
+          : 'perspective(1500px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: isHovered ? 'none' : 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)',
+        transformStyle: 'preserve-3d'
+      }}
+      className={`relative bg-[#0A0C14] border border-white/5 rounded-[3rem] p-10 overflow-hidden group/vnode outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408] transition-all duration-700 hover:border-white/10 hover:shadow-[0_80px_160px_rgba(0,0,0,0.9)] ${className}`}
+      {...props}
+    >
+      {/* Precision Grid & Boutique Grain Overlay */}
+      <div className="absolute inset-0 rounded-[3rem] overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 bg-grid-white opacity-0 group-hover/vnode:opacity-[0.03] group-focus-visible:opacity-[0.03] transition-opacity duration-1000" style={{ transform: 'translateZ(10px)' }} />
+        <div className="absolute inset-0 bg-boutique-grain opacity-[0.02]" />
+
+        {/* Dynamic Luminous Lens */}
+        <div
+          className="absolute inset-0 opacity-0 group-hover/vnode:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-700"
+          style={{
+            background: `radial-gradient(600px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(124, 58, 237, 0.08), transparent 45%)`,
+            transform: 'translateZ(20px)'
+          }}
+        />
+      </div>
+
+      {/* 🛰️ Liquid Border Intelligence */}
+      <div
+        className="absolute inset-0 rounded-[3rem] opacity-0 group-hover/vnode:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-700 pointer-events-none"
+        style={{
+          padding: '1px',
+          background: `radial-gradient(400px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(124, 58, 237, 0.3), transparent 80%)`,
+          WebkitMask: 'linear-gradient(#fff, #fff) content-box, linear-gradient(#fff, #fff)',
+          WebkitMaskComposite: 'xor',
+          maskComposite: 'exclude',
+        }}
+      />
+
+      {/* Holographic Coordinate Telemetry Overlay */}
+      <div
+        className="absolute top-6 right-8 pointer-events-none opacity-0 group-hover/vnode:opacity-100 group-focus-visible:opacity-100 transition-all duration-500"
+        style={{ transform: 'translateZ(80px)' }}
+      >
+        <div className="flex flex-col items-end font-mono text-[0.4rem] font-bold text-voro-primary/60 tracking-[0.2em] space-y-1">
+          <span>TX_<span ref={tiltXRef}>0.0</span>°</span>
+          <span>TY_<span ref={tiltYRef}>0.0</span>°</span>
+          <span className="text-white/20">[{nodeId}]</span>
+        </div>
+      </div>
+
+      <div className="relative z-10" style={{ transform: 'translateZ(50px)' }}>
+        {children}
+      </div>
+    </div>
+  );
+});
+VolumetricTelemetryNode.displayName = "VolumetricTelemetryNode";
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAppContext();
@@ -111,7 +235,7 @@ const Dashboard = () => {
    * only occurs when the relevant logs actually change.
    */
   const streaks = useStorageKeySelector(
-    STREAK_KEYS, // Narrowed subscription to relevant keys (hoisted for referential stability)
+    STREAK_KEYS,
     useCallback((allData) => {
       const nLog = allData['nutrition_log'] || {};
       const wLog = allData['workout_log'] || {};
@@ -155,30 +279,54 @@ const Dashboard = () => {
 
       return { training: trainingStreak, logging: loggingStreak, water: waterStreak };
     }, [user?.waterGoal]),
-    // Custom equality to prevent re-renders if streaks haven't changed
     useCallback((a, b) => a.training === b.training && a.logging === b.logging && a.water === b.water, [])
   );
 
   const { response: aiInsight } = useAI();
   const { addNotification } = useNotifications();
-  
+
   const [showQuickLog, setShowQuickLog] = useState(false);
   const metabolicCardRef = useRef(null);
+  const tiltXRef = useRef(null);
+  const tiltYRef = useRef(null);
+  const [heroHovered, setHeroHovered] = useState(false);
+  const [heroFocused, setHeroFocused] = useState(false);
 
-  const handleMouseMove = useCallback((e) => {
+  const handleHeroMouseMove = useCallback((e) => {
     if (!metabolicCardRef.current) return;
     const rect = metabolicCardRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    // Volumetric tilt calculation
-    const tiltY = ((x / rect.width) - 0.5) * 15;
-    const tiltX = (0.5 - (y / rect.height)) * 15;
+    // Volumetric 3D tilt calculation
+    const tiltY = ((x / rect.width) - 0.5) * 20;
+    const tiltX = (0.5 - (y / rect.height)) * 20;
 
     metabolicCardRef.current.style.setProperty('--mouse-x', `${x}px`);
     metabolicCardRef.current.style.setProperty('--mouse-y', `${y}px`);
     metabolicCardRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
     metabolicCardRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+
+    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+  }, []);
+
+  const handleHeroFocus = useCallback(() => {
+    setHeroFocused(true);
+    if (metabolicCardRef.current) {
+      metabolicCardRef.current.style.setProperty('--tilt-x', '4deg');
+      metabolicCardRef.current.style.setProperty('--tilt-y', '-4deg');
+      if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
+    }
+  }, []);
+
+  const handleHeroBlur = useCallback(() => {
+    setHeroFocused(false);
+    if (metabolicCardRef.current) {
+      metabolicCardRef.current.style.setProperty('--tilt-x', '0deg');
+      metabolicCardRef.current.style.setProperty('--tilt-y', '0deg');
+    }
   }, []);
 
   useEffect(() => {
@@ -202,8 +350,7 @@ const Dashboard = () => {
       weight: w.value,
       fullDate: w.date
     }));
-  }, [weights30D]); // ⚡ OPTIMIZATION: Only recompute if 30D weights change
-
+  }, [weights30D]);
 
   const { setItem, getItem } = useStorageMethods();
 
@@ -216,10 +363,6 @@ const Dashboard = () => {
       return;
     }
 
-    /**
-     * ⚡ OPTIMISTIC UI: Close modal and notify immediately.
-     * The background storage write is non-blocking for user flow.
-     */
     setShowQuickLog(false);
 
     if (type === 'weight') {
@@ -268,11 +411,11 @@ const Dashboard = () => {
   const greeting = useMemo(() => getGreeting(), []);
 
   const calorieStatus = useMemo(() => {
-    if (!user) return { status: 'neutral', remaining: 2000 };
+    if (!user) return { status: 'under', remaining: 2000 };
     const goal = user.calorieGoal || 2000;
     const remaining = goal - (nutritionToday.totals?.calories || 0);
     return {
-      status: remaining > 0 ? 'under' : 'over',
+      status: remaining >= 0 ? 'under' : 'over',
       remaining: Math.abs(remaining)
     };
   }, [nutritionToday.totals?.calories, user]);
@@ -308,15 +451,23 @@ const Dashboard = () => {
       <div className="flex items-center justify-center min-h-screen bg-[#080B14]">
         <div className="animate-pulse flex flex-col items-center">
           <div className="w-12 h-12 rounded-full border-2 border-voro-primary border-t-transparent animate-spin mb-4" />
-          <p className="text-gray-500 font-medium tracking-widest text-xs uppercase">Initializing Evolution</p>
+          <p className="text-gray-500 font-mono tracking-widest text-xs uppercase">Initializing Evolution</p>
         </div>
       </div>
     );
   }
 
+  const isHeroActive = heroHovered || heroFocused;
+
   return (
-    <div className="min-h-screen bg-transparent text-[#F0F4FF] selection:bg-voro-primary/30">
-      <div className="relative max-w-[1440px] mx-auto px-6 py-12 md:px-12 lg:px-20">
+    <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30 relative overflow-hidden pb-24">
+      {/* Interactive Ambient Backglows */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-voro-primary/5 rounded-full blur-[150px] animate-pulse-slow" />
+        <div className="absolute bottom-[#10%] right-[-5%] w-[40%] h-[40%] bg-voro-secondary/5 rounded-full blur-[120px] animate-pulse-slow" />
+      </div>
+
+      <div className="relative max-w-[1440px] mx-auto px-6 py-12 md:px-12 lg:px-20 z-10">
         <Breadcrumb
           items={[
             { label: 'System', href: '/dashboard' },
@@ -325,39 +476,40 @@ const Dashboard = () => {
           ]}
           className="mb-12"
         />
-        <header className="mb-32 flex flex-col md:flex-row md:items-end justify-between gap-16 group/header">
-          <div className="space-y-10 max-w-4xl">
+
+        <header className="mb-24 flex flex-col md:flex-row md:items-end justify-between gap-16 group/header border-b border-white/5 pb-16">
+          <div className="space-y-8 max-w-4xl">
             {/* Neural Pulse Eyebrow */}
             <div className="flex items-center gap-4 text-voro-primary">
               <div className="relative flex h-3 w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-voro-primary opacity-40"></span>
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-voro-primary shadow-[0_0_15px_rgba(124,58,237,0.8)]"></span>
               </div>
-              <span className="text-[0.7rem] font-mono font-black uppercase tracking-[0.6em] opacity-90">
-                Evolutionary Status // {user.name.replace(' ', '_').toUpperCase()}
+              <span className="text-[0.65rem] font-mono font-black uppercase tracking-[0.50em] opacity-90">
+                Evolutionary Status // {user.name.replace(/\s+/g, '_').toUpperCase()}
               </span>
             </div>
 
             <div className="space-y-4">
-              <h1 className="text-[5rem] md:text-[8.5rem] font-serif italic font-medium tracking-[-0.04em] text-white leading-[0.85] mb-4">
+              <h1 className="text-[4.5rem] md:text-[8rem] font-serif italic font-medium tracking-[-0.04em] text-white leading-[0.85] mb-2">
                 {greeting},
               </h1>
               <div className="flex flex-col md:flex-row md:items-end gap-12">
-                <span className="text-gradient text-[5.5rem] md:text-[9rem] font-serif font-black tracking-[-0.05em] leading-[0.8]">
+                <span className="text-gradient text-[5rem] md:text-[8.5rem] font-serif font-black tracking-[-0.05em] leading-[0.8]">
                   In Motion.
                 </span>
 
                 {/* System Telemetry Grid */}
                 <div className="grid grid-cols-2 gap-10 pb-4 border-l border-white/5 pl-10 ml-2">
                   <div className="space-y-2">
-                    <span className="text-[0.55rem] font-mono text-gray-700 uppercase tracking-[0.5em] block">Integrity</span>
+                    <span className="text-[0.55rem] font-mono text-gray-600 uppercase tracking-[0.5em] block">Integrity</span>
                     <div className="flex items-center gap-3">
                       <div className="w-1.5 h-1.5 rounded-full bg-voro-secondary shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                       <span className="text-[0.7rem] font-mono text-white font-bold tracking-[0.2em]">0x99_NOMINAL</span>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <span className="text-[0.55rem] font-mono text-gray-700 uppercase tracking-[0.5em] block">Sync Node</span>
+                    <span className="text-[0.55rem] font-mono text-gray-600 uppercase tracking-[0.5em] block">Sync Node</span>
                     <div className="flex items-center gap-3">
                       <div className="w-1.5 h-1.5 rounded-full bg-voro-primary animate-pulse" />
                       <span className="text-[0.7rem] font-mono text-voro-primary font-bold tracking-[0.2em]">ACTIVE_v2.0</span>
@@ -370,16 +522,16 @@ const Dashboard = () => {
             {/* Architectural Datum Line */}
             <div className="flex items-center gap-6">
               <div className="h-px w-32 bg-gradient-to-r from-voro-primary to-transparent opacity-50 group-hover/header:w-64 transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)]" />
-              <p className="text-gray-600 font-mono font-bold tracking-[0.5em] text-[0.6rem] uppercase opacity-50 whitespace-nowrap">{todayDate}</p>
+              <p className="text-gray-500 font-mono font-bold tracking-[0.5em] text-[0.6rem] uppercase opacity-60 whitespace-nowrap">{todayDate}</p>
             </div>
           </div>
 
-          <div className="flex gap-8 pb-2">
+          <div className="flex gap-6 pb-2">
             <Button
               onClick={() => setShowQuickLog(true)}
               shortcut="Q"
               aria-keyshortcuts="q"
-              className="!bg-white !text-black !rounded-full shadow-2xl shadow-white/10"
+              className="!bg-white !text-black !rounded-full shadow-2xl shadow-white/10 hover:scale-[1.03] active:scale-[0.97]"
             >
               <Plus size={16} aria-hidden="true" />
               <span>Express Log</span>
@@ -387,7 +539,7 @@ const Dashboard = () => {
             <Button
               variant="secondary"
               onClick={() => navigate('/ai-coach')}
-              className="!rounded-full"
+              className="!rounded-full border-white/10 hover:border-white/20"
             >
               <Zap size={16} className="text-voro-accent" aria-hidden="true" />
               <span>AI Advisor</span>
@@ -395,45 +547,75 @@ const Dashboard = () => {
           </div>
         </header>
 
-        <div className="grid grid-cols-12 gap-8">
-          <div className="col-span-12 lg:col-span-8 space-y-8">
+        <div className="grid grid-cols-12 gap-10">
+          <div className="col-span-12 lg:col-span-8 space-y-10">
+            {/* Primary Hero 3D Volumetric Card: Metabolic Velocity */}
             <section
               ref={metabolicCardRef}
-              onMouseMove={handleMouseMove}
-              onMouseLeave={(e) => {
-                metabolicCardRef.current.style.setProperty('--tilt-x', '0deg');
-                metabolicCardRef.current.style.setProperty('--tilt-y', '0deg');
+              onMouseMove={handleHeroMouseMove}
+              onMouseEnter={() => setHeroHovered(true)}
+              onMouseLeave={() => {
+                setHeroHovered(false);
+                if (metabolicCardRef.current) {
+                  metabolicCardRef.current.style.setProperty('--tilt-x', '0deg');
+                  metabolicCardRef.current.style.setProperty('--tilt-y', '0deg');
+                }
               }}
+              onFocus={handleHeroFocus}
+              onBlur={handleHeroBlur}
+              tabIndex={0}
+              role="region"
+              aria-label={`Metabolic Velocity Energy Balance. Consumed: ${nutritionToday?.totals?.calories || 0} kilocalories out of ${user.calorieGoal} kilocalories.`}
               style={{
-                transform: 'perspective(2000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg))',
+                transform: isHeroActive
+                  ? 'perspective(2000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
+                  : 'perspective(2000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
                 transformStyle: 'preserve-3d',
-                transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)'
+                transition: heroHovered ? 'none' : 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)'
               }}
-              className="relative overflow-hidden rounded-[4rem] bg-[#0A0C14] border border-white/5 p-20 md:p-24 shadow-[0_80px_160px_-40px_rgba(0,0,0,0.8),inset_0_1px_1px_0_rgba(255,255,255,0.05)] hover:border-white/10 group/card bg-boutique-grain"
+              className="relative overflow-hidden rounded-[4rem] bg-[#0A0C14] border border-white/5 p-16 md:p-20 shadow-[0_80px_160px_-40px_rgba(0,0,0,0.9),inset_0_1px_1px_0_rgba(255,255,255,0.05)] hover:border-white/10 group/card bg-boutique-grain outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408]"
             >
-              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-voro-primary/5 rounded-full blur-[140px] -mr-64 -mt-64 group-hover/card:bg-voro-primary/10 transition-colors duration-1000" />
-              <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-voro-secondary/5 rounded-full blur-[120px] -ml-48 -mb-48" />
-
-              {/* Architectural Connector Lines */}
-              <div className="absolute inset-0 pointer-events-none opacity-0 group-hover/card:opacity-20 transition-opacity duration-1000">
-                <div className="absolute top-1/2 left-[30%] right-[30%] h-px bg-gradient-to-r from-transparent via-voro-primary to-transparent" />
-                <div className="absolute top-[40%] bottom-[40%] left-[40%] w-px bg-gradient-to-b from-transparent via-voro-primary to-transparent" />
-              </div>
+              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-voro-primary/5 rounded-full blur-[140px] -mr-64 -mt-64 group-hover/card:bg-voro-primary/10 transition-colors duration-1000 pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-voro-secondary/5 rounded-full blur-[120px] -ml-48 -mb-48 pointer-events-none" />
 
               {/* Dynamic Light Lens */}
               <div
-                className="absolute inset-0 pointer-events-none opacity-0 group-hover/card:opacity-100 transition-opacity duration-700"
+                className="absolute inset-0 pointer-events-none opacity-0 group-hover/card:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-700"
                 style={{
                   background: `radial-gradient(1200px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(124, 58, 237, 0.08), transparent 45%)`,
                 }}
               />
 
+              {/* 🛰️ Liquid Border Intelligence */}
+              <div
+                className="absolute inset-0 rounded-[4rem] opacity-0 group-hover/card:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-700 pointer-events-none"
+                style={{
+                  padding: '1px',
+                  background: `radial-gradient(500px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(124, 58, 237, 0.35), transparent 80%)`,
+                  WebkitMask: 'linear-gradient(#fff, #fff) content-box, linear-gradient(#fff, #fff)',
+                  WebkitMaskComposite: 'xor',
+                  maskComposite: 'exclude',
+                }}
+              />
+
+              {/* Holographic Coordinate Telemetry Overlay */}
+              <div
+                className="absolute top-8 right-12 pointer-events-none opacity-0 group-hover/card:opacity-100 group-focus-visible:opacity-100 transition-all duration-500 z-30"
+                style={{ transform: 'translateZ(90px)' }}
+              >
+                <div className="flex flex-col items-end font-mono text-[0.45rem] font-bold text-voro-primary/60 tracking-[0.2em] space-y-0.5">
+                  <span>TX_<span ref={tiltXRef}>0.0</span>°</span>
+                  <span>TY_<span ref={tiltYRef}>0.0</span>°</span>
+                  <span className="text-white/20">[METABOLIC_APEX]</span>
+                </div>
+              </div>
+
               <div className="kinetic-sweep opacity-30 group-hover/card:opacity-50 transition-opacity duration-1000" />
 
-              <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-20 lg:gap-32 items-center" style={{ transformStyle: 'preserve-3d' }}>
+              <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-24 items-center" style={{ transformStyle: 'preserve-3d' }}>
                 <div className="lg:col-span-5 flex justify-center" style={{ transform: 'translateZ(100px)' }}>
                   <div className="relative p-4 rounded-full bg-black/40 backdrop-blur-3xl border border-white/10 shadow-[0_40px_80px_rgba(0,0,0,0.6),inset_0_2px_2px_0_rgba(255,255,255,0.05)]">
-                    <div className="absolute inset-[-20px] rounded-full bg-voro-primary/10 animate-pulse-slow blur-3xl" />
+                    <div className="absolute inset-[-20px] rounded-full bg-voro-primary/10 animate-pulse-slow blur-3xl pointer-events-none" />
                     <Ring
                       value={(nutritionToday?.totals?.calories || 0)}
                       max={user.calorieGoal}
@@ -448,21 +630,21 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                <div className="lg:col-span-7 space-y-16" style={{ transform: 'translateZ(60px)' }}>
+                <div className="lg:col-span-7 space-y-12" style={{ transform: 'translateZ(60px)' }}>
                   <div>
-                    <div className="flex items-center gap-3 mb-6">
+                    <div className="flex items-center gap-3 mb-4">
                       <div className="h-px w-8 bg-voro-primary" />
-                      <h3 className="text-[0.7rem] font-mono font-black text-voro-primary uppercase tracking-[0.6em]">Metabolic Velocity</h3>
+                      <h3 className="text-[0.65rem] font-mono font-black text-voro-primary uppercase tracking-[0.6em]">Metabolic Velocity</h3>
                     </div>
                     <div className="flex items-baseline gap-6">
-                      <span className="text-9xl font-serif italic font-medium tracking-[-0.05em] text-white leading-none">
+                      <span className="text-8xl md:text-9xl font-serif italic font-medium tracking-[-0.05em] text-white leading-none">
                         {nutritionToday?.totals?.calories || 0}
                       </span>
-                      <span className="text-2xl font-serif italic text-gray-500 tracking-tight opacity-60">/ {user.calorieGoal} kcal</span>
+                      <span className="text-2xl font-serif italic text-gray-500 tracking-tight opacity-70">/ {user.calorieGoal} kcal</span>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="flex flex-col gap-4 p-8 rounded-[2rem] bg-white/[0.03] border border-white/5 backdrop-blur-xl transition-all hover:bg-white/[0.05]" style={{ transform: 'translateZ(30px)' }}>
                       <div className="flex items-center justify-between">
                          <span className="text-[0.6rem] font-mono font-black uppercase tracking-[0.4em] text-gray-500">Allowance</span>
@@ -472,14 +654,14 @@ const Dashboard = () => {
                       </div>
                       <div className="flex items-baseline gap-2">
                         <span className="text-4xl font-serif italic font-bold text-white">{calorieStatus.remaining}</span>
-                        <span className="text-[0.6rem] font-mono font-black text-gray-600 uppercase tracking-widest">kcal</span>
+                        <span className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-widest">kcal</span>
                       </div>
                     </div>
 
                     <button
                       onClick={() => navigate('/nutrition/diary')}
                       style={{ transform: 'translateZ(40px)' }}
-                      className="relative h-full flex flex-col justify-center items-center gap-4 px-10 py-8 rounded-[2rem] bg-voro-primary text-white font-black uppercase tracking-[0.4em] text-[0.7rem] transition-all duration-700 hover:scale-[1.02] active:scale-[0.98] group/btn shadow-[0_30px_60px_rgba(124,58,237,0.3)] hover:shadow-[0_40px_80px_rgba(124,58,237,0.5)] overflow-hidden"
+                      className="relative h-full flex flex-col justify-center items-center gap-4 px-10 py-8 rounded-[2rem] bg-voro-primary text-white font-black uppercase tracking-[0.4em] text-[0.7rem] transition-all duration-700 hover:scale-[1.02] active:scale-[0.98] group/btn shadow-[0_30px_60px_rgba(124,58,237,0.3)] hover:shadow-[0_40px_80px_rgba(124,58,237,0.5)] overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-white"
                     >
                       <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity duration-700" />
                       <div className="flex items-center gap-4 relative z-10">
@@ -492,7 +674,7 @@ const Dashboard = () => {
               </div>
             </section>
 
-            <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8">
+            <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
               {macroStats.map((item, idx) => (
                 <Stat
                   key={item.macro}
@@ -500,22 +682,22 @@ const Dashboard = () => {
                   value={item.displayValue}
                   unit={item.macro === 'water' ? 'L' : 'g'}
                   progress={item.progress}
-                  color={item.macro === 'protein' ? 'voro-primary' : item.macro === 'carbs' ? 'voro-secondary' : item.macro === 'fat' ? 'voro-accent' : 'primary'}
+                  color={item.color}
                   className="p-8"
-                  nodeId={`METRIC_0${idx + 1}`}
+                  nodeId={`MACRO_NODE_0${idx + 1}`}
                 />
               ))}
             </section>
 
             {weightTrend.length > 0 && (
-              <section className="bg-[#0A0C14] border border-white/5 p-8 rounded-[2.5rem] shadow-xl">
+              <VolumetricTelemetryNode nodeId="TREND_NODE_01" className="p-10">
                 <div className="flex items-center justify-between mb-10">
                   <div>
-                    <h3 className="text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em] mb-2">Biometric Timeline</h3>
-                    <p className="text-3xl font-serif font-bold text-white tracking-tight">Kinetic Shift <span className="text-[0.65rem] font-sans font-black text-gray-700 uppercase ml-3 tracking-[0.2em]">30D Matrix</span></p>
+                    <h3 className="text-[0.65rem] font-mono font-black text-voro-primary uppercase tracking-[0.4em] mb-2">Biometric Timeline</h3>
+                    <p className="text-3xl font-serif font-bold text-white tracking-tight">Kinetic Shift <span className="text-[0.65rem] font-mono font-black text-gray-600 uppercase ml-3 tracking-[0.2em]">30D Matrix</span></p>
                   </div>
-                  <div className="px-4 py-2 bg-white/5 rounded-xl border border-white/5">
-                    <span className={`text-sm font-bold ${weightTrend[weightTrend.length-1].weight < weightTrend[0].weight ? 'text-voro-secondary' : 'text-voro-danger'}`}>
+                  <div className="px-5 py-2.5 bg-white/5 rounded-xl border border-white/5">
+                    <span className={`text-sm font-mono font-bold ${weightTrend[weightTrend.length-1].weight < weightTrend[0].weight ? 'text-voro-secondary' : 'text-voro-danger'}`}>
                       {weightTrend[weightTrend.length-1].weight < weightTrend[0].weight ? '-' : '+'}
                       {Math.abs(weightTrend[weightTrend.length - 1].weight - weightTrend[0].weight).toFixed(1)} kg
                     </span>
@@ -531,17 +713,17 @@ const Dashboard = () => {
                     strokeWidth={3}
                   />
                 </div>
-              </section>
+              </VolumetricTelemetryNode>
             )}
           </div>
 
-          <div className="col-span-12 lg:col-span-4 space-y-8">
-            <section className="relative overflow-hidden bg-[#0A0C14] border border-voro-primary/20 p-10 rounded-[2.5rem] shadow-[0_0_50px_rgba(0,0,0,0.3)] group/ai backdrop-blur-3xl">
-              <div className="absolute -right-20 -top-20 w-64 h-64 bg-voro-primary/10 rounded-full blur-[100px] animate-pulse group-hover/ai:bg-voro-primary/20 transition-colors duration-1000" />
-              <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-voro-secondary/5 rounded-full blur-[100px] animate-pulse delay-700" />
+          <div className="col-span-12 lg:col-span-4 space-y-10">
+            {/* Neural Synthesis AI Intelligence Box */}
+            <VolumetricTelemetryNode nodeId="AI_SYNTH_01" className="!p-10 border-voro-primary/20">
+              <div className="absolute -right-20 -top-20 w-64 h-64 bg-voro-primary/10 rounded-full blur-[100px] animate-pulse group-hover/vnode:bg-voro-primary/20 transition-colors duration-1000 pointer-events-none" />
 
               <div className="relative">
-                <div className="flex items-center gap-4 mb-10">
+                <div className="flex items-center gap-4 mb-8">
                   <div className="p-3 bg-voro-primary rounded-2xl shadow-lg shadow-voro-primary/30">
                     <Layout size={20} className="text-white" />
                   </div>
@@ -559,12 +741,13 @@ const Dashboard = () => {
                   </div>
                 </div>
               </div>
-            </section>
+            </VolumetricTelemetryNode>
 
-            <Card variant="premium" nodeId="CNS_MTX" className="space-y-8">
-              <h3 className="text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em]">Consistency Matrix</h3>
+            {/* Consistency Matrix */}
+            <VolumetricTelemetryNode nodeId="CNS_MTX_01" className="!p-10 space-y-8">
+              <h3 className="text-[0.65rem] font-mono font-black text-gray-500 uppercase tracking-[0.4em]">Consistency Matrix</h3>
 
-              <div className="space-y-5">
+              <div className="space-y-4">
                 {STREAK_CONFIG.map((streak) => (
                   <div key={streak.key} className="flex items-center justify-between p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all group/streak">
                     <div className="flex items-center gap-5">
@@ -575,73 +758,74 @@ const Dashboard = () => {
                     </div>
                     <div className="text-right">
                       <div className="text-3xl font-serif font-bold text-white leading-none">{streaks[streak.key]}</div>
-                      <span className="text-[0.6rem] font-black text-gray-600 uppercase tracking-widest mt-1 block">Days</span>
+                      <span className="text-[0.6rem] font-mono font-black text-gray-600 uppercase tracking-widest mt-1 block">Days</span>
                     </div>
                   </div>
                 ))}
               </div>
-            </Card>
+            </VolumetricTelemetryNode>
 
-            <Card variant="premium" nodeId="DLY_ENG" className="p-8">
-              <div className="flex items-center justify-between mb-10">
-                <h3 className="text-[0.65rem] font-black text-gray-600 uppercase tracking-[0.3em]">Daily Engagement</h3>
-                <Calendar size={18} className="text-gray-700" />
+            {/* Daily Engagement Session Card */}
+            <VolumetricTelemetryNode nodeId="DLY_ENG_01" className="!p-10">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-[0.65rem] font-mono font-black text-gray-500 uppercase tracking-[0.4em]">Daily Engagement</h3>
+                <Calendar size={18} className="text-gray-600" />
               </div>
 
               {workoutToday?.attended ? (
                 <div className="space-y-8">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-voro-secondary/10 text-voro-secondary border border-voro-secondary/20 rounded-full text-[0.6rem] font-black uppercase tracking-[0.2em]">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-voro-secondary/10 text-voro-secondary border border-voro-secondary/20 rounded-full text-[0.6rem] font-mono font-bold uppercase tracking-[0.2em]">
                     <div className="w-1.5 h-1.5 rounded-full bg-voro-secondary animate-pulse" />
                     Evolution Logged
                   </div>
-                  <div className="space-y-5">
+                  <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-500 text-xs font-black uppercase tracking-widest">Archetype</span>
+                      <span className="text-gray-500 text-xs font-mono font-black uppercase tracking-widest">Archetype</span>
                       <span className="text-white font-serif italic text-lg font-bold">{workoutToday.type}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-500 text-xs font-black uppercase tracking-widest">Temporal</span>
+                      <span className="text-gray-500 text-xs font-mono font-black uppercase tracking-widest">Temporal</span>
                       <span className="text-white font-serif italic text-lg font-bold">{workoutToday.duration} min</span>
                     </div>
                   </div>
                   <button
                     onClick={() => navigate('/workout/log')}
-                    className="w-full py-4 rounded-2xl bg-white/[0.03] border border-white/5 text-[0.65rem] font-black uppercase tracking-[0.2em] text-gray-400 transition-all hover:bg-white/[0.06] hover:text-white"
+                    className="w-full py-4 rounded-2xl bg-white/[0.03] border border-white/5 text-[0.65rem] font-mono font-black uppercase tracking-[0.2em] text-gray-400 transition-all hover:bg-white/[0.06] hover:text-white outline-none focus-visible:ring-2 focus-visible:ring-white"
                   >
                     Review Manifest
                   </button>
                 </div>
               ) : (
-                <div className="space-y-10 text-center py-4">
+                <div className="space-y-8 text-center py-4">
                   <div className="w-20 h-20 mx-auto bg-white/[0.02] border border-white/5 rounded-full flex items-center justify-center shadow-inner">
-                    <Target size={32} className="text-gray-700" />
+                    <Target size={32} className="text-gray-600" />
                   </div>
                   <div>
-                    <p className="text-gray-400 font-serif italic text-xl mb-2">No session recorded</p>
-                    <p className="text-[0.6rem] text-gray-600 uppercase font-black tracking-[0.3em]">Awaiting initiation</p>
+                    <p className="text-gray-400 font-serif italic text-xl mb-1">No session recorded</p>
+                    <p className="text-[0.6rem] text-gray-600 uppercase font-mono font-black tracking-[0.3em]">Awaiting initiation</p>
                   </div>
                   <button
                     onClick={() => navigate('/workout/log')}
-                    className="w-full flex items-center justify-center gap-4 py-5 rounded-2xl bg-white text-black text-[0.65rem] font-black uppercase tracking-[0.3em] transition-all hover:scale-[1.03] active:scale-[0.97] shadow-xl shadow-white/5"
+                    className="w-full flex items-center justify-center gap-4 py-5 rounded-2xl bg-white text-black text-[0.65rem] font-mono font-black uppercase tracking-[0.3em] transition-all hover:scale-[1.03] active:scale-[0.97] shadow-xl shadow-white/5 outline-none focus-visible:ring-2 focus-visible:ring-voro-primary"
                   >
                     <Plus size={18} />
                     <span>Begin Session</span>
                   </button>
                 </div>
               )}
-            </Card>
+            </VolumetricTelemetryNode>
 
             <section className="grid grid-cols-2 gap-5">
               {NAV_LINKS.map((link) => (
                 <button
                   key={link.label}
                   onClick={() => navigate(link.path)}
-                  className="flex flex-col items-center justify-center gap-4 p-8 rounded-[2rem] bg-[#0A0C14] border border-white/5 transition-all hover:border-voro-primary/30 hover:bg-voro-primary/[0.02] group shadow-lg"
+                  className="flex flex-col items-center justify-center gap-4 p-8 rounded-[2rem] bg-[#0A0C14] border border-white/5 transition-all hover:border-voro-primary/30 hover:bg-voro-primary/[0.02] group shadow-lg outline-none focus-visible:ring-2 focus-visible:ring-voro-primary"
                 >
                   <div className="text-gray-600 group-hover:text-voro-primary transition-colors duration-500">
                     {link.icon}
                   </div>
-                  <span className="text-[0.6rem] font-black uppercase tracking-[0.3em] text-gray-600 group-hover:text-white transition-colors duration-500">{link.label}</span>
+                  <span className="text-[0.6rem] font-mono font-black uppercase tracking-[0.3em] text-gray-600 group-hover:text-white transition-colors duration-500">{link.label}</span>
                 </button>
               ))}
             </section>
@@ -673,7 +857,7 @@ const QuickLogModal = ({ isOpen, onClose, onSubmit }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Express Manifestation">
-      <div className="p-2 space-y-12">
+      <div className="p-2 space-y-10">
         {/* Classification Node */}
         <div className="space-y-4">
           <div className="flex items-center gap-3">
@@ -689,7 +873,7 @@ const QuickLogModal = ({ isOpen, onClose, onSubmit }) => {
                   onClick={() => setType(t)}
                   aria-pressed={type === t}
                   className={`
-                    relative py-6 rounded-2xl text-[0.65rem] font-black uppercase tracking-[0.3em] transition-all duration-500 overflow-hidden group/opt
+                    relative py-6 rounded-2xl text-[0.65rem] font-mono font-black uppercase tracking-[0.3em] transition-all duration-500 overflow-hidden group/opt
                     active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14]
                     ${type === t
                       ? 'bg-voro-primary text-white shadow-[0_20px_40px_rgba(124,58,237,0.3)] ring-1 ring-white/20'
@@ -739,7 +923,7 @@ const QuickLogModal = ({ isOpen, onClose, onSubmit }) => {
         </div>
 
         {/* Execution Sequence */}
-        <div className="flex gap-4 pt-6">
+        <div className="flex gap-4 pt-4">
           <Button
             variant="secondary"
             onClick={onClose}
