@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef, memo, useId, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useRef, memo, useCallback } from 'react';
 import { Plus, Trash2, BookOpen, Sparkles, Flame, Scale, Target, Activity, ShieldCheck, Search, ChevronRight, AlertTriangle, RotateCcw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Button from '@/components/Button';
@@ -19,6 +19,164 @@ const MACRO_CONFIG = [
   { label: 'Glycogen Storage', key: 'carbs', unit: 'g', color: '#F59E0B', glow: 'rgba(245,158,11,0.3)', icon: Target },
   { label: 'Lipid Homeostasis', key: 'fat', unit: 'g', color: '#EF4444', glow: 'rgba(239,68,68,0.3)', icon: Scale }
 ];
+
+/**
+ * ⚡ REFINEMENT: Re-engineered IngredientItem component.
+ * Integrates 3D volumetric hover tilts, real-time spatial telemetry,
+ * keyboard-focus offsets, and double-confirmation purge safeguards.
+ * Wrapped in React.memo to shield against parent re-renders.
+ */
+const IngredientItem = memo(({ ing, idx, confirmingPurgeId, onPortionChange, onRemove }) => {
+  const containerRef = useRef(null);
+  const tiltXRef = useRef(null);
+  const tiltYRef = useRef(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+
+  const nodeId = useMemo(() => {
+    return `ING_NODE_${(ing.instanceId || idx).toString().slice(-4).toUpperCase()}`;
+  }, [ing.instanceId, idx]);
+
+  const handleMouseMove = (e) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const tiltY = ((x / rect.width) - 0.5) * 16;
+    const tiltX = (0.5 - (y / rect.height)) * 16;
+
+    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
+    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
+    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+
+    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('--tilt-x', '0deg');
+      containerRef.current.style.setProperty('--tilt-y', '0deg');
+    }
+    if (tiltXRef.current) tiltXRef.current.innerText = '0.0';
+    if (tiltYRef.current) tiltYRef.current.innerText = '0.0';
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('--tilt-x', '4deg');
+      containerRef.current.style.setProperty('--tilt-y', '-4deg');
+    }
+    if (tiltXRef.current) tiltXRef.current.innerText = '4.0';
+    if (tiltYRef.current) tiltYRef.current.innerText = '-4.0';
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('--tilt-x', '0deg');
+      containerRef.current.style.setProperty('--tilt-y', '0deg');
+    }
+    if (tiltXRef.current) tiltXRef.current.innerText = '0.0';
+    if (tiltYRef.current) tiltYRef.current.innerText = '0.0';
+  };
+
+  const interactionActive = isHovered || isFocused;
+
+  return (
+    <div
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={handleMouseLeave}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      tabIndex="0"
+      aria-label={`Infused compound: ${ing.name}, portion ${ing.portion} grams`}
+      style={{
+        transform: interactionActive
+          ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
+          : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: isHovered ? 'none' : 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)',
+        transformStyle: 'preserve-3d'
+      }}
+      className="relative flex flex-col md:flex-row md:items-center justify-between p-6 bg-[#0A0C14] border border-white/5 rounded-3xl gap-6 group/ing hover:border-white/10 hover:bg-white/[0.02] focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408] outline-none overflow-hidden transition-colors"
+    >
+      {/* Dynamic Luminous Lens */}
+      <div
+        className="absolute inset-0 opacity-0 group-hover/ing:opacity-100 transition-opacity duration-500 pointer-events-none"
+        style={{
+          background: 'radial-gradient(250px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(124, 58, 237, 0.12), transparent 80%)'
+        }}
+      />
+
+      {/* Coordinate Telemetry Overlay */}
+      <div
+        className="absolute top-3 right-6 pointer-events-none opacity-0 group-hover/ing:opacity-100 group-focus-within/ing:opacity-100 transition-all duration-500"
+        style={{ transform: 'translateZ(40px)' }}
+      >
+        <div className="flex items-center gap-2 font-mono text-[0.45rem] font-bold text-voro-primary/60 tracking-[0.2em]">
+          <span>TX_<span ref={tiltXRef}>0.0</span>°</span>
+          <span>TY_<span ref={tiltYRef}>0.0</span>°</span>
+          <span className="text-white/20">[{nodeId}]</span>
+        </div>
+      </div>
+
+      <div className="flex-1 space-y-1 z-10" style={{ transform: 'translateZ(30px)' }}>
+        <div className="flex items-center gap-3">
+          <div className="w-1.5 h-1.5 rounded-full bg-voro-primary animate-pulse" />
+          <span className="text-white font-serif italic text-lg font-bold">{ing.name}</span>
+        </div>
+        <span className="text-[0.55rem] font-mono text-gray-600 uppercase tracking-widest block pl-4">
+          BASE MACROS: {ing.calories} kcal · P: {ing.protein}g · C: {ing.carbs}g · F: {ing.fat}g (per 100g)
+        </span>
+      </div>
+
+      <div className="flex items-center gap-6 z-10" style={{ transform: 'translateZ(40px)' }}>
+        {/* Precise Portion Adjustment */}
+        <div className="flex items-center gap-3">
+          <span className="text-[0.55rem] font-mono font-black text-gray-500 uppercase tracking-widest">Portion:</span>
+          <div className="relative group/portion">
+            <input
+              type="number"
+              value={ing.portion}
+              onChange={(e) => onPortionChange(ing.instanceId, Number(e.target.value))}
+              className="bg-black/40 text-white font-mono text-xs px-4 py-2 rounded-xl w-24 border border-white/5 focus:border-voro-primary focus:outline-none focus:ring-1 focus:ring-voro-primary text-center"
+              placeholder="grams"
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[0.55rem] font-mono text-gray-500 uppercase">g</span>
+          </div>
+        </div>
+
+        {/* Defensive Double Confirmation Delete */}
+        <button
+          onClick={() => onRemove(ing.instanceId, ing.name)}
+          aria-label={confirmingPurgeId === ing.instanceId ? `Confirm purge of ${ing.name}` : `Purge ${ing.name} from formulation`}
+          className={`p-3.5 rounded-2xl transition-all duration-500 outline-none border flex items-center justify-center relative ${
+            confirmingPurgeId === ing.instanceId
+              ? 'bg-red-500/20 text-red-400 border-red-500/30 animate-pulse scale-105'
+              : 'text-gray-600 hover:text-red-400 hover:bg-red-400/5 border-white/5'
+          }`}
+        >
+          {confirmingPurgeId === ing.instanceId ? (
+            <div className="flex items-center gap-2 px-1">
+              <AlertTriangle size={14} className="text-red-400" />
+              <span className="text-[0.55rem] font-mono font-black uppercase tracking-widest">PURGE?</span>
+            </div>
+          ) : (
+            <Trash2 size={15} />
+          )}
+        </button>
+      </div>
+    </div>
+  );
+});
+
+IngredientItem.displayName = 'IngredientItem';
 
 const RecipeBuilder = () => {
   const navigate = useNavigate();
@@ -70,15 +228,20 @@ const RecipeBuilder = () => {
     addNotification(`${food.name} infused into formulation matrix.`, 'success');
   };
 
-  const handleRemoveIngredient = (instanceId, name) => {
-    if (confirmingPurgeId === instanceId) {
-      setIngredients(prev => prev.filter(ing => ing.instanceId !== instanceId));
-      setConfirmingPurgeId(null);
-      addNotification(`${name} purged from molecular structure.`, 'info');
-    } else {
-      setConfirmingPurgeId(instanceId);
-    }
-  };
+  const handlePortionChange = useCallback((instanceId, portion) => {
+    setIngredients(prev => prev.map(ing => ing.instanceId === instanceId ? { ...ing, portion } : ing));
+  }, []);
+
+  const handleRemoveIngredient = useCallback((instanceId, name) => {
+    setConfirmingPurgeId(prev => {
+      if (prev === instanceId) {
+        setIngredients(p => p.filter(ing => ing.instanceId !== instanceId));
+        addNotification(`${name} purged from molecular structure.`, 'info');
+        return null;
+      }
+      return instanceId;
+    });
+  }, [addNotification]);
 
   /**
    * ⚡ OPTIMIZATION: Derived Totals.
@@ -248,61 +411,14 @@ const RecipeBuilder = () => {
                   {ingredients.length > 0 ? (
                     <div className="space-y-4">
                       {ingredients.map((ing, idx) => (
-                        <div
+                        <IngredientItem
                           key={ing.instanceId}
-                          className="flex flex-col md:flex-row md:items-center justify-between p-6 bg-white/[0.01] border border-white/5 rounded-3xl gap-6 group/ing hover:border-white/10 hover:bg-white/[0.02] transition-all"
-                        >
-                          <div className="flex-1 space-y-1">
-                            <div className="flex items-center gap-3">
-                              <div className="w-1.5 h-1.5 rounded-full bg-voro-primary animate-pulse" />
-                              <span className="text-white font-serif italic text-lg font-bold">{ing.name}</span>
-                            </div>
-                            <span className="text-[0.55rem] font-mono text-gray-600 uppercase tracking-widest block pl-4">
-                              BASE MACROS: {ing.calories} kcal · P: {ing.protein}g · C: {ing.carbs}g · F: {ing.fat}g (per 100g)
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-6">
-                            {/* Precise Portion Adjustment */}
-                            <div className="flex items-center gap-3">
-                              <span className="text-[0.55rem] font-mono font-black text-gray-500 uppercase tracking-widest">Portion:</span>
-                              <div className="relative group/portion">
-                                <input
-                                  type="number"
-                                  value={ing.portion}
-                                  onChange={(e) => {
-                                    const updated = [...ingredients];
-                                    updated[idx].portion = Number(e.target.value);
-                                    setIngredients(updated);
-                                  }}
-                                  className="bg-black/40 text-white font-mono text-xs px-4 py-2 rounded-xl w-24 border border-white/5 focus:border-voro-primary focus:outline-none focus:ring-1 focus:ring-voro-primary text-center"
-                                  placeholder="grams"
-                                />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[0.55rem] font-mono text-gray-500 uppercase">g</span>
-                              </div>
-                            </div>
-
-                            {/* Defensive Double Confirmation Delete */}
-                            <button
-                              onClick={() => handleRemoveIngredient(ing.instanceId, ing.name)}
-                              aria-label={confirmingPurgeId === ing.instanceId ? `Confirm purge of ${ing.name}` : `Purge ${ing.name} from formulation`}
-                              className={`p-3.5 rounded-2xl transition-all duration-500 outline-none border flex items-center justify-center relative ${
-                                confirmingPurgeId === ing.instanceId
-                                  ? 'bg-red-500/20 text-red-400 border-red-500/30 animate-pulse scale-105'
-                                  : 'text-gray-600 hover:text-red-400 hover:bg-red-400/5 border-white/5'
-                              }`}
-                            >
-                              {confirmingPurgeId === ing.instanceId ? (
-                                <div className="flex items-center gap-2 px-1">
-                                  <AlertTriangle size={14} className="text-red-400" />
-                                  <span className="text-[0.55rem] font-mono font-black uppercase tracking-widest">PURGE?</span>
-                                </div>
-                              ) : (
-                                <Trash2 size={15} />
-                              )}
-                            </button>
-                          </div>
-                        </div>
+                          ing={ing}
+                          idx={idx}
+                          confirmingPurgeId={confirmingPurgeId}
+                          onPortionChange={handlePortionChange}
+                          onRemove={handleRemoveIngredient}
+                        />
                       ))}
                     </div>
                   ) : (
