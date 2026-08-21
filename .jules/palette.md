@@ -53,3 +53,7 @@
 ## 2026-07-30 - Interactive Segment and Filter Buttons Accessibility Indicator
 **Learning:** Segment and filter matrices (such as category filters in the Education Hub) lack clear states for assistive technologies and keyboard navigators. Screen readers cannot tell which button is selected, and keyboard focus states are often neglected or muddy the luxury dark frame.
 **Action:** Always declare explicit `aria-pressed={isActive}` on filter buttons, and inject consistent, clean `focus-visible:ring-2` with a `ring-offset-2` styling aligned to Voro's primary brand theme to offer equitable visibility for keyboard power users.
+
+## 2026-07-31 - Contextual Screen Reader Labels for Dismissible Notifications
+**Learning:** Generic `aria-label="Dismiss"` attributes on notification close buttons create ambiguity when multiple alerts or notification toasts exist simultaneously, as screen readers announce identical "Dismiss button" text for every active notification.
+**Action:** Make dismiss `aria-label` attributes contextual (e.g. `title ? "Dismiss " + title : "Dismiss notification"`), providing screen reader users with precise clarity about which specific item will be closed.
