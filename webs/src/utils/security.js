@@ -1944,12 +1944,24 @@ export const performIntegrityCheck = () => {
   // Active Frame-Integrity Shield
   // Detects if the application is being rendered in an unauthorized frame (Clickjacking protection)
   try {
-    if (typeof window !== 'undefined' && window.self !== window.top && !isTestMode()) {
-      if (_console.error) _call.call(_console.error, console, "Security Sentinel: Frame Integrity Violation! Application is being rendered in an unauthorized frame/iframe.");
-      compromised = true;
+    if (typeof window !== 'undefined' && !isTestMode()) {
+      if (window.self !== window.top) {
+        if (_console.error) _call.call(_console.error, console, "Security Sentinel: Frame Integrity Violation! Application is being rendered in an unauthorized frame/iframe.");
+        compromised = true;
+      }
+      if (window.location && window.location.ancestorOrigins && window.location.ancestorOrigins.length > 0) {
+        const currentOrigin = window.location.origin;
+        for (let i = 0; i < window.location.ancestorOrigins.length; i++) {
+          if (window.location.ancestorOrigins[i] !== currentOrigin) {
+            if (_console.error) _call.call(_console.error, console, `Security Sentinel: Unauthorized Ancestor Origin detected: ${window.location.ancestorOrigins[i]}`);
+            compromised = true;
+            break;
+          }
+        }
+      }
     }
   } catch (e) {
-    // If accessing window.top is blocked by cross-origin policy, we are definitely in a frame
+    // If accessing window.top or ancestorOrigins is blocked by cross-origin policy, we are definitely in a frame
     if (!isTestMode()) compromised = true;
   }
 
