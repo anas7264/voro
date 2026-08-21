@@ -1,6 +1,22 @@
 import React, { memo, useId, useState } from 'react';
 
 /**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted pre-computed trigonometric tick map.
+ * Pre-calculates 60 trigonometric (cos/sin) tick positions and major step markers
+ * at module load, eliminating Array.from heap allocations and 120 Math.cos/Math.sin
+ * evaluations on every component render.
+ */
+const TICK_ANGLES = Array.from({ length: 60 }, (_, i) => {
+  const angle = (i * 6 * Math.PI) / 180;
+  return {
+    i,
+    isMajor: i % 5 === 0,
+    cos: Math.cos(angle),
+    sin: Math.sin(angle)
+  };
+});
+
+/**
  * ⚡ OPTIMIZATION: Memoized Ring component refined into an 'Exploded Chronographic View'.
  * Multi-layered SVG architecture with gradients, 3D spatial transforms, and architectural
  * connector lines that activate on hover to reveal hidden biometric metadata layers.
@@ -124,16 +140,14 @@ const Ring = memo(({ value, max, size = 180, unit = 'kcal', color = '#7C3AED', l
 
         {/* Rotated Ticks for Depth */}
         <g aria-hidden="true" className="transform -rotate-90 origin-center">
-          {Array.from({ length: 60 }).map((_, i) => {
-            const tickAngle = (i * 6 * Math.PI) / 180;
-            const isMajor = i % 5 === 0;
+          {TICK_ANGLES.map(({ i, isMajor, cos, sin }) => {
             const tickRadius = radius + 10;
             const tickLength = isMajor ? 6 : 3;
 
-            const x1 = center + tickRadius * Math.cos(tickAngle);
-            const y1 = center + tickRadius * Math.sin(tickAngle);
-            const x2 = center + (tickRadius + tickLength) * Math.cos(tickAngle);
-            const y2 = center + (tickRadius + tickLength) * Math.sin(tickAngle);
+            const x1 = center + tickRadius * cos;
+            const y1 = center + tickRadius * sin;
+            const x2 = center + (tickRadius + tickLength) * cos;
+            const y2 = center + (tickRadius + tickLength) * sin;
 
             return (
               <line
