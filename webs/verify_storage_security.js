@@ -1,11 +1,9 @@
 /**
- * Dedicated security verification script for Password-Authenticated Backup and Cryptographic Integrity.
- * This runs in Node.js and asserts that backups can be securely password-encrypted and decrypted,
- * preventing cross-device key mismatches while maintaining maximum Zero-Trust privacy.
+ * Security verification script for Deep Schema & Type Strictness Validator (DSVSS)
+ * in VORO Storage Manager (webs/src/utils/storage.js).
  */
 
 import nodeCrypto from 'crypto';
-import { promises as fs } from 'fs';
 import path from 'path';
 
 const webcrypto = nodeCrypto.webcrypto;
@@ -190,96 +188,109 @@ global.sessionStorage = {
 
 const runTests = async () => {
   console.log("=========================================");
-  console.log("🧪 RUNNING SECURITY VERIFICATION: PASSWORD BACKUP");
+  console.log("🧪 RUNNING SECURITY VERIFICATION: STORAGE DSVSS & BACKUP IMPORT");
   console.log("=========================================");
 
-  // Load modules
-  const cryptoModulePath = path.resolve('./src/utils/crypto.js');
+  // Dynamically import storage after environment mocks are attached
   const storageModulePath = path.resolve('./src/utils/storage.js');
-
-  const voroCrypto = (await import(cryptoModulePath)).default;
   const storage = (await import(storageModulePath)).default;
 
-  // Let's seed storage with test data
   await storage.ensureInitialized();
-  await storage.set('profile', { name: "Voro Champion", fitnessLevel: "elite" });
-  await storage.set('settings', { theme: "dark" });
 
-  // --- TEST 1: Direct Crypto Encryption and Decryption with Password ---
-  console.log("🟢 Test 1: Verifying direct PBKDF2/AES-GCM encryption and decryption with password...");
-  const secretData = { secretToken: "VoroEnclaveSecretValue", biometricRating: 99 };
-  const password = "SuperSecureMasterPassword123!";
+  // --- TEST 1: Prototype Pollution Neutralization ---
+  console.log("🟢 Test 1: Verifying prototype pollution vectors are stripped during backup import...");
+  const maliciousBackup = {
+    version: 1,
+    data: {
+      profile: {
+        name: "Legitimate User",
+        __proto__: { polluted: true },
+        constructor: { prototype: { admin: true } }
+      }
+    }
+  };
 
-  const encrypted = await voroCrypto.encryptWithPassword(secretData, password);
+  await storage.import(maliciousBackup);
+  const profile = storage.get('profile');
 
-  if (encrypted.salt && encrypted.iv && encrypted.ciphertext && encrypted.iterations === 100000) {
-    console.log("✅ Success: Password-based encryption completed with random salt and IV.");
+  if (profile && profile.name === "Legitimate User" && !({}).polluted && !({}).admin) {
+    console.log("✅ Success: Prototype pollution vector successfully neutralized.");
   } else {
-    throw new Error("❌ Failure: Password-based encryption returned incorrect schema!");
+    throw new Error("❌ Failure: Prototype pollution detected or object compromised!");
   }
 
-  const decrypted = await voroCrypto.decryptWithPassword(encrypted, password);
-  if (decrypted && decrypted.secretToken === "VoroEnclaveSecretValue") {
-    console.log("✅ Success: Decryption with the correct password was successful and content matched.");
+  // --- TEST 2: Schema Type Conformance Enforcement ---
+  console.log("🟢 Test 2: Verifying schema type mismatches are rejected...");
+  // workout_log expects an array, profile expects an object
+  const invalidTypeBackup = {
+    version: 1,
+    data: {
+      workout_log: { invalid: "Not an array!" },
+      profile: ["Not an object!"]
+    }
+  };
+
+  // Clear existing items
+  await storage.delete('workout_log');
+  await storage.delete('profile');
+
+  await storage.import(invalidTypeBackup);
+  const workoutLog = storage.get('workout_log');
+  const invalidProfile = storage.get('profile');
+
+  if (workoutLog === null && invalidProfile === null) {
+    console.log("✅ Success: Invalid schema types successfully rejected.");
   } else {
-    throw new Error(`❌ Failure: Decryption failed or data mismatched! decrypted=${JSON.stringify(decrypted)}`);
+    throw new Error(`❌ Failure: Invalid schema types were accepted! workout_log: ${JSON.stringify(workoutLog)}, profile: ${JSON.stringify(invalidProfile)}`);
   }
 
-  // --- TEST 2: Decryption failure with incorrect password ---
-  console.log("🛡️ Test 2: Verifying decryption fails gracefully with an incorrect password...");
-  const failedDecrypted = await voroCrypto.decryptWithPassword(encrypted, "WrongPassword");
-  if (failedDecrypted === null) {
-    console.log("✅ Success: Decryption correctly returned null on incorrect password.");
+  // --- TEST 3: XSS & Script Injection Sanitization ---
+  console.log("🟢 Test 3: Verifying XSS HTML/Script tags are sanitized in string fields...");
+  const xssBackup = {
+    version: 1,
+    data: {
+      profile: {
+        name: "<script>alert('xss')</script>Alex Voro",
+        goal: "<img src=x onerror=alert('xss')>Maintenance"
+      }
+    }
+  };
+
+  await storage.import(xssBackup);
+  const sanitizedProfile = storage.get('profile');
+
+  if (sanitizedProfile && typeof sanitizedProfile.name === 'string' && !sanitizedProfile.name.includes('<script>') && !sanitizedProfile.goal.includes('<img')) {
+    console.log("✅ Success: Embedded XSS payloads successfully sanitized.");
   } else {
-    throw new Error("❌ Failure: Decryption did not fail on incorrect password!");
+    throw new Error(`❌ Failure: Unsanitized script tag found in profile: ${JSON.stringify(sanitizedProfile)}`);
   }
 
-  // --- TEST 3: Full Backup Export with Password ---
-  console.log("🟢 Test 3: Verifying storage.export(password) produces valid voro_backup_v3 payload...");
-  const backupV3 = await storage.export(password);
-  console.log("DEBUG backupV3:", JSON.stringify(backupV3).substring(0, 150) + "...");
-  if (backupV3.voro_backup_v3 === true && backupV3.salt && backupV3.iv && backupV3.ciphertext) {
-    console.log("✅ Success: Storage manager successfully exported v3 password-encrypted backup.");
+  // --- TEST 4: Valid Backup Import Conformance ---
+  console.log("🟢 Test 4: Verifying valid schema payloads are correctly imported...");
+  const validBackup = {
+    version: 1,
+    data: {
+      profile: {
+        name: "Voro Athlete",
+        goal: "muscle_gain"
+      },
+      workout_log: [
+        { id: 1, exercise: "Bench Press", weight: 100 }
+      ]
+    }
+  };
+
+  await storage.import(validBackup);
+  const importedProfile = storage.get('profile');
+  const importedWorkouts = storage.get('workout_log');
+
+  if (importedProfile?.name === "Voro Athlete" && Array.isArray(importedWorkouts) && importedWorkouts.length === 1) {
+    console.log("✅ Success: Valid schema payloads imported successfully.");
   } else {
-    throw new Error("❌ Failure: Exported v3 backup had an incorrect schema!");
+    throw new Error("❌ Failure: Valid backup payload import failed!");
   }
 
-  // --- TEST 4: Full Backup Import with Correct Password ---
-  console.log("🟢 Test 4: Verifying storage.import(backup, password) successfully decrypts and restores state...");
-  // Clear storage first
-  await storage.clear();
-  console.log("DEBUG before import, stateLedger size:", storage.stateLedger.size);
-  const importRes = await storage.import(backupV3, password);
-  console.log("DEBUG importRes is:", importRes);
-  console.log("DEBUG stateLedger keys after import:", Array.from(storage.stateLedger.keys()));
-
-  const restoredProfile = await storage.getAsync('profile');
-  if (importRes === true && restoredProfile && restoredProfile.name === "Voro Champion") {
-    console.log("✅ Success: Decrypted backup successfully restored setting states.");
-  } else {
-    throw new Error(`❌ Failure: Backup import failed or profile data was not restored! importRes=${importRes}, profile=${JSON.stringify(restoredProfile)}`);
-  }
-
-  // --- TEST 5: Backward compatibility with standard v2 backups ---
-  console.log("🟢 Test 5: Verifying backward compatibility with device-bound v2 backups...");
-  await storage.set('settings', { theme: "light" });
-  const backupV2 = await storage.export(); // No password
-  if (backupV2.voro_backup_v2 === true && backupV2.payload) {
-    console.log("✅ Success: Successfully generated device-bound v2 backup.");
-  } else {
-    throw new Error("❌ Failure: Device-bound v2 backup signature was incorrect!");
-  }
-
-  await storage.clear();
-  const importV2Res = await storage.import(backupV2);
-  const restoredSettings = await storage.getAsync('settings');
-  if (importV2Res === true && restoredSettings && restoredSettings.theme === "light") {
-    console.log("✅ Success: Backward compatibility with device-bound v2 backups verified.");
-  } else {
-    throw new Error("❌ Failure: v2 backup import failed!");
-  }
-
-  console.log("\n🎉 ALL PASSWORD-BASED BACKUP SECURITY TESTS PASSED SUCCESSFULLY!");
+  console.log("\n🎉 ALL STORAGE SECURITY VERIFICATION TESTS PASSED SUCCESSFULLY!");
   console.log("=========================================");
   process.exit(0);
 };

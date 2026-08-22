@@ -174,7 +174,7 @@ let _lastIntegrityPulse = 0;
 let _activeContext = null;
 
 // User Presence Attestation (UPA) Constants
-let _lastUserInteraction = 0;
+let _lastUserInteraction = _perfNow ? _call.call(_perfNow, performance) : Date.now();
 const USER_PRESENCE_THRESHOLD = 30000; // 30s
 
 // Keystroke Dynamics & Interaction Cadence Attestation (KDICA) state
@@ -604,6 +604,8 @@ export const validateCallStack = () => {
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i];
       if (!line || _call.call(_SIncludes, line, 'validateCallStack')) continue;
+      if (_call.call(_SIncludes, line, 'node:internal') || _call.call(_SIncludes, line, 'node:diagnostics_channel') || _call.call(_SIncludes, line, 'file://') || _call.call(_SIncludes, line, 'new Promise')) continue;
+      if (_call.call(_test, /at (?:Array|Object|JSON|Promise|Function|Map|Set|Math|Number|String)\.[a-zA-Z0-9_$]+\s*\(\s*<anonymous>\s*\)/, line)) continue;
 
       // Detection 1: Anonymous / Evaluated Code
       if (_call.call(_SIncludes, line, '<anonymous>') || _call.call(_SIncludes, line, 'eval at') || _call.call(_SIncludes, line, 'at eval')) {

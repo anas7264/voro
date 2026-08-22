@@ -833,6 +833,8 @@ class StorageManager {
 
         // Enforce strict schema type conformance
         const expectedType = KEY_SCHEMAS[baseKey];
+        if (!expectedType) continue; // Reject keys not defined in KEY_SCHEMAS
+
         if (expectedType === 'array' && !Array.isArray(sanitizedVal)) {
           console.error(`Security Shield [DSVSS]: Type mismatch for "${baseKey}". Expected an array.`);
           continue;
