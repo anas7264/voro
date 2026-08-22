@@ -1,4 +1,4 @@
-import React, { useRef, memo } from 'react';
+import React, { useRef, memo, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Utensils, Dumbbell, Activity, BarChart3,
@@ -72,48 +72,71 @@ const navSections = [
 ];
 
 /**
- * ⚡ REFINEMENT: Luxury Kinetic Nav Node.
- * Features magnetic proximity tracking, telemetry reveal, and glassmorphic depth.
- * Implements 'Surgical Reactivity' via direct DOM manipulation for 60fps performance.
+ * ⚡ LUXURY MASTERCLASS REFINEMENT: Kinetic Neural Nav Node.
+ * Re-engineered into a bespoke 60fps Volumetric 3D Interactive Node featuring direct-DOM
+ * mouse-tracked rotational tilt, holographic spatial coordinate telemetry (TX/TY),
+ * W3C APG accessible static 4-degree focus tilt, dynamic luminous lens backglows,
+ * and high-contrast liquid light indicators.
  */
 const NavItem = memo(({ item, isActive, collapsed, isMobile, onClick }) => {
   const nodeRef = useRef(null);
-  const telemetryRef = useRef(null);
+  const txRef = useRef(null);
+  const tyRef = useRef(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const Icon = item.icon;
 
   const handleMouseMove = (e) => {
     if (!nodeRef.current || (collapsed && !isMobile)) return;
 
     const rect = nodeRef.current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const x = e.clientX;
-    const y = e.clientY;
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
 
-    const distance = Math.hypot(x - centerX, y - centerY);
-    const radius = 120;
+    // Volumetric 3D rotational tilt calculation (max 10 degrees)
+    const tiltY = ((x / rect.width) - 0.5) * 20;
+    const tiltX = (0.5 - (y / rect.height)) * 20;
 
-    if (distance < radius) {
-      const strength = 1 - (distance / radius);
-      const moveX = (x - centerX) * 0.15 * strength;
-      const moveY = (y - centerY) * 0.15 * strength;
+    nodeRef.current.style.setProperty('--mouse-x', `${x}px`);
+    nodeRef.current.style.setProperty('--mouse-y', `${y}px`);
+    nodeRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+    nodeRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
 
-      nodeRef.current.style.transform = `translate3d(${moveX}px, ${moveY}px, 0) scale(1.02)`;
-      if (telemetryRef.current) telemetryRef.current.style.opacity = (0.4 + strength * 0.6).toString();
-    } else {
-      nodeRef.current.style.transform = `translate3d(0, 0, 0) scale(1)`;
-      if (telemetryRef.current) telemetryRef.current.style.opacity = '0';
-    }
+    if (txRef.current) txRef.current.innerText = tiltX.toFixed(1);
+    if (tyRef.current) tyRef.current.innerText = tiltY.toFixed(1);
+  };
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
   };
 
   const handleMouseLeave = () => {
+    setIsHovered(false);
     if (nodeRef.current) {
-      nodeRef.current.style.transform = `translate3d(0, 0, 0) scale(1)`;
-    }
-    if (telemetryRef.current) {
-      telemetryRef.current.style.opacity = '0';
+      nodeRef.current.style.setProperty('--tilt-x', '0deg');
+      nodeRef.current.style.setProperty('--tilt-y', '0deg');
     }
   };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    if (nodeRef.current && (!collapsed || isMobile)) {
+      nodeRef.current.style.setProperty('--tilt-x', '4deg');
+      nodeRef.current.style.setProperty('--tilt-y', '-4deg');
+      if (txRef.current) txRef.current.innerText = '4.0';
+      if (tyRef.current) tyRef.current.innerText = '-4.0';
+    }
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    if (nodeRef.current) {
+      nodeRef.current.style.setProperty('--tilt-x', '0deg');
+      nodeRef.current.style.setProperty('--tilt-y', '0deg');
+    }
+  };
+
+  const interactionActive = isHovered || isFocused;
 
   return (
     <NavLink
@@ -121,46 +144,74 @@ const NavItem = memo(({ item, isActive, collapsed, isMobile, onClick }) => {
       onClick={onClick}
       ref={nodeRef}
       onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
       aria-label={item.label}
+      style={{
+        transform: interactionActive && (!collapsed || isMobile)
+          ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)'
+          : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: isHovered ? 'none' : 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+        transformStyle: 'preserve-3d'
+      }}
       className={`
         flex items-center gap-4 px-5 py-3.5 rounded-2xl text-sm font-medium
-        transition-all duration-500 group relative overflow-hidden focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408] outline-none
+        transition-colors duration-500 group relative overflow-hidden focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408] outline-none
         ${collapsed && !isMobile ? 'justify-center' : ''}
-        ${isActive ? 'text-white' : 'text-gray-500 hover:text-gray-200'}
+        ${isActive ? 'text-white font-semibold bg-white/[0.02]' : 'text-gray-400 hover:text-white'}
       `}
     >
-      {/* Active Neural Aura */}
+      {/* Dynamic Luminous Lens Spotlight */}
+      <div
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-500 pointer-events-none"
+        style={{
+          background: isHovered
+            ? 'radial-gradient(150px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(124, 58, 237, 0.12), transparent 70%)'
+            : 'radial-gradient(150px circle at 50% 50%, rgba(124, 58, 237, 0.12), transparent 70%)'
+        }}
+      />
+
+      {/* Active Neural Ambient Aura */}
       {isActive && (
-        <div className="absolute inset-0 bg-voro-primary/[0.04] backdrop-blur-md animate-fade-in" />
+        <div className="absolute inset-0 bg-gradient-to-r from-voro-primary/[0.08] via-voro-primary/[0.02] to-transparent backdrop-blur-md" />
       )}
 
-      {/* Liquid Light Indicator */}
+      {/* Liquid Light Indicator Datum */}
       {isActive && (
-        <div className="absolute left-0 top-1/4 bottom-1/4 w-[3px] bg-voro-primary rounded-r-full shadow-[0_0_15px_rgba(124,58,237,0.8)]" />
+        <div className="absolute left-0 top-2 bottom-2 w-[3px] bg-voro-primary rounded-r-full shadow-[0_0_18px_rgba(124,58,237,0.9)] animate-pulse" />
       )}
 
-      {/* Industrial Telemetry Reveal */}
-      <span
-        ref={telemetryRef}
-        className="absolute right-4 top-1/2 -translate-y-1/2 font-mono text-[0.45rem] font-bold text-voro-primary tracking-widest opacity-0 pointer-events-none transition-opacity duration-300"
-      >
-        [0x{item.nodeId}]
-      </span>
+      {/* Holographic Coordinate Telemetry Overlay */}
+      {(!collapsed || isMobile) && (
+        <div
+          className="absolute right-3 top-1/2 -translate-y-1/2 font-mono text-[0.45rem] font-bold text-voro-primary/80 tracking-widest opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 pointer-events-none transition-opacity duration-300 flex items-center gap-2"
+          style={{ transform: 'translateZ(30px) translateY(-50%)' }}
+        >
+          <span className="hidden xl:inline">X_<span ref={txRef}>0.0</span>°</span>
+          <span className="hidden xl:inline">Y_<span ref={tyRef}>0.0</span>°</span>
+          <span className="text-voro-primary font-black">[0x{item.nodeId}]</span>
+        </div>
+      )}
 
       <Icon
         size={18}
+        style={{ transform: 'translateZ(20px)' }}
         className={`
           flex-shrink-0 transition-all duration-500 relative z-10
-          ${isActive ? 'text-voro-primary scale-110' : 'group-hover:scale-110 group-hover:text-white'}
+          ${isActive ? 'text-voro-primary scale-110' : 'group-hover:scale-110 group-hover:text-voro-primary'}
         `}
       />
 
       {(!collapsed || isMobile) && (
-        <span className={`
-          tracking-tight relative z-10 font-medium transition-all duration-500
-          ${isActive ? 'translate-x-1 opacity-100 font-bold' : 'opacity-60 group-hover:opacity-100 group-hover:translate-x-1'}
-        `}>
+        <span
+          style={{ transform: 'translateZ(20px)' }}
+          className={`
+            tracking-tight relative z-10 font-medium transition-all duration-500
+            ${isActive ? 'translate-x-1 opacity-100 font-bold text-white' : 'opacity-70 group-hover:opacity-100 group-hover:translate-x-1'}
+          `}
+        >
           {item.label}
         </span>
       )}
@@ -176,14 +227,17 @@ const NavItem = memo(({ item, isActive, collapsed, isMobile, onClick }) => {
           backdrop-blur-xl
         ">
           <div className="flex items-center gap-3">
-             <div className="w-1 h-1 rounded-full bg-voro-primary animate-pulse" />
-             {item.label}
+             <div className="w-1.5 h-1.5 rounded-full bg-voro-primary animate-pulse" />
+             <span>{item.label}</span>
+             <span className="text-[0.45rem] text-voro-primary font-mono ml-2">[0x{item.nodeId}]</span>
           </div>
         </div>
       )}
     </NavLink>
   );
 });
+
+NavItem.displayName = 'NavItem';
 
 const Sidebar = ({ collapsed, setCollapsed, isMobile }) => {
   const location = useLocation();
