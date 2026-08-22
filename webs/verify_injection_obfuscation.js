@@ -3,7 +3,7 @@
  * This runs in Node.js and asserts that obfuscated or padded queries are successfully blocked.
  */
 
-import { isPromptInjection } from './src/utils/validators.js';
+import { isPromptInjection, isValidURL } from './src/utils/validators.js';
 
 const runTests = async () => {
   console.log("=========================================");
@@ -223,6 +223,26 @@ const runTests = async () => {
     console.log("✅ Success: Unicode Tag character (ASCII Smuggling) prompt injection successfully blocked!");
   } else {
     throw new Error("❌ Failure: Unicode Tag character (ASCII Smuggling) prompt injection bypass attempt allowed!");
+  }
+
+  // --- TEST 24: Userinfo Credential Smuggling and SSRF / Private IP URL Rejection ---
+  console.log("🛡️ Test 24: Verifying Userinfo Credential Smuggling and SSRF / Private IP URL rejection...");
+  const validURL = "https://example.com/health";
+  const userinfoURL = "https://admin:secret123@attacker.com/login";
+  const localhostURL = "http://localhost:8080/api";
+  const loopbackIP = "http://127.0.0.1/admin";
+  const metadataIP = "http://169.254.169.254/latest/meta-data/";
+
+  if (
+    isValidURL(validURL) &&
+    !isValidURL(userinfoURL) &&
+    !isValidURL(localhostURL) &&
+    !isValidURL(loopbackIP) &&
+    !isValidURL(metadataIP)
+  ) {
+    console.log("✅ Success: Userinfo Credential Smuggling and SSRF / Private IP URLs correctly rejected!");
+  } else {
+    throw new Error("❌ Failure: Credential smuggling or SSRF IP targets were incorrectly allowed by isValidURL!");
   }
 
   console.log("\n🎉 ALL INJECTION OBFUSCATION SECURITY VERIFICATION TESTS PASSED SUCCESSFULLY!");
