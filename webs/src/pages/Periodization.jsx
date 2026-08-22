@@ -4,6 +4,7 @@ import Button from '@/components/Button';
 import Card from '@/components/Card';
 import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
+import { formatDate } from '@/utils/formatters';
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted static metadata.
@@ -133,7 +134,8 @@ const Periodization = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-6">
-                       <span className="text-[0.55rem] font-mono text-gray-700 uppercase tracking-widest">Start: {new Date(block.startDate).toLocaleDateString()}</span>
+                       {/* ⚡ OPTIMIZATION: Zero-allocation date formatting via module-scoped CachedDateTimeFormat */}
+                       <span className="text-[0.55rem] font-mono text-gray-700 uppercase tracking-widest">Start: {formatDate(block.startDate, 'short')}</span>
                        <button
                         onClick={() => handleRemoveBlock(block.id)}
                         aria-label={confirmingRemoveId === block.id ? `Confirm decommissioning of block: ${block.name}` : `Decommission block: ${block.name}`}
