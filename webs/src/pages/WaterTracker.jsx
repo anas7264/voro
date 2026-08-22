@@ -12,14 +12,17 @@ import Card from '@/components/Card';
 import LineChartComponent from '@/components/LineChartComponent';
 
 /**
- * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
- * Prevents redundant object instantiation of Intl.DateTimeFormat in loops.
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters and static constants.
+ * Prevents redundant object/array instantiation in loops and component renders.
  */
 const longDateFormatter = new Intl.DateTimeFormat('en-US', {
   weekday: 'short',
   month: 'short',
   day: 'numeric'
 });
+
+const VESSEL_TICKS = Object.freeze([2000, 1500, 1000, 500]);
+const CATALYST_PRESETS = Object.freeze([250, 500, 750, 1000]);
 
 /**
  * ⚡ LUXURY REFINEMENT: Volumetric 3D HydroVessel with static 4-degree keyboard focus tilts,
@@ -166,7 +169,7 @@ const HydroVessel = memo(({ percentage, biologicalState, nodeId = "VESSEL_NODE" 
         className="absolute left-[-54px] inset-y-12 flex flex-col justify-between items-end py-6 z-20 pointer-events-none"
         style={{ transform: 'translateZ(40px)' }}
       >
-        {[2000, 1500, 1000, 500].map(val => (
+        {VESSEL_TICKS.map(val => (
           <div key={val} className="flex items-center gap-3">
              <span className="text-[0.55rem] font-mono font-semibold text-gray-500 tracking-tighter">{val}ml</span>
              <div className="w-3.5 h-[1.5px] bg-white/15" />
@@ -545,7 +548,7 @@ const WaterTracker = () => {
             <div className="space-y-4">
               <p className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-[0.3em] mb-4">Molecular Catalysts</p>
               <div className="grid grid-cols-2 gap-4">
-                {[250, 500, 750, 1000].map(amt => (
+                {CATALYST_PRESETS.map(amt => (
                   <CatalystCard key={amt} amount={amt} onAdd={addWater} />
                 ))}
               </div>
