@@ -139,7 +139,7 @@ const runTests = async () => {
   console.log("🧪 RUNNING HSIA & CONSTANT-TIME SECURITY VERIFICATION");
   console.log("=========================================");
 
-  const cryptoModulePath = path.resolve('webs/src/utils/crypto.js');
+  const cryptoModulePath = path.resolve('./src/utils/crypto.js');
   const voroCrypto = (await import(cryptoModulePath)).default;
 
   // Test 1: Constant-Time Comparison Correctness
