@@ -6,7 +6,7 @@ import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 
 /**
- * ⚡ PROTOCOL OPTIONS: Hoisted metadata.
+ * ⚡ PROTOCOL OPTIONS & PHASE METADATA: Hoisted metadata.
  * Module-level frozen constants for elite performance and zero-allocation.
  */
 const WINDOW_OPTIONS = Object.freeze([
@@ -14,6 +14,84 @@ const WINDOW_OPTIONS = Object.freeze([
   { id: '18:6', label: '18:6 Advanced', desc: 'Enhanced Autophagy Sequence & cellular recycling', fastHours: 18, breakHours: 6 },
   { id: '20:4', label: '20:4 Warrior', desc: 'Decongested eating phase & heightened lipid oxidation', fastHours: 20, breakHours: 4 },
   { id: '23:1', label: '23:1 OMAD', desc: 'One Meal A Day peak therapeutic performance', fastHours: 23, breakHours: 1 },
+]);
+
+const WINDOW_OPTIONS_MAP = Object.freeze(
+  new Map(WINDOW_OPTIONS.map(opt => [opt.id, opt]))
+);
+
+const METABOLIC_PHASES = Object.freeze({
+  glycogen: Object.freeze({
+    name: "Glycogen Depletion",
+    color: "text-amber-500",
+    glow: "from-amber-500/25 via-amber-600/10 to-transparent",
+    glowColor: "rgba(245, 158, 11, 0.25)",
+    border: "border-amber-500/20",
+    indicator: "bg-amber-500",
+    textGlow: "shadow-[0_0_15px_rgba(245,158,11,0.5)]",
+    gradientId: "grad-glycogen",
+    colors: Object.freeze(["#F59E0B", "#D97706"])
+  }),
+  lipid: Object.freeze({
+    name: "Lipid Oxidation",
+    color: "text-emerald-400",
+    glow: "from-emerald-400/25 via-emerald-500/10 to-transparent",
+    glowColor: "rgba(52, 211, 153, 0.25)",
+    border: "border-emerald-500/20",
+    indicator: "bg-emerald-400",
+    textGlow: "shadow-[0_0_15px_rgba(16,185,129,0.5)]",
+    gradientId: "grad-lipid",
+    colors: Object.freeze(["#34D399", "#059669"])
+  }),
+  autophagy: Object.freeze({
+    name: "Autophagy Sequence",
+    color: "text-indigo-400",
+    glow: "from-indigo-400/25 via-indigo-500/10 to-transparent",
+    glowColor: "rgba(129, 140, 248, 0.25)",
+    border: "border-indigo-500/20",
+    indicator: "bg-indigo-400",
+    textGlow: "shadow-[0_0_15px_rgba(99,102,241,0.5)]",
+    gradientId: "grad-autophagy",
+    colors: Object.freeze(["#818CF8", "#4F46E5"])
+  }),
+  ketosis: Object.freeze({
+    name: "Deep Ketosis",
+    color: "text-cyan-400",
+    glow: "from-cyan-400/30 via-cyan-500/15 to-transparent",
+    glowColor: "rgba(34, 211, 238, 0.3)",
+    border: "border-cyan-500/20",
+    indicator: "bg-cyan-400",
+    textGlow: "shadow-[0_0_20px_rgba(6,182,212,0.6)]",
+    gradientId: "grad-ketosis",
+    colors: Object.freeze(["#22D3EE", "#0891B2"])
+  })
+});
+
+/**
+ * ⚡ ZERO-ALLOCATION PRE-COMPUTED CHRONOMETER TICKS
+ * Pre-instantiated static array eliminates 60 rect heap allocations and rotation evaluations per render tick.
+ */
+const CHRONOMETER_TICKS = Object.freeze(
+  Array.from({ length: 60 }).map((_, i) => (
+    <rect
+      key={i}
+      x="127.5"
+      y="12"
+      width="1"
+      height={i % 5 === 0 ? "10" : "4"}
+      fill={i % 5 === 0 ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.1)"}
+      transform={`rotate(${i * 6}, 128, 128)`}
+      className="transition-all duration-700"
+    />
+  ))
+);
+
+const ALIGNMENT_LOGS = Object.freeze([
+  "MEASURING HEPATIC GLYCOGEN STORES...",
+  "CALIBRATING CORE KINETIC SWITCHES...",
+  "ATTESTING SECURE CDDSA DATABASE HANDSHAKE...",
+  "NUTRITIONAL SHIELD DEPLOYED...",
+  "METABOLIC BIOMARKER MATRIX SYNCED // READY"
 ]);
 
 /**
@@ -32,57 +110,12 @@ const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive
 
   const nodeId = useMemo(() => `CHRONO_NODE_${reactId.replace(/:/g, '').slice(0, 4)}`, [reactId]);
 
-  // Dynamic shift colors representing different levels of biological fasting progression
+  // Zero-allocation O(1) lookup of pre-frozen metabolic phase presets
   const metabolicState = useMemo(() => {
-    if (progress < 25) {
-      return {
-        name: "Glycogen Depletion",
-        color: "text-amber-500",
-        glow: "from-amber-500/25 via-amber-600/10 to-transparent",
-        glowColor: "rgba(245, 158, 11, 0.25)",
-        border: "border-amber-500/20",
-        indicator: "bg-amber-500",
-        textGlow: "shadow-[0_0_15px_rgba(245,158,11,0.5)]",
-        gradientId: "grad-glycogen",
-        colors: ["#F59E0B", "#D97706"]
-      };
-    } else if (progress < 50) {
-      return {
-        name: "Lipid Oxidation",
-        color: "text-emerald-400",
-        glow: "from-emerald-400/25 via-emerald-500/10 to-transparent",
-        glowColor: "rgba(52, 211, 153, 0.25)",
-        border: "border-emerald-500/20",
-        indicator: "bg-emerald-400",
-        textGlow: "shadow-[0_0_15px_rgba(16,185,129,0.5)]",
-        gradientId: "grad-lipid",
-        colors: ["#34D399", "#059669"]
-      };
-    } else if (progress < 75) {
-      return {
-        name: "Autophagy Sequence",
-        color: "text-indigo-400",
-        glow: "from-indigo-400/25 via-indigo-500/10 to-transparent",
-        glowColor: "rgba(129, 140, 248, 0.25)",
-        border: "border-indigo-500/20",
-        indicator: "bg-indigo-400",
-        textGlow: "shadow-[0_0_15px_rgba(99,102,241,0.5)]",
-        gradientId: "grad-autophagy",
-        colors: ["#818CF8", "#4F46E5"]
-      };
-    } else {
-      return {
-        name: "Deep Ketosis",
-        color: "text-cyan-400",
-        glow: "from-cyan-400/30 via-cyan-500/15 to-transparent",
-        glowColor: "rgba(34, 211, 238, 0.3)",
-        border: "border-cyan-500/20",
-        indicator: "bg-cyan-400",
-        textGlow: "shadow-[0_0_20px_rgba(6,182,212,0.6)]",
-        gradientId: "grad-ketosis",
-        colors: ["#22D3EE", "#0891B2"]
-      };
-    }
+    if (progress < 25) return METABOLIC_PHASES.glycogen;
+    if (progress < 50) return METABOLIC_PHASES.lipid;
+    if (progress < 75) return METABOLIC_PHASES.autophagy;
+    return METABOLIC_PHASES.ketosis;
   }, [progress]);
 
   const handleMouseMove = (e) => {
@@ -119,18 +152,6 @@ const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive
     setIsFocused(false);
   };
 
-  const ticks = useMemo(() => Array.from({ length: 60 }).map((_, i) => (
-    <rect
-      key={i}
-      x="127.5"
-      y="12"
-      width="1"
-      height={i % 5 === 0 ? "10" : "4"}
-      fill={i % 5 === 0 ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.1)"}
-      transform={`rotate(${i * 6}, 128, 128)`}
-      className="transition-all duration-700"
-    />
-  )), []);
 
   const interactionActive = isHovered || isFocused;
 
@@ -248,7 +269,7 @@ const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive
           </defs>
 
           {/* Static Precision Ticks */}
-          {ticks}
+          {CHRONOMETER_TICKS}
 
           {/* Track Ring */}
           <circle
@@ -532,8 +553,75 @@ const DiagnosticCell = memo(({ title, value, unit, progress, description, icon: 
 });
 DiagnosticCell.displayName = 'DiagnosticCell';
 
+/**
+ * ⚡ SUBCOMPONENT: PurgeResetButton
+ * Isolated double confirmation sequence button. Encapsulates 50ms interval countdown
+ * to prevent high-frequency re-rendering of the entire FastingTracker page.
+ */
+const PurgeResetButton = memo(({ onReset }) => {
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [resetCountdown, setResetCountdown] = useState(3.0);
+  const countdownTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+    };
+  }, []);
+
+  const cancelResetSequence = () => {
+    setConfirmReset(false);
+    setResetCountdown(3.0);
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+  };
+
+  const initiateResetSequence = () => {
+    if (confirmReset) {
+      onReset();
+      cancelResetSequence();
+    } else {
+      setConfirmReset(true);
+      setResetCountdown(3.0);
+
+      const start = Date.now();
+      countdownTimerRef.current = setInterval(() => {
+        const remaining = Math.max(0, 3.0 - (Date.now() - start) / 1000);
+        setResetCountdown(remaining);
+        if (remaining <= 0) {
+          cancelResetSequence();
+        }
+      }, 50);
+    }
+  };
+
+  return (
+    <button
+      onClick={initiateResetSequence}
+      aria-label={confirmReset ? `Confirm cycle purge. Countdown ${resetCountdown.toFixed(1)} seconds.` : "Reset metabolic cycle"}
+      className={`p-6 rounded-[1.5rem] border outline-none transition-all duration-500 flex items-center justify-center gap-2 ${
+        confirmReset
+          ? 'bg-red-500/10 border-red-500/30 text-red-500 shadow-[0_0_20px_rgba(239,68,68,0.25)]'
+          : 'bg-white/[0.03] border-white/5 text-gray-500 hover:text-white hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-voro-primary/50'
+      }`}
+    >
+      {confirmReset ? (
+        <>
+          <ShieldAlert size={20} className="animate-pulse" />
+          <span className="font-mono text-xs font-bold leading-none tracking-widest">{resetCountdown.toFixed(1)}s</span>
+        </>
+      ) : (
+        <RotateCcw size={20} />
+      )}
+    </button>
+  );
+});
+PurgeResetButton.displayName = 'PurgeResetButton';
+
 const FastingTracker = () => {
-  const { setItem } = useStorageMethods();
+  const { updateItem } = useStorageMethods();
   const { addNotification } = useNotifications();
 
   /**
@@ -550,11 +638,6 @@ const FastingTracker = () => {
   const [isInitiating, setIsInitiating] = useState(false);
   const [alignmentStep, setAlignmentStep] = useState(0);
 
-  // Safety Confirmation Reset states
-  const [confirmReset, setConfirmReset] = useState(false);
-  const [resetCountdown, setResetCountdown] = useState(3.0);
-  const countdownTimerRef = useRef(null);
-
   const timerRef = useRef(null);
 
   useEffect(() => {
@@ -563,7 +646,7 @@ const FastingTracker = () => {
 
   const windowStr = fastingData?.window || '16:8';
   const activeWindow = useMemo(() => {
-    return WINDOW_OPTIONS.find(opt => opt.id === windowStr) || WINDOW_OPTIONS[0];
+    return WINDOW_OPTIONS_MAP.get(windowStr) || WINDOW_OPTIONS[0];
   }, [windowStr]);
 
   const totalSeconds = activeWindow.fastHours * 3600;
@@ -592,11 +675,10 @@ const FastingTracker = () => {
     return () => clearInterval(timerRef.current);
   }, [isPaused]);
 
-  // Clean up all timers on unmount to prevent leaks
+  // Clean up timer on unmount to prevent leaks
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
     };
   }, []);
 
@@ -624,7 +706,7 @@ const FastingTracker = () => {
     // Simulate cinematic alignment sequence
     setTimeout(async () => {
       const now = new Date().toISOString();
-      await setItem('fasting', { ...fastingData, started: now, status: 'active' });
+      await updateItem('fasting', { started: now, status: 'active' });
       setIsInitiating(false);
       addNotification('Metabolic transition initiated. Autophagy sequence started.', 'success');
     }, 2500);
@@ -634,44 +716,15 @@ const FastingTracker = () => {
     setIsPaused(!isPaused);
   };
 
-  const handleReset = async () => {
-    await setItem('fasting', { ...fastingData, started: null, status: 'idle' });
+  const handleReset = useCallback(async () => {
+    await updateItem('fasting', { started: null, status: 'idle' });
     setElapsed(0);
     setIsPaused(true);
     addNotification('Fasting cycle reset and metadata archived.', 'info');
-  };
-
-  // Protective sequence reset handler
-  const initiateResetSequence = () => {
-    if (confirmReset) {
-      handleReset();
-      cancelResetSequence();
-    } else {
-      setConfirmReset(true);
-      setResetCountdown(3.0);
-
-      const start = Date.now();
-      countdownTimerRef.current = setInterval(() => {
-        const remaining = Math.max(0, 3.0 - (Date.now() - start) / 1000);
-        setResetCountdown(remaining);
-        if (remaining <= 0) {
-          cancelResetSequence();
-        }
-      }, 50);
-    }
-  };
-
-  const cancelResetSequence = () => {
-    setConfirmReset(false);
-    setResetCountdown(3.0);
-    if (countdownTimerRef.current) {
-      clearInterval(countdownTimerRef.current);
-      countdownTimerRef.current = null;
-    }
-  };
+  }, [updateItem, addNotification]);
 
   const handleWindowChange = async (optionId) => {
-    await setItem('fasting', { ...fastingData, window: optionId });
+    await updateItem('fasting', { window: optionId });
     addNotification(`Deprivation window switched to ${optionId}.`, 'success');
   };
 
@@ -761,7 +814,7 @@ const FastingTracker = () => {
                     Aligning Metabolic Sequence...
                   </h3>
                   <div className="font-mono text-[0.6rem] text-voro-primary font-bold tracking-[0.25em] space-y-1">
-                    {alignmentLogs.slice(0, alignmentStep + 1).map((log, i) => (
+                    {ALIGNMENT_LOGS.slice(0, alignmentStep + 1).map((log, i) => (
                       <p key={i} className="animate-fade-in opacity-80">
                         {log}
                       </p>
@@ -803,25 +856,8 @@ const FastingTracker = () => {
                         {isPaused ? 'RESUME SEQUENCE' : 'PAUSE TEMPORALITY'}
                       </Button>
 
-                      {/* Double Confirmation Protective sequence reset button */}
-                      <button
-                        onClick={initiateResetSequence}
-                        aria-label={confirmReset ? `Confirm cycle purge. Countdown ${resetCountdown.toFixed(1)} seconds.` : "Reset metabolic cycle"}
-                        className={`p-6 rounded-[1.5rem] border outline-none transition-all duration-500 flex items-center justify-center gap-2 ${
-                          confirmReset
-                            ? 'bg-red-500/10 border-red-500/30 text-red-500 shadow-[0_0_20px_rgba(239,68,68,0.25)]'
-                            : 'bg-white/[0.03] border-white/5 text-gray-500 hover:text-white hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-voro-primary/50'
-                        }`}
-                      >
-                        {confirmReset ? (
-                          <>
-                            <ShieldAlert size={20} className="animate-pulse" />
-                            <span className="font-mono text-xs font-bold leading-none tracking-widest">{resetCountdown.toFixed(1)}s</span>
-                          </>
-                        ) : (
-                          <RotateCcw size={20} />
-                        )}
-                      </button>
+                      {/* Double Confirmation Protective sequence reset button (Isolated component) */}
+                      <PurgeResetButton onReset={handleReset} />
                     </>
                   )}
                 </div>
