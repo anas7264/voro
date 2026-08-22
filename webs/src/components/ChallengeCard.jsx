@@ -270,7 +270,8 @@ export const ChallengeCard = memo(({ challenge, progress = 0, completed, onClaim
             {!completed ? (
               <button
                 onClick={onClaim}
-                className="flex-1 py-4 bg-white text-black rounded-2xl text-[0.6rem] font-black uppercase tracking-[0.3em] transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_40px_rgba(255,255,255,0.1)] active:scale-[0.98] shadow-xl shadow-white/5 group/claim relative overflow-hidden"
+                aria-label={percentage >= 100 ? `Claim reward for ${challenge?.name || 'objective'}` : `Claim achievement for ${challenge?.name || 'objective'}`}
+                className="flex-1 py-4 bg-white text-black rounded-2xl text-[0.6rem] font-black uppercase tracking-[0.3em] transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_40px_rgba(255,255,255,0.1)] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14] outline-none shadow-xl shadow-white/5 group/claim relative overflow-hidden"
               >
                 <div className="absolute inset-0 bg-gradient-to-tr from-voro-primary/20 via-transparent to-transparent opacity-0 group-hover/claim:opacity-100 transition-opacity" />
                 <span className="relative z-10">{percentage >= 100 ? 'Claim Rewards' : 'Claim Achievement'}</span>
