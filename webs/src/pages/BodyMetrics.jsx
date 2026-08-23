@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef, useId } from 'react';
-import { Activity, Target, Zap, Ruler, ShieldCheck, Cpu, ChevronRight, TrendingUp, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { Activity, Target, Zap, Ruler, ShieldCheck, Cpu } from 'lucide-react';
 import Button from '@/components/Button';
-import Card from '@/components/Card';
 import Input from '@/components/Input';
 import { Stat } from '@/components/Stat';
 import LineChartComponent from '@/components/LineChartComponent';
@@ -13,8 +12,8 @@ import { isValidWeight, isValidBodyFat, isPositiveNumber } from '@/utils/validat
 import { getFastShortDate } from '@/utils/formatters';
 
 /**
- * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
- * Prevents redundant object instantiation of Intl.DateTimeFormat.
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters & static datasets.
+ * Prevents redundant object instantiation of Intl.DateTimeFormat & array allocations.
  */
 const longDateFormatter = new Intl.DateTimeFormat('en-US', {
   weekday: 'long',
@@ -23,20 +22,31 @@ const longDateFormatter = new Intl.DateTimeFormat('en-US', {
   day: 'numeric'
 });
 
+const INITIAL_MEASUREMENTS = Object.freeze({
+  chest: '',
+  waist: '',
+  hips: '',
+  bicep: '',
+  thigh: '',
+  calf: '',
+});
+
+const SVG_NODES = Object.freeze([
+  { key: 'chest', cx: 150, cy: 110, label: 'Chest [0xCHST]', side: 'right', lineY: 110, labelX: 250 },
+  { key: 'bicep', cx: 100, cy: 120, label: 'Bicep [0xBCP]', side: 'left', lineY: 120, labelX: 15 },
+  { key: 'waist', cx: 150, cy: 150, label: 'Waist [0xWST]', side: 'right', lineY: 150, labelX: 250 },
+  { key: 'hips', cx: 150, cy: 180, label: 'Hips [0xHPS]', side: 'left', lineY: 180, labelX: 15 },
+  { key: 'thigh', cx: 128, cy: 230, label: 'Thigh [0xTHG]', side: 'left', lineY: 230, labelX: 15 },
+  { key: 'calf', cx: 130, cy: 310, label: 'Calf [0xCLF]', side: 'left', lineY: 310, labelX: 15 },
+]);
+
 const BodyMetrics = () => {
   const { updateItem } = useStorageMethods();
   const { user } = useApp();
   const { addNotification } = useNotifications();
   const [weight, setWeight] = useState('');
   const [bodyFat, setBodyFat] = useState('');
-  const [measurements, setMeasurements] = useState({
-    chest: '',
-    waist: '',
-    hips: '',
-    bicep: '',
-    thigh: '',
-    calf: '',
-  });
+  const [measurements, setMeasurements] = useState(INITIAL_MEASUREMENTS);
 
   // Interactive UI States
   const [loading, setLoading] = useState(true);
@@ -44,15 +54,11 @@ const BodyMetrics = () => {
   const [loadingText, setLoadingText] = useState('ALIGNING BIOMETRIC MATRICES...');
   const [diagnosticCode, setDiagnosticCode] = useState('0x0000');
 
-  // Input Field References for Direct Focus Syncing
-  const inputRefs = {
-    chest: useRef(null),
-    waist: useRef(null),
-    hips: useRef(null),
-    bicep: useRef(null),
-    thigh: useRef(null),
-    calf: useRef(null),
-  };
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Stable Ref Dictionary.
+   * Replaced invalid inline useRefCalls inside object literal with a stable ref map.
+   */
+  const inputRefs = useRef({});
 
   // Volumetric card tilt references
   const mainEnclaveRef = useRef(null);
@@ -60,11 +66,24 @@ const BodyMetrics = () => {
   const adiposeLogCardRef = useRef(null);
   const dimensionsCardRef = useRef(null);
 
-  // Simulated Loading Sequence & Diagnostic Generation
+  // Telemetry coordinate text refs
+  const trajectoryTiltXRef = useRef(null);
+  const trajectoryTiltYRef = useRef(null);
+
+  // Simulated Loading Sequence & Diagnostic Generation with E2E Bypass Support
   useEffect(() => {
     document.title = 'VORO | Biometric Composition';
 
-    // Simulated medical-grade clinical biophysics processing
+    const isTestMode = typeof window !== 'undefined' && (
+      Boolean(window.__VORO_TEST_BYPASS__) ||
+      localStorage.getItem('voro_test_mode') === 'true'
+    );
+
+    if (isTestMode) {
+      setLoading(false);
+      return;
+    }
+
     const textSequence = [
       'INITIALIZING ANATOMICAL CALIBRATION...',
       'CONNECTING QUANTUM BIOMETRIC NODE...',
@@ -120,8 +139,8 @@ const BodyMetrics = () => {
     useCallback((metrics) => metrics?.measurements || [], [])
   );
 
-  // Volumetric Hover Effect Handler
-  const handleVolumetricMove = useCallback((e, cardRef) => {
+  // Volumetric Hover & Coordinate Telemetry Handler
+  const handleVolumetricMove = useCallback((e, cardRef, tiltXRef, tiltYRef) => {
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -135,12 +154,25 @@ const BodyMetrics = () => {
     cardRef.current.style.setProperty('--mouse-y', `${y}px`);
     cardRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
     cardRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+
+    if (tiltXRef?.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+    if (tiltYRef?.current) tiltYRef.current.innerText = tiltY.toFixed(1);
   }, []);
 
-  const handleVolumetricLeave = useCallback((cardRef) => {
+  const handleVolumetricLeave = useCallback((cardRef, tiltXRef, tiltYRef) => {
     if (!cardRef.current) return;
     cardRef.current.style.setProperty('--tilt-x', '0deg');
     cardRef.current.style.setProperty('--tilt-y', '0deg');
+    if (tiltXRef?.current) tiltXRef.current.innerText = '0.0';
+    if (tiltYRef?.current) tiltYRef.current.innerText = '0.0';
+  }, []);
+
+  const handleVolumetricFocus = useCallback((cardRef, tiltXRef, tiltYRef) => {
+    if (!cardRef.current) return;
+    cardRef.current.style.setProperty('--tilt-x', '4deg');
+    cardRef.current.style.setProperty('--tilt-y', '-4deg');
+    if (tiltXRef?.current) tiltXRef.current.innerText = '4.0';
+    if (tiltYRef?.current) tiltYRef.current.innerText = '-4.0';
   }, []);
 
   const addWeight = async () => {
@@ -191,14 +223,7 @@ const BodyMetrics = () => {
       measurements: [...measurementsRecord, newMeasurement]
     });
 
-    setMeasurements({
-      chest: '',
-      waist: '',
-      hips: '',
-      bicep: '',
-      thigh: '',
-      calf: '',
-    });
+    setMeasurements(INITIAL_MEASUREMENTS);
     addNotification('Anatomical dimensions recorded', 'success');
   };
 
@@ -245,28 +270,18 @@ const BodyMetrics = () => {
   // Bi-directional interactive coordination: focus input from SVG node click
   const handleSVGNodeClick = useCallback((field) => {
     setActiveMeasurementField(field);
-    const targetInput = inputRefs[field]?.current;
+    const targetInput = inputRefs.current[field];
     if (targetInput) {
       targetInput.focus();
       targetInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-  }, [inputRefs]);
-
-  // SVG Dimension markers configurations
-  const svgNodes = useMemo(() => [
-    { key: 'chest', cx: 150, cy: 110, label: 'Chest [0xCHST]', side: 'right', lineY: 110, labelX: 250 },
-    { key: 'bicep', cx: 100, cy: 120, label: 'Bicep [0xBCP]', side: 'left', lineY: 120, labelX: 15 },
-    { key: 'waist', cx: 150, cy: 150, label: 'Waist [0xWST]', side: 'right', lineY: 150, labelX: 250 },
-    { key: 'hips', cx: 150, cy: 180, label: 'Hips [0xHPS]', side: 'left', lineY: 180, labelX: 15 },
-    { key: 'thigh', cx: 128, cy: 230, label: 'Thigh [0xTHG]', side: 'left', lineY: 230, labelX: 15 },
-    { key: 'calf', cx: 130, cy: 310, label: 'Calf [0xCLF]', side: 'left', lineY: 310, labelX: 15 },
-  ], []);
+  }, []);
 
   const todayDate = useMemo(() => longDateFormatter.format(new Date()), []);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#020408] text-[#F0F4FF] relative overflow-hidden">
+      <div role="region" aria-label="Biometric Matrix Calibration Loading" className="flex items-center justify-center min-h-screen bg-[#020408] text-[#F0F4FF] relative overflow-hidden">
         {/* Diagnostic Background Pattern */}
         <div className="absolute inset-0 bg-grid-white opacity-[0.015] pointer-events-none" />
         <div className="absolute inset-0 bg-scanline opacity-[0.02] pointer-events-none" />
@@ -308,7 +323,7 @@ const BodyMetrics = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#020408] text-[#F0F4FF] pb-32 selection:bg-voro-primary/30 relative">
+    <div role="region" aria-label="Biometric Evolution Console" className="min-h-screen bg-[#020408] text-[#F0F4FF] pb-32 selection:bg-voro-primary/30 relative">
       {/* Environmental Ambient backglow elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-voro-primary/5 rounded-full blur-[150px]" />
@@ -331,6 +346,9 @@ const BodyMetrics = () => {
               <span className="text-[0.65rem] font-mono font-black uppercase tracking-[0.6em] opacity-90">
                 Anatomical Calibration // CALIB_SYS_V1.8
               </span>
+              <span className="text-[0.55rem] font-mono font-bold text-gray-600 tracking-widest border border-white/5 px-2.5 py-1 rounded-full">
+                0xBM_VAULT_E91C
+              </span>
             </div>
 
             <div className="space-y-4">
@@ -351,7 +369,7 @@ const BodyMetrics = () => {
         </header>
 
         {/* Dynamic Telemetry Stats Grid */}
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-20">
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-20" aria-label="Biometric Key Telemetry Indicators">
           <Stat
             label="Current Mass"
             value={latestWeight ? Number(latestWeight).toFixed(1) : '-'}
@@ -393,17 +411,27 @@ const BodyMetrics = () => {
             {/* Volumetric Mass Trajectory Card */}
             <section
               ref={mainEnclaveRef}
-              onMouseMove={(e) => handleVolumetricMove(e, mainEnclaveRef)}
-              onMouseLeave={() => handleVolumetricLeave(mainEnclaveRef)}
+              tabIndex={0}
+              onMouseMove={(e) => handleVolumetricMove(e, mainEnclaveRef, trajectoryTiltXRef, trajectoryTiltYRef)}
+              onMouseLeave={() => handleVolumetricLeave(mainEnclaveRef, trajectoryTiltXRef, trajectoryTiltYRef)}
+              onFocus={() => handleVolumetricFocus(mainEnclaveRef, trajectoryTiltXRef, trajectoryTiltYRef)}
+              onBlur={() => handleVolumetricLeave(mainEnclaveRef, trajectoryTiltXRef, trajectoryTiltYRef)}
               style={{
                 transform: 'perspective(1500px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg))',
                 transformStyle: 'preserve-3d',
                 transition: 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)'
               }}
-              className="relative overflow-hidden rounded-[3.5rem] bg-[#0A0C14] border border-white/5 p-12 md:p-16 shadow-[0_50px_100px_-30px_rgba(0,0,0,0.8)] hover:border-white/10 group/trajectory"
+              className="relative overflow-hidden rounded-[3.5rem] bg-[#0A0C14] border border-white/5 p-12 md:p-16 shadow-[0_50px_100px_-30px_rgba(0,0,0,0.8)] hover:border-white/10 focus-visible:ring-2 focus-visible:ring-voro-primary outline-none group/trajectory"
+              aria-label="Mass Trajectory Chart Matrix"
             >
               <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-voro-primary/5 rounded-full blur-[100px] pointer-events-none -mr-48 -mt-48 group-hover/trajectory:bg-voro-primary/10 transition-colors duration-1000" />
               <div className="absolute inset-0 bg-scanline opacity-[0.015] pointer-events-none" />
+
+              {/* Coordinate Telemetry Overlay */}
+              <div className="absolute top-8 right-12 pointer-events-none opacity-0 group-hover/trajectory:opacity-100 transition-opacity duration-500 font-mono text-[0.45rem] text-voro-primary/70 tracking-widest text-right space-y-0.5">
+                <div>TX_<span ref={trajectoryTiltXRef}>0.0</span>°</div>
+                <div>TY_<span ref={trajectoryTiltYRef}>0.0</span>°</div>
+              </div>
 
               <div className="relative z-10 flex flex-col h-full" style={{ transform: 'translateZ(30px)' }}>
                 <div className="flex items-center justify-between mb-12">
@@ -435,14 +463,17 @@ const BodyMetrics = () => {
               {/* Log Mass Card */}
               <div
                 ref={massLogCardRef}
+                tabIndex={0}
                 onMouseMove={(e) => handleVolumetricMove(e, massLogCardRef)}
                 onMouseLeave={() => handleVolumetricLeave(massLogCardRef)}
+                onFocus={() => handleVolumetricFocus(massLogCardRef)}
+                onBlur={() => handleVolumetricLeave(massLogCardRef)}
                 style={{
                   transform: 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg))',
                   transformStyle: 'preserve-3d',
                   transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
                 }}
-                className="relative overflow-hidden rounded-[3rem] bg-[#0A0C14] border border-white/5 p-10 hover:border-white/10 group/mass"
+                className="relative overflow-hidden rounded-[3rem] bg-[#0A0C14] border border-white/5 p-10 hover:border-white/10 focus-visible:ring-2 focus-visible:ring-voro-primary outline-none group/mass"
               >
                 <div className="relative z-10" style={{ transform: 'translateZ(35px)' }}>
                   <div className="flex items-center justify-between mb-10">
@@ -471,14 +502,17 @@ const BodyMetrics = () => {
               {/* Log Adipose Card */}
               <div
                 ref={adiposeLogCardRef}
+                tabIndex={0}
                 onMouseMove={(e) => handleVolumetricMove(e, adiposeLogCardRef)}
                 onMouseLeave={() => handleVolumetricLeave(adiposeLogCardRef)}
+                onFocus={() => handleVolumetricFocus(adiposeLogCardRef)}
+                onBlur={() => handleVolumetricLeave(adiposeLogCardRef)}
                 style={{
                   transform: 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg))',
                   transformStyle: 'preserve-3d',
                   transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
                 }}
-                className="relative overflow-hidden rounded-[3rem] bg-[#0A0C14] border border-white/5 p-10 hover:border-white/10 group/adipose"
+                className="relative overflow-hidden rounded-[3rem] bg-[#0A0C14] border border-white/5 p-10 hover:border-white/10 focus-visible:ring-2 focus-visible:ring-voro-accent outline-none group/adipose"
               >
                 <div className="relative z-10" style={{ transform: 'translateZ(35px)' }}>
                   <div className="flex items-center justify-between mb-10">
@@ -511,14 +545,18 @@ const BodyMetrics = () => {
           <div className="col-span-12 lg:col-span-5">
             <section
               ref={dimensionsCardRef}
+              tabIndex={0}
               onMouseMove={(e) => handleVolumetricMove(e, dimensionsCardRef)}
               onMouseLeave={() => handleVolumetricLeave(dimensionsCardRef)}
+              onFocus={() => handleVolumetricFocus(dimensionsCardRef)}
+              onBlur={() => handleVolumetricLeave(dimensionsCardRef)}
               style={{
                 transform: 'perspective(1500px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg))',
                 transformStyle: 'preserve-3d',
                 transition: 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)'
               }}
-              className="relative overflow-hidden rounded-[3.5rem] bg-[#0A0C14] border border-white/5 p-10 shadow-[0_50px_100px_-30px_rgba(0,0,0,0.8)] hover:border-white/10 group/dimensions flex flex-col h-full"
+              className="relative overflow-hidden rounded-[3.5rem] bg-[#0A0C14] border border-white/5 p-10 shadow-[0_50px_100px_-30px_rgba(0,0,0,0.8)] hover:border-white/10 focus-visible:ring-2 focus-visible:ring-voro-primary outline-none group/dimensions flex flex-col h-full"
+              aria-label="Anatomical Telemetry Blueprint Console"
             >
               <div className="absolute top-0 left-0 w-[400px] h-[400px] bg-voro-secondary/5 rounded-full blur-[100px] pointer-events-none -ml-48 -mt-48 group-hover/dimensions:bg-voro-secondary/10 transition-colors duration-1000" />
               <div className="absolute inset-0 bg-scanline opacity-[0.015] pointer-events-none" />
@@ -535,7 +573,7 @@ const BodyMetrics = () => {
                 </div>
 
                 {/* HIGH-FIDELITY SVG INTERACTIVE SILHOUETTE */}
-                <div className="relative flex justify-center mb-10 border border-white/5 bg-black/40 rounded-[2.5rem] p-4 group/svg-view">
+                <div className="relative flex justify-center mb-10 border border-white/5 bg-black/40 rounded-[2.5rem] p-4 group/svg-view" role="img" aria-label="Interactive Somatic Vector Silhouette">
                   <div className="absolute top-4 left-6 text-[0.45rem] font-mono text-gray-600 uppercase tracking-widest">[GRID_CAL_SYS]</div>
                   <div className="absolute top-4 right-6 text-[0.45rem] font-mono text-gray-600 uppercase tracking-widest">NODE_ACTIVE: {activeMeasurementField ? activeMeasurementField.toUpperCase() : 'NONE'}</div>
 
@@ -566,7 +604,7 @@ const BodyMetrics = () => {
                     />
 
                     {/* Laser Connections & Glowing Interactive Nodes */}
-                    {svgNodes.map((node) => {
+                    {SVG_NODES.map((node) => {
                       const isActive = activeMeasurementField === node.key;
                       return (
                         <g
@@ -640,7 +678,7 @@ const BodyMetrics = () => {
                             {key} [C_{key.slice(0, 3).toUpperCase()}]
                           </label>
                           <Input
-                            ref={inputRefs[key]}
+                            ref={(el) => { inputRefs.current[key] = el; }}
                             type="number"
                             placeholder="cm"
                             value={measurements[key]}
