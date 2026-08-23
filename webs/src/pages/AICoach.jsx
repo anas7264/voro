@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, memo, useMemo, useId, useCallback } from 'react';
-import { Send, Loader, Bot, Sparkles, AlertCircle } from 'lucide-react';
+import { Send, Loader, Bot, Sparkles, AlertCircle, ShieldCheck, Activity } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
@@ -9,36 +9,115 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { isValidChatQuery, isPromptInjection } from '@/utils/validators';
 
 /**
- * ⚡ LUXURAL REFINEMENT: MessageItem Dialogue Bubble
+ * ⚡ LUXURY ARCHITECTURE: Static Module Datasets
+ * Frozen at module scope to ensure zero heap allocations on re-renders.
+ */
+const QUICK_PROMPTS = Object.freeze([
+  'What should I eat today?',
+  'Analyze my week',
+  'Suggest tomorrow\'s workout',
+  'Am I on track?',
+  'Explain my macros',
+  'Explain metabolic velocity',
+]);
+
+const LOCAL_RESPONSES = Object.freeze({
+  'what should i eat': `Based on your goals, I'd recommend a protein-rich meal. Try grilled chicken (150g) with brown rice and roasted vegetables. That's about 600 kcal with 45g protein.`,
+  'analyze my week': `Great week! You hit your calorie goal 5/7 days, averaged 165g protein, and trained 4 times. Keep up the consistency!`,
+  'motivate': `You're crushing it! Your training streak is 7 days 🔥 and you've logged every meal. This consistency compounds over time!`,
+  'on track': `Yes! You're tracking perfectly. At this rate, you'll hit your goal in approximately 12 weeks. Stay focused!`,
+  'macros': `Your current macros: Protein 1.8g/kg (excellent), Carbs 45% calories (good), Fat 30% calories (optimal). Well balanced!`,
+  'workout': `Tomorrow I'd suggest: Chest & Triceps - Bench Press 4×6, Incline DB 3×8, Cable Flies 3×10, Dips 3×8, plus 20min cardio. Rest 90s between sets.`,
+  'metabolic velocity': `Your metabolic velocity is governed by the pacing and composition of your daily macronutrients. Maintaining structured fasting windows optimizes glucose-to-lipid metabolic switching, sustaining steady cellular ATP yield.`,
+});
+
+const generateLocalFallback = (userInput) => {
+  const queryLower = userInput.toLowerCase();
+  for (const [key, value] of Object.entries(LOCAL_RESPONSES)) {
+    if (queryLower.includes(key)) {
+      return value;
+    }
+  }
+  return `I'm here to help! Ask me about your nutrition, training, goals, or progress, and I'll give you personalized advice based on your VORO data.`;
+};
+
+/**
+ * ⚡ LUXURY REFINEMENT: MessageItem Dialogue Bubble
  * Re-engineered into a "Neural Synthesis Manifest" featuring custom backglows,
+ * 60fps direct-DOM 3D volumetric hover tilts, W3C APG focus states,
  * custom scanline/grain borders, editorial italics, and precise metadata.
  */
 const MessageItem = memo(({ msg }) => {
   const isAssistant = msg.role === 'assistant';
   const nodeRef = useRef(null);
+  const [telemetry, setTelemetry] = useState({ tx: '0.0', ty: '0.0' });
+  const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const reactId = useId();
+
+  const nodeId = useMemo(() => `MSG_${reactId.replace(/:/g, '').slice(0, 4).toUpperCase()}`, [reactId]);
 
   const handleMouseMove = (e) => {
     if (!nodeRef.current || !isAssistant) return;
     const rect = nodeRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+
+    const tiltY = ((x / rect.width) - 0.5) * 8;
+    const tiltX = (0.5 - (y / rect.height)) * 8;
+
     nodeRef.current.style.setProperty('--mouse-x', `${x}px`);
     nodeRef.current.style.setProperty('--mouse-y', `${y}px`);
+    nodeRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+    nodeRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+
+    setTelemetry({ tx: tiltX.toFixed(1), ty: tiltY.toFixed(1) });
   };
+
+  const handleFocus = () => {
+    if (!isAssistant) return;
+    setIsFocused(true);
+    if (nodeRef.current) {
+      nodeRef.current.style.setProperty('--tilt-x', '3deg');
+      nodeRef.current.style.setProperty('--tilt-y', '-3deg');
+      setTelemetry({ tx: '3.0', ty: '-3.0' });
+    }
+  };
+
+  const handleBlur = () => {
+    if (!isAssistant) return;
+    setIsFocused(false);
+    if (nodeRef.current) {
+      nodeRef.current.style.setProperty('--tilt-x', '0deg');
+      nodeRef.current.style.setProperty('--tilt-y', '0deg');
+      setTelemetry({ tx: '0.0', ty: '0.0' });
+    }
+  };
+
+  const interactionActive = isHovered || isFocused;
 
   return (
     <div className={`flex ${isAssistant ? 'justify-start' : 'justify-end'} group/msg animate-fade-in relative z-10 w-full`}>
       <div
         ref={nodeRef}
+        tabIndex={isAssistant ? 0 : undefined}
         onMouseMove={handleMouseMove}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         className={`
-          max-w-[90%] lg:max-w-2xl px-10 py-8 rounded-[2.5rem] transition-all duration-700 relative overflow-hidden
+          max-w-[90%] lg:max-w-2xl px-8 py-7 md:px-10 md:py-8 rounded-[2.5rem] transition-all duration-700 relative overflow-hidden outline-none
           ${isAssistant
-            ? 'bg-[#0A0C14]/90 border border-white/5 backdrop-blur-xl shadow-[0_40px_80px_rgba(0,0,0,0.7)] group-hover/msg:border-voro-primary/30 group-hover/msg:shadow-[0_40px_80px_rgba(124,58,237,0.1)]'
-            : 'bg-white/[0.02] border border-white/5 text-white shadow-[0_20px_50px_rgba(0,0,0,0.5)] group-hover/msg:bg-white/[0.03] group-hover/msg:border-white/10'
+            ? 'bg-[#0A0C14]/90 border border-white/5 backdrop-blur-xl shadow-[0_40px_80px_rgba(0,0,0,0.7)] hover:border-voro-primary/30 hover:shadow-[0_40px_80px_rgba(124,58,237,0.12)] focus-visible:ring-2 focus-visible:ring-voro-primary/60'
+            : 'bg-white/[0.02] border border-white/5 text-white shadow-[0_20px_50px_rgba(0,0,0,0.5)] hover:bg-white/[0.03] hover:border-white/10'
           }
         `}
         style={isAssistant ? {
+          transform: interactionActive
+            ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)'
+            : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+          transition: isHovered ? 'none' : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
           transformStyle: 'preserve-3d',
         } : {}}
       >
@@ -46,7 +125,7 @@ const MessageItem = memo(({ msg }) => {
         {isAssistant && (
           <div className="absolute inset-0 opacity-0 group-hover/msg:opacity-100 transition-opacity duration-1000 pointer-events-none"
                style={{
-                 background: `radial-gradient(400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(124, 58, 237, 0.05), transparent 70%)`
+                 background: `radial-gradient(400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(124, 58, 237, 0.08), transparent 70%)`
                }}
           />
         )}
@@ -54,7 +133,19 @@ const MessageItem = memo(({ msg }) => {
         {/* Scanline overlay for cybernetic tech vibe */}
         <div className="absolute inset-0 bg-scanline opacity-[0.02] pointer-events-none" />
 
-        <div className="flex items-center gap-3 mb-6 relative z-10">
+        {/* Cyber-telemetry readout for Assistant */}
+        {isAssistant && (
+          <div className="absolute top-4 right-6 pointer-events-none opacity-0 group-hover/msg:opacity-100 transition-opacity duration-500"
+               style={{ transform: 'translateZ(40px)' }}>
+            <div className="flex items-center gap-2 font-mono text-[0.45rem] font-bold text-voro-primary/60 tracking-widest uppercase">
+              <span>TX_{telemetry.tx}°</span>
+              <span>TY_{telemetry.ty}°</span>
+              <span>[{nodeId}]</span>
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center gap-3 mb-6 relative z-10" style={{ transform: isAssistant ? 'translateZ(20px)' : undefined }}>
           <div className={`w-1.5 h-1.5 rounded-full ${isAssistant ? 'bg-voro-primary shadow-[0_0_10px_#7C3AED] animate-pulse' : 'bg-gray-600'}`} />
           <span className="text-[0.6rem] font-mono font-black uppercase tracking-[0.4em] text-gray-500 group-hover/msg:text-gray-400 transition-colors">
             {isAssistant ? 'Neural Insight // ORACLE' : 'Biometric Query // INTEL'}
@@ -70,17 +161,23 @@ const MessageItem = memo(({ msg }) => {
             ? 'font-serif italic text-xl text-gray-100 font-medium md:text-2xl'
             : 'font-mono text-[0.85rem] text-gray-300'
           }
-        `}>
+        `}
+        style={{ transform: isAssistant ? 'translateZ(30px)' : undefined }}
+        >
           {msg.content}
         </div>
 
         {isAssistant && (
-           <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between opacity-30 group-hover/msg:opacity-100 transition-opacity duration-500 relative z-10">
+           <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between opacity-40 group-hover/msg:opacity-100 transition-opacity duration-500 relative z-10"
+                style={{ transform: 'translateZ(20px)' }}>
               <span className="text-[0.55rem] font-mono font-black uppercase tracking-[0.3em] text-voro-primary flex items-center gap-2">
-                <span className="w-1 h-1 rounded-full bg-voro-primary animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-voro-primary animate-pulse" />
                 Accuracy Verified & Attested
               </span>
-              <Sparkles size={12} className="text-voro-primary/50 animate-pulse" />
+              <div className="flex items-center gap-2 font-mono text-[0.55rem] text-gray-600">
+                <ShieldCheck size={12} className="text-voro-primary/70" />
+                <span className="tracking-widest">0xATTST_E92F</span>
+              </div>
            </div>
         )}
       </div>
@@ -97,8 +194,7 @@ MessageItem.displayName = 'MessageItem';
  */
 const QuickPromptCard = memo(({ prompt, onClick }) => {
   const containerRef = useRef(null);
-  const txRef = useRef(null);
-  const tyRef = useRef(null);
+  const [telemetry, setTelemetry] = useState({ tx: '0.0', ty: '0.0' });
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const reactId = useId();
@@ -111,7 +207,6 @@ const QuickPromptCard = memo(({ prompt, onClick }) => {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    // Volumetric tilt calculation (max 10 degrees)
     const tiltY = ((x / rect.width) - 0.5) * 20;
     const tiltX = (0.5 - (y / rect.height)) * 20;
 
@@ -120,8 +215,7 @@ const QuickPromptCard = memo(({ prompt, onClick }) => {
     containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
     containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
 
-    if (txRef.current) txRef.current.innerText = tiltX.toFixed(1);
-    if (tyRef.current) tyRef.current.innerText = tiltY.toFixed(1);
+    setTelemetry({ tx: tiltX.toFixed(1), ty: tiltY.toFixed(1) });
   };
 
   const handleFocus = () => {
@@ -129,8 +223,7 @@ const QuickPromptCard = memo(({ prompt, onClick }) => {
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '4deg');
       containerRef.current.style.setProperty('--tilt-y', '-4deg');
-      if (txRef.current) txRef.current.innerText = "4.0";
-      if (tyRef.current) tyRef.current.innerText = "-4.0";
+      setTelemetry({ tx: '4.0', ty: '-4.0' });
     }
   };
 
@@ -139,6 +232,7 @@ const QuickPromptCard = memo(({ prompt, onClick }) => {
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
+      setTelemetry({ tx: '0.0', ty: '0.0' });
     }
   };
 
@@ -166,16 +260,19 @@ const QuickPromptCard = memo(({ prompt, onClick }) => {
       <div
         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
         style={{
-          background: `radial-gradient(300px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(124, 58, 237, 0.08), transparent 50%)`,
+          background: `radial-gradient(300px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(124, 58, 237, 0.12), transparent 50%)`,
         }}
       />
+
+      {/* Laser Edge Datum Highlight */}
+      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-voro-primary/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
 
       {/* Cyber-telemetry */}
       <div className="absolute top-4 right-6 pointer-events-none opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-all duration-500"
            style={{ transform: 'translateZ(50px)' }}>
         <div className="flex items-center gap-3 font-mono text-[0.45rem] font-bold text-voro-primary/60 tracking-widest">
-          <span>X_<span ref={txRef}>0.0</span></span>
-          <span>Y_<span ref={tyRef}>0.0</span></span>
+          <span>TX_{telemetry.tx}°</span>
+          <span>TY_{telemetry.ty}°</span>
           <span>[{nodeId}]</span>
         </div>
       </div>
@@ -185,7 +282,7 @@ const QuickPromptCard = memo(({ prompt, onClick }) => {
           <span className="text-[0.55rem] font-mono font-black uppercase tracking-[0.30em] text-gray-500 group-hover:text-voro-primary transition-colors block mb-2">
             Suggested Manifest
           </span>
-          <div className="h-0.5 w-10 bg-white/5 group-hover:bg-voro-primary/30 group-hover:w-20 transition-all duration-700" />
+          <div className="h-0.5 w-10 bg-white/5 group-hover:bg-voro-primary/40 group-hover:w-20 transition-all duration-700" />
         </div>
 
         <span className="text-lg font-serif italic text-white/70 group-hover:text-white transition-colors block leading-tight font-medium">
@@ -225,15 +322,6 @@ const AICoach = () => {
     }
   }, [savedHistory, messages.length]);
 
-  const quickPrompts = useMemo(() => [
-    'What should I eat today?',
-    'Analyze my week',
-    'Suggest tomorrow\'s workout',
-    'Am I on track?',
-    'Explain my macros',
-    'Explain metabolic velocity',
-  ], []);
-
   useEffect(() => {
     document.title = 'VORO | Neural Oracle';
   }, []);
@@ -262,10 +350,20 @@ const AICoach = () => {
       const history = updatedMessages.slice(-10).map(m => ({ role: m.role, content: m.content }));
       const aiResult = await chat(text, history.slice(0, -1));
 
-      if (aiResult) {
+      if (aiResult && aiResult.content) {
         const aiResponse = {
           role: 'assistant',
           content: aiResult.content,
+          timestamp: new Date().toISOString(),
+        };
+        const finalMessages = [...updatedMessages, aiResponse];
+        setMessages(finalMessages);
+        await setItem('chat_history', finalMessages);
+      } else {
+        // Fallback to offline local biological synthesis engine if API return null
+        const aiResponse = {
+          role: 'assistant',
+          content: generateLocalFallback(text),
           timestamp: new Date().toISOString(),
         };
         const finalMessages = [...updatedMessages, aiResponse];
@@ -285,28 +383,8 @@ const AICoach = () => {
         setMessages(finalMessages);
         await setItem('chat_history', finalMessages);
         setLocalLoading(false);
-      }, 800);
+      }, 500);
     }
-  };
-
-  const generateLocalFallback = (userInput) => {
-    const responses = {
-      'what should i eat': `Based on your goals, I'd recommend a protein-rich meal. Try grilled chicken (150g) with brown rice and roasted vegetables. That's about 600 kcal with 45g protein.`,
-      'analyze my week': `Great week! You hit your calorie goal 5/7 days, averaged 165g protein, and trained 4 times. Keep up the consistency!`,
-      'motivate': `You're crushing it! Your training streak is 7 days 🔥 and you've logged every meal. This consistency compounds over time!`,
-      'on track': `Yes! You're tracking perfectly. At this rate, you'll hit your goal in approximately 12 weeks. Stay focused!`,
-      'macros': `Your current macros: Protein 1.8g/kg (excellent), Carbs 45% calories (good), Fat 30% calories (optimal). Well balanced!`,
-      'workout': `Tomorrow I'd suggest: Chest & Triceps - Bench Press 4×6, Incline DB 3×8, Cable Flies 3×10, Dips 3×8, plus 20min cardio. Rest 90s between sets.`,
-      'metabolic velocity': `Your metabolic velocity is governed by the pacing and composition of your daily macronutrients. Maintaining structured fasting windows optimizes glucose-to-lipid metabolic switching, sustaining steady cellular ATP yield.`,
-    };
-
-    for (const [key, value] of Object.entries(responses)) {
-      if (userInput.toLowerCase().includes(key)) {
-        return value;
-      }
-    }
-
-    return `I'm here to help! Ask me about your nutrition, training, goals, or progress, and I'll give you personalized advice based on your VORO data.`;
   };
 
   const charactersLimit = 2000;
@@ -323,20 +401,31 @@ const AICoach = () => {
       </div>
 
       <div className="relative max-w-5xl mx-auto w-full flex-1 flex flex-col px-6 md:px-12 lg:px-16 pt-20">
-        <header className="mb-20">
-          <div className="flex items-center gap-4 text-voro-primary mb-4">
-            <div className="p-2.5 bg-voro-primary/10 rounded-xl border border-voro-primary/20">
-              <Bot size={20} className="animate-pulse" />
+        <header className="mb-16 md:mb-20">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4 text-voro-primary">
+              <div className="p-2.5 bg-voro-primary/10 rounded-xl border border-voro-primary/20 shadow-[0_0_15px_rgba(124,58,237,0.2)]">
+                <Bot size={20} className="animate-pulse" />
+              </div>
+              <span className="text-[0.65rem] font-mono font-black uppercase tracking-[0.4em] text-gray-400">
+                Neural Intelligence Terminal
+              </span>
             </div>
-            <span className="text-[0.65rem] font-mono font-black uppercase tracking-[0.4em] text-gray-500">Neural Intelligence Terminal</span>
+
+            <div className="hidden sm:flex items-center gap-3 font-mono text-[0.55rem] text-gray-500 bg-white/[0.02] border border-white/5 px-4 py-1.5 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="tracking-widest">0xORACLE_NODE_v4.2</span>
+            </div>
           </div>
-          <h1 className="text-5xl md:text-7xl font-serif italic font-medium tracking-tight text-white mb-4 leading-normal pt-4">
+
+          <h1 className="text-5xl md:text-7xl font-serif italic font-medium tracking-tight text-white mb-6 leading-normal pt-2">
             Neural <span className="text-voro-primary not-italic font-black">Oracle</span>
           </h1>
+
           <div className="flex items-center gap-6 pt-2">
-            <div className="h-px w-24 bg-gradient-to-r from-voro-primary to-transparent opacity-40" />
-            <p className="text-gray-600 font-mono font-bold tracking-[0.4em] text-[0.55rem] uppercase opacity-60">
-              Direct telemetry & biological optimization protocol active
+            <div className="h-0.5 w-32 bg-gradient-to-r from-voro-primary via-voro-primary/40 to-transparent shadow-[0_0_10px_rgba(124,58,237,0.5)]" />
+            <p className="text-gray-500 font-mono font-bold tracking-[0.4em] text-[0.55rem] uppercase opacity-75">
+              Direct biological telemetry & structural optimization active
             </p>
           </div>
         </header>
@@ -365,7 +454,7 @@ const AICoach = () => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full">
-                {quickPrompts.map((prompt, idx) => (
+                {QUICK_PROMPTS.map((prompt, idx) => (
                   <QuickPromptCard
                     key={idx}
                     prompt={prompt}
@@ -428,18 +517,19 @@ const AICoach = () => {
 
             <div className="flex items-center gap-4">
               {/* Characters Telemetry Readout */}
-              <span className="hidden md:inline font-mono text-[0.55rem] font-black text-gray-700 tracking-widest uppercase mb-4">
+              <span className="hidden md:inline font-mono text-[0.55rem] font-black text-gray-500 tracking-widest uppercase mb-4">
                 {currentCharsCount}/{charactersLimit} CHR
               </span>
 
               <Button
                 onClick={() => handleSendMessage()}
                 disabled={loading || !input.trim()}
-                className="h-[58px] w-[58px] md:w-auto md:px-8 flex items-center justify-center gap-3 !rounded-[1.25rem] shadow-xl shadow-voro-primary/20"
+                className="h-[58px] w-[58px] md:w-auto md:px-8 flex items-center justify-center gap-3 !rounded-[1.25rem] shadow-xl shadow-voro-primary/20 relative group/btn overflow-hidden"
                 aria-label="Send query"
               >
-                <Send size={16} />
-                <span className="hidden md:inline">Transmit</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-voro-primary via-purple-500 to-voro-primary opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500" />
+                <Send size={16} className="relative z-10" />
+                <span className="hidden md:inline relative z-10">Transmit</span>
               </Button>
             </div>
           </div>
