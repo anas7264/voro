@@ -590,8 +590,14 @@ export const isValidDifficulty = (difficulty) => {
   return typeof difficulty === 'string' && VALID_DIFFICULTIES.has(difficulty.toLowerCase());
 };
 
+// Helper to check if payload is a non-null object (excluding arrays)
+const isNonNullObject = (val) => val !== null && typeof val === 'object' && !Array.isArray(val);
+
 // Form validation for fitness profile
 export const validateFitnessProfile = (profile) => {
+  if (!isNonNullObject(profile)) {
+    return { valid: false, errors: { profile: "Invalid profile format" } };
+  }
   const errors = {};
 
   if (profile.name !== undefined && !isValidName(profile.name)) errors.name = "Name must be between 1 and 50 characters";
@@ -607,6 +613,9 @@ export const validateFitnessProfile = (profile) => {
 
 // Form validation for food diary entry
 export const validateFoodDiaryEntry = (entry) => {
+  if (!isNonNullObject(entry)) {
+    return { valid: false, errors: { entry: "Invalid entry format" } };
+  }
   const errors = {};
 
   const portion = parseFloat(entry.portion);
@@ -619,12 +628,15 @@ export const validateFoodDiaryEntry = (entry) => {
 
 // Form validation for vitals
 export const validateVitals = (vitals) => {
+  if (!isNonNullObject(vitals)) {
+    return { valid: false, errors: { vitals: "Invalid vitals format" } };
+  }
   const errors = {};
 
   if (!isValidHeartRate(vitals.heartRate)) errors.heartRate = "Heart rate must be between 30-220 bpm";
 
   if (vitals.bloodPressure) {
-    if (vitals.bloodPressure.length > 20) {
+    if (typeof vitals.bloodPressure !== 'string' || vitals.bloodPressure.length > 20) {
       errors.bloodPressure = "Blood pressure reading is too long";
     } else {
       const parts = vitals.bloodPressure.split('/');
@@ -658,6 +670,9 @@ export const validateVitals = (vitals) => {
 
 // Form validation for workout entry
 export const validateWorkoutEntry = (workout) => {
+  if (!isNonNullObject(workout)) {
+    return { valid: false, errors: { workout: "Invalid workout format" } };
+  }
   const errors = {};
 
   // Handle both single entry and full session structure
@@ -666,6 +681,10 @@ export const validateWorkoutEntry = (workout) => {
       errors.exercises = "At least one exercise is required";
     } else {
       workout.exercises.forEach((ex, idx) => {
+        if (!isNonNullObject(ex)) {
+          errors[`exercise_${idx}`] = "Invalid exercise object";
+          return;
+        }
         if (!ex.name?.trim()) {
           errors[`exercise_${idx}_name`] = "Exercise name is required";
         } else if (ex.name.length > 100) {
@@ -673,6 +692,10 @@ export const validateWorkoutEntry = (workout) => {
         }
         if (Array.isArray(ex.sets)) {
           ex.sets.forEach((set, setIdx) => {
+            if (!isNonNullObject(set)) {
+              errors[`exercise_${idx}_set_${setIdx}`] = "Invalid set object";
+              return;
+            }
             if (!isValidReps(set.reps)) errors[`exercise_${idx}_set_${setIdx}_reps`] = "Reps must be between 1-100";
             if (!isValidExerciseWeight(set.weight)) errors[`exercise_${idx}_set_${setIdx}_weight`] = "Weight must be between 0-1000kg";
           });
@@ -698,6 +721,9 @@ export const validateWorkoutEntry = (workout) => {
 
 // Form validation for nutrition entry
 export const validateNutritionEntry = (nutrition) => {
+  if (!isNonNullObject(nutrition)) {
+    return { valid: false, errors: { nutrition: "Invalid nutrition format" } };
+  }
   const errors = {};
 
   if (!nutrition.food?.trim()) {
@@ -717,6 +743,9 @@ export const validateNutritionEntry = (nutrition) => {
 
 // Form validation for habit entry
 export const validateHabit = (habit) => {
+  if (!isNonNullObject(habit)) {
+    return { valid: false, errors: { habit: "Invalid habit format" } };
+  }
   const errors = {};
 
   if (!habit.name?.trim()) {
@@ -738,6 +767,9 @@ export const validateHabit = (habit) => {
 
 // Form validation for recipe entry
 export const validateRecipe = (recipe) => {
+  if (!isNonNullObject(recipe)) {
+    return { valid: false, errors: { recipe: "Invalid recipe format" } };
+  }
   const errors = {};
 
   if (!recipe.name?.trim()) {
@@ -750,6 +782,10 @@ export const validateRecipe = (recipe) => {
     errors.ingredients = "At least one ingredient is required";
   } else {
     recipe.ingredients.forEach((ing, idx) => {
+      if (!isNonNullObject(ing)) {
+        errors[`ingredient_${idx}`] = "Invalid ingredient format";
+        return;
+      }
       const portion = parseFloat(ing.portion);
       if (isNaN(portion) || portion < 1 || portion > 5000) {
         errors[`ingredient_${idx}_portion`] = `Portion for ${ing.name || 'ingredient'} must be between 1 and 5000 grams`;
@@ -762,6 +798,9 @@ export const validateRecipe = (recipe) => {
 
 // Form validation for water entry
 export const validateWaterEntry = (entry) => {
+  if (!isNonNullObject(entry)) {
+    return { valid: false, errors: { entry: "Invalid entry format" } };
+  }
   const errors = {};
 
   if (!isValidWaterAmount(entry.amount)) {
