@@ -71,7 +71,13 @@ export const Alert = memo(({ type = "info", title, message, onClose, className =
             <button
               onClick={onClose}
               className="text-gray-600 hover:text-white transition-colors p-1 -mr-2 outline-none focus-visible:ring-1 focus-visible:ring-current rounded-full"
-              aria-label={title ? `Dismiss ${title}` : "Dismiss notification"}
+              aria-label={
+                typeof title === "string" && title
+                  ? `Dismiss ${title}`
+                  : typeof message === "string" && message
+                  ? `Dismiss ${message}`
+                  : "Dismiss notification"
+              }
             >
               <X size={14} />
             </button>

@@ -108,7 +108,7 @@ export const Modal = ({ isOpen, onClose, title, children, size = "md", ...props 
               focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14]
               group
             `}
-            aria-label="Close modal"
+            aria-label={typeof title === "string" && title ? `Close ${title}` : "Close modal"}
           >
             <X size={20} className="group-hover:rotate-90 transition-transform duration-500" />
           </button>
