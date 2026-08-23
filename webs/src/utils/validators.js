@@ -1,13 +1,22 @@
 // VORO Input Validators
 // Validation functions for form inputs and data integrity
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Module-scoped pre-compiled regex patterns.
+ * Prevents dynamic RegExp instantiations and heap allocations on every validation call.
+ */
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const LOWERCASE_RE = /[a-z]/;
+const UPPERCASE_RE = /[A-Z]/;
+const DIGIT_RE = /\d/;
+const SPECIAL_CHAR_RE = /[@$!%*?&]/;
+
 // Email validation
 export const isValidEmail = (email) => {
   if (!email || typeof email !== 'string' || email.length > 254) {
     return false; // Security: RFC 5321 length limit to prevent ReDoS / Denial of Service on massive inputs
   }
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+  return EMAIL_RE.test(email);
 };
 
 // Password validation (min 8 chars, 1 uppercase, 1 lowercase, 1 number)
@@ -32,15 +41,15 @@ export const isValidPassword = (password) => {
 };
 
 // Get password strength feedback
+// ⚡ PERFORMANCE OPTIMIZATION: Zero-allocation RegExp.test() checks replace .match() array allocations.
 export const getPasswordStrength = (password) => {
   let strength = 0;
-  const feedback = [];
 
   if (password.length >= 8) strength++;
-  if (password.match(/[a-z]/)) strength++;
-  if (password.match(/[A-Z]/)) strength++;
-  if (password.match(/\d/)) strength++;
-  if (password.match(/[@$!%*?&]/)) strength++;
+  if (LOWERCASE_RE.test(password)) strength++;
+  if (UPPERCASE_RE.test(password)) strength++;
+  if (DIGIT_RE.test(password)) strength++;
+  if (SPECIAL_CHAR_RE.test(password)) strength++;
 
   if (strength <= 1) return { level: "Very Weak", score: 1, feedback: ["Add more characters", "Mix uppercase and lowercase", "Add numbers", "Add special characters"] };
   if (strength <= 2) return { level: "Weak", score: 2, feedback: ["Mix uppercase and lowercase", "Add numbers", "Add special characters"] };
@@ -141,6 +150,8 @@ export const isDateInPast = (dateString) => {
   return date < new Date();
 };
 
+const INTERNAL_IP_RE = /^(?:127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+|169\.254\.\d+\.\d+)$/;
+
 // URL validation
 export const isValidURL = (url) => {
   if (!url || typeof url !== 'string' || url.length > 2048) {
@@ -169,11 +180,7 @@ export const isValidURL = (url) => {
     const isInternal = hostname === 'localhost' ||
       hostname === '0.0.0.0' ||
       hostname === '[::1]' ||
-      /^127\.\d+\.\d+\.\d+$/.test(hostname) ||
-      /^10\.\d+\.\d+\.\d+$/.test(hostname) ||
-      /^172\.(1[6-9]|2\d|3[01])\.\d+\.\d+$/.test(hostname) ||
-      /^192\.168\.\d+\.\d+$/.test(hostname) ||
-      /^169\.254\.\d+\.\d+$/.test(hostname);
+      INTERNAL_IP_RE.test(hostname);
 
     if (isInternal) {
       return false;
@@ -330,10 +337,14 @@ const decodeHTMLEntities = (str) => {
     });
 };
 
+const BASE64_FORMAT_RE = /^[A-Za-z0-9+/]+={0,2}$/;
+const NON_PRINTABLE_ASCII_RE = /[\x00-\x09\x0B\x0C\x0E-\x1F\x7F-\xFF]/;
+const HEX_FORMAT_RE = /^[0-9a-fA-F]{8,}$/;
+
 // Helper to safely decode Base64 strings with auto-padding and printable-ASCII verification (XSS/DoS safe)
 const safeAtob = (str) => {
   try {
-    if (!/^[A-Za-z0-9+/]+={0,2}$/.test(str) || str.length < 8) {
+    if (!BASE64_FORMAT_RE.test(str) || str.length < 8) {
       return null;
     }
     let padded = str;
@@ -341,7 +352,7 @@ const safeAtob = (str) => {
       padded += '=';
     }
     const decoded = typeof atob !== 'undefined' ? atob(padded) : Buffer.from(padded, 'base64').toString('utf-8');
-    if (/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F-\xFF]/.test(decoded)) {
+    if (NON_PRINTABLE_ASCII_RE.test(decoded)) {
       return null;
     }
     return decoded;
@@ -353,7 +364,7 @@ const safeAtob = (str) => {
 // Helper to safely decode Hex strings with alignment and printable-ASCII verification
 const safeDecodeHex = (str) => {
   try {
-    if (!/^[0-9a-fA-F]{8,}$/.test(str) || str.length % 2 !== 0) {
+    if (!HEX_FORMAT_RE.test(str) || str.length % 2 !== 0) {
       return null;
     }
     let decoded = '';
@@ -393,6 +404,12 @@ const safeReverseString = (str) => {
 // Consolidated regex of compressed patterns to detect spacer-based prompt injection obfuscation (e.g., i.g.n.o.r.e)
 const COMPRESSED_BLOCKLIST_RE = /ignoreprevious|ignoreabove|ignoreallinstructions|ignoresystem|bypassinstructions|overridesystem|systemoverride|developermode|danmode|doanythingnow|forgetprevious|forgetallinstructions|forgetwhatwassaid|youmustnowignore|youarenowadeveloper|youarenowanunrestricted|unrestrictedmode|withoutrestrictions|disablesafety|bypassfilters|repeatthesystemprompt|revealyourinstructions|revealthesystemprompt|revealinstructions|outputthesysteminstructions|outputyourinstructions|outputthetextabove|showyoursystemprompt|showsystemprompt|whatisyoursystemprompt|whatisyourprompt|whatareyourinstructions|whatareyourdeveloperinstructions|revealthenonce|outputyournonces|roleplayas|adoptthepersona|pretendtobe|youarenowaterminal|youarenowalinux|startingnowyouare|youarenolongeranaiassistant|youarenolongerahelpful/i;
 
+const DELIMITER_RE = /\[\/?(?:USER_DATA|SECURITY_PROTOCOL|MESSAGE_HISTORY|USER_INPUT)(?:_[A-Za-z0-9]+)?\]/i;
+const MARKDOWN_RE = /[\*_~`]/g;
+const NON_ALPHANUM_RE = /[^a-z0-9]/g;
+const HEX_MATCH_RE = /[0-9a-fA-F]{8,}/g;
+const BASE64_MATCH_RE = /[A-Za-z0-9+/]{8,}=*/g;
+
 // Prompt injection / jailbreak / delimiter hijacking detection
 export const isPromptInjection = (query, isNested = false) => {
   if (!query || typeof query !== 'string') return false;
@@ -412,11 +429,10 @@ export const isPromptInjection = (query, isNested = false) => {
     .replace(/\s+/g, ' ');
 
   // 1. Delimiter hijacking detection (VORO specific nonced blocks or closing tags)
-  const delimiterRegex = /\[\/?(?:USER_DATA|SECURITY_PROTOCOL|MESSAGE_HISTORY|USER_INPUT)(?:_[A-Za-z0-9]+)?\]/gi;
-  if (delimiterRegex.test(normalizedQuery) || delimiterRegex.test(query) || delimiterRegex.test(decodedQuery)) return true;
+  if (DELIMITER_RE.test(normalizedQuery) || DELIMITER_RE.test(query) || DELIMITER_RE.test(decodedQuery)) return true;
 
   // Clean Markdown obfuscation (asterisks, underscores, tildes, backticks) specifically for keyword matching
-  normalizedQuery = normalizedQuery.replace(/[\*_~`]/g, '');
+  normalizedQuery = normalizedQuery.replace(MARKDOWN_RE, '');
 
   // 2. Override, Harvesting, and Roleplay bypass patterns matched in single-pass compiled regexes
   if (OVERRIDE_RE.test(normalizedQuery)) return true;
@@ -424,12 +440,12 @@ export const isPromptInjection = (query, isNested = false) => {
   if (ROLEPLAY_RE.test(normalizedQuery)) return true;
 
   // 3. Spacer-based obfuscation defense: strip non-alphanumeric separator characters and evaluate
-  const compressedQuery = normalizedQuery.replace(/[^a-z0-9]/g, '');
+  const compressedQuery = normalizedQuery.replace(NON_ALPHANUM_RE, '');
   if (COMPRESSED_BLOCKLIST_RE.test(compressedQuery)) return true;
 
   // Security: Scan and decode Base64-obfuscated and Hex-obfuscated prompt injection payloads (Defense-in-Depth)
   if (!isNested) {
-    const hexMatches = query.match(/[0-9a-fA-F]{8,}/g) || [];
+    const hexMatches = query.match(HEX_MATCH_RE) || [];
     for (const match of hexMatches) {
       const decoded = safeDecodeHex(match);
       if (decoded && isPromptInjection(decoded, true)) {
@@ -437,7 +453,7 @@ export const isPromptInjection = (query, isNested = false) => {
       }
     }
 
-    const base64Matches = query.match(/[A-Za-z0-9+/]{8,}=*/g) || [];
+    const base64Matches = query.match(BASE64_MATCH_RE) || [];
     for (const match of base64Matches) {
       const decoded = safeAtob(match);
       if (decoded && isPromptInjection(decoded, true)) {
