@@ -265,10 +265,14 @@ const HOMOGLYPHS_MAP = {
   'к': 'k', 'л': 'l', 'м': 'm', 'н': 'h', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 'c', 'т': 't', 'у': 'y',
   'ф': 'f', 'х': 'x', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e',
   'ю': 'yu', 'я': 'ya', 'і': 'i', 'ј': 'j', 'ѕ': 's', 'ё': 'e', 'є': 'e',
+  'ԁ': 'd', 'ԑ': 'e', 'ԗ': 'r', 'ԝ': 'w',
   // Greek homoglyphs (mapped by visual similarity for spoofing defense)
   'α': 'a', 'β': 'b', 'γ': 'g', 'δ': 'd', 'ε': 'e', 'ζ': 'z', 'η': 'n', 'θ': 'th', 'ι': 'i', 'κ': 'k',
   'λ': 'l', 'μ': 'u', 'ν': 'v', 'ξ': 'x', 'ο': 'o', 'π': 'p', 'ρ': 'p', 'σ': 's', 'ς': 's', 'τ': 't',
-  'υ': 'y', 'φ': 'f', 'χ': 'x', 'ψ': 'ps', 'ω': 'w'
+  'υ': 'y', 'φ': 'f', 'χ': 'x', 'ψ': 'ps', 'ω': 'w',
+  // Coptic & Armenian homoglyphs
+  'ⲁ': 'a', 'ⲃ': 'b', 'ⲉ': 'e', 'ⲓ': 'i', 'ⲛ': 'n', 'ⲟ': 'o', 'ⲣ': 'r', 'ⲥ': 's', 'ⲧ': 't', 'ⲩ': 'y', 'ⲭ': 'x',
+  'օ': 'o', 'ս': 'u'
 };
 
 // Helper to decode Unicode Tag Characters (ASCII Smuggling / Invisible Language Tags)
@@ -338,8 +342,52 @@ const decodeHTMLEntities = (str) => {
 };
 
 const BASE64_FORMAT_RE = /^[A-Za-z0-9+/]+={0,2}$/;
+const BASE32_FORMAT_RE = /^[A-Z2-7=]+$/i;
 const NON_PRINTABLE_ASCII_RE = /[\x00-\x09\x0B\x0C\x0E-\x1F\x7F-\xFF]/;
 const HEX_FORMAT_RE = /^[0-9a-fA-F]{8,}$/;
+
+// Helper to safely decode Base32 strings (RFC 4648) with printable-ASCII verification
+const safeDecodeBase32 = (str) => {
+  try {
+    if (!str || typeof str !== 'string' || str.length < 8 || !BASE32_FORMAT_RE.test(str)) {
+      return null;
+    }
+    const cleanStr = str.replace(/=/g, '').toUpperCase();
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    let bits = '';
+    for (let i = 0; i < cleanStr.length; i++) {
+      const val = alphabet.indexOf(cleanStr[i]);
+      if (val === -1) return null;
+      bits += val.toString(2).padStart(5, '0');
+    }
+    let decoded = '';
+    for (let i = 0; i + 8 <= bits.length; i += 8) {
+      const byte = parseInt(bits.substring(i, i + 8), 2);
+      if (byte < 32 || byte > 126) return null;
+      decoded += String.fromCharCode(byte);
+    }
+    return decoded.length >= 8 ? decoded : null;
+  } catch (e) {
+    return null;
+  }
+};
+
+// Helper to safely decode ROT47-encoded text (ASCII range 33-126 offset by 47)
+const safeDecodeRot47 = (str) => {
+  if (!str || typeof str !== 'string' || str.length < 8) return null;
+  let decoded = '';
+  let changed = false;
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    if (code >= 33 && code <= 126) {
+      decoded += String.fromCharCode(33 + ((code - 33 + 47) % 94));
+      changed = true;
+    } else {
+      decoded += str[i];
+    }
+  }
+  return changed ? decoded : null;
+};
 
 // Helper to safely decode Base64 strings with auto-padding and printable-ASCII verification (XSS/DoS safe)
 const safeAtob = (str) => {
@@ -420,8 +468,8 @@ export const isPromptInjection = (query, isNested = false) => {
   let normalizedQuery = decodedQuery.normalize('NFKD').toLowerCase();
   // Strip combining diacritical marks across all standard Unicode diacritic blocks (including extended, supplement, symbols, and half-marks)
   normalizedQuery = normalizedQuery.replace(/[\u0300-\u036f\u1ab0-\u1aff\u1dc0-\u1dff\u20d0-\u20ff\ufe20-\ufe2f]/g, '');
-  // Translate Cyrillic and Greek homoglyphs (matching full Unicode Cyrillic and Greek/Coptic blocks) to Latin equivalents
-  normalizedQuery = normalizedQuery.replace(/[\u0400-\u04FF\u0370-\u03FF]/g, char => HOMOGLYPHS_MAP[char] || char);
+  // Translate Cyrillic, Greek, Coptic, and Armenian homoglyphs to Latin equivalents
+  normalizedQuery = normalizedQuery.replace(/[\u0400-\u04FF\u0370-\u03FF\u2C80-\u2CFF\u0530-\u058F]/g, char => HOMOGLYPHS_MAP[char] || char);
 
   // 3. Clean zero-width, formatting, and invisible characters, and condense consecutive whitespaces
   normalizedQuery = normalizedQuery
@@ -443,7 +491,7 @@ export const isPromptInjection = (query, isNested = false) => {
   const compressedQuery = normalizedQuery.replace(NON_ALPHANUM_RE, '');
   if (COMPRESSED_BLOCKLIST_RE.test(compressedQuery)) return true;
 
-  // Security: Scan and decode Base64-obfuscated and Hex-obfuscated prompt injection payloads (Defense-in-Depth)
+  // Security: Scan and decode Base64, Base32, Hex, ROT13, ROT47, and reversed-string obfuscated prompt injection payloads
   if (!isNested) {
     const hexMatches = query.match(HEX_MATCH_RE) || [];
     for (const match of hexMatches) {
@@ -461,9 +509,19 @@ export const isPromptInjection = (query, isNested = false) => {
       }
     }
 
-    // Security: Handle ROT13-encoded obfuscation and evaluate recursively
+    const base32Decoded = safeDecodeBase32(query.trim());
+    if (base32Decoded && isPromptInjection(base32Decoded, true)) {
+      return true;
+    }
+
+    // Security: Handle ROT13 and ROT47-encoded obfuscation and evaluate recursively
     const rot13Decoded = safeDecodeRot13(query);
     if (rot13Decoded && isPromptInjection(rot13Decoded, true)) {
+      return true;
+    }
+
+    const rot47Decoded = safeDecodeRot47(query);
+    if (rot47Decoded && isPromptInjection(rot47Decoded, true)) {
       return true;
     }
 
