@@ -132,7 +132,8 @@ const _StorageSetItem = (typeof window !== 'undefined' && typeof Storage !== 'un
 const _StorageRemoveItem = (typeof window !== 'undefined' && typeof Storage !== 'undefined') ? Storage.prototype.removeItem : null;
 const _StorageClear = (typeof window !== 'undefined' && typeof Storage !== 'undefined') ? Storage.prototype.clear : null;
 
-// SubtleCrypto Prototype Pinning
+// Crypto & SubtleCrypto Prototype Pinning
+const _CryptoGetRandomValues = (typeof window !== 'undefined' && window.crypto) ? window.crypto.getRandomValues : null;
 const _SubtleEncrypt = (typeof window !== 'undefined' && window.crypto?.subtle) ? window.crypto.subtle.encrypt : null;
 const _SubtleDecrypt = (typeof window !== 'undefined' && window.crypto?.subtle) ? window.crypto.subtle.decrypt : null;
 const _SubtleDeriveKey = (typeof window !== 'undefined' && window.crypto?.subtle) ? window.crypto.subtle.deriveKey : null;
@@ -723,11 +724,11 @@ export const sanitizeInput = (input) => {
  * Generates a cryptographically secure ephemeral nonce for request isolation.
  */
 export function generateSecurityNonce() {
-  if (typeof window === 'undefined' || !window.crypto) {
+  if (typeof window === 'undefined' || !_CryptoGetRandomValues || !window.crypto) {
     return Math.random().toString(36).substring(2, 15);
   }
   const array = new Uint8Array(16);
-  window.crypto.getRandomValues(array);
+  _call.call(_CryptoGetRandomValues, window.crypto, array);
   return _call.call(_join, _call.call(_map, _ArrayFrom(array), byte => _call.call(_padStart, _call.call(_NToString, byte, 16), 2, '0')), '');
 }
 
@@ -1659,7 +1660,7 @@ const securityNexus = (typeof window !== 'undefined' && _BroadcastChannel)
  * Distributed Peer Attestation (DPA) State
  * Tracks the health of other application tabs to detect component neutralization.
  */
-const _tabId = Math.random().toString(36).substring(2, 15);
+const _tabId = generateSecurityNonce();
 const _peerRegistry = new Map();
 const PEER_TIMEOUT_THRESHOLD = PULSE_DRIFT_THRESHOLD + 20000; // 60s
 
@@ -2492,8 +2493,8 @@ class PolymorphicKeyEnclave {
 
   _generateMask(len) {
     const mask = new _Uint8Array(len);
-    if (typeof window !== 'undefined' && window.crypto) {
-      window.crypto.getRandomValues(mask);
+    if (typeof window !== 'undefined' && _CryptoGetRandomValues && window.crypto) {
+      _call.call(_CryptoGetRandomValues, window.crypto, mask);
     } else {
       for (let i = 0; i < len; i++) mask[i] = Math.floor(Math.random() * 256);
     }
