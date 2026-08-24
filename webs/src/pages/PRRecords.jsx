@@ -2,14 +2,16 @@ import React, { useEffect, useMemo, useRef, useState, useId } from 'react';
 import { Trophy, Zap, Shield, Cpu, Activity, TrendingUp, Sparkles, ChevronRight, Calendar } from 'lucide-react';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
-import { useStorageKey } from '@/hooks/useStorage';
+import { useStorageKeySelector } from '@/hooks/useStorage';
 import { exercises } from '@/data/exercises';
 import { CachedDateTimeFormat } from '@/utils/formatters';
 
 /**
- * ⚡ PERFORMANCE OPTIMIZATION: Hoisted cached formatters.
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted static constants & cached formatters.
  * Prevents redundant object instantiation of Intl.DateTimeFormat and new Date in loops.
  */
+const EMPTY_OBJECT = Object.freeze({});
+
 const fullDateFormatter = new CachedDateTimeFormat('en-US', {
   month: 'short',
   day: 'numeric',
@@ -20,7 +22,7 @@ const fullDateFormatter = new CachedDateTimeFormat('en-US', {
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted static exercise metadata map.
  * Prevents O(N) reduction of the exercises data on every render.
  */
-const EXERCISE_METADATA_MAP = exercises.reduce((acc, e) => {
+const EXERCISE_METADATA_MAP = Object.freeze(exercises.reduce((acc, e) => {
   acc[e.id] = {
     name: e.name,
     category: e.category,
@@ -28,7 +30,7 @@ const EXERCISE_METADATA_MAP = exercises.reduce((acc, e) => {
     difficulty: e.difficulty
   };
   return acc;
-}, {});
+}, {}));
 
 /**
  * ⚡ REFINEMENT: Bespoke Apex Force Telemetry Node.
@@ -42,16 +44,24 @@ const ApexPRCard = React.memo(({ item, nodeId }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
-  // Derive peak estimated 1RM using Epley's Formula
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Zero-allocation estimated 1RM computation.
+   * Replaces intermediate array allocation (.map) and Math.max spread with a single
+   * pass for loop over records.
+   */
   const estimated1RM = useMemo(() => {
-    if (!item.records || item.records.length === 0) return 0;
-    // Find the max estimated 1RM across all records
-    return Math.max(...item.records.map(r => {
+    const recs = item.records;
+    if (!recs || recs.length === 0) return 0;
+
+    let maxEst = 0;
+    for (let i = 0; i < recs.length; i++) {
+      const r = recs[i];
       const w = parseFloat(r.weight) || 0;
       const reps = parseInt(r.reps) || 1;
-      if (reps === 1) return w;
-      return w * (1 + reps / 30);
-    }));
+      const est = reps === 1 ? w : w * (1 + reps / 30);
+      if (est > maxEst) maxEst = est;
+    }
+    return maxEst;
   }, [item.records]);
 
   const handleMouseMove = (e) => {
@@ -235,8 +245,10 @@ const ApexPRCard = React.memo(({ item, nodeId }) => {
 });
 ApexPRCard.displayName = 'ApexPRCard';
 
+const selectPrHistory = s => s || EMPTY_OBJECT;
+
 const PRRecords = () => {
-  const prHistory = useStorageKey('pr_history');
+  const prHistory = useStorageKeySelector('pr_history', selectPrHistory);
   const pageId = useId();
 
   useEffect(() => {

@@ -1,13 +1,16 @@
 import React, { useEffect, useCallback, useMemo, useState, useRef, memo } from 'react';
 import { Check, Layers, Compass, Cpu, Wrench, Shield, Zap, Sparkles, Activity } from 'lucide-react';
 import Card from '@/components/Card';
-import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
+import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
+import storage from '@/utils/storage';
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted and frozen static metadata.
  * Prevents redundant object instantiations and memory allocations on every component render.
  */
+const EMPTY_ARRAY = Object.freeze([]);
+
 const COMMON_EQUIPMENT = Object.freeze([
   { id: 1, name: 'Dumbbells', category: 'Free Weights', coord: 'W_01', type: 'Load-bearing resistance' },
   { id: 2, name: 'Barbell', category: 'Free Weights', coord: 'W_02', type: 'Load-bearing resistance' },
@@ -188,7 +191,7 @@ KineticHardwareCell.displayName = 'KineticHardwareCell';
  * ⚡ LUXURY REFINEMENT: Spatial Blueprint Enclave Container.
  * Features 3D direct-DOM mouse tilt, real-time spatial matrix plotting, and coordinate telemetry.
  */
-const SpatialBlueprintEnclave = memo(({ equipment, commonEquipment }) => {
+const SpatialBlueprintEnclave = memo(({ equipment, commonEquipment = COMMON_EQUIPMENT }) => {
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
@@ -387,8 +390,10 @@ const SpatialBlueprintEnclave = memo(({ equipment, commonEquipment }) => {
 
 SpatialBlueprintEnclave.displayName = 'SpatialBlueprintEnclave';
 
+const selectGymSetup = s => s || EMPTY_ARRAY;
+
 const GymSetup = () => {
-  const equipment = useStorageKey('gym_setup') || [];
+  const equipment = useStorageKeySelector('gym_setup', selectGymSetup);
   const { setItem } = useStorageMethods();
   const { addNotification } = useNotifications();
 
@@ -423,20 +428,26 @@ const GymSetup = () => {
     return () => clearInterval(interval);
   }, []);
 
+  /**
+   * ⚡ OPTIMIZATION: Stable Callback Handler.
+   * Direct sync retrieval from storage ensures referential stability of callbacks
+   * passed to memoized KineticHardwareCell subcomponents across re-renders.
+   */
   const handleToggleEquipment = useCallback(async (item) => {
-    const isSelected = equipment.some(e => e.id === item.id);
+    const currentEquipment = storage.get('gym_setup') || EMPTY_ARRAY;
+    const isSelected = currentEquipment.some(e => e.id === item.id);
     let updated;
 
     if (isSelected) {
-      updated = equipment.filter(e => e.id !== item.id);
+      updated = currentEquipment.filter(e => e.id !== item.id);
       addNotification(`${item.name} decommissioned from setup`, 'info');
     } else {
-      updated = [...equipment, item];
+      updated = [...currentEquipment, item];
       addNotification(`${item.name} integrated into setup`, 'success');
     }
 
     await setItem('gym_setup', updated);
-  }, [equipment, setItem, addNotification]);
+  }, [setItem, addNotification]);
 
   if (isLoading) {
     return (
@@ -586,7 +597,6 @@ const GymSetup = () => {
           <div className="lg:col-span-5 space-y-8 sticky top-8">
             <SpatialBlueprintEnclave
               equipment={equipment}
-              commonEquipment={COMMON_EQUIPMENT}
             />
           </div>
 

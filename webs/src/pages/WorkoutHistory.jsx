@@ -3,14 +3,16 @@ import { Dumbbell, Clock, BarChart2, Calendar, ChevronDown, ChevronUp, Zap, Trop
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
-import { useStorageKey } from '@/hooks/useStorage';
+import { useStorageKeySelector } from '@/hooks/useStorage';
 import { useNavigate } from 'react-router-dom';
 import { CachedDateTimeFormat } from '@/utils/formatters';
 
 /**
- * ⚡ PERFORMANCE OPTIMIZATION: Hoisted cached formatters.
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted static constants & cached formatters.
  * Prevents redundant object instantiation of Intl.DateTimeFormat and new Date in loops.
  */
+const EMPTY_OBJECT = Object.freeze({});
+
 const fullDateFormatter = new CachedDateTimeFormat('en-US', {
   weekday: 'short',
   month: 'short',
@@ -19,18 +21,18 @@ const fullDateFormatter = new CachedDateTimeFormat('en-US', {
 });
 
 /**
- * ⚡ PERFORMANCE OPTIMIZATION: Hoisted static style map.
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted static style map & archetypes list.
  * Prevents redundant object allocation on every component render.
  */
-const typeColors = {
+const typeColors = Object.freeze({
   Strength: 'text-violet-400 group-hover/card:text-violet-300',
   Cardio: 'text-blue-400 group-hover/card:text-blue-300',
   HIIT: 'text-red-400 group-hover/card:text-red-300',
   Yoga: 'text-emerald-400 group-hover/card:text-emerald-300',
   default: 'text-gray-400 group-hover/card:text-gray-300',
-};
+});
 
-const ARCHETYPES = ['All', 'Strength', 'Cardio', 'HIIT', 'Yoga'];
+const ARCHETYPES = Object.freeze(['All', 'Strength', 'Cardio', 'HIIT', 'Yoga']);
 const PAGE_SIZE = 15;
 
 /**
@@ -83,12 +85,24 @@ const ChronoArchiveCard = React.memo(({ workout, idx, isExpanded, onToggle, node
 
   const interactionActive = isHovered || isFocused;
 
-  // Calculate estimated total session tonnage
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Zero-allocation session tonnage calculation.
+   * Replaces nested .reduce loops with a single zero-allocation for loop.
+   */
   const totalTonnage = useMemo(() => {
-    return workout.exercises?.reduce((acc, ex) => {
-      const exVol = ex.sets?.reduce((s, set) => s + (parseFloat(set.weight) || 0) * (parseInt(set.reps) || 0), 0) || 0;
-      return acc + exVol;
-    }, 0) || 0;
+    const exs = workout.exercises;
+    if (!exs || exs.length === 0) return 0;
+
+    let total = 0;
+    for (let i = 0; i < exs.length; i++) {
+      const sets = exs[i].sets;
+      if (!sets) continue;
+      for (let j = 0; j < sets.length; j++) {
+        const s = sets[j];
+        total += (parseFloat(s.weight) || 0) * (parseInt(s.reps) || 0);
+      }
+    }
+    return total;
   }, [workout.exercises]);
 
   return (
@@ -226,8 +240,10 @@ const ChronoArchiveCard = React.memo(({ workout, idx, isExpanded, onToggle, node
 });
 ChronoArchiveCard.displayName = 'ChronoArchiveCard';
 
+const selectWorkoutLog = s => s || EMPTY_OBJECT;
+
 const WorkoutHistory = () => {
-  const workoutLog = useStorageKey('workout_log');
+  const workoutLog = useStorageKeySelector('workout_log', selectWorkoutLog);
   const navigate = useNavigate();
   const pageId = useId();
   const [expandedIdx, setExpandedIdx] = useState(null);
@@ -271,14 +287,25 @@ const WorkoutHistory = () => {
   }, [workouts, selectedArchetype]);
 
   /**
-   * ⚡ OPTIMIZATION: Memoized summary statistics.
-   * Prevents O(N) re-calculations on every render (e.g., when expanding/collapsing).
+   * ⚡ PERFORMANCE OPTIMIZATION: Single-pass summary statistics derivation.
+   * Calculates total sessions, duration in hours, and total volume tonnage
+   * in a single zero-allocation for loop instead of multiple .reduce passes.
    */
   const summaryStats = useMemo(() => {
+    let durSum = 0;
+    let volSum = 0;
+    const len = workouts.length;
+
+    for (let i = 0; i < len; i++) {
+      const w = workouts[i];
+      durSum += (w.duration || 0);
+      volSum += (w.volume || 0);
+    }
+
     return {
-      totalSessions: workouts.length,
-      totalHours: Math.round(workouts.reduce((s, w) => s + (w.duration || 0), 0) / 60),
-      totalVolumeK: (workouts.reduce((s, w) => s + (w.volume || 0), 0) / 1000).toFixed(0)
+      totalSessions: len,
+      totalHours: Math.round(durSum / 60),
+      totalVolumeK: (volSum / 1000).toFixed(0)
     };
   }, [workouts]);
 
