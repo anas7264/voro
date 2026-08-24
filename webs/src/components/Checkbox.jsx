@@ -18,6 +18,7 @@ export const Checkbox = memo(({
   label,
   error = false,
   disabled = false,
+  required = false,
   className = "",
   ...props
 }) => {
@@ -41,6 +42,7 @@ export const Checkbox = memo(({
             checked={checked}
             onChange={(e) => onChange(e.target.checked)}
             disabled={disabled}
+            required={required}
             className="peer absolute opacity-0 w-8 h-8 cursor-pointer z-10 disabled:cursor-not-allowed"
             aria-invalid={!!error}
             aria-describedby={error ? errorId : undefined}
@@ -98,6 +100,7 @@ export const Checkbox = memo(({
               `}
             >
               {label}
+              {required && <span className="text-red-500 ml-1">*</span>}
             </label>
           )}
           <span className="text-[0.45rem] font-mono font-bold text-gray-700 uppercase tracking-widest opacity-0 group-focus-within/checkbox-container:opacity-100 transition-opacity duration-500">
