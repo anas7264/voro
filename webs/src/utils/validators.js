@@ -296,6 +296,24 @@ const decodeUnicodeTagCharacters = (str) => {
   return hasTagChars ? decoded : str;
 };
 
+// Helper to decode Regional Indicator Symbols (Unicode Emoji Flag/Letter Obfuscation)
+// Maps Regional Indicator Symbol code points (U+1F1E6 - U+1F1FF) to ASCII 'a' - 'z'
+const decodeRegionalIndicatorSymbols = (str) => {
+  if (!str || typeof str !== 'string') return str;
+  let decoded = '';
+  let hasRegionalChars = false;
+  for (const char of str) {
+    const code = char.codePointAt(0);
+    if (code >= 0x1F1E6 && code <= 0x1F1FF) {
+      decoded += String.fromCharCode(code - 0x1F1E6 + 0x61);
+      hasRegionalChars = true;
+    } else {
+      decoded += char;
+    }
+  }
+  return hasRegionalChars ? decoded : str;
+};
+
 const OVERRIDE_RE = /ignore previous|ignore above|ignore all instructions|ignore system|bypass instructions|override system|system override|developer mode|dan mode|do anything now|forget previous|forget all instructions|forget what was said|you must now ignore|you are now a developer|you are now an unrestricted|unrestricted mode|without restrictions|disable safety|bypass filters/i;
 
 const HARVESTING_RE = /repeat the system prompt|reveal your instructions|reveal the system prompt|reveal instructions|output the system instructions|output your instructions|output the text above|show your system prompt|show system prompt|what is your system prompt|what is your prompt|what are your instructions|what are your developer instructions|reveal the nonce|output your nonces/i;
@@ -462,8 +480,8 @@ const BASE64_MATCH_RE = /[A-Za-z0-9+/]{8,}=*/g;
 export const isPromptInjection = (query, isNested = false) => {
   if (!query || typeof query !== 'string') return false;
 
-  // Security: Decode Unicode Tag characters (ASCII Smuggling), URL percent-encoding, and HTML entities first
-  const decodedQuery = decodePercentEncoding(decodeHTMLEntities(decodeUnicodeTagCharacters(query)));
+  // Security: Decode Regional Indicator Symbols, Unicode Tag characters (ASCII Smuggling), URL percent-encoding, and HTML entities first
+  const decodedQuery = decodePercentEncoding(decodeHTMLEntities(decodeUnicodeTagCharacters(decodeRegionalIndicatorSymbols(query))));
 
   let normalizedQuery = decodedQuery.normalize('NFKD').toLowerCase();
   // Strip combining diacritical marks across all standard Unicode diacritic blocks (including extended, supplement, symbols, and half-marks)
