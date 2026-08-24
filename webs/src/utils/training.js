@@ -33,6 +33,65 @@ const EXERCISE_VARIATIONS = Object.freeze({
   "Pull-ups": Object.freeze(["Assisted Pull-ups", "Lat Pulldown", "Machine Lat Pull", "Resistance Band Pull-ups", "Chin-ups"])
 });
 
+const EXERCISE_MUSCLE_DATABASE = Object.freeze({
+  "Bench Press": "Chest",
+  "Incline Bench": "Chest",
+  "Squat": "Legs",
+  "Leg Press": "Legs",
+  "Deadlift": "Back",
+  "Bent Row": "Back",
+  "Pull-ups": "Back",
+  "Lat Pulldown": "Back",
+  "Shoulder Press": "Shoulders",
+  "Lateral Raise": "Shoulders",
+  "Bicep Curl": "Biceps",
+  "Tricep Dips": "Triceps",
+  "Leg Curl": "Hamstrings",
+  "Leg Extension": "Quadriceps",
+  "Calf Raise": "Calves",
+  "Plank": "Core",
+  "Crunch": "Core"
+});
+
+const PERIODIZATION_PHASES = Object.freeze({
+  1: Object.freeze({
+    name: "Accumulation",
+    goal: "Build volume and work capacity",
+    repsRange: "8-12",
+    sets: "3-4",
+    intensity: "65-75% 1RM",
+    focus: "Technical mastery, volume tolerance",
+    deload: false
+  }),
+  2: Object.freeze({
+    name: "Intensification",
+    goal: "Build strength and power",
+    repsRange: "5-8",
+    sets: "4-5",
+    intensity: "75-85% 1RM",
+    focus: "Strength gains, CNS adaptation",
+    deload: false
+  }),
+  3: Object.freeze({
+    name: "Realization",
+    goal: "Peak performance and PRs",
+    repsRange: "1-5",
+    sets: "3-4",
+    intensity: "85-95% 1RM",
+    focus: "Max effort, competition prep",
+    deload: false
+  }),
+  4: Object.freeze({
+    name: "Deload",
+    goal: "Active recovery and adaptation",
+    repsRange: "6-10",
+    sets: "2-3",
+    intensity: "50-60% 1RM",
+    focus: "Movement quality, CNS recovery",
+    deload: true
+  })
+});
+
 // Analyze training volume across time period
 export const analyzeTrainingVolume = (workouts) => {
   // workouts: array of { date, exercise, sets, reps, weight }
@@ -63,14 +122,19 @@ export const analyzeTrainingVolume = (workouts) => {
     volumeByDay[day] += volume;
   });
 
-  const averageVolumePerWorkout = totalVolume / workouts.length;
+  const averageVolumePerWorkout = workouts.length ? totalVolume / workouts.length : 0;
+
+  // ⚡ PERFORMANCE OPTIMIZATION: Store sorted exercise entries once.
+  // Reusing sortedExercises for both byExercise and topExercises avoids redundant Object.entries()
+  // array allocations and duplicate O(N log N) sort operations.
+  const sortedExercises = Object.entries(volumeByExercise).sort((a, b) => b[1] - a[1]);
 
   return {
     totalVolume: Math.round(totalVolume),
     averagePerWorkout: Math.round(averageVolumePerWorkout),
-    byExercise: Object.entries(volumeByExercise).sort((a, b) => b[1] - a[1]),
+    byExercise: sortedExercises,
     byDay: volumeByDay,
-    topExercises: Object.entries(volumeByExercise).sort((a, b) => b[1] - a[1]).slice(0, 5)
+    topExercises: sortedExercises.slice(0, 5)
   };
 };
 
@@ -116,31 +180,12 @@ export const calculateRelativeIntensity = (weight, oneRepMax, reps) => {
 
 // Analyze exercise frequency per muscle group
 export const analyzeFrequencyPerMuscleGroup = (workouts) => {
-  const exerciseDatabase = {
-    // Map exercises to muscle groups
-    "Bench Press": "Chest",
-    "Incline Bench": "Chest",
-    "Squat": "Legs",
-    "Leg Press": "Legs",
-    "Deadlift": "Back",
-    "Bent Row": "Back",
-    "Pull-ups": "Back",
-    "Lat Pulldown": "Back",
-    "Shoulder Press": "Shoulders",
-    "Lateral Raise": "Shoulders",
-    "Bicep Curl": "Biceps",
-    "Tricep Dips": "Triceps",
-    "Leg Curl": "Hamstrings",
-    "Leg Extension": "Quadriceps",
-    "Calf Raise": "Calves",
-    "Plank": "Core",
-    "Crunch": "Core"
-  };
-
   const frequency = {};
 
+  // ⚡ PERFORMANCE OPTIMIZATION: Utilizes module-scoped EXERCISE_MUSCLE_DATABASE
+  // to avoid allocating a new object on every function call.
   workouts.forEach(workout => {
-    const muscleGroup = exerciseDatabase[workout.exercise] || "Other";
+    const muscleGroup = EXERCISE_MUSCLE_DATABASE[workout.exercise] || "Other";
     frequency[muscleGroup] = (frequency[muscleGroup] || 0) + 1;
   });
 
@@ -243,49 +288,10 @@ export const calculateRecoveryTime = (volume, intensity, muscleGroups = 1) => {
 // Periodization phase recommendations
 export const getPeriodizationPhaseRecommendations = (weekNumber, totalWeeks, goal) => {
   // Typical 4-week periodization: Accumulation → Intensification → Realization → Deload
-
+  // ⚡ PERFORMANCE OPTIMIZATION: Utilizes module-scoped PERIODIZATION_PHASES
+  // to avoid allocating dictionary and phase objects on every call.
   const phase = (weekNumber % 4) || 4;
-
-  const phases = {
-    1: {
-      name: "Accumulation",
-      goal: "Build volume and work capacity",
-      repsRange: "8-12",
-      sets: "3-4",
-      intensity: "65-75% 1RM",
-      focus: "Technical mastery, volume tolerance",
-      deload: false
-    },
-    2: {
-      name: "Intensification",
-      goal: "Build strength and power",
-      repsRange: "5-8",
-      sets: "4-5",
-      intensity: "75-85% 1RM",
-      focus: "Strength gains, CNS adaptation",
-      deload: false
-    },
-    3: {
-      name: "Realization",
-      goal: "Peak performance and PRs",
-      repsRange: "1-5",
-      sets: "3-4",
-      intensity: "85-95% 1RM",
-      focus: "Max effort, competition prep",
-      deload: false
-    },
-    4: {
-      name: "Deload",
-      goal: "Active recovery and adaptation",
-      repsRange: "6-10",
-      sets: "2-3",
-      intensity: "50-60% 1RM",
-      focus: "Movement quality, CNS recovery",
-      deload: true
-    }
-  };
-
-  return phases[phase];
+  return PERIODIZATION_PHASES[phase];
 };
 
 // Exercise variation suggestions for muscular adaptation
