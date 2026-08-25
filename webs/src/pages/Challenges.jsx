@@ -1,24 +1,27 @@
-import React, { useEffect, useState, useMemo, useRef, memo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef, memo } from 'react';
 import { Activity, Target, Zap, Shield, Sparkles, Award, TrendingUp, CheckCircle2 } from 'lucide-react';
 import { ChallengeCard } from '@/components/ChallengeCard';
 import Tabs from '@/components/Tabs';
 import { challenges } from '@/data/challenges';
-import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
+import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted Challenge Grouping Map.
  * Pre-computes challenge lists by category at module initialization.
  */
-const CHALLENGES_BY_CATEGORY = challenges.reduce((acc, challenge) => {
+const CHALLENGES_BY_CATEGORY = Object.freeze(challenges.reduce((acc, challenge) => {
   if (!acc[challenge.category]) acc[challenge.category] = [];
   acc[challenge.category].push(challenge);
   return acc;
-}, {});
+}, {}));
 
-const DAILY_CHALLENGES = CHALLENGES_BY_CATEGORY['Daily'] || [];
-const WEEKLY_CHALLENGES = CHALLENGES_BY_CATEGORY['Weekly'] || [];
-const MONTHLY_CHALLENGES = CHALLENGES_BY_CATEGORY['Monthly'] || [];
+const DAILY_CHALLENGES = Object.freeze(CHALLENGES_BY_CATEGORY['Daily'] || []);
+const WEEKLY_CHALLENGES = Object.freeze(CHALLENGES_BY_CATEGORY['Weekly'] || []);
+const MONTHLY_CHALLENGES = Object.freeze(CHALLENGES_BY_CATEGORY['Monthly'] || []);
+
+const EMPTY_COMPLETED = Object.freeze({});
+const selectCompletedChallenges = (gamification) => (gamification && gamification.completedChallenges) || EMPTY_COMPLETED;
 
 /**
  * ⚡ LUXURY COMPONENT: TelemetryCard
@@ -146,11 +149,12 @@ TelemetryCard.displayName = "TelemetryCard";
  */
 const Challenges = () => {
   /**
-   * ⚡ OPTIMIZATION: Surgical Reactivity.
-   * Subscribe strictly to 'gamification' key updates to prevent unneeded component tree re-renders.
+   * ⚡ OPTIMIZATION: Surgical Reactivity via useStorageKeySelector.
+   * Subscribe strictly to 'gamification.completedChallenges' to isolate re-renders
+   * and avoid re-rendering Challenges when unrelated gamification data (e.g. XP/streaks) updates.
    */
-  const gamificationData = useStorageKey('gamification');
-  const { setItem } = useStorageMethods();
+  const completed = useStorageKeySelector('gamification', selectCompletedChallenges);
+  const { updateItem } = useStorageMethods();
   const { addNotification } = useNotifications();
   const [activeTab, setActiveTab] = useState('daily');
 
@@ -158,26 +162,19 @@ const Challenges = () => {
     document.title = 'VORO | Strategic Objective Synthesis Enclave';
   }, []);
 
-  /**
-   * ⚡ OPTIMIZATION: Synchronous data derivation for completed challenges.
-   * Ensures zero mount-time latency and immediate reactivity upon claiming rewards.
-   */
-  const completed = useMemo(() => {
-    const gamification = gamificationData || {};
-    return gamification.completedChallenges || {};
-  }, [gamificationData]);
-
-  const handleClaimReward = (challenge) => {
-    const gamification = gamificationData || {};
+  const handleClaimReward = useCallback((challenge) => {
     const updated = { ...completed, [challenge.id]: true };
 
-    setItem('gamification', {
-      ...gamification,
-      completedChallenges: updated,
-      xp: (gamification.xp || 0) + challenge.xpReward
+    updateItem('gamification', (prev) => {
+      const current = prev || {};
+      return {
+        ...current,
+        completedChallenges: updated,
+        xp: (current.xp || 0) + challenge.xpReward
+      };
     });
     addNotification(`${challenge.name} Manifested. +${challenge.xpReward} XP Synthesized.`, 'success');
-  };
+  }, [completed, updateItem, addNotification]);
 
   const completedCount = useMemo(() => Object.keys(completed).length, [completed]);
   const totalCount = challenges.length;
