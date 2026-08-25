@@ -6,7 +6,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { isValidJournalNote } from '@/utils/validators';
 
 /**
- * ⚡ PERFORMANCE OPTIMIZATION: Hoisted Formatters.
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted Module-Scoped Formatters.
  * Pre-instantiated Intl.DateTimeFormat instances avoid GC thrashing in render loops.
  */
 const dateFormatter = new Intl.DateTimeFormat('en-US', {
@@ -39,6 +39,8 @@ const JournalEntryCard = memo(({ entry, onDelete, index }) => {
   const dateObj = useMemo(() => new Date(entry.date), [entry.date]);
   const formattedDate = useMemo(() => dateFormatter.format(dateObj), [dateObj]);
   const formattedTime = useMemo(() => timeFormatter.format(dateObj), [dateObj]);
+
+  const nodeId = useMemo(() => `0xJRN_${entry.id?.toString().slice(-4) || 'LOG'}`, [entry.id]);
 
   const handleMouseMove = (e) => {
     if (!cardRef.current) return;
@@ -78,7 +80,7 @@ const JournalEntryCard = memo(({ entry, onDelete, index }) => {
     setAnnouncement('');
   };
 
-  const handlePurgeTrigger = () => {
+  const handlePurgeTrigger = useCallback(() => {
     if (!purgeState) {
       setPurgeState(true);
       timerRef.current = setTimeout(() => {
@@ -89,7 +91,7 @@ const JournalEntryCard = memo(({ entry, onDelete, index }) => {
       setPurgeState(false);
       onDelete(entry.id);
     }
-  };
+  }, [purgeState, onDelete, entry.id]);
 
   useEffect(() => {
     return () => {
@@ -125,20 +127,23 @@ const JournalEntryCard = memo(({ entry, onDelete, index }) => {
         }}
         className={`
           group relative p-10 rounded-[2.5rem] bg-[#0A0C14] border transition-all duration-500
-          outline-none focus-visible:ring-2 focus-visible:ring-voro-primary/80 overflow-hidden cursor-pointer
+          outline-none focus-visible:ring-2 focus-visible:ring-voro-primary/80 overflow-hidden cursor-pointer shadow-2xl
           ${purgeState
             ? 'border-red-500/50 bg-red-950/10 shadow-[0_20px_50px_rgba(239,68,68,0.15)]'
             : 'border-white/5 hover:border-voro-primary/30 hover:shadow-2xl hover:shadow-voro-primary/5'
           }
         `}
       >
-        {/* Dynamic Light Spotting */}
-        <div
-          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
-          style={{
-            background: `radial-gradient(250px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(124, 58, 237, 0.08), transparent 85%)`
-          }}
-        />
+        {/* Dynamic Light Spotting & Grain */}
+        <div className="absolute inset-0 rounded-[2.5rem] overflow-hidden pointer-events-none">
+          <div className="absolute inset-0 bg-boutique-grain opacity-[0.02]" />
+          <div
+            className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+            style={{
+              background: `radial-gradient(300px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(124, 58, 237, 0.08), transparent 85%)`
+            }}
+          />
+        </div>
 
         {/* Dynamic Telemetry Coordinates */}
         <div
@@ -148,7 +153,7 @@ const JournalEntryCard = memo(({ entry, onDelete, index }) => {
           <div className="flex flex-col items-end font-mono text-[0.45rem] font-black text-voro-primary/60 tracking-[0.2em] space-y-0.5 select-none">
             <span>T_X <span ref={tiltXRef}>0.0</span>°</span>
             <span>T_Y <span ref={tiltYRef}>0.0</span>°</span>
-            <span className="text-white/20">REF // 0x{entry.id?.toString().slice(-4) || 'LOG'}</span>
+            <span className="text-white/20">[{nodeId}]</span>
           </div>
         </div>
 
@@ -163,7 +168,7 @@ const JournalEntryCard = memo(({ entry, onDelete, index }) => {
                 </span>
               </div>
             </div>
-            <span className="text-[0.5rem] font-mono font-bold text-gray-600 uppercase tracking-widest">
+            <span className="text-[0.55rem] font-mono font-bold text-gray-600 uppercase tracking-widest">
               INDEX // #{(index + 1).toString().padStart(2, '0')}
             </span>
           </div>
@@ -282,9 +287,6 @@ const FoodJournal = () => {
       note: trimmedNote,
     };
 
-    /**
-     * ⚡ OPTIMISTIC UI: Instant form reset and background storage update.
-     */
     setNote('');
     const updatedEntries = [newEntry, ...entries];
 
@@ -300,7 +302,7 @@ const FoodJournal = () => {
 
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] pb-32 selection:bg-voro-primary/30 relative overflow-hidden bg-boutique-grain">
-      {/* Premium Ambient Background Lighting */}
+      {/* Ambient Background Lighting */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-voro-primary/5 rounded-full blur-[140px]" />
         <div className="absolute bottom-[10%] right-[-5%] w-[40%] h-[40%] bg-voro-secondary/5 rounded-full blur-[120px]" />
