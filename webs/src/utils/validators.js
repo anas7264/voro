@@ -314,6 +314,43 @@ const decodeRegionalIndicatorSymbols = (str) => {
   return hasRegionalChars ? decoded : str;
 };
 
+// Helper to decode Enclosed Alphanumerics (e.g. Squared, Negative Circled, Negative Squared Latin letters)
+const decodeEnclosedAlphanumerics = (str) => {
+  if (!str || typeof str !== 'string') return str;
+  let decoded = '';
+  let changed = false;
+  for (const char of str) {
+    const code = char.codePointAt(0);
+    if (code >= 0x1F130 && code <= 0x1F149) { // Squared Latin Capital Letters A-Z
+      decoded += String.fromCharCode(code - 0x1F130 + 0x41);
+      changed = true;
+    } else if (code >= 0x1F150 && code <= 0x1F169) { // Negative Circle Latin Capital Letters A-Z
+      decoded += String.fromCharCode(code - 0x1F150 + 0x41);
+      changed = true;
+    } else if (code >= 0x1F170 && code <= 0x1F189) { // Negative Squared Latin Capital Letters A-Z
+      decoded += String.fromCharCode(code - 0x1F170 + 0x41);
+      changed = true;
+    } else {
+      decoded += char;
+    }
+  }
+  return changed ? decoded : str;
+};
+
+// Helper to decode string literal escape sequences (\uXXXX, \xXX, \u{X...})
+const decodeEscapeSequences = (str) => {
+  if (!str || typeof str !== 'string' || !str.includes('\\')) return str;
+  return str.replace(/\\u([0-9a-fA-F]{4})|\\x([0-9a-fA-F]{2})|\\u\{([0-9a-fA-F]+)\}/g, (match, u, x, uBrace) => {
+    try {
+      const hex = u || x || uBrace;
+      const code = parseInt(hex, 16);
+      return String.fromCodePoint(code);
+    } catch (e) {
+      return match;
+    }
+  });
+};
+
 const OVERRIDE_RE = /ignore previous|ignore above|ignore all instructions|ignore system|bypass instructions|override system|system override|developer mode|dan mode|do anything now|forget previous|forget all instructions|forget what was said|you must now ignore|you are now a developer|you are now an unrestricted|unrestricted mode|without restrictions|disable safety|bypass filters/i;
 
 const HARVESTING_RE = /repeat the system prompt|reveal your instructions|reveal the system prompt|reveal instructions|output the system instructions|output your instructions|output the text above|show your system prompt|show system prompt|what is your system prompt|what is your prompt|what are your instructions|what are your developer instructions|reveal the nonce|output your nonces/i;
@@ -480,8 +517,8 @@ const BASE64_MATCH_RE = /[A-Za-z0-9+/]{8,}=*/g;
 export const isPromptInjection = (query, isNested = false) => {
   if (!query || typeof query !== 'string') return false;
 
-  // Security: Decode Regional Indicator Symbols, Unicode Tag characters (ASCII Smuggling), URL percent-encoding, and HTML entities first
-  const decodedQuery = decodePercentEncoding(decodeHTMLEntities(decodeUnicodeTagCharacters(decodeRegionalIndicatorSymbols(query))));
+  // Security: Decode escape sequences, Enclosed Alphanumerics, Regional Indicator Symbols, Unicode Tag characters (ASCII Smuggling), URL percent-encoding, and HTML entities first
+  const decodedQuery = decodePercentEncoding(decodeHTMLEntities(decodeUnicodeTagCharacters(decodeRegionalIndicatorSymbols(decodeEnclosedAlphanumerics(decodeEscapeSequences(query))))));
 
   let normalizedQuery = decodedQuery.normalize('NFKD').toLowerCase();
   // Strip combining diacritical marks across all standard Unicode diacritic blocks (including extended, supplement, symbols, and half-marks)
