@@ -34,7 +34,9 @@ export const Spinner = memo(({
   size = "md",
   color = "primary",
   message,
-  className = ""
+  className = "",
+  "aria-label": ariaLabel,
+  ...props
 }) => {
   const telemetryRef1 = useRef(null);
   const telemetryRef2 = useRef(null);
@@ -59,10 +61,18 @@ export const Spinner = memo(({
   const { container, core, stroke } = SIZE_MAP[size] || SIZE_MAP.md;
   const activeColor = COLOR_MAP[color] || COLOR_MAP.primary;
 
+  const computedLabel = ariaLabel || message || "Loading";
+
   return (
-    <div className={`flex flex-col items-center justify-center gap-8 ${className}`}>
+    <div
+      role="status"
+      aria-label={computedLabel}
+      className={`flex flex-col items-center justify-center gap-8 ${className}`}
+      {...props}
+    >
       {/* Neural Core Architecture */}
       <div
+        aria-hidden="true"
         className="relative flex items-center justify-center shrink-0"
         style={{ width: container, height: container }}
       >
@@ -129,11 +139,11 @@ export const Spinner = memo(({
       {(message || size === "xl") && (
         <div className="flex flex-col items-center gap-2">
           {message && (
-            <p className="text-[0.65rem] font-mono font-black text-white/60 uppercase tracking-[0.5em] animate-pulse">
+            <p aria-hidden="true" className="text-[0.65rem] font-mono font-black text-white/60 uppercase tracking-[0.5em] animate-pulse">
               {message}
             </p>
           )}
-          <span className="text-[0.45rem] font-mono text-white/20 uppercase tracking-[0.2em]">
+          <span aria-hidden="true" className="text-[0.45rem] font-mono text-white/20 uppercase tracking-[0.2em]">
             Processing Sequence // <span ref={telemetryRef2}>{lastTelemetryRef.current}</span>
           </span>
         </div>
