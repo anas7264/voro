@@ -526,9 +526,9 @@ export const isPromptInjection = (query, isNested = false) => {
   // Translate Cyrillic, Greek, Coptic, and Armenian homoglyphs to Latin equivalents
   normalizedQuery = normalizedQuery.replace(/[\u0400-\u04FF\u0370-\u03FF\u2C80-\u2CFF\u0530-\u058F]/g, char => HOMOGLYPHS_MAP[char] || char);
 
-  // 3. Clean zero-width, formatting, and invisible characters, and condense consecutive whitespaces
+  // 3. Clean zero-width, formatting, Control Pictures (U+2400-U+243F), and invisible characters, and condense consecutive whitespaces
   normalizedQuery = normalizedQuery
-    .replace(/[\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff\u00ad]/g, '')
+    .replace(/[\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff\u00ad\u2400-\u243f]/g, '')
     .replace(/\s+/g, ' ');
 
   // 1. Delimiter hijacking detection (VORO specific nonced blocks or closing tags)
