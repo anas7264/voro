@@ -57,3 +57,7 @@
 ## 2026-07-31 - Contextual Screen Reader Labels for Dismissible Notifications
 **Learning:** Generic `aria-label="Dismiss"` attributes on notification close buttons create ambiguity when multiple alerts or notification toasts exist simultaneously, as screen readers announce identical "Dismiss button" text for every active notification.
 **Action:** Make dismiss `aria-label` attributes contextual (e.g. `title ? "Dismiss " + title : "Dismiss notification"`), providing screen reader users with precise clarity about which specific item will be closed.
+
+## 2026-08-01 - Screen Reader Status Roles and Telemetry Noise Control in Custom Spinners
+**Learning:** Custom multi-ring spinners and synthesis loaders with cycling hex/telemetry markers (e.g., `0x4F12`) create significant screen reader noise if the technical text elements are not hidden from assistive technologies. Furthermore, without `role="status"` and an `aria-label`, screen readers fail to announce that asynchronous operations or page/data loadings are taking place.
+**Action:** Apply `role="status"` and a clear `aria-label` (falling back to custom messages or `"Loading"`) on the main container of loading spinner components. Mark all decorative animation rings, procedural hex codes, and technical telemetry labels with `aria-hidden="true"`.
