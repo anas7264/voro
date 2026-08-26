@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useMemo, useRef, memo, useId } from 'react';
 import { Calendar, Trophy, Clock, CheckCircle2, Zap, Target, TrendingDown, Sparkles, ShieldAlert, Cpu, Activity, Compass } from 'lucide-react';
 import { Card, Button, Divider, DatePicker } from '@/components';
-import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
+import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { isDateInFuture } from '@/utils/validators';
 
 /**
- * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
- * Prevents redundant object instantiation of Intl.DateTimeFormat in loops.
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters & static datasets.
+ * Prevents redundant object instantiation of Intl.DateTimeFormat & static arrays in loops.
  */
 const longDateFormatter = new Intl.DateTimeFormat('en-US', {
   weekday: 'short',
@@ -15,6 +15,28 @@ const longDateFormatter = new Intl.DateTimeFormat('en-US', {
   day: 'numeric',
   year: 'numeric'
 });
+
+const DEFAULT_COMP_DATA = Object.freeze({
+  date: null,
+  phase: 'Preparation',
+  protocols: [],
+  checklist: []
+});
+
+const selectCompData = (val) => val || DEFAULT_COMP_DATA;
+
+const CHECKLIST_ITEMS = Object.freeze([
+  'Synthesize light energy source 3h prior',
+  'Execute neural warm-up protocol',
+  'Perform cognitive visualization matrix',
+  'Ensure optimal hydration saturation'
+]);
+
+const PROTOCOLS_LIST = Object.freeze([
+  { title: 'Volume Reduction Matrix', desc: 'Surgically attenuate sets by 40% while maintaining absolute intensity.', icon: TrendingDown, color: 'text-voro-primary' },
+  { title: 'Carbohydrate Saturation', desc: 'Initiate complex glucose loading 72h prior to event manifest.', icon: Zap, color: 'text-voro-accent' },
+  { title: 'Sodium & Fluid Modulation', desc: 'Strategic mineral titration to optimize subcutaneous definition.', icon: Target, color: 'text-voro-secondary' }
+]);
 
 /**
  * ⚡ SUBCOMPONENT: ChronoTicker
@@ -490,8 +512,8 @@ TemporalSingularityAlignmentDeck.displayName = "TemporalSingularityAlignmentDeck
  * The ultimate 'Peak Performance Manifest & Temporal Singularity Protocol' view.
  */
 const CompetitionPrep = () => {
-  const competitionData = useStorageKey('competition');
-  const legacyCompetitionData = useStorageKey('voro_comp_prep');
+  const primaryCompData = useStorageKeySelector('competition', selectCompData);
+  const legacyCompetitionData = useStorageKeySelector('voro_comp_prep', selectCompData);
   const { setItem } = useStorageMethods();
   const { addNotification } = useNotifications();
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -512,13 +534,10 @@ const CompetitionPrep = () => {
   }, []);
 
   const compData = useMemo(() => {
-    return competitionData || legacyCompetitionData || {
-      date: null,
-      phase: 'Preparation',
-      protocols: [],
-      checklist: []
-    };
-  }, [competitionData, legacyCompetitionData]);
+    if (primaryCompData && primaryCompData.date) return primaryCompData;
+    if (legacyCompetitionData && legacyCompetitionData.date) return legacyCompetitionData;
+    return primaryCompData || legacyCompetitionData || DEFAULT_COMP_DATA;
+  }, [primaryCompData, legacyCompetitionData]);
 
   const daysUntilComp = useMemo(() => {
     if (!compData.date) return null;
@@ -580,18 +599,8 @@ const CompetitionPrep = () => {
     await setItem('competition', { ...compData, checklist: updatedChecklist });
   };
 
-  const checklistItems = useMemo(() => [
-    'Synthesize light energy source 3h prior',
-    'Execute neural warm-up protocol',
-    'Perform cognitive visualization matrix',
-    'Ensure optimal hydration saturation'
-  ], []);
-
-  const protocolsList = useMemo(() => [
-    { title: 'Volume Reduction Matrix', desc: 'Surgically attenuate sets by 40% while maintaining absolute intensity.', icon: TrendingDown, color: 'text-voro-primary' },
-    { title: 'Carbohydrate Saturation', desc: 'Initiate complex glucose loading 72h prior to event manifest.', icon: Zap, color: 'text-voro-accent' },
-    { title: 'Sodium & Fluid Modulation', desc: 'Strategic mineral titration to optimize subcutaneous definition.', icon: Target, color: 'text-voro-secondary' }
-  ], []);
+  const checklistItems = CHECKLIST_ITEMS;
+  const protocolsList = PROTOCOLS_LIST;
 
   return (
     <div className="min-h-screen bg-[#080B14] text-[#F0F4FF] selection:bg-voro-primary/30 pb-24 relative overflow-hidden bg-boutique-grain">
