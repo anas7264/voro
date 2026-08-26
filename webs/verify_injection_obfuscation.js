@@ -3,7 +3,7 @@
  * This runs in Node.js and asserts that obfuscated or padded queries are successfully blocked.
  */
 
-import { isPromptInjection, isValidURL } from './src/utils/validators.js';
+import { isPromptInjection, isValidURL, isValidDate } from './src/utils/validators.js';
 
 const runTests = async () => {
   console.log("=========================================");
@@ -326,6 +326,23 @@ const runTests = async () => {
     console.log("✅ Success: Cherokee homoglyph bypass attempt successfully blocked!");
   } else {
     throw new Error("❌ Failure: Cherokee homoglyph bypass attempt allowed!");
+  }
+
+  // --- TEST 33: isValidDate Validation Strictness ---
+  console.log("🛡️ Test 33: Verifying isValidDate rejects invalid types and malformed date strings...");
+  if (
+    isValidDate(null) === false &&
+    isValidDate(true) === false &&
+    isValidDate(false) === false &&
+    isValidDate([]) === false &&
+    isValidDate({}) === false &&
+    isValidDate("invalid-date-string") === false &&
+    isValidDate("2026-03-31") === true &&
+    isValidDate(1700000000000) === true
+  ) {
+    console.log("✅ Success: isValidDate correctly rejects invalid types and malformed date strings!");
+  } else {
+    throw new Error("❌ Failure: isValidDate did not reject invalid date inputs correctly!");
   }
 
   console.log("\n🎉 ALL INJECTION OBFUSCATION SECURITY VERIFICATION TESTS PASSED SUCCESSFULLY!");

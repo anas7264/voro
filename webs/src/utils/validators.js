@@ -134,8 +134,11 @@ export const isValidMacroRatio = (protein, carbs, fat) => {
 
 // Date validation
 export const isValidDate = (dateString) => {
+  if (dateString === null || dateString === undefined || (typeof dateString !== 'string' && typeof dateString !== 'number')) {
+    return false;
+  }
   const date = new Date(dateString);
-  return date instanceof Date && !isNaN(date);
+  return Number.isFinite(date.getTime());
 };
 
 // Date in future validation
