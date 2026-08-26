@@ -10,24 +10,24 @@ const PAGE_SIZE = 20;
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted categories.
  * Prevents O(N) extraction on every component render cycle.
  */
-const CATEGORIES = ['All', ...new Set(exercises.map(e => e.category))];
+const CATEGORIES = Object.freeze(['All', ...new Set(exercises.map(e => e.category))]);
 
 // ⚡ PERFORMANCE OPTIMIZATION: Pre-calculate lowercase properties for the static exercises dataset.
 // This completely avoids allocating and converting strings on every single keystroke inside the filter loop.
-const EXERCISES_LOWERCASE = exercises.map(e => ({
+const EXERCISES_LOWERCASE = Object.freeze(exercises.map(e => Object.freeze({
   ...e,
   _nameLower: e.name.toLowerCase(),
-}));
+})));
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted Category Map.
  * Provides O(1) lookup for category filtering, avoiding O(N) array scans on all 2,064 exercises.
  */
-const EXERCISES_BY_CATEGORY = EXERCISES_LOWERCASE.reduce((acc, exercise) => {
+const EXERCISES_BY_CATEGORY = Object.freeze(EXERCISES_LOWERCASE.reduce((acc, exercise) => {
   if (!acc[exercise.category]) acc[exercise.category] = [];
   acc[exercise.category].push(exercise);
   return acc;
-}, {});
+}, {}));
 
 const ExerciseLibrary = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -49,6 +49,11 @@ const ExerciseLibrary = () => {
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
   }, [deferredSearchQuery, selectedCategory]);
+
+  const handleSelectExercise = React.useCallback((exercise) => {
+    // Stable handler reference prevents ExerciseCard React.memo invalidation
+    console.log('Selected:', exercise.name);
+  }, []);
 
   /**
    * ⚡ OPTIMIZATION: Replace useEffect + useState pattern with useMemo for filtering.
@@ -132,7 +137,7 @@ const ExerciseLibrary = () => {
             <div key={exercise.id} className="animate-slide-up" style={{ animationDelay: `${idx * 50}ms` }}>
               <ExerciseCard
                 exercise={exercise}
-                onSelect={() => console.log('Selected:', exercise.name)}
+                onSelect={handleSelectExercise}
               />
             </div>
           ))}

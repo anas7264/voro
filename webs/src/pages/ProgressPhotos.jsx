@@ -4,11 +4,11 @@ import { Button } from '@/components/Button';
 import Badge from '@/components/Badge';
 import Breadcrumb from '@/components/Breadcrumb';
 import Modal from '@/components/Modal';
-import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
+import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 
 /**
- * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters & static helpers.
  */
 const progressDateFormatter = new Intl.DateTimeFormat('en-US', {
   month: 'short', day: 'numeric', year: 'numeric'
@@ -17,6 +17,15 @@ const progressDateFormatter = new Intl.DateTimeFormat('en-US', {
 const shortDateFormatter = new Intl.DateTimeFormat('en-US', {
   month: 'short', day: 'numeric'
 });
+
+const EMPTY_PHOTOS = Object.freeze([]);
+const selectProgressPhotos = (val) => val || EMPTY_PHOTOS;
+
+const sortPhotosByDate = (a, b) => {
+  const dA = a.date || '';
+  const dB = b.date || '';
+  return dA < dB ? -1 : dA > dB ? 1 : 0;
+};
 
 /**
  * 🛰️ CHRONO-SPECTRAL EVOLUTION LENS COMPONENT
@@ -176,7 +185,7 @@ const SpectralLens = ({ before, after, onClose }) => {
  * Highly optimized with direct DOM updates to avoid React state re-renders,
  * featuring premium volumetric tilts, keyboard-focus states, and defensive purges.
  */
-const KineticPhotoNode = ({ photo, isSelected, onClick, onDelete, isStart, isLatest }) => {
+const KineticPhotoNode = React.memo(({ photo, isSelected, onClick, onDelete, isStart, isLatest }) => {
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
@@ -338,7 +347,9 @@ const KineticPhotoNode = ({ photo, isSelected, onClick, onDelete, isStart, isLat
       <div className="absolute inset-0 bg-boutique-grain opacity-[0.025] pointer-events-none z-10" />
     </div>
   );
-};
+});
+
+KineticPhotoNode.displayName = "KineticPhotoNode";
 
 /**
  * 🛡️ BINARY IMAGE SIGNATURE / MAGIC NUMBER CHECK
@@ -380,7 +391,7 @@ const verifyImageHeader = (file) => {
 };
 
 const ProgressPhotos = () => {
-  const photos = useStorageKey('voro_progress_photos') || [];
+  const photos = useStorageKeySelector('voro_progress_photos', selectProgressPhotos);
   const { setItem } = useStorageMethods();
   const { addNotification } = useNotifications();
 
@@ -420,11 +431,7 @@ const ProgressPhotos = () => {
   }, []);
 
   const sortedPhotos = useMemo(() => {
-    return [...photos].sort((a, b) => {
-      const dA = a.date || '';
-      const dB = b.date || '';
-      return dA < dB ? -1 : dA > dB ? 1 : 0;
-    });
+    return [...photos].sort(sortPhotosByDate);
   }, [photos]);
 
   const handleFileUpload = async (e) => {
