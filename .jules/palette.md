@@ -61,3 +61,7 @@
 ## 2026-08-01 - Screen Reader Status Roles and Telemetry Noise Control in Custom Spinners
 **Learning:** Custom multi-ring spinners and synthesis loaders with cycling hex/telemetry markers (e.g., `0x4F12`) create significant screen reader noise if the technical text elements are not hidden from assistive technologies. Furthermore, without `role="status"` and an `aria-label`, screen readers fail to announce that asynchronous operations or page/data loadings are taking place.
 **Action:** Apply `role="status"` and a clear `aria-label` (falling back to custom messages or `"Loading"`) on the main container of loading spinner components. Mark all decorative animation rings, procedural hex codes, and technical telemetry labels with `aria-hidden="true"`.
+
+## 2026-08-02 - Complete W3C APG Keyboard Navigation in Custom Tablists
+**Learning:** Custom tablist components often implement arrow key navigation (`ArrowRight`/`ArrowLeft`) but omit boundary shortcuts (`Home`/`End`) and neglect calling `e.preventDefault()`. Without `e.preventDefault()`, pressing navigation keys causes unwanted container or window scrolling. Without `Home`/`End` shortcuts, keyboard users must tab sequentially through long tablists.
+**Action:** Always include `Home` and `End` key handling in tablist keydown handlers to jump focus directly to the first and last tabs, call `e.preventDefault()` on handled keys, and declare `aria-orientation="horizontal"` on the `role="tablist"` container.

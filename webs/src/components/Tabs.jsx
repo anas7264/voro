@@ -76,10 +76,15 @@ export const Tabs = memo(({ tabs = [], activeTab, onTabChange, className = "" })
       nextIndex = (currentIndex + 1) % tabs.length;
     } else if (e.key === "ArrowLeft") {
       nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+    } else if (e.key === "Home") {
+      nextIndex = 0;
+    } else if (e.key === "End") {
+      nextIndex = tabs.length - 1;
     } else {
       return;
     }
 
+    e.preventDefault();
     onTabChange(tabs[nextIndex].id);
     setTimeout(() => {
       if (tabListRef.current) {
@@ -109,6 +114,7 @@ export const Tabs = memo(({ tabs = [], activeTab, onTabChange, className = "" })
       <div
         ref={tabListRef}
         role="tablist"
+        aria-orientation="horizontal"
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         className="relative flex gap-1 bg-[#0A0C14]/80 backdrop-blur-2xl p-1.5 rounded-2xl border border-white/5 mb-12 overflow-x-auto no-scrollbar scroll-smooth shadow-[0_20px_40px_rgba(0,0,0,0.4)]"
