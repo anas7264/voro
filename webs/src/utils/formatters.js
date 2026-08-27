@@ -23,6 +23,17 @@ const dateFormatterCache = new Map();
 const numberFormatterCache = new Map();
 
 /**
+ * ⚡ PERFORMANCE OPTIMIZATION: Module-scoped static NumberFormat presets.
+ * Direct lookup for 0-3 decimal places avoids string serialization and Map lookups.
+ */
+const PRESET_NUMBER_FORMATTERS = {
+  0: new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }),
+  1: new Intl.NumberFormat('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+  2: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+  3: new Intl.NumberFormat('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 }),
+};
+
+/**
  * ⚡ PERFORMANCE OPTIMIZATION: Cached wrapper for Intl.DateTimeFormat.
  * Significantly speeds up date formatting inside loops and renders by caching
  * string results, avoiding repeated object allocation and CPU-heavy formatting logic.
@@ -170,13 +181,23 @@ export const formatDate = (date, format = "short") => {
   return getFormatter(dateFormatterCache, Intl.DateTimeFormat, undefined, {}).format(dateObj);
 };
 
-// Format number with decimals and separators
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Module-scoped pre-compiled NumberFormat preset lookup.
+ * Directly accessing pre-instantiated Intl.NumberFormat instances for standard decimal precisions (0-3)
+ * avoids string serialization, key parsing, and Map lookup overhead on every format call,
+ * while preserving exact spec-compliant Intl rounding and localized thousand-grouping behavior.
+ */
 export const formatNumber = (num, decimals = 0) => {
   if (num === null || num === undefined) return "0";
+  const val = typeof num === 'number' ? num : parseFloat(num);
+
+  const formatter = PRESET_NUMBER_FORMATTERS[decimals];
+  if (formatter) return formatter.format(val);
+
   return getFormatter(numberFormatterCache, Intl.NumberFormat, "en-US", {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals
-  }).format(parseFloat(num));
+  }).format(val);
 };
 
 // Format weight (kg ↔ lbs)
