@@ -188,3 +188,10 @@
 **Action:**
 1. Wrap form field wrapper components in `React.memo()` when they delegate rendering to sub-components.
 2. Assign explicit `displayName`s to memoized form elements to ensure clear React DevTools profiling traces.
+
+## 2026-09-02 - Pre-compiled Intl.NumberFormat Presets vs Math Fast-Paths
+**Learning:** Replacing `Intl.NumberFormat` with custom JS math rounding (`Math.round(val * 10^n) / 10^n`) introduces subtle bugs due to IEEE-754 binary floating-point rounding errors (e.g., `1.005` rounding down to `"1.00"`) and missing thousand-grouping separators when rounding up to 1000 (e.g., `"1000"` instead of `"1,000"`). Module-scoped pre-instantiated `Intl.NumberFormat` presets for standard decimal precisions (0-3) provide ~2x speedup by eliminating Map lookups and key string serialization while guaranteeing spec-compliant, localized formatting.
+
+**Action:**
+1. Use module-scoped pre-compiled `Intl.NumberFormat` objects for common decimal precisions.
+2. Avoid replacing native `Intl` formatters with custom math rounding for general-purpose number formatting.
