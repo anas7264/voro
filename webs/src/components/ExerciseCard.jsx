@@ -148,7 +148,7 @@ export const ExerciseCard = memo(({
           <button
             onClick={onEdit}
             className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-gray-600 hover:text-white hover:bg-white/5 hover:border-white/10 transition-all outline-none focus-visible:ring-2 focus-visible:ring-voro-primary"
-            aria-label="Edit pattern"
+            aria-label={exercise?.name ? `Edit ${exercise.name} pattern` : "Edit pattern"}
           >
             <Edit3 size={18} />
           </button>
@@ -157,7 +157,7 @@ export const ExerciseCard = memo(({
           <button
             onClick={onDelete}
             className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-gray-600 hover:text-red-400 hover:bg-red-400/5 hover:border-red-400/10 transition-all outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-            aria-label="Delete pattern"
+            aria-label={exercise?.name ? `Delete ${exercise.name} pattern` : "Delete pattern"}
           >
             <Trash2 size={18} />
           </button>
