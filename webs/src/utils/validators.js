@@ -278,7 +278,11 @@ const HOMOGLYPHS_MAP = {
   'օ': 'o', 'ս': 'u',
   // Cherokee homoglyphs (U+AB70-U+ABBF Cherokee Small Letters mapped to Latin ASCII)
   'ꭰ': 'a', 'ꭲ': 'c', 'ꭹ': 'e', 'ꮖ': 'i', 'ꮹ': 'g', 'ꮠ': 'o', 'ꭱ': 'r', 'ꭼ': 'e', 'ꮤ': 's', 'ꮐ': 't',
-  'ꮩ': 'v', 'ꮮ': 'l', 'ꮇ': 'm', 'ꮎ': 'n', 'ꮃ': 'w', 'ꮺ': 'y'
+  'ꮩ': 'v', 'ꮮ': 'l', 'ꮇ': 'm', 'ꮎ': 'n', 'ꮃ': 'w', 'ꮺ': 'y',
+  // Mathematical Alphanumeric homoglyphs missing from standard NFKD
+  '𝑕': 'h', '𝒝': 'b', '𝒠': 'e', '𝒡': 'f', '𝒣': 'h', '𝒤': 'i', '𝒧': 'l', '𝒨': 'm', '𝒭': 'r', '𝒺': 'e',
+  '𝒼': 'g', '𝓄': 'o', '𝔆': 'c', '𝔋': 'h', '𝔌': 'i', '𝔕': 'r', '𝔝': 'z', '𝔺': 'c', '𝔿': 'h', '𝕅': 'n',
+  '𝕇': 'p', '𝕈': 'q', '𝕉': 'r', '𝕑': 'z'
 };
 
 // Helper to decode Unicode Tag Characters (ASCII Smuggling / Invisible Language Tags)
@@ -553,8 +557,8 @@ export const isPromptInjection = (query, isNested = false) => {
   let normalizedQuery = decodedQuery.normalize('NFKD').toLowerCase();
   // Strip combining diacritical marks across all standard Unicode diacritic blocks (including extended, supplement, symbols, and half-marks)
   normalizedQuery = normalizedQuery.replace(/[\u0300-\u036f\u1ab0-\u1aff\u1dc0-\u1dff\u20d0-\u20ff\ufe20-\ufe2f]/g, '');
-  // Translate Cyrillic, Greek, Coptic, Armenian, and Cherokee homoglyphs to Latin equivalents
-  normalizedQuery = normalizedQuery.replace(/[\u0400-\u04FF\u0370-\u03FF\u2C80-\u2CFF\u0530-\u058F\uAB70-\uABBF]/g, char => HOMOGLYPHS_MAP[char] || char);
+  // Translate Cyrillic, Greek, Coptic, Armenian, Cherokee, and Mathematical homoglyphs to Latin equivalents
+  normalizedQuery = normalizedQuery.replace(/[\u0400-\u04FF\u0370-\u03FF\u2C80-\u2CFF\u0530-\u058F\uAB70-\uABBF\u{1D400}-\u{1D7FF}]/gu, char => HOMOGLYPHS_MAP[char] || char);
 
   // 3. Clean zero-width, formatting, Control Pictures (U+2400-U+243F), and invisible characters, and condense consecutive whitespaces
   normalizedQuery = normalizedQuery
