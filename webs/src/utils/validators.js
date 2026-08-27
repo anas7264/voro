@@ -320,6 +320,30 @@ const decodeRegionalIndicatorSymbols = (str) => {
   return hasRegionalChars ? decoded : str;
 };
 
+// Map of Latin Small Capital Letters and IPA small cap extensions to ASCII Latin equivalents
+const SMALL_CAPS_MAP = {
+  0x026A: 'i', 0x0262: 'g', 0x0274: 'n', 0x0280: 'r', 0x029F: 'l', 0x029E: 'y', 0x028F: 'y', 0x0299: 'b', 0x0263: 'g', 0x0270: 'm', 0x0271: 'm', 0x0273: 'n', 0x027D: 'r', 0x0281: 'r',
+  0x1D00: 'a', 0x1D01: 'ae', 0x1D03: 'b', 0x1D04: 'c', 0x1D05: 'd', 0x1D07: 'e', 0x1D08: 'e', 0x1D0A: 'j', 0x1D0B: 'k', 0x1D0C: 'l', 0x1D0D: 'm', 0x1D0E: 'n',
+  0x1D0F: 'o', 0x1D18: 'p', 0x1D19: 'r', 0x1D1A: 'r', 0x1D1B: 't', 0x1D1C: 'u', 0x1D20: 'v', 0x1D21: 'w', 0x1D22: 'z'
+};
+
+// Helper to decode Latin Small Capital Letters (U+1D00-U+1D2B) and IPA Small Cap extensions
+const decodeLatinSmallCaps = (str) => {
+  if (!str || typeof str !== 'string') return str;
+  let decoded = '';
+  let changed = false;
+  for (const char of str) {
+    const code = char.codePointAt(0);
+    if (SMALL_CAPS_MAP[code]) {
+      decoded += SMALL_CAPS_MAP[code];
+      changed = true;
+    } else {
+      decoded += char;
+    }
+  }
+  return changed ? decoded : str;
+};
+
 // Helper to decode Enclosed Alphanumerics (e.g. Squared, Negative Circled, Negative Squared Latin letters)
 const decodeEnclosedAlphanumerics = (str) => {
   if (!str || typeof str !== 'string') return str;
@@ -523,8 +547,8 @@ const BASE64_MATCH_RE = /[A-Za-z0-9+/]{8,}=*/g;
 export const isPromptInjection = (query, isNested = false) => {
   if (!query || typeof query !== 'string') return false;
 
-  // Security: Decode escape sequences, Enclosed Alphanumerics, Regional Indicator Symbols, Unicode Tag characters (ASCII Smuggling), URL percent-encoding, and HTML entities first
-  const decodedQuery = decodePercentEncoding(decodeHTMLEntities(decodeUnicodeTagCharacters(decodeRegionalIndicatorSymbols(decodeEnclosedAlphanumerics(decodeEscapeSequences(query))))));
+  // Security: Decode escape sequences, Enclosed Alphanumerics, Latin Small Caps, Regional Indicator Symbols, Unicode Tag characters (ASCII Smuggling), URL percent-encoding, and HTML entities first
+  const decodedQuery = decodePercentEncoding(decodeHTMLEntities(decodeUnicodeTagCharacters(decodeRegionalIndicatorSymbols(decodeLatinSmallCaps(decodeEnclosedAlphanumerics(decodeEscapeSequences(query)))))));
 
   let normalizedQuery = decodedQuery.normalize('NFKD').toLowerCase();
   // Strip combining diacritical marks across all standard Unicode diacritic blocks (including extended, supplement, symbols, and half-marks)
