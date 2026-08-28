@@ -61,35 +61,49 @@ export const Table = memo(({ headers = [], rows = [], className = "" }) => {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, rowIndex) => (
-              <tr
-                key={rowIndex}
-                className="group/row border-b border-white/[0.03] last:border-0 hover:bg-white/[0.02] transition-all duration-500 relative"
-              >
-                {Array.isArray(row) ? (
-                  row.map((cell, cellIndex) => (
-                    <td
-                      key={cellIndex}
-                      className={`
-                        px-10 py-6 text-sm font-mono text-gray-500 group-hover/row:text-gray-200 transition-colors duration-500 relative
-                        ${cellIndex === 0 ? "text-voro-primary/80 group-hover/row:text-voro-primary font-bold" : ""}
-                      `}
-                    >
-                      {/* Liquid Light Indicator (Only on first cell) */}
-                      {cellIndex === 0 && (
-                        <div className="absolute left-0 top-1/4 bottom-1/4 w-[3px] bg-voro-primary scale-y-0 group-hover/row:scale-y-100 transition-transform duration-500 origin-center shadow-[0_0_15px_rgba(124,58,237,0.8)] rounded-r-full" />
-                      )}
-                      {cell}
-                    </td>
-                  ))
-                ) : (
-                  <td className="px-10 py-6 text-sm font-mono text-gray-500 group-hover/row:text-gray-200 transition-colors duration-500 relative">
-                    <div className="absolute left-0 top-1/4 bottom-1/4 w-[3px] bg-voro-primary scale-y-0 group-hover/row:scale-y-100 transition-transform duration-500 origin-center shadow-[0_0_15px_rgba(124,58,237,0.8)] rounded-r-full" />
-                    {row}
-                  </td>
-                )}
+            {rows.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={headers.length || 1}
+                  className="px-10 py-12 text-center text-xs font-mono text-gray-500 uppercase tracking-widest"
+                >
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <span className="text-voro-primary/60 font-bold tracking-widest">// NO_RECORDS_FOUND</span>
+                    <span className="text-[0.65rem] text-gray-600 font-sans tracking-normal uppercase">No data entries available in matrix</span>
+                  </div>
+                </td>
               </tr>
-            ))}
+            ) : (
+              rows.map((row, rowIndex) => (
+                <tr
+                  key={rowIndex}
+                  className="group/row border-b border-white/[0.03] last:border-0 hover:bg-white/[0.02] transition-all duration-500 relative"
+                >
+                  {Array.isArray(row) ? (
+                    row.map((cell, cellIndex) => (
+                      <td
+                        key={cellIndex}
+                        className={`
+                          px-10 py-6 text-sm font-mono text-gray-500 group-hover/row:text-gray-200 transition-colors duration-500 relative
+                          ${cellIndex === 0 ? "text-voro-primary/80 group-hover/row:text-voro-primary font-bold" : ""}
+                        `}
+                      >
+                        {/* Liquid Light Indicator (Only on first cell) */}
+                        {cellIndex === 0 && (
+                          <div className="absolute left-0 top-1/4 bottom-1/4 w-[3px] bg-voro-primary scale-y-0 group-hover/row:scale-y-100 transition-transform duration-500 origin-center shadow-[0_0_15px_rgba(124,58,237,0.8)] rounded-r-full" />
+                        )}
+                        {cell}
+                      </td>
+                    ))
+                  ) : (
+                    <td className="px-10 py-6 text-sm font-mono text-gray-500 group-hover/row:text-gray-200 transition-colors duration-500 relative">
+                      <div className="absolute left-0 top-1/4 bottom-1/4 w-[3px] bg-voro-primary scale-y-0 group-hover/row:scale-y-100 transition-transform duration-500 origin-center shadow-[0_0_15px_rgba(124,58,237,0.8)] rounded-r-full" />
+                      {row}
+                    </td>
+                  )}
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
