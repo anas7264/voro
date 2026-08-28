@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Plus, Trash2, ShoppingCart, Zap, CheckCircle2, Package, AlertTriangle, ShieldAlert, Sparkles, RefreshCw } from 'lucide-react';
-import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
+import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
+
+const EMPTY_LIST = Object.freeze([]);
+
+const selectShoppingList = (data) => (Array.isArray(data) ? data : EMPTY_LIST);
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted constants and static arrays.
@@ -215,8 +219,12 @@ const ProcuredResourceCard = React.memo(({ item, index, onToggle, onDelete, node
 ProcuredResourceCard.displayName = 'ProcuredResourceCard';
 
 const ShoppingList = () => {
-  const shoppingListData = useStorageKey('shopping_list');
-  const shoppingList = useMemo(() => Array.isArray(shoppingListData) ? shoppingListData : [], [shoppingListData]);
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity via useStorageKeySelector.
+   * Subscribes strictly to array slice changes of 'shopping_list' key, bypassing
+   * re-render cycles when unrelated keys update.
+   */
+  const shoppingList = useStorageKeySelector('shopping_list', selectShoppingList);
   const { setItem } = useStorageMethods();
 
   const [inputValue, setInputValue] = useState('');
