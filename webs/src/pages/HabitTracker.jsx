@@ -2,10 +2,18 @@ import React, { useEffect, useState, useMemo, useId, useCallback, memo, useRef }
 import { Plus, Trash2, Check, Zap, Target, Star, AlertTriangle, X } from 'lucide-react';
 import { Button, Card, Input, Header } from '@/components';
 import Confetti from '@/components/Confetti';
-import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
+import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { validateHabit } from '@/utils/validators';
 import { defaultHabits } from '@/data/defaultHabits';
+
+const EMPTY_LOG = Object.freeze({});
+
+const selectHabitsList = (data) => (Array.isArray(data?.list) && data.list.length > 0 ? data.list : defaultHabits);
+const selectTodayLog = (data) => {
+  const today = new Date().toISOString().split('T')[0];
+  return data?.log?.[today] || EMPTY_LOG;
+};
 
 /**
  * ⚡ REFINEMENT: Re-engineered HabitItem component as an elite "Neural Habit Synapse Conduit".
@@ -279,8 +287,15 @@ HabitItem.displayName = 'HabitItem';
 
 const HabitTracker = () => {
   const iconInputId = useId();
-  const { getItemAsync, setItem } = useStorageMethods();
-  const storageHabits = useStorageKey('habits');
+  const { getItemAsync, setItem, updateItem } = useStorageMethods();
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity via useStorageKeySelector.
+   * Subscribes independently to `habits.list` and `habits.log[today]` to eliminate
+   * virtual DOM re-render churn on unrelated storage updates.
+   */
+  const habits = useStorageKeySelector('habits', selectHabitsList);
+  const todayHabits = useStorageKeySelector('habits', selectTodayLog);
+
   const { addNotification } = useNotifications();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newHabit, setNewHabit] = useState({ name: '', icon: '✓', color: 'voro-primary' });
@@ -293,19 +308,6 @@ const HabitTracker = () => {
   useEffect(() => {
     document.title = 'VORO | Habit Tracker';
   }, []);
-
-  /**
-   * ⚡ OPTIMIZATION: Synchronous data derivation using useMemo.
-   * Eliminates the initial mount-time double-render cycle and ensures
-   * reactivity to StorageContext updates without manual load calls.
-   */
-  const { habits, todayHabits } = useMemo(() => {
-    const data = storageHabits || { list: [], log: {} };
-    const list = data.list && data.list.length > 0 ? data.list : defaultHabits;
-    const today = new Date().toISOString().split('T')[0];
-    const log = data.log?.[today] || {};
-    return { habits: list, todayHabits: log };
-  }, [storageHabits]);
 
   const addHabit = useCallback(async () => {
     const { valid, errors } = validateHabit(newHabit);
@@ -346,18 +348,14 @@ const HabitTracker = () => {
       }
     };
 
-    const updatedData = { ...data, log: updatedLog };
-    await setItem('habits', updatedData);
-  }, [getItemAsync, setItem]);
+    await updateItem('habits', { log: updatedLog });
+  }, [getItemAsync, updateItem]);
 
   const removeHabit = useCallback(async (habitId) => {
     const data = await getItemAsync('habits') || { list: [], log: {} };
-    const updatedData = {
-      ...data,
-      list: (data.list || []).filter(h => h.id !== habitId)
-    };
-    await setItem('habits', updatedData);
-  }, [getItemAsync, setItem]);
+    const updatedList = (data.list || []).filter(h => h.id !== habitId);
+    await updateItem('habits', { list: updatedList });
+  }, [getItemAsync, updateItem]);
 
   /**
    * ⚡ PERFORMANCE OPTIMIZATION: Stabilized Header action.

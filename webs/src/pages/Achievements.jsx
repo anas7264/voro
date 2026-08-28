@@ -2,9 +2,13 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Trophy } from 'lucide-react';
 import { AchievementCard } from '@/components/AchievementCard';
 import { achievements } from '@/data/achievements';
-import { useStorageKey } from '@/hooks/useStorage';
+import { useStorageKeySelector } from '@/hooks/useStorage';
 
-const EMPTY_OBJ = Object.freeze({});
+const EMPTY_ARRAY = Object.freeze([]);
+
+const selectEarnedAchievements = (data) => (Array.isArray(data?.achievements) ? data.achievements : EMPTY_ARRAY);
+const selectLevel = (data) => (typeof data?.level === 'number' ? data.level : 1);
+const selectTotalXP = (data) => (typeof data?.totalXP === 'number' ? data.totalXP : 0);
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted categories set.
@@ -25,11 +29,13 @@ const ACHIEVEMENTS_BY_CATEGORY = achievements.reduce((acc, achievement) => {
 
 const Achievements = () => {
   /**
-   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
-   * Subscribe only to the 'gamification' key to prevent redundant re-renders
-   * when unrelated storage keys (e.g., nutrition_log, workout_log) change.
+   * ⚡ PERFORMANCE OPTIMIZATION: Granular Reactivity via useStorageKeySelector.
+   * Subscribes independently to earned achievements, level, and XP slices
+   * to eliminate re-renders when other fields in 'gamification' update.
    */
-  const gamificationData = useStorageKey('gamification') || EMPTY_OBJ;
+  const earned = useStorageKeySelector('gamification', selectEarnedAchievements);
+  const level = useStorageKeySelector('gamification', selectLevel);
+  const xp = useStorageKeySelector('gamification', selectTotalXP);
 
   const heroRef = useRef(null);
   const heroTiltXRef = useRef(null);
@@ -40,15 +46,6 @@ const Achievements = () => {
   useEffect(() => {
     document.title = 'VORO | Achievement Matrix';
   }, []);
-
-  // Synchronous data derivation from StorageContext
-  const { earned, level, xp } = useMemo(() => {
-    return {
-      earned: gamificationData.achievements || [],
-      level: gamificationData.level || 1,
-      xp: gamificationData.totalXP || 0
-    };
-  }, [gamificationData]);
 
   const earnedIds = useMemo(() => new Set(earned), [earned]);
 
