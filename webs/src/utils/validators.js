@@ -279,10 +279,38 @@ const HOMOGLYPHS_MAP = {
   // Cherokee homoglyphs (U+AB70-U+ABBF Cherokee Small Letters mapped to Latin ASCII)
   'ꭰ': 'a', 'ꭲ': 'c', 'ꭹ': 'e', 'ꮖ': 'i', 'ꮹ': 'g', 'ꮠ': 'o', 'ꭱ': 'r', 'ꭼ': 'e', 'ꮤ': 's', 'ꮐ': 't',
   'ꮩ': 'v', 'ꮮ': 'l', 'ꮇ': 'm', 'ꮎ': 'n', 'ꮃ': 'w', 'ꮺ': 'y',
+  // Georgian homoglyphs (Nuskhuri U+2D00-U+2D25 & Asroni U+10A0-U+10C5)
+  'ⴀ': 'a', 'ⴁ': 'b', 'ⴄ': 'e', 'ⴈ': 'i', 'ⴍ': 'o', 'ⴑ': 's', 'ⴒ': 't', 'ⴓ': 'u', 'ⴔ': 'v', 'ⴖ': 'y',
+  'Ⴀ': 'a', 'Ⴁ': 'b', 'Ⴄ': 'e', 'Ⴈ': 'i', 'Ⴍ': 'o', 'Ⴑ': 's', 'Ⴒ': 't',
   // Mathematical Alphanumeric homoglyphs missing from standard NFKD
   '𝑕': 'h', '𝒝': 'b', '𝒠': 'e', '𝒡': 'f', '𝒣': 'h', '𝒤': 'i', '𝒧': 'l', '𝒨': 'm', '𝒭': 'r', '𝒺': 'e',
   '𝒼': 'g', '𝓄': 'o', '𝔆': 'c', '𝔋': 'h', '𝔌': 'i', '𝔕': 'r', '𝔝': 'z', '𝔺': 'c', '𝔿': 'h', '𝕅': 'n',
   '𝕇': 'p', '𝕈': 'q', '𝕉': 'r', '𝕑': 'z'
+};
+
+// Map of Superscript and Subscript Latin code points to standard ASCII Latin characters
+const SUPER_SUB_MAP = {
+  0x2070: '0', 0x00B9: '1', 0x00B2: '2', 0x00B3: '3', 0x2074: '4', 0x2075: '5', 0x2076: '6', 0x2077: '7', 0x2078: '8', 0x2079: '9',
+  0x2071: 'i', 0x207F: 'n', 0x1D48: 'd', 0x1D49: 'e', 0x1D4D: 'g', 0x1D4F: 'k', 0x1D50: 'm', 0x1D52: 'o', 0x1D56: 'p', 0x1D5B: 'v',
+  0x1D62: 'i', 0x1D63: 'r', 0x1D64: 'u', 0x1D65: 'v',
+  0x2080: '0', 0x2081: '1', 0x2082: '2', 0x2083: '3', 0x2084: '4', 0x2085: '5', 0x2086: '6', 0x2087: '7', 0x2088: '8', 0x2089: '9'
+};
+
+// Helper to decode Superscript and Subscript Latin code points to standard ASCII Latin letters
+const decodeSuperAndSubscripts = (str) => {
+  if (!str || typeof str !== 'string') return str;
+  let decoded = '';
+  let changed = false;
+  for (const char of str) {
+    const code = char.codePointAt(0);
+    if (SUPER_SUB_MAP[code]) {
+      decoded += SUPER_SUB_MAP[code];
+      changed = true;
+    } else {
+      decoded += char;
+    }
+  }
+  return changed ? decoded : str;
 };
 
 // Helper to decode Unicode Tag Characters (ASCII Smuggling / Invisible Language Tags)
@@ -551,21 +579,22 @@ const BASE64_MATCH_RE = /[A-Za-z0-9+/]{8,}=*/g;
 export const isPromptInjection = (query, isNested = false) => {
   if (!query || typeof query !== 'string') return false;
 
-  // Security: Decode escape sequences, Enclosed Alphanumerics, Latin Small Caps, Regional Indicator Symbols, Unicode Tag characters (ASCII Smuggling), URL percent-encoding, and HTML entities first
-  const decodedQuery = decodePercentEncoding(decodeHTMLEntities(decodeUnicodeTagCharacters(decodeRegionalIndicatorSymbols(decodeLatinSmallCaps(decodeEnclosedAlphanumerics(decodeEscapeSequences(query)))))));
+  // Security: Decode escape sequences, Enclosed Alphanumerics, Latin Small Caps, Superscript/Subscripts, Regional Indicator Symbols, Unicode Tag characters (ASCII Smuggling), URL percent-encoding, and HTML entities first
+  const decodedQuery = decodePercentEncoding(decodeHTMLEntities(decodeUnicodeTagCharacters(decodeRegionalIndicatorSymbols(decodeLatinSmallCaps(decodeSuperAndSubscripts(decodeEnclosedAlphanumerics(decodeEscapeSequences(query))))))));
 
   let normalizedQuery = decodedQuery.normalize('NFKD').toLowerCase();
   // Strip combining diacritical marks across all standard Unicode diacritic blocks (including extended, supplement, symbols, and half-marks)
   normalizedQuery = normalizedQuery.replace(/[\u0300-\u036f\u1ab0-\u1aff\u1dc0-\u1dff\u20d0-\u20ff\ufe20-\ufe2f]/g, '');
-  // Translate Cyrillic, Greek, Coptic, Armenian, Cherokee, and Mathematical homoglyphs to Latin equivalents
-  normalizedQuery = normalizedQuery.replace(/[\u0400-\u04FF\u0370-\u03FF\u2C80-\u2CFF\u0530-\u058F\uAB70-\uABBF\u{1D400}-\u{1D7FF}]/gu, char => HOMOGLYPHS_MAP[char] || char);
+  // Translate Cyrillic, Greek, Coptic, Armenian, Cherokee, Georgian, and Mathematical homoglyphs to Latin equivalents
+  normalizedQuery = normalizedQuery.replace(/[\u0400-\u04FF\u0370-\u03FF\u2C80-\u2CFF\u0530-\u058F\uAB70-\uABBF\u10A0-\u10C5\u2D00-\u2D25\u{1D400}-\u{1D7FF}]/gu, char => HOMOGLYPHS_MAP[char] || char);
 
-  // 3. Clean zero-width, formatting, Control Pictures (U+2400-U+243F), and invisible characters, and condense consecutive whitespaces
+  // 3. Clean zero-width, formatting, Variation Selectors (U+FE00-U+FE0F & U+E0100-U+E01EF), Control Pictures (U+2400-U+243F), Hangul Fillers, and invisible characters, and condense consecutive whitespaces
   normalizedQuery = normalizedQuery
-    .replace(/[\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff\u00ad\u2400-\u243f]/g, '')
+    .replace(/[\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff\u00ad\u2400-\u243f\ufe00-\ufe0f\u180e\u1680\u20dd-\u20e4\u3164\uffa0\u115f\u1160]/g, '')
+    .replace(/[\u{E0100}-\u{E01EF}]/gu, '')
     .replace(/\s+/g, ' ');
 
-  // 1. Delimiter hijacking detection (VORO specific nonced blocks or closing tags)
+  // 1. Delimiter hijacking detection (VORO specific nonced blocks or closing tags, evaluated after full normalization and invisible character stripping)
   if (DELIMITER_RE.test(normalizedQuery) || DELIMITER_RE.test(query) || DELIMITER_RE.test(decodedQuery)) return true;
 
   // Clean Markdown obfuscation (asterisks, underscores, tildes, backticks) specifically for keyword matching
