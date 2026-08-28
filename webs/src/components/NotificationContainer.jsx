@@ -14,7 +14,13 @@ export const NotificationContainer = () => {
   const { removeNotification } = useNotifications();
 
   return (
-    <div className="fixed top-12 right-12 space-y-6 z-[100] max-w-md pointer-events-none">
+    <div
+      role="region"
+      aria-label="Notifications"
+      aria-live="polite"
+      aria-relevant="additions"
+      className="fixed top-12 right-12 space-y-6 z-[100] max-w-md pointer-events-none"
+    >
       {notifications.map(notification => (
         <div key={notification.id} className="pointer-events-auto">
           <Alert
