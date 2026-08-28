@@ -259,3 +259,14 @@ Defense in depth requires that every fallback check in security validation funct
 
 **Prevention:**
 Always apply `decodeURIComponent` to untrusted URL strings prior to keyword matching in fallback or exception-handling branches. Ensure global constructor primitives (like `URL`) are pinned with fallbacks (`typeof URL !== 'undefined' ? URL : window.URL`) for cross-environment compatibility.
+
+## 2026-08-28 - Non-BMP HTML Entity Decoding & Enclosed Alphanumeric Prompt Injection Shield
+
+**Vulnerability:**
+HTML entity decoding functions using `String.fromCharCode` fail for code points above `0xFFFF` (non-BMP characters, such as Enclosed Alphanumerics `U+1F130`-`U+1F189` and Regional Indicator Symbols `U+1F1E6`-`U+1F1FF`). The code points were truncated via modulo arithmetic, yielding invalid surrogate fragments (`0xF130`). An attacker could encode malicious nonced block markers or prompt injection keywords (e.g., `SYSTEM OVERRIDE` as Negative Squared Latin letters `&#x1f182;&#x1f188;...`) in HTML entities to bypass injection detection.
+
+**Learning:**
+`String.fromCharCode` cannot construct valid non-BMP Unicode characters from integer code points. Using `String.fromCodePoint` inside `decodeHTMLEntities` accurately reconstructs non-BMP characters. Furthermore, ordering the decoding pipeline so that `decodeEnclosedAlphanumerics` executes after HTML entity and percent-encoding decoding guarantees that entity-encoded enclosed alphanumerics are mapped back to ASCII letters before pattern matching.
+
+**Prevention:**
+Always use `String.fromCodePoint` when decoding numerical (decimal or hexadecimal) character references in HTML entity or string escape decoders. Ensure specialized character translation passes (such as enclosed alphanumerics or homoglyphs) execute after generic entity decoders in input validation pipelines.

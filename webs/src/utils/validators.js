@@ -444,14 +444,14 @@ const decodeHTMLEntities = (str) => {
     .replace(/&quot;/g, '"')
     .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => {
       try {
-        return String.fromCharCode(parseInt(hex, 16));
+        return String.fromCodePoint(parseInt(hex, 16));
       } catch (e) {
         return _;
       }
     })
     .replace(/&#(\d+);/g, (_, dec) => {
       try {
-        return String.fromCharCode(parseInt(dec, 10));
+        return String.fromCodePoint(parseInt(dec, 10));
       } catch (e) {
         return _;
       }
@@ -580,7 +580,7 @@ export const isPromptInjection = (query, isNested = false) => {
   if (!query || typeof query !== 'string') return false;
 
   // Security: Decode escape sequences, Enclosed Alphanumerics, Latin Small Caps, Superscript/Subscripts, Regional Indicator Symbols, Unicode Tag characters (ASCII Smuggling), URL percent-encoding, and HTML entities first
-  const decodedQuery = decodePercentEncoding(decodeHTMLEntities(decodeUnicodeTagCharacters(decodeRegionalIndicatorSymbols(decodeLatinSmallCaps(decodeSuperAndSubscripts(decodeEnclosedAlphanumerics(decodeEscapeSequences(query))))))));
+  const decodedQuery = decodeEnclosedAlphanumerics(decodePercentEncoding(decodeHTMLEntities(decodeUnicodeTagCharacters(decodeRegionalIndicatorSymbols(decodeLatinSmallCaps(decodeSuperAndSubscripts(decodeEnclosedAlphanumerics(decodeEscapeSequences(query)))))))));
 
   let normalizedQuery = decodedQuery.normalize('NFKD').toLowerCase();
   // Strip combining diacritical marks across all standard Unicode diacritic blocks (including extended, supplement, symbols, and half-marks)
