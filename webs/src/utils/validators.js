@@ -376,14 +376,26 @@ const decodeLatinSmallCaps = (str) => {
   return changed ? decoded : str;
 };
 
-// Helper to decode Enclosed Alphanumerics (e.g. Squared, Negative Circled, Negative Squared Latin letters)
+// Helper to decode Enclosed Alphanumerics (e.g. Parenthesized, Circled, Squared, Negative Circled, Negative Squared Latin letters)
 const decodeEnclosedAlphanumerics = (str) => {
   if (!str || typeof str !== 'string') return str;
   let decoded = '';
   let changed = false;
   for (const char of str) {
     const code = char.codePointAt(0);
-    if (code >= 0x1F130 && code <= 0x1F149) { // Squared Latin Capital Letters A-Z
+    if (code >= 0x249C && code <= 0x24B5) { // Parenthesized Latin Small Letters a-z
+      decoded += String.fromCharCode(code - 0x249C + 0x61);
+      changed = true;
+    } else if (code >= 0x24B6 && code <= 0x24CF) { // Circled Latin Capital Letters A-Z
+      decoded += String.fromCharCode(code - 0x24B6 + 0x41);
+      changed = true;
+    } else if (code >= 0x24D0 && code <= 0x24E9) { // Circled Latin Small Letters a-z
+      decoded += String.fromCharCode(code - 0x24D0 + 0x61);
+      changed = true;
+    } else if (code >= 0x1F110 && code <= 0x1F129) { // Parenthesized Latin Capital Letters A-Z
+      decoded += String.fromCharCode(code - 0x1F110 + 0x41);
+      changed = true;
+    } else if (code >= 0x1F130 && code <= 0x1F149) { // Squared Latin Capital Letters A-Z
       decoded += String.fromCharCode(code - 0x1F130 + 0x41);
       changed = true;
     } else if (code >= 0x1F150 && code <= 0x1F169) { // Negative Circle Latin Capital Letters A-Z
