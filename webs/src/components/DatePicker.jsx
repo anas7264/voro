@@ -55,8 +55,8 @@ export const DatePicker = memo(({
         <div className={`
           relative overflow-hidden rounded-[1.25rem] border transition-all duration-500
           ${error
-            ? "border-red-500/40 bg-red-500/[0.02]"
-            : "border-white/5 bg-white/[0.02] group-hover/date-container:border-white/10 group-focus-within/date-container:border-voro-primary/40 group-focus-within/date-container:bg-voro-primary/[0.01]"
+            ? "border-red-500/40 bg-red-500/[0.02] group-focus-within/date-container:ring-2 group-focus-within/date-container:ring-red-500/50"
+            : "border-white/5 bg-white/[0.02] group-hover/date-container:border-white/10 group-focus-within/date-container:border-voro-primary/50 group-focus-within/date-container:bg-voro-primary/[0.01] group-focus-within/date-container:ring-2 group-focus-within/date-container:ring-voro-primary/50 group-focus-within/date-container:ring-offset-2 group-focus-within/date-container:ring-offset-[#080B14]"
           }
           ${disabled ? "opacity-30 cursor-not-allowed" : ""}
         `}>
@@ -83,8 +83,8 @@ export const DatePicker = memo(({
             <input
               id={inputId}
               type="date"
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
+              value={value || ""}
+              onChange={(e) => onChange && onChange(e.target.value)}
               disabled={disabled}
               required={required}
               className={`
