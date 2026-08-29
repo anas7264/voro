@@ -6,18 +6,35 @@ import AreaChartComponent from '@/components/AreaChartComponent';
 import Badge from '@/components/Badge';
 import Header from '@/components/Header';
 import Breadcrumb from '@/components/Breadcrumb';
-import { useStorageKey } from '@/hooks/useStorage';
+import { useStorageKeySelector } from '@/hooks/useStorage';
 import { useApp } from '@/hooks/useAppContext';
 import { bodyFatStandards, bodyFatLevelDescriptions, bodyFatHealthMetrics } from '@/data/bodyFatStandards';
 import { getFastShortDate } from '@/utils/formatters';
 
 /**
- * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
- * Prevents redundant object instantiation of Intl.DateTimeFormat in loops.
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted & Frozen Data Structures.
+ * Prevents redundant object/array allocations and GC pressure across render cycles.
  */
-const dateShortFormatter = new Intl.DateTimeFormat('en-US', {
-  month: 'short',
-  day: 'numeric'
+const EMPTY_ARRAY = Object.freeze([]);
+const EMPTY_METRICS = Object.freeze({
+  weights: EMPTY_ARRAY,
+  bodyFat: EMPTY_ARRAY
+});
+
+const selectBodyMetrics = (state) => state || EMPTY_METRICS;
+
+const LOADING_MESSAGES = Object.freeze([
+  "ESTABLISHING SOMATOTYPE PROTOCOL...",
+  "ALIGNING LEAN MASS VECTORS...",
+  "CALIBRATING ADIPOSE FLUX COORDINATES...",
+  "SYNAPTIK COMPILATION COMPLETE // READY"
+]);
+
+const COLOR_TOKEN_MAP = Object.freeze({
+  'voro-primary': 'var(--voro-primary, #7C3AED)',
+  'voro-secondary': 'var(--voro-secondary, #10B981)',
+  'voro-accent': 'var(--voro-accent, #F59E0B)',
+  'voro-danger': 'var(--voro-danger, #EF4444)'
 });
 
 /**
@@ -87,14 +104,7 @@ const SomaticSpecimenCell = memo(({ label, value, unit, change, icon: Icon, colo
 
   const interactionActive = isHovered || isFocused;
   const isPositive = change !== undefined && parseFloat(change) >= 0;
-
-  const colorTokenMap = {
-    'voro-primary': 'var(--voro-primary, #7C3AED)',
-    'voro-secondary': 'var(--voro-secondary, #10B981)',
-    'voro-accent': 'var(--voro-accent, #F59E0B)',
-    'voro-danger': 'var(--voro-danger, #EF4444)'
-  };
-  const activeColor = colorTokenMap[color] || 'var(--voro-primary, #7C3AED)';
+  const activeColor = COLOR_TOKEN_MAP[color] || COLOR_TOKEN_MAP['voro-primary'];
 
   return (
     <div
@@ -361,19 +371,13 @@ const SomaticSegmentalLens = memo(({ leanMass, fatMass, bodyFat }) => {
 SomaticSegmentalLens.displayName = "SomaticSegmentalLens";
 
 const BodyComposition = () => {
-  const metricsData = useStorageKey('body_metrics');
+  // ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity via selector
+  const metrics = useStorageKeySelector('body_metrics', selectBodyMetrics);
   const { user } = useApp();
 
   // Simulated Masterclass Loading Alignment State
   const [loading, setLoading] = useState(() => !isTestBypass());
   const [loadingStep, setLoadingStep] = useState(0);
-
-  const loadingMessages = useMemo(() => [
-    "ESTABLISHING SOMATOTYPE PROTOCOL...",
-    "ALIGNING LEAN MASS VECTORS...",
-    "CALIBRATING ADIPOSE FLUX COORDINATES...",
-    "SYNAPTIK COMPILATION COMPLETE // READY"
-  ], []);
 
   useEffect(() => {
     document.title = 'VORO | Somatic Matrix & Body Composition';
@@ -388,7 +392,7 @@ const BodyComposition = () => {
     let finishTimer;
 
     const cycleSteps = (idx) => {
-      if (idx < loadingMessages.length) {
+      if (idx < LOADING_MESSAGES.length) {
         setLoadingStep(idx);
         stepTimer = setTimeout(() => cycleSteps(idx + 1), 600);
       }
@@ -404,17 +408,10 @@ const BodyComposition = () => {
       clearTimeout(stepTimer);
       clearTimeout(finishTimer);
     };
-  }, [loadingMessages]);
-
-  /**
-   * ⚡ OPTIMIZATION: Synchronous data derivation using useMemo.
-   */
-  const metrics = useMemo(() => {
-    return metricsData || { weights: [], bodyFat: [] };
-  }, [metricsData]);
+  }, []);
 
   const compositionHistory = useMemo(() => {
-    if (!metrics.weights?.length || !metrics.bodyFat?.length) return [];
+    if (!metrics.weights?.length || !metrics.bodyFat?.length) return EMPTY_ARRAY;
 
     /**
      * ⚡ OPTIMIZATION: Single-pass O(N+M) alignment for merging biometric time-series.
@@ -427,10 +424,7 @@ const BodyComposition = () => {
         return dA < dB ? -1 : dA > dB ? 1 : 0;
       })
       .slice(-30)
-      .map(w => {
-        const date = new Date(w.date);
-        return { ...w, ts: date.getTime(), dateObj: date };
-      });
+      .map(w => ({ ...w, ts: new Date(w.date).getTime() }));
 
     const bodyFat = [...metrics.bodyFat]
       .sort((a, b) => {
@@ -534,7 +528,7 @@ const BodyComposition = () => {
               Somatic Alignment Sequence
             </h3>
             <div className="font-mono text-[0.6rem] text-voro-primary font-bold tracking-[0.25em] space-y-1">
-              {loadingMessages.slice(0, loadingStep + 1).map((log, i) => (
+              {LOADING_MESSAGES.slice(0, loadingStep + 1).map((log, i) => (
                 <p key={i} className="animate-fade-in opacity-80">
                   {log}
                 </p>
