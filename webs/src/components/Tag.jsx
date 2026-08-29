@@ -12,6 +12,20 @@ import { X } from "lucide-react";
  * 3. Motion: Kinetic hover state with a luminous 'liquid light' pulse.
  * 4. Atmosphere: Ultra-low opacity backgrounds with deep backdrop blurs.
  */
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted and frozen static variant dictionary.
+ * Prevents object allocation on every render cycle.
+ */
+const VARIANTS = Object.freeze({
+  'voro-primary': "text-voro-primary border-voro-primary/20 bg-voro-primary/[0.03]",
+  'voro-secondary': "text-voro-secondary border-voro-secondary/20 bg-voro-secondary/[0.03]",
+  'voro-accent': "text-voro-accent border-voro-accent/20 bg-voro-accent/[0.03]",
+  'voro-danger': "text-voro-danger border-voro-danger/20 bg-voro-danger/[0.03]",
+  'primary': "text-voro-primary border-voro-primary/20 bg-voro-primary/[0.03]",
+  'secondary': "text-voro-secondary border-voro-secondary/20 bg-voro-secondary/[0.03]",
+  'gray': "text-gray-400 border-white/10 bg-white/[0.02]"
+});
+
 export const Tag = memo(({
   children,
   variant = "voro-primary",
@@ -27,17 +41,7 @@ export const Tag = memo(({
     return `T_0x${cleanId.slice(0, 3).toUpperCase()}`;
   }, [generatedId]);
 
-  const variants = {
-    'voro-primary': "text-voro-primary border-voro-primary/20 bg-voro-primary/[0.03]",
-    'voro-secondary': "text-voro-secondary border-voro-secondary/20 bg-voro-secondary/[0.03]",
-    'voro-accent': "text-voro-accent border-voro-accent/20 bg-voro-accent/[0.03]",
-    'voro-danger': "text-voro-danger border-voro-danger/20 bg-voro-danger/[0.03]",
-    'primary': "text-voro-primary border-voro-primary/20 bg-voro-primary/[0.03]",
-    'secondary': "text-voro-secondary border-voro-secondary/20 bg-voro-secondary/[0.03]",
-    'gray': "text-gray-400 border-white/10 bg-white/[0.02]"
-  };
-
-  const currentVariant = variants[variant] || variants['voro-primary'];
+  const currentVariant = VARIANTS[variant] || VARIANTS['voro-primary'];
 
   return (
     <div

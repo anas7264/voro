@@ -12,33 +12,37 @@ import { AlertCircle, CheckCircle, Info, AlertTriangle, X } from "lucide-react";
  * 3. Motion: Kinetic status indicator pulses suggesting live system monitoring.
  * 4. Atmosphere: Ultra-low opacity backgrounds with deep backdrop blurs.
  */
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted and frozen static dictionaries.
+ * Prevents object and element tree allocation on every component render cycle.
+ */
+const ICONS = Object.freeze({
+  error: <AlertCircle size={18} />,
+  success: <CheckCircle size={18} />,
+  warning: <AlertTriangle size={18} />,
+  info: <Info size={18} />,
+  danger: <AlertCircle size={18} />
+});
+
+const VARIANTS = Object.freeze({
+  error: "border-red-500/30 bg-red-500/[0.03] text-red-400",
+  success: "border-emerald-500/30 bg-emerald-500/[0.03] text-emerald-400",
+  warning: "border-amber-500/30 bg-amber-500/[0.03] text-amber-400",
+  info: "border-voro-primary/30 bg-voro-primary/[0.03] text-voro-primary",
+  danger: "border-red-500/30 bg-red-500/[0.03] text-red-400"
+});
+
+const STATUS_GLOW = Object.freeze({
+  error: "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]",
+  success: "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]",
+  warning: "bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]",
+  info: "bg-voro-primary shadow-[0_0_10px_rgba(124,58,237,0.5)]",
+  danger: "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]"
+});
+
 export const Alert = memo(({ type = "info", title, message, onClose, className = "" }) => {
-  const icons = {
-    error: <AlertCircle size={18} />,
-    success: <CheckCircle size={18} />,
-    warning: <AlertTriangle size={18} />,
-    info: <Info size={18} />,
-    danger: <AlertCircle size={18} />
-  };
-
-  const variants = {
-    error: "border-red-500/30 bg-red-500/[0.03] text-red-400",
-    success: "border-emerald-500/30 bg-emerald-500/[0.03] text-emerald-400",
-    warning: "border-amber-500/30 bg-amber-500/[0.03] text-amber-400",
-    info: "border-voro-primary/30 bg-voro-primary/[0.03] text-voro-primary",
-    danger: "border-red-500/30 bg-red-500/[0.03] text-red-400"
-  };
-
-  const statusGlow = {
-    error: "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]",
-    success: "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]",
-    warning: "bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]",
-    info: "bg-voro-primary shadow-[0_0_10px_rgba(124,58,237,0.5)]",
-    danger: "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]"
-  };
-
-  const currentVariant = variants[type] || variants.info;
-  const currentGlow = statusGlow[type] || statusGlow.info;
+  const currentVariant = VARIANTS[type] || VARIANTS.info;
+  const currentGlow = STATUS_GLOW[type] || STATUS_GLOW.info;
 
   return (
     <div
