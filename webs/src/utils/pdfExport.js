@@ -411,44 +411,50 @@ export const exportTrainingPlan = async (trainingPlan, userData) => {
   return doc;
 };
 
-// Save PDF to file via Secure Blob URL managed within an executeSecurely block.
-// This complies with VORO's active RASP capability attestation model to prevent security policy violations.
-export const savePDF = async (doc, filename) => {
-  const blob = doc.output("blob");
-  const url = await executeSecurely("Save PDF", () => {
-    return window.URL.createObjectURL(blob);
-  }, ["sink:URL.createObjectURL"]);
-
-  const element = document.createElement("a");
-  element.href = url;
-  element.download = filename;
-  document.body.appendChild(element);
-  element.click();
-  document.body.removeChild(element);
-
-  await executeSecurely("Cleanup PDF URL", () => {
-    window.URL.revokeObjectURL(url);
-  }, ["sink:URL.revokeObjectURL"]);
+// Helper to sanitize filename and prevent path traversal, control characters, and unsafe extensions
+export const sanitizeFilename = (filename) => {
+  if (typeof filename !== 'string' || !filename) {
+    return 'voro-export.pdf';
+  }
+  // Strip path traversal sequences (..), directory separators, and control characters
+  let clean = filename
+    .replace(/\.\./g, '')
+    .replace(/[\/\\?%*:|"<>]/g, '_')
+    .replace(/[\x00-\x1F\x7F]/g, '');
+  // Collapse multiple underscores and strip leading/trailing dots/underscores
+  clean = clean.replace(/_+/g, '_').replace(/^[\._]+/, '');
+  if (!clean.toLowerCase().endsWith('.pdf')) {
+    clean += '.pdf';
+  }
+  return clean || 'voro-export.pdf';
 };
 
 // Download PDF directly via Secure Blob URL managed within an executeSecurely block.
-// This complies with VORO's active RASP capability attestation model to prevent security policy violations.
+// Complies with VORO's active RASP capability attestation model and uses try...finally to prevent URL leaks.
 export const downloadPDF = async (doc, filename) => {
+  const safeFilename = sanitizeFilename(filename);
   const blob = doc.output("blob");
   const url = await executeSecurely("Download PDF", () => {
     return window.URL.createObjectURL(blob);
   }, ["sink:URL.createObjectURL"]);
 
-  const element = document.createElement("a");
-  element.href = url;
-  element.download = filename;
-  document.body.appendChild(element);
-  element.click();
-  document.body.removeChild(element);
+  try {
+    const element = document.createElement("a");
+    element.href = url;
+    element.download = safeFilename;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  } finally {
+    await executeSecurely("Cleanup PDF URL", () => {
+      window.URL.revokeObjectURL(url);
+    }, ["sink:URL.revokeObjectURL"]);
+  }
+};
 
-  await executeSecurely("Cleanup PDF URL", () => {
-    window.URL.revokeObjectURL(url);
-  }, ["sink:URL.revokeObjectURL"]);
+// Save PDF to file via downloadPDF delegate
+export const savePDF = async (doc, filename) => {
+  return downloadPDF(doc, filename);
 };
 
 export default {

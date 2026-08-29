@@ -270,3 +270,14 @@ HTML entity decoding functions using `String.fromCharCode` fail for code points 
 
 **Prevention:**
 Always use `String.fromCodePoint` when decoding numerical (decimal or hexadecimal) character references in HTML entity or string escape decoders. Ensure specialized character translation passes (such as enclosed alphanumerics or homoglyphs) execute after generic entity decoders in input validation pipelines.
+
+## 2026-08-29 - Exception-Safe Blob Object URL Lifecycle & Download Filename Sanitization
+
+**Vulnerability:**
+Browser-based file export mechanisms that generate ephemeral Blob Object URLs (`URL.createObjectURL`) without `try ... finally` error handling can leak memory if DOM operations or `.click()` fail. Additionally, accepting unvalidated dynamic `filename` inputs in download sinks creates path traversal and extension spoofing risks (e.g. `../../etc/passwd` or `.exe`).
+
+**Learning:**
+Always sanitize download filenames by stripping path traversal sequences (`..`), directory separators (`/`, `\`), reserved characters (`?`, `%`, `*`, `:`, `|`, `"`, `<`, `>`), and control characters, while enforcing the expected extension (`.pdf`). Furthermore, wrap all Blob Object URL consumption and anchor DOM triggers in `try ... finally` blocks to guarantee `URL.revokeObjectURL` is executed even when DOM actions throw exceptions.
+
+**Prevention:**
+Enforce strict filename sanitization on all export/download utility entry points. Guarantee resource cleanup for ephemeral Object URLs by placing `URL.revokeObjectURL` inside a `finally` block.

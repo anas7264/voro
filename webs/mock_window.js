@@ -70,8 +70,27 @@ global.window = {
     now: () => Date.now()
   }
 };
+global.atob = global.atob || ((str) => Buffer.from(str, 'base64').toString('binary'));
+global.btoa = global.btoa || ((str) => Buffer.from(str, 'binary').toString('base64'));
+
+global.window.atob = global.atob;
+global.window.btoa = global.btoa;
 global.window.self = global.window;
 global.window.top = global.window;
+class MockURL {
+  constructor(url, base) {
+    this.href = url;
+    this.origin = 'http://localhost';
+    this.hostname = 'localhost';
+    this.search = '';
+    this.hash = '';
+    this.protocol = 'http:';
+  }
+  static createObjectURL() { return 'blob:mock-url'; }
+  static revokeObjectURL() {}
+}
+global.window.URL = global.window.URL || MockURL;
+global.URL = global.window.URL;
 
 global.CustomEvent = class CustomEvent {
   constructor(type, detail) {
@@ -86,6 +105,16 @@ global.document = {
     attributes: []
   },
   head: { children: [], attributes: [] },
+  body: {
+    appendChild: () => {},
+    removeChild: () => {}
+  },
+  createElement: (tag) => ({
+    tagName: tag,
+    href: '',
+    download: '',
+    click: () => {}
+  }),
   getElementById: () => null,
   addEventListener: (type, cb) => {
     docListeners[type] = docListeners[type] || [];
