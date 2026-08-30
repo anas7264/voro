@@ -180,18 +180,32 @@ const BMRCalculator = memo(({ weight, height, age, gender, calculateBMR }) => {
 BMRCalculator.displayName = "BMRCalculator";
 
 
+/**
+ * ⚡ PROTOCOL OPTIONS & PHASE METADATA: Hoisted metadata.
+ * Module-level frozen constants for elite performance and zero-allocation.
+ */
+const TDEE_MULTIPLIERS = Object.freeze([
+  Object.freeze({ key: 'sedentary', label: 'Sedentary', multiplier: 1.2, desc: 'Little to no exercise, quiet desk profile' }),
+  Object.freeze({ key: 'lightly_active', label: 'Lightly Active', multiplier: 1.375, desc: '1–3 days/week of light athletic training' }),
+  Object.freeze({ key: 'moderately_active', label: 'Moderately Active', multiplier: 1.55, desc: '3–5 days/week of high-intensity training' }),
+  Object.freeze({ key: 'very_active', label: 'Very Active', multiplier: 1.725, desc: '6–7 days/week of heavy metabolic load' }),
+  Object.freeze({ key: 'extremely_active', label: 'Extremely Active', multiplier: 1.9, desc: 'Double daily kinetic sessions or elite athlete load' })
+]);
+
+const FFMI_TIERS = Object.freeze([
+  Object.freeze({ label: 'Below Average / Lean', range: '< 18.0', key: 'lean', desc: 'Typical somatic baseline mass or athletic fat-free structure.' }),
+  Object.freeze({ label: 'Average / Active', range: '18.0 - 20.0', key: 'active', desc: 'Consistent active training adaptation, healthy dense matrix.' }),
+  Object.freeze({ label: 'Advanced Athletic', range: '20.1 - 22.0', key: 'advanced', desc: 'Extensive progression overload training, outstanding skeletal muscle.' }),
+  Object.freeze({ label: 'Elite Tier', range: '22.1 - 25.0', key: 'elite', desc: 'Near physiological limit of natural biological muscular density.' }),
+  Object.freeze({ label: 'Somatic Genetic Ceiling', range: '> 25.0', key: 'ceiling', desc: 'Exceeds standard human biological limits without pharmacological synthesis.' })
+]);
+
 // 3. TDEE CALCULATOR (ACTIVE KINETIC VELOCITY)
 const TDEECalculator = memo(({ weight, height, age, gender, activityLevel, calculateBMR, calculateTDEE }) => {
   const bmr = useMemo(() => calculateBMR(weight, height, age, gender), [weight, height, age, gender, calculateBMR]);
   const tdee = useMemo(() => calculateTDEE(bmr, activityLevel), [bmr, activityLevel, calculateTDEE]);
 
-  const multipliers = useMemo(() => [
-    { key: 'sedentary', label: 'Sedentary', multiplier: 1.2, desc: 'Little to no exercise, quiet desk profile' },
-    { key: 'lightly_active', label: 'Lightly Active', multiplier: 1.375, desc: '1–3 days/week of light athletic training' },
-    { key: 'moderately_active', label: 'Moderately Active', multiplier: 1.55, desc: '3–5 days/week of high-intensity training' },
-    { key: 'very_active', label: 'Very Active', multiplier: 1.725, desc: '6–7 days/week of heavy metabolic load' },
-    { key: 'extremely_active', label: 'Extremely Active', multiplier: 1.9, desc: 'Double daily kinetic sessions or elite athlete load' }
-  ], []);
+  const multipliers = TDEE_MULTIPLIERS;
 
   return (
     <div className="animate-slide-up space-y-12">
@@ -374,14 +388,7 @@ IdealWeightCalculator.displayName = "IdealWeightCalculator";
 const FFMICalculator = memo(({ weight, height, bodyFat, calculateFFMI }) => {
   const ffmi = useMemo(() => calculateFFMI(weight, bodyFat, height), [weight, bodyFat, height, calculateFFMI]);
 
-  // Muscular classification tiers
-  const tiers = useMemo(() => [
-    { label: 'Below Average / Lean', range: '< 18.0', key: 'lean', desc: 'Typical somatic baseline mass or athletic fat-free structure.' },
-    { label: 'Average / Active', range: '18.0 - 20.0', key: 'active', desc: 'Consistent active training adaptation, healthy dense matrix.' },
-    { label: 'Advanced Athletic', range: '20.1 - 22.0', key: 'advanced', desc: 'Extensive progression overload training, outstanding skeletal muscle.' },
-    { label: 'Elite Tier', range: '22.1 - 25.0', key: 'elite', desc: 'Near physiological limit of natural biological muscular density.' },
-    { label: 'Somatic Genetic Ceiling', range: '> 25.0', key: 'ceiling', desc: 'Exceeds standard human biological limits without pharmacological synthesis.' }
-  ], []);
+  const tiers = FFMI_TIERS;
 
   const activeKey = useMemo(() => {
     const val = parseFloat(ffmi);

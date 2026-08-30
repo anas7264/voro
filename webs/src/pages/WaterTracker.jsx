@@ -25,6 +25,18 @@ const VESSEL_TICKS = Object.freeze([2000, 1500, 1000, 500]);
 const CATALYST_PRESETS = Object.freeze([250, 500, 750, 1000]);
 
 /**
+ * ⚡ BIOLOGICAL STATE MATRIX: Hoisted and frozen configuration lookup.
+ * Eliminates conditional branching allocations per state query.
+ */
+const BIOLOGICAL_STATES = Object.freeze([
+  Object.freeze({ min: 0, max: 25, label: 'Intracellular Hypohydration' }),
+  Object.freeze({ min: 25, max: 55, label: 'Systemic Plasma Restoration' }),
+  Object.freeze({ min: 55, max: 90, label: 'Functional Cellular Hydration' }),
+  Object.freeze({ min: 90, max: 100, label: 'Optimal Homeostatic Equilibrium' }),
+  Object.freeze({ min: 100, max: Infinity, label: 'Full Cellular Super-Saturation' })
+]);
+
+/**
  * ⚡ LUXURY REFINEMENT: Volumetric 3D HydroVessel with static 4-degree keyboard focus tilts,
  * mouse-tracking depth, active reflection lenses, holographic coordinate telemetry,
  * and clinical-grade real-time indicators.
@@ -469,11 +481,8 @@ const WaterTracker = () => {
 
   // Clinical-grade real-time status indicators based on physiological water balance
   const biologicalState = useMemo(() => {
-    if (percentage < 25) return 'Intracellular Hypohydration';
-    if (percentage < 55) return 'Systemic Plasma Restoration';
-    if (percentage < 90) return 'Functional Cellular Hydration';
-    if (percentage < 100) return 'Optimal Homeostatic Equilibrium';
-    return 'Full Cellular Super-Saturation';
+    const entry = BIOLOGICAL_STATES.find(s => percentage < s.max);
+    return entry ? entry.label : BIOLOGICAL_STATES[BIOLOGICAL_STATES.length - 1].label;
   }, [percentage]);
 
   return (
