@@ -376,14 +376,32 @@ const decodeLatinSmallCaps = (str) => {
   return changed ? decoded : str;
 };
 
-// Helper to decode Enclosed Alphanumerics (e.g. Parenthesized, Circled, Squared, Negative Circled, Negative Squared Latin letters)
+// Helper to decode Enclosed Alphanumerics (e.g. Parenthesized, Circled, Squared, Negative Circled, Negative Squared Latin letters & digits)
 const decodeEnclosedAlphanumerics = (str) => {
   if (!str || typeof str !== 'string') return str;
   let decoded = '';
   let changed = false;
   for (const char of str) {
     const code = char.codePointAt(0);
-    if (code >= 0x249C && code <= 0x24B5) { // Parenthesized Latin Small Letters a-z
+    if (code >= 0x2460 && code <= 0x2468) { // Circled Digits 1-9
+      decoded += String.fromCharCode(code - 0x2460 + 0x31);
+      changed = true;
+    } else if (code >= 0x2469 && code <= 0x2473) { // Circled Numbers 10-20
+      decoded += (code - 0x2469 + 10).toString();
+      changed = true;
+    } else if (code >= 0x2474 && code <= 0x247C) { // Parenthesized Digits 1-9
+      decoded += String.fromCharCode(code - 0x2474 + 0x31);
+      changed = true;
+    } else if (code >= 0x247D && code <= 0x2487) { // Parenthesized Numbers 10-20
+      decoded += (code - 0x247D + 10).toString();
+      changed = true;
+    } else if (code >= 0x2488 && code <= 0x2490) { // Digits 1-9 with Period
+      decoded += String.fromCharCode(code - 0x2488 + 0x31);
+      changed = true;
+    } else if (code >= 0x2491 && code <= 0x249B) { // Numbers 10-20 with Period
+      decoded += (code - 0x2491 + 10).toString();
+      changed = true;
+    } else if (code >= 0x249C && code <= 0x24B5) { // Parenthesized Latin Small Letters a-z
       decoded += String.fromCharCode(code - 0x249C + 0x61);
       changed = true;
     } else if (code >= 0x24B6 && code <= 0x24CF) { // Circled Latin Capital Letters A-Z
@@ -391,6 +409,15 @@ const decodeEnclosedAlphanumerics = (str) => {
       changed = true;
     } else if (code >= 0x24D0 && code <= 0x24E9) { // Circled Latin Small Letters a-z
       decoded += String.fromCharCode(code - 0x24D0 + 0x61);
+      changed = true;
+    } else if (code === 0x24EA) { // Circled Digit 0
+      decoded += '0';
+      changed = true;
+    } else if (code >= 0x1F101 && code <= 0x1F10A) { // Digits 0-9 in Enclosed Alphanumeric Supplement
+      decoded += (code - 0x1F101).toString();
+      changed = true;
+    } else if (code === 0x1F100) { // Digit 0 in Enclosed Alphanumeric Supplement
+      decoded += '0';
       changed = true;
     } else if (code >= 0x1F110 && code <= 0x1F129) { // Parenthesized Latin Capital Letters A-Z
       decoded += String.fromCharCode(code - 0x1F110 + 0x41);
@@ -581,7 +608,7 @@ const safeReverseString = (str) => {
 // Consolidated regex of compressed patterns to detect spacer-based prompt injection obfuscation (e.g., i.g.n.o.r.e)
 const COMPRESSED_BLOCKLIST_RE = /ignoreprevious|ignoreabove|ignoreallinstructions|ignoresystem|bypassinstructions|overridesystem|systemoverride|developermode|danmode|doanythingnow|forgetprevious|forgetallinstructions|forgetwhatwassaid|youmustnowignore|youarenowadeveloper|youarenowanunrestricted|unrestrictedmode|withoutrestrictions|disablesafety|bypassfilters|repeatthesystemprompt|revealyourinstructions|revealthesystemprompt|revealinstructions|outputthesysteminstructions|outputyourinstructions|outputthetextabove|showyoursystemprompt|showsystemprompt|whatisyoursystemprompt|whatisyourprompt|whatareyourinstructions|whatareyourdeveloperinstructions|revealthenonce|outputyournonces|roleplayas|adoptthepersona|pretendtobe|youarenowaterminal|youarenowalinux|startingnowyouare|youarenolongeranaiassistant|youarenolongerahelpful/i;
 
-const DELIMITER_RE = /\[\/?(?:USER_DATA|SECURITY_PROTOCOL|MESSAGE_HISTORY|USER_INPUT)(?:_[A-Za-z0-9]+)?\]/i;
+const DELIMITER_RE = /\[\/?(?:USER_?DATA|SECURITY_?PROTOCOL|MESSAGE_?HISTORY|USER_?INPUT)(?:_?[A-Za-z0-9]+)?\]/i;
 const MARKDOWN_RE = /[\*_~`]/g;
 const NON_ALPHANUM_RE = /[^a-z0-9]/g;
 const HEX_MATCH_RE = /[0-9a-fA-F]{8,}/g;
@@ -607,7 +634,8 @@ export const isPromptInjection = (query, isNested = false) => {
     .replace(/\s+/g, ' ');
 
   // 1. Delimiter hijacking detection (VORO specific nonced blocks or closing tags, evaluated after full normalization and invisible character stripping)
-  if (DELIMITER_RE.test(normalizedQuery) || DELIMITER_RE.test(query) || DELIMITER_RE.test(decodedQuery)) return true;
+  const collapsedTag = normalizedQuery.replace(/[^\[\]\/a-z0-9_]/gi, '');
+  if (DELIMITER_RE.test(normalizedQuery) || DELIMITER_RE.test(query) || DELIMITER_RE.test(decodedQuery) || DELIMITER_RE.test(collapsedTag)) return true;
 
   // Clean Markdown obfuscation (asterisks, underscores, tildes, backticks) specifically for keyword matching
   normalizedQuery = normalizedQuery.replace(MARKDOWN_RE, '');
