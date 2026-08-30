@@ -153,7 +153,8 @@ export const isDateInPast = (dateString) => {
   return date < new Date();
 };
 
-const INTERNAL_IP_RE = /^(?:127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+|169\.254\.\d+\.\d+)$/;
+const INTERNAL_IP_RE = /^(?:127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+|169\.254\.\d+\.\d+|0\.0\.0\.0)$/;
+const INTERNAL_IPV6_RE = /^\[?(?:0*:0*:0*:0*:0*:0*:0*:0*1|0*:0*:0*:0*:0*:0*:0*:0*|::1|::|fe80:.*|f[cd][0-9a-f]{2}:.*|::ffff:(?:127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+|169\.254\.\d+\.\d+|[0-9a-f]{1,4}:[0-9a-f]{1,4}))\]?$/i;
 
 // URL validation
 export const isValidURL = (url) => {
@@ -179,11 +180,10 @@ export const isValidURL = (url) => {
       return false;
     }
 
-    // Security: Block SSRF / private / loopback / internal IP targets and cloud metadata endpoints
+    // Security: Block SSRF / private / loopback / internal IP targets (IPv4 & IPv6) and cloud metadata endpoints
     const isInternal = hostname === 'localhost' ||
-      hostname === '0.0.0.0' ||
-      hostname === '[::1]' ||
-      INTERNAL_IP_RE.test(hostname);
+      INTERNAL_IP_RE.test(hostname) ||
+      INTERNAL_IPV6_RE.test(hostname);
 
     if (isInternal) {
       return false;

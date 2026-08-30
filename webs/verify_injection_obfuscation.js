@@ -434,6 +434,32 @@ const runTests = async () => {
     throw new Error("❌ Failure: Spaced or obfuscated tag delimiter hijacking bypass attempt allowed!");
   }
 
+  // --- TEST 43: IPv6 SSRF / Loopback / Private Address Target Rejection ---
+  console.log("🛡️ Test 43: Verifying IPv6 SSRF / Loopback / Private address targets are rejected by isValidURL...");
+  const ipv6Loopback = "http://[::1]/api";
+  const ipv6Unspecified = "http://[::]/admin";
+  const ipv6MappedLoopback = "http://[::ffff:127.0.0.1]/status";
+  const ipv6MappedHexLoopback = "http://[::ffff:7f00:1]/status";
+  const ipv6MappedPrivate = "http://[::ffff:10.0.0.1]/internal";
+  const ipv6LinkLocal = "http://[fe80::1]/config";
+  const ipv6UniqueLocal = "http://[fc00::1]/metrics";
+  const ipv6PublicValid = "https://[2001:db8::1]/public";
+
+  if (
+    !isValidURL(ipv6Loopback) &&
+    !isValidURL(ipv6Unspecified) &&
+    !isValidURL(ipv6MappedLoopback) &&
+    !isValidURL(ipv6MappedHexLoopback) &&
+    !isValidURL(ipv6MappedPrivate) &&
+    !isValidURL(ipv6LinkLocal) &&
+    !isValidURL(ipv6UniqueLocal) &&
+    isValidURL(ipv6PublicValid)
+  ) {
+    console.log("✅ Success: IPv6 loopback, unspecified, IPv4-mapped, link-local, and unique local address targets correctly rejected!");
+  } else {
+    throw new Error("❌ Failure: IPv6 internal or private address targets were incorrectly allowed by isValidURL!");
+  }
+
   console.log("\n🎉 ALL INJECTION OBFUSCATION SECURITY VERIFICATION TESTS PASSED SUCCESSFULLY!");
   console.log("=========================================");
   process.exit(0);
