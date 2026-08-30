@@ -760,14 +760,6 @@ const FastingTracker = () => {
     };
   }, [elapsed]);
 
-  const alignmentLogs = [
-    "MEASURING HEPATIC GLYCOGEN STORES...",
-    "CALIBRATING CORE KINETIC SWITCHES...",
-    "ATTESTING SECURE CDDSA DATABASE HANDSHAKE...",
-    "NUTRITIONAL SHIELD DEPLOYED...",
-    "METABOLIC BIOMARKER MATRIX SYNCED // READY"
-  ];
-
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] pb-32 selection:bg-voro-primary/30">
       {/* Ambient background architectural lighting */}
