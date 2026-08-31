@@ -3,7 +3,7 @@
  * This runs in Node.js and asserts that obfuscated or padded queries are successfully blocked.
  */
 
-import { isPromptInjection, isValidURL, isValidDate } from './src/utils/validators.js';
+import { isPromptInjection, isValidURL, isValidDate, isDateInFuture, isDateInPast, isValidMacroRatio } from './src/utils/validators.js';
 
 const runTests = async () => {
   console.log("=========================================");
@@ -485,6 +485,26 @@ const runTests = async () => {
     console.log("✅ Success: Canadian Aboriginal Syllabics homoglyph prompt injection successfully blocked!");
   } else {
     throw new Error("❌ Failure: Canadian Aboriginal Syllabics homoglyph prompt injection bypass attempt allowed!");
+  }
+
+  // --- TEST 47: Date and Macro Ratio Validation Strictness ---
+  console.log("🛡️ Test 47: Verifying isDateInFuture, isDateInPast, and isValidMacroRatio reject invalid types and non-finite inputs...");
+  if (
+    isDateInFuture(null) === false &&
+    isDateInFuture(false) === false &&
+    isDateInFuture(true) === false &&
+    isDateInFuture("invalid-date") === false &&
+    isDateInPast(null) === false &&
+    isDateInPast(false) === false &&
+    isDateInPast(true) === false &&
+    isDateInPast("invalid-date") === false &&
+    isValidMacroRatio(30, Infinity, 20) === false &&
+    isValidMacroRatio(NaN, 30, 20) === false &&
+    isValidMacroRatio(30, 40, 30) === true
+  ) {
+    console.log("✅ Success: Date in future/past and macro ratio validators correctly reject invalid types and non-finite values!");
+  } else {
+    throw new Error("❌ Failure: Date in future/past or macro ratio validators failed to reject invalid types/values!");
   }
 
   console.log("\n🎉 ALL INJECTION OBFUSCATION SECURITY VERIFICATION TESTS PASSED SUCCESSFULLY!");

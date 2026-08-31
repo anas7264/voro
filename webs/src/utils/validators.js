@@ -123,6 +123,10 @@ export const isValidMacroRatio = (protein, carbs, fat) => {
   const c = parseFloat(carbs);
   const f = parseFloat(fat);
 
+  if (!Number.isFinite(p) || !Number.isFinite(c) || !Number.isFinite(f)) {
+    return false;
+  }
+
   const valid = {
     protein: p >= 10 && p <= 50,
     carbs: c >= 20 && c <= 70,
@@ -143,12 +147,14 @@ export const isValidDate = (dateString) => {
 
 // Date in future validation
 export const isDateInFuture = (dateString) => {
+  if (!isValidDate(dateString)) return false;
   const date = new Date(dateString);
   return date > new Date();
 };
 
 // Date in past validation
 export const isDateInPast = (dateString) => {
+  if (!isValidDate(dateString)) return false;
   const date = new Date(dateString);
   return date < new Date();
 };
