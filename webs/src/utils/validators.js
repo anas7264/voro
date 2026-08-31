@@ -282,6 +282,10 @@ const HOMOGLYPHS_MAP = {
   // Georgian homoglyphs (Nuskhuri U+2D00-U+2D25 & Asroni U+10A0-U+10C5)
   'ⴀ': 'a', 'ⴁ': 'b', 'ⴄ': 'e', 'ⴈ': 'i', 'ⴍ': 'o', 'ⴑ': 's', 'ⴒ': 't', 'ⴓ': 'u', 'ⴔ': 'v', 'ⴖ': 'y',
   'Ⴀ': 'a', 'Ⴁ': 'b', 'Ⴄ': 'e', 'Ⴈ': 'i', 'Ⴍ': 'o', 'Ⴑ': 's', 'Ⴒ': 't',
+  // Hebrew homoglyphs (U+0590-U+05FF)
+  'ס': 'o', 'ם': 'o', 'ר': 'r', 'נ': 'i', 'ו': 'i', 'ז': 'z', 'כ': 'c', 'ח': 'n', 'ת': 'n',
+  // Canadian Aboriginal Syllabics homoglyphs (U+1400-U+167F)
+  'ᐠ': 'i', 'ᐟ': 't', 'ᐢ': 's', 'ᐤ': 'w', 'ᐨ': 'r', 'ᑅ': 'e', 'ᑊ': 'p', 'ᐥ': 'h', 'ᐡ': 'u',
   // Mathematical Alphanumeric homoglyphs missing from standard NFKD
   '𝑕': 'h', '𝒝': 'b', '𝒠': 'e', '𝒡': 'f', '𝒣': 'h', '𝒤': 'i', '𝒧': 'l', '𝒨': 'm', '𝒭': 'r', '𝒺': 'e',
   '𝒼': 'g', '𝓄': 'o', '𝔆': 'c', '𝔋': 'h', '𝔌': 'i', '𝔕': 'r', '𝔝': 'z', '𝔺': 'c', '𝔿': 'h', '𝕅': 'n',
@@ -438,11 +442,15 @@ const decodeEnclosedAlphanumerics = (str) => {
   return changed ? decoded : str;
 };
 
-// Helper to decode string literal escape sequences (\uXXXX, \xXX, \u{X...})
+// Helper to decode string literal escape sequences (\uXXXX, \xXX, \u{X...}, \OCTAL)
 const decodeEscapeSequences = (str) => {
   if (!str || typeof str !== 'string' || !str.includes('\\')) return str;
-  return str.replace(/\\u([0-9a-fA-F]{4})|\\x([0-9a-fA-F]{2})|\\u\{([0-9a-fA-F]+)\}/g, (match, u, x, uBrace) => {
+  return str.replace(/\\u([0-9a-fA-F]{4})|\\x([0-9a-fA-F]{2})|\\u\{([0-9a-fA-F]+)\}|\\([0-7]{1,3})/g, (match, u, x, uBrace, octal) => {
     try {
+      if (octal) {
+        const code = parseInt(octal, 8);
+        return String.fromCodePoint(code);
+      }
       const hex = u || x || uBrace;
       const code = parseInt(hex, 16);
       return String.fromCodePoint(code);
@@ -624,8 +632,8 @@ export const isPromptInjection = (query, isNested = false) => {
   let normalizedQuery = decodedQuery.normalize('NFKD').toLowerCase();
   // Strip combining diacritical marks across all standard Unicode diacritic blocks (including extended, supplement, symbols, and half-marks)
   normalizedQuery = normalizedQuery.replace(/[\u0300-\u036f\u1ab0-\u1aff\u1dc0-\u1dff\u20d0-\u20ff\ufe20-\ufe2f]/g, '');
-  // Translate Cyrillic, Greek, Coptic, Armenian, Cherokee, Georgian, and Mathematical homoglyphs to Latin equivalents
-  normalizedQuery = normalizedQuery.replace(/[\u0400-\u04FF\u0370-\u03FF\u2C80-\u2CFF\u0530-\u058F\uAB70-\uABBF\u10A0-\u10C5\u2D00-\u2D25\u{1D400}-\u{1D7FF}]/gu, char => HOMOGLYPHS_MAP[char] || char);
+  // Translate Cyrillic, Greek, Coptic, Armenian, Cherokee, Georgian, Hebrew, Canadian Aboriginal, and Mathematical homoglyphs to Latin equivalents
+  normalizedQuery = normalizedQuery.replace(/[\u0400-\u04FF\u0370-\u03FF\u2C80-\u2CFF\u0530-\u058F\uAB70-\uABBF\u10A0-\u10C5\u2D00-\u2D25\u0590-\u05FF\u1400-\u167F\u{1D400}-\u{1D7FF}]/gu, char => HOMOGLYPHS_MAP[char] || char);
 
   // 3. Clean zero-width, formatting, Variation Selectors (U+FE00-U+FE0F & U+E0100-U+E01EF), Control Pictures (U+2400-U+243F), Hangul Fillers, and invisible characters, and condense consecutive whitespaces
   normalizedQuery = normalizedQuery
