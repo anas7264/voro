@@ -11,6 +11,24 @@ import React, { memo, useMemo, useId } from "react";
  * 3. Motion: Kinetic status indicator pulses suggesting live bio-sync.
  * 4. Atmosphere: Ultra-low opacity backgrounds with deep backdrop blurs.
  */
+// ⚡ ZERO-ALLOCATION PERFORMANCE OPTIMIZATION:
+// Hoisted static lookup maps frozen with Object.freeze to eliminate object allocations on every render cycle.
+const SIZES = Object.freeze({
+  sm: "w-8 h-8",
+  md: "w-10 h-10",
+  lg: "w-12 h-12",
+  xl: "w-16 h-16",
+  "2xl": "w-24 h-24",
+  "specimen-xl": "w-48 h-48",
+});
+
+const STATUS_COLORS = Object.freeze({
+  online: "bg-voro-secondary shadow-[0_0_10px_rgba(16,185,129,0.5)]",
+  idle: "bg-voro-accent shadow-[0_0_10px_rgba(245,158,11,0.5)]",
+  offline: "bg-gray-600",
+  syncing: "bg-voro-primary shadow-[0_0_10px_rgba(124,58,237,0.5)]"
+});
+
 export const Avatar = memo(({
   src,
   alt = "Subject Specimen",
@@ -21,21 +39,6 @@ export const Avatar = memo(({
   ...props
 }) => {
   const generatedId = useId();
-  const sizes = {
-    sm: "w-8 h-8",
-    md: "w-10 h-10",
-    lg: "w-12 h-12",
-    xl: "w-16 h-16",
-    "2xl": "w-24 h-24",
-    "specimen-xl": "w-48 h-48",
-  };
-
-  const statusColors = {
-    online: "bg-voro-secondary shadow-[0_0_10px_rgba(16,185,129,0.5)]",
-    idle: "bg-voro-accent shadow-[0_0_10px_rgba(245,158,11,0.5)]",
-    offline: "bg-gray-600",
-    syncing: "bg-voro-primary shadow-[0_0_10px_rgba(124,58,237,0.5)]"
-  };
 
   // Generate a stable system ID for the specimen using useId to be SSR safe
   const specimenId = useMemo(() => {
@@ -44,8 +47,8 @@ export const Avatar = memo(({
     return `ID_${cleanId.slice(0, 4).toUpperCase()}`;
   }, [id, generatedId]);
 
-  const currentSize = sizes[size] || sizes.md;
-  const currentStatusColor = statusColors[status] || statusColors.online;
+  const currentSize = SIZES[size] || SIZES.md;
+  const currentStatusColor = STATUS_COLORS[status] || STATUS_COLORS.online;
 
   // Determine if we should show luxury framing based on size (opt-in via large sizes)
   const isLuxury = size.includes('specimen') || size === '2xl' || size === 'xl';
