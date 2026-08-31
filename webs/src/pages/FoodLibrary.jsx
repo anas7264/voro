@@ -7,13 +7,13 @@ const PAGE_SIZE = 24;
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted categories.
- * Prevents O(N) extraction on every component render cycle.
+ * Prevents O(N) extraction on component render cycles.
  */
 const CATEGORIES = ['All', ...new Set(foods.map(f => f.category))];
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Pre-calculate lowercase properties for static foods dataset.
- * Avoids allocating and converting strings on every single keystroke inside the filter loop.
+ * Avoids string lowercasing conversions on every search keystroke.
  */
 const FOODS_LOWERCASE = foods.map(f => ({
   ...f,
@@ -299,14 +299,20 @@ const FoodLibrary = () => {
     return filtered;
   }, [deferredSearchQuery, selectedCategory]);
 
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: O(1) Set lookup table for favorites.
+   * Converts array to Set in O(N) once per favorite change, enabling O(1) lookup per card.
+   */
+  const favoritesSet = useMemo(() => new Set(favorites), [favorites]);
+
   const toggleFavorite = useCallback((food) => {
-    const isFav = favorites.includes(food.id);
+    const isFav = favoritesSet.has(food.id);
     setFavorites(prev => isFav ? prev.filter(id => id !== food.id) : [...prev, food.id]);
     addNotification(
       isFav ? `${food.name} removed from vault` : `${food.name} archived in favorites`,
       isFav ? 'info' : 'success'
     );
-  }, [favorites, addNotification]);
+  }, [favoritesSet, addNotification]);
 
   const handleInspectFood = useCallback((food) => {
     addNotification(`Detailed structural analysis of ${food.name} synthesized.`, 'info');
@@ -379,7 +385,7 @@ const FoodLibrary = () => {
               key={food.id}
               food={food}
               idx={idx}
-              isFavorite={favorites.includes(food.id)}
+              isFavorite={favoritesSet.has(food.id)}
               onToggleFavorite={toggleFavorite}
               onInspect={handleInspectFood}
             />

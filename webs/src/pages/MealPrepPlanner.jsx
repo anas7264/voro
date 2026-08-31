@@ -6,30 +6,30 @@ import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 
 // Cinematic Loading Messages
-const CINEMATIC_MESSAGES = [
+const CINEMATIC_MESSAGES = Object.freeze([
   '[SYS_INIT] - SYNCHRONIZING PROCURABLE MASS...',
   '[CAL_BIOM] - MAPPING AMINO ACID BIOPRINTS...',
   '[OPTIM_LOG] - SYNCING AMBIENT KINETIC LOGISTICS...',
   '[ALIGN_SYNC] - TROPHIC SYNTHESIS COMPLETED'
-];
+]);
 
 // ⚡ PERFORMANCE OPTIMIZATION: Hoisted completely static datasets to module level
-const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const DURATION_OPTIONS = ['30 mins', '1 hour', '1.5 hours', '2 hours', '3 hours'];
+const DAYS_OF_WEEK = Object.freeze(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']);
+const DURATION_OPTIONS = Object.freeze(['30 mins', '1 hour', '1.5 hours', '2 hours', '3 hours']);
 
-const DEFAULT_PREP_PLAN = [
-  { id: 1, day: 'Sunday', duration: '2 hours', count: 20, recipes: ['Kinetic Chicken & Basmati', 'Atlantic Salmon & Greens', 'Turkey & Sweet Potato Flux'] },
-  { id: 2, day: 'Wednesday', duration: '1 hour', count: 10, recipes: ['Egg White Frittata Matrix', 'Overnight Oats Synthesis'] }
-];
+const DEFAULT_PREP_PLAN = Object.freeze([
+  Object.freeze({ id: 1, day: 'Sunday', duration: '2 hours', count: 20, recipes: Object.freeze(['Kinetic Chicken & Basmati', 'Atlantic Salmon & Greens', 'Turkey & Sweet Potato Flux']) }),
+  Object.freeze({ id: 2, day: 'Wednesday', duration: '1 hour', count: 10, recipes: Object.freeze(['Egg White Frittata Matrix', 'Overnight Oats Synthesis']) })
+]);
 
-const DEFAULT_PROVISIONS = [
-  { item: 'Kinetic Chicken Breast', qty: '3.0 kg', checked: false },
-  { item: 'Atlantic Salmon Fillet', qty: '2.0 kg', checked: true },
-  { item: 'Basmati Grains (Bulk)', qty: '5.0 kg', checked: false },
-  { item: 'Sweet Potato Tuber', qty: '2.5 kg', checked: false },
-  { item: 'Organic Spinach Matrix', qty: '1.0 kg', checked: true },
-  { item: 'Liquid Hydration (Oils)', qty: '500 ml', checked: false }
-];
+const DEFAULT_PROVISIONS = Object.freeze([
+  Object.freeze({ item: 'Kinetic Chicken Breast', qty: '3.0 kg', checked: false }),
+  Object.freeze({ item: 'Atlantic Salmon Fillet', qty: '2.0 kg', checked: true }),
+  Object.freeze({ item: 'Basmati Grains (Bulk)', qty: '5.0 kg', checked: false }),
+  Object.freeze({ item: 'Sweet Potato Tuber', qty: '2.5 kg', checked: false }),
+  Object.freeze({ item: 'Organic Spinach Matrix', qty: '1.0 kg', checked: true }),
+  Object.freeze({ item: 'Liquid Hydration (Oils)', qty: '500 ml', checked: false })
+]);
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: PrepSessionCard.
@@ -383,11 +383,13 @@ const MealPrepPlanner = () => {
     addNotification('Metabolic prep session registered', 'success');
   };
 
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Optimistic session removal.
+   * Updates local state and persists to storage asynchronously without side effects in state setters.
+   */
   const handleDeleteSession = useCallback(async (id) => {
-    // ⚡ OPTIMISTIC UI: Filter instantly
     const updated = activePrepPlan.filter(s => s.id !== id);
     setOptimisticPrepPlan(updated);
-
     await updateItem('meal_prep', { plan: updated });
     addNotification('Prep session purged from system logs', 'error');
   }, [activePrepPlan, updateItem, addNotification]);
