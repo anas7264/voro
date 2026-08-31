@@ -6,11 +6,13 @@ import { Checkbox } from "./Checkbox";
  * Prevents unnecessary re-renders when parent form state updates (e.g., during
  * high-frequency typing in sibling form fields), eliminating virtual DOM churn.
  */
-export const FormCheckbox = memo(({ name, label, error, required, ...props }) => {
+export const FormCheckbox = memo(({ name, label, error, required, id, ...props }) => {
+  const checkboxId = id || name;
   return (
     <div className="mb-4">
       <Checkbox
-        id={name}
+        id={checkboxId}
+        name={name}
         label={label}
         required={required}
         error={error}

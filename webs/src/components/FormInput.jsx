@@ -6,11 +6,12 @@ import { Input } from "./Input";
  * Prevents unnecessary re-renders when parent form state updates (e.g., during
  * high-frequency typing in sibling form fields), eliminating virtual DOM churn.
  */
-export const FormInput = memo(({ name, label, type = "text", error, required, ...props }) => {
+export const FormInput = memo(({ name, label, type = "text", error, required, id, ...props }) => {
+  const inputId = id || name;
   return (
     <div className="mb-4">
       <Input
-        id={name}
+        id={inputId}
         name={name}
         type={type}
         label={label}
