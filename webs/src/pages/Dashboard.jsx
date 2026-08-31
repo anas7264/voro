@@ -29,23 +29,23 @@ import Input from '@/components/Input';
 import Breadcrumb from '@/components/Breadcrumb';
 import Card from '@/components/Card';
 
-const MACRO_CONFIG = [
-  { label: 'Protein Density', macro: 'protein', color: 'voro-primary', icon: '🍗' },
-  { label: 'Carbohydrates', macro: 'carbs', color: 'voro-secondary', icon: '🍚' },
-  { label: 'Lipid Balance', macro: 'fat', color: 'voro-accent', icon: '🥑' },
-  { label: 'Aqueous Matrix', macro: 'water', color: 'primary', icon: '💧' }
-];
+const MACRO_CONFIG = Object.freeze([
+  Object.freeze({ label: 'Protein Density', macro: 'protein', color: 'voro-primary', icon: '🍗' }),
+  Object.freeze({ label: 'Carbohydrates', macro: 'carbs', color: 'voro-secondary', icon: '🍚' }),
+  Object.freeze({ label: 'Lipid Balance', macro: 'fat', color: 'voro-accent', icon: '🥑' }),
+  Object.freeze({ label: 'Aqueous Matrix', macro: 'water', color: 'primary', icon: '💧' })
+]);
 
-const STREAK_CONFIG = [
-  { key: 'training', label: 'Kinetic Stimulus', icon: <Flame size={18} />, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-  { key: 'logging', label: 'Nutritional Audit', icon: <Zap size={18} />, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
-  { key: 'water', label: 'Cellular Hydration', icon: <Droplets size={18} />, color: 'text-blue-500', bg: 'bg-blue-500/10' }
-];
+const STREAK_CONFIG = Object.freeze([
+  Object.freeze({ key: 'training', label: 'Kinetic Stimulus', icon: <Flame size={18} />, color: 'text-orange-500', bg: 'bg-orange-500/10' }),
+  Object.freeze({ key: 'logging', label: 'Nutritional Audit', icon: <Zap size={18} />, color: 'text-yellow-500', bg: 'bg-yellow-500/10' }),
+  Object.freeze({ key: 'water', label: 'Cellular Hydration', icon: <Droplets size={18} />, color: 'text-blue-500', bg: 'bg-blue-500/10' })
+]);
 
-const NAV_LINKS = [
-  { label: 'Biometrics', path: '/body/metrics', icon: <TrendingUp size={18} /> },
-  { label: 'Neural Intelligence', path: '/ai-coach', icon: <Activity size={18} /> }
-];
+const NAV_LINKS = Object.freeze([
+  Object.freeze({ label: 'Biometrics', path: '/body/metrics', icon: <TrendingUp size={18} /> }),
+  Object.freeze({ label: 'Neural Intelligence', path: '/ai-coach', icon: <Activity size={18} /> })
+]);
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Static greeting derivation.
@@ -71,13 +71,13 @@ const longDateFormatter = new Intl.DateTimeFormat('en-US', {
   day: 'numeric'
 });
 
-const INITIAL_NUTRITION = {
-  meals: {},
+const INITIAL_NUTRITION = Object.freeze({
+  meals: Object.freeze({}),
   water: 0,
-  totals: { calories: 0, protein: 0, carbs: 0, fat: 0 }
-};
+  totals: Object.freeze({ calories: 0, protein: 0, carbs: 0, fat: 0 })
+});
 
-const STREAK_KEYS = ['nutrition_log', 'workout_log'];
+const STREAK_KEYS = Object.freeze(['nutrition_log', 'workout_log']);
 
 /**
  * ⚡ LUXURY REFINEMENT: Volumetric 3D Interactive Telemetry Node
@@ -844,11 +844,11 @@ const Dashboard = () => {
   );
 };
 
-const QUICK_LOG_ICONS = {
+const QUICK_LOG_ICONS = Object.freeze({
   meal: Utensils,
   weight: Scale,
   water: Droplets
-};
+});
 
 const QuickLogModal = ({ isOpen, onClose, onSubmit }) => {
   const magnitudeId = useId();
