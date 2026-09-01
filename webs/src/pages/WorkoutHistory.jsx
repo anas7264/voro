@@ -202,7 +202,13 @@ const ChronoArchiveCard = React.memo(({ workout, idx, isExpanded, onToggle, node
         >
           <div className="overflow-hidden space-y-6">
             {workout.exercises?.map((ex, eIdx) => {
-              const exVol = ex.sets?.reduce((s, set) => s + (parseFloat(set.weight) || 0) * (parseInt(set.reps) || 0), 0) || 0;
+              let exVol = 0;
+              if (ex.sets) {
+                for (let k = 0; k < ex.sets.length; k++) {
+                  const s = ex.sets[k];
+                  exVol += (parseFloat(s.weight) || 0) * (parseInt(s.reps) || 0);
+                }
+              }
               return (
                 <div key={eIdx} className="p-6 rounded-2xl bg-white/[0.01] border border-white/5 hover:border-white/10 transition-all duration-500">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
