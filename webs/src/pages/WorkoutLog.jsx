@@ -21,6 +21,17 @@ const EXERCISES_LOWERCASE = Object.freeze(exercises.map(e => ({
 })));
 
 /**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted static default workout fallback.
+ * Prevents heap allocations on every storage key snapshot evaluation.
+ */
+const EMPTY_DAY_WORKOUT = Object.freeze({
+  attended: false,
+  type: 'Strength',
+  duration: 60,
+  exercises: Object.freeze([]),
+});
+
+/**
  * ⚡ PERFORMANCE OPTIMIZATION: Concurrent Exercise Search Modal
  * Defer heavy search filtering over 2,064 exercise items using useDeferredValue
  * to maintain 60fps input responsiveness during typing.
@@ -327,12 +338,7 @@ const WorkoutLog = () => {
    */
   const dayWorkout = useStorageKeySelector(
     'workout_log',
-    useCallback((log) => (log || {})[date] || {
-      attended: false,
-      type: 'Strength',
-      duration: 60,
-      exercises: [],
-    }, [date])
+    useCallback((log) => (log || {})[date] || EMPTY_DAY_WORKOUT, [date])
   );
 
   const { updateItem } = useStorageMethods();
@@ -405,10 +411,23 @@ const WorkoutLog = () => {
     });
   }, []);
 
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Zero-allocation total volume computation.
+   * Replaces nested .reduce() array allocations with a single-pass zero-allocation loop.
+   */
   const totalVolume = useMemo(() => {
-    return selectedExercises.reduce((sum, ex) => {
-      return sum + ex.sets.reduce((exSum, set) => exSum + (Number(set.weight) * Number(set.reps)), 0);
-    }, 0);
+    let volume = 0;
+    const numExercises = selectedExercises.length;
+    for (let i = 0; i < numExercises; i++) {
+      const sets = selectedExercises[i].sets;
+      if (!sets) continue;
+      const numSets = sets.length;
+      for (let j = 0; j < numSets; j++) {
+        const set = sets[j];
+        volume += (parseFloat(set.weight) || 0) * (parseInt(set.reps) || 0);
+      }
+    }
+    return volume;
   }, [selectedExercises]);
 
   const saveWorkout = useCallback(async () => {
