@@ -1,10 +1,15 @@
 import { useState, useCallback } from "react";
-import { useStorage } from "./useStorage";
+import { useStorageMethods } from "./useStorage";
 import { challenges } from "../data/challenges";
 import * as gamification from "../utils/gamification";
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity for Action Hook.
+ * Uses useStorageMethods() instead of useStorage() to get stable storage methods,
+ * eliminating broad global storage state subscriptions and unnecessary re-renders.
+ */
 export const useChallenge = () => {
-  const { getItem, setItem } = useStorage();
+  const { getItem, setItem } = useStorageMethods();
   const [activeChallenges, setActiveChallenges] = useState([]);
   const [userChallengeProgress, setUserChallengeProgress] = useState({});
 
