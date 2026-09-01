@@ -1,10 +1,15 @@
 import { useState, useCallback } from "react";
-import { useStorage } from "./useStorage";
+import { useStorageMethods } from "./useStorage";
 import * as pdfExport from "../utils/pdfExport";
 import { executeSecurely } from "../utils/security";
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity for Action Hook.
+ * Uses useStorageMethods() instead of useStorage() to prevent global storage state
+ * subscriptions, eliminating unnecessary re-renders when unrelated storage keys update.
+ */
 export const useExport = () => {
-  const { getItem } = useStorage();
+  const { getItem } = useStorageMethods();
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState(null);
   const [exportProgress, setExportProgress] = useState(0);

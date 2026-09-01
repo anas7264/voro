@@ -1,10 +1,11 @@
-import React, { useEffect, useId, useMemo } from "react";
+import React, { memo, useEffect, useId, useMemo } from "react";
 import { X } from "lucide-react";
 
 /**
  * ⚡ REFINEMENT: Luxury Neural Interruption Chamber (Modal).
  * Re-engineered with the Forge design system: high-fidelity charcoal architecture,
  * kinetic backdrop blurs, and industrial system telemetry.
+ * Wrapped in React.memo to prevent unnecessary re-renders when parent state updates.
  *
  * DESIGN PHILOSOPHY:
  * 1. Authority: Box-model architecture suggests a secure, isolated execution environment.
@@ -12,7 +13,7 @@ import { X } from "lucide-react";
  * 3. Motion: Scale-in transition with fluid backdrop absorption for a boutique feel.
  * 4. Atmosphere: Glassmorphic background with boutique grain texture.
  */
-export const Modal = ({ isOpen, onClose, title, children, size = "md", ...props }) => {
+export const Modal = memo(({ isOpen, onClose, title, children, size = "md", ...props }) => {
   const generatedId = useId();
   const titleId = `${generatedId}-title`;
 
@@ -140,6 +141,8 @@ export const Modal = ({ isOpen, onClose, title, children, size = "md", ...props 
       </div>
     </div>
   );
-};
+});
+
+Modal.displayName = "Modal";
 
 export default Modal;
