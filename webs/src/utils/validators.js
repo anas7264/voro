@@ -295,7 +295,16 @@ const HOMOGLYPHS_MAP = {
   // Mathematical Alphanumeric homoglyphs missing from standard NFKD
   '𝑕': 'h', '𝒝': 'b', '𝒠': 'e', '𝒡': 'f', '𝒣': 'h', '𝒤': 'i', '𝒧': 'l', '𝒨': 'm', '𝒭': 'r', '𝒺': 'e',
   '𝒼': 'g', '𝓄': 'o', '𝔆': 'c', '𝔋': 'h', '𝔌': 'i', '𝔕': 'r', '𝔝': 'z', '𝔺': 'c', '𝔿': 'h', '𝕅': 'n',
-  '𝕇': 'p', '𝕈': 'q', '𝕉': 'r', '𝕑': 'z'
+  '𝕇': 'p', '𝕈': 'q', '𝕉': 'r', '𝕑': 'z',
+  // Glagolitic homoglyphs (U+2C00-U+2C5F)
+  'ⰰ': 'a', 'Ⰰ': 'a', 'ⰱ': 'b', 'Ⰱ': 'b', 'ⰲ': 'v', 'Ⰲ': 'v', 'ⰳ': 'g', 'Ⰳ': 'g',
+  'ⰴ': 'd', 'Ⰴ': 'd', 'ⰵ': 'e', 'Ⰵ': 'e', 'ⰶ': 'zh', 'Ⰶ': 'zh', 'ⰷ': 'z', 'Ⰷ': 'z',
+  'ⰸ': 'z', 'Ⰸ': 'z', 'ⰹ': 'i', 'Ⰹ': 'i', 'ⰺ': 'i', 'Ⰺ': 'i', 'ⰻ': 'i', 'Ⰻ': 'i',
+  'ⰼ': 'k', 'Ⰼ': 'k', 'ⰽ': 'k', 'Ⰽ': 'k', 'ⰾ': 'l', 'Ⰾ': 'l', 'ⰿ': 'm', 'Ⰿ': 'm',
+  'ⱀ': 'n', 'Ⱀ': 'n', 'ⱁ': 'o', 'Ⱁ': 'o', 'ⱂ': 'p', 'Ⱂ': 'p', 'ⱃ': 'r', 'Ⱃ': 'r',
+  'ⱄ': 's', 'Ⱄ': 's', 'ⱅ': 't', 'Ⱅ': 't', 'ⱆ': 'u', 'Ⱆ': 'u', 'ⱇ': 'f', 'Ⱇ': 'f',
+  'ⱈ': 'x', 'Ⱈ': 'x', 'ⱉ': 'ot', 'Ⱉ': 'ot', 'ⱊ': 'c', 'Ⱊ': 'c', 'ⱋ': 'ch', 'Ⱋ': 'ch',
+  'ⱌ': 'c', 'Ⱌ': 'c', 'ⱍ': 'ch', 'Ⱍ': 'ch', 'ⱎ': 'sh', 'Ⱎ': 'sh'
 };
 
 // Map of Superscript and Subscript Latin code points to standard ASCII Latin characters
@@ -638,13 +647,13 @@ export const isPromptInjection = (query, isNested = false) => {
   let normalizedQuery = decodedQuery.normalize('NFKD').toLowerCase();
   // Strip combining diacritical marks across all standard Unicode diacritic blocks (including extended, supplement, symbols, and half-marks)
   normalizedQuery = normalizedQuery.replace(/[\u0300-\u036f\u1ab0-\u1aff\u1dc0-\u1dff\u20d0-\u20ff\ufe20-\ufe2f]/g, '');
-  // Translate Cyrillic, Greek, Coptic, Armenian, Cherokee, Georgian, Hebrew, Canadian Aboriginal, and Mathematical homoglyphs to Latin equivalents
-  normalizedQuery = normalizedQuery.replace(/[\u0400-\u04FF\u0370-\u03FF\u2C80-\u2CFF\u0530-\u058F\uAB70-\uABBF\u10A0-\u10C5\u2D00-\u2D25\u0590-\u05FF\u1400-\u167F\u{1D400}-\u{1D7FF}]/gu, char => HOMOGLYPHS_MAP[char] || char);
+  // Translate Cyrillic, Greek, Coptic, Armenian, Cherokee, Georgian, Hebrew, Canadian Aboriginal, Glagolitic, and Mathematical homoglyphs to Latin equivalents
+  normalizedQuery = normalizedQuery.replace(/[\u0400-\u04FF\u0370-\u03FF\u2C80-\u2CFF\u0530-\u058F\uAB70-\uABBF\u10A0-\u10C5\u2D00-\u2D25\u0590-\u05FF\u1400-\u167F\u2C00-\u2C5F\u{1D400}-\u{1D7FF}]/gu, char => HOMOGLYPHS_MAP[char] || char);
 
-  // 3. Clean zero-width, formatting, Variation Selectors (U+FE00-U+FE0F & U+E0100-U+E01EF), Control Pictures (U+2400-U+243F), Hangul Fillers, and invisible characters, and condense consecutive whitespaces
+  // 3. Clean zero-width, formatting, Variation Selectors (U+FE00-U+FE0F & U+E0100-U+E01EF), Control Pictures (U+2400-U+243F), Musical Symbol Format Controls, Shorthand Format Controls, Egyptian Hieroglyph Format Controls, Invisible Operators, Hangul Fillers, and invisible characters, and condense consecutive whitespaces
   normalizedQuery = normalizedQuery
     .replace(/[\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff\u00ad\u2400-\u243f\ufe00-\ufe0f\u180e\u1680\u20dd-\u20e4\u3164\uffa0\u115f\u1160]/g, '')
-    .replace(/[\u{E0100}-\u{E01EF}]/gu, '')
+    .replace(/[\u{E0100}-\u{E01EF}\u{1D173}-\u{1D17A}\u{1BCA0}-\u{1BCA3}\u{13430}-\u{1343F}]/gu, '')
     .replace(/\s+/g, ' ');
 
   // 1. Delimiter hijacking detection (VORO specific nonced blocks or closing tags, evaluated after full normalization and invisible character stripping)
