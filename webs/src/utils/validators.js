@@ -672,44 +672,49 @@ export const isPromptInjection = (query, isNested = false) => {
   const compressedQuery = normalizedQuery.replace(NON_ALPHANUM_RE, '');
   if (COMPRESSED_BLOCKLIST_RE.test(compressedQuery)) return true;
 
-  // Security: Scan and decode Base64, Base32, Hex, ROT13, ROT47, and reversed-string obfuscated prompt injection payloads
+  // Security: Scan and decode Base64, Base32, Hex, ROT13, ROT47, and reversed-string obfuscated prompt injection payloads.
+  // Evaluate over decodedQuery (which strips escape sequences, HTML entities, and percent-encoding) as well as raw query
+  // to neutralize multi-pass encoding bypass attempts.
   if (!isNested) {
-    const hexMatches = query.match(HEX_MATCH_RE) || [];
-    for (const match of hexMatches) {
-      const decoded = safeDecodeHex(match);
-      if (decoded && isPromptInjection(decoded, true)) {
+    const targets = decodedQuery !== query ? [decodedQuery, query] : [query];
+    for (const targetStr of targets) {
+      const hexMatches = targetStr.match(HEX_MATCH_RE) || [];
+      for (const match of hexMatches) {
+        const decoded = safeDecodeHex(match);
+        if (decoded && isPromptInjection(decoded, true)) {
+          return true;
+        }
+      }
+
+      const base64Matches = targetStr.match(BASE64_MATCH_RE) || [];
+      for (const match of base64Matches) {
+        const decoded = safeAtob(match);
+        if (decoded && isPromptInjection(decoded, true)) {
+          return true;
+        }
+      }
+
+      const base32Decoded = safeDecodeBase32(targetStr.trim());
+      if (base32Decoded && isPromptInjection(base32Decoded, true)) {
         return true;
       }
-    }
 
-    const base64Matches = query.match(BASE64_MATCH_RE) || [];
-    for (const match of base64Matches) {
-      const decoded = safeAtob(match);
-      if (decoded && isPromptInjection(decoded, true)) {
+      // Security: Handle ROT13 and ROT47-encoded obfuscation and evaluate recursively
+      const rot13Decoded = safeDecodeRot13(targetStr);
+      if (rot13Decoded && isPromptInjection(rot13Decoded, true)) {
         return true;
       }
-    }
 
-    const base32Decoded = safeDecodeBase32(query.trim());
-    if (base32Decoded && isPromptInjection(base32Decoded, true)) {
-      return true;
-    }
+      const rot47Decoded = safeDecodeRot47(targetStr);
+      if (rot47Decoded && isPromptInjection(rot47Decoded, true)) {
+        return true;
+      }
 
-    // Security: Handle ROT13 and ROT47-encoded obfuscation and evaluate recursively
-    const rot13Decoded = safeDecodeRot13(query);
-    if (rot13Decoded && isPromptInjection(rot13Decoded, true)) {
-      return true;
-    }
-
-    const rot47Decoded = safeDecodeRot47(query);
-    if (rot47Decoded && isPromptInjection(rot47Decoded, true)) {
-      return true;
-    }
-
-    // Security: Handle reversed-string/words obfuscation and evaluate recursively
-    const reversedStr = safeReverseString(query);
-    if (reversedStr && isPromptInjection(reversedStr, true)) {
-      return true;
+      // Security: Handle reversed-string/words obfuscation and evaluate recursively
+      const reversedStr = safeReverseString(targetStr);
+      if (reversedStr && isPromptInjection(reversedStr, true)) {
+        return true;
+      }
     }
   }
 

@@ -281,3 +281,14 @@ Always sanitize download filenames by stripping path traversal sequences (`..`),
 
 **Prevention:**
 Enforce strict filename sanitization on all export/download utility entry points. Guarantee resource cleanup for ephemeral Object URLs by placing `URL.revokeObjectURL` inside a `finally` block.
+
+## 2026-09-01 - Multi-Pass Entity & Escape Sequence Obfuscation Prompt Injection Bypass
+
+**Vulnerability:**
+Prompt injection detectors that evaluate secondary encoding schemes (such as Base64, Base32, Hex, ROT13, ROT47, or reversed strings) on raw user input can be bypassed if the payload is wrapped in a preliminary encoding layer (e.g., HTML entity encoding or string escape sequences like `\xXX`). The initial entity/escape decoder converts the input to literal Base64 or ROT13, but because the secondary decoders were only executed on the raw input, the obfuscated payload bypasses detection while still reaching the downstream LLM.
+
+**Learning:**
+Secondary obfuscation decoders must be executed over `decodedQuery` (after initial entity, percent, and escape sequence decoders have processed the raw string) in addition to the raw input. This ensures multi-pass nested encoding chains are completely unwrapped before evaluation.
+
+**Prevention:**
+Always run secondary and recursive obfuscation decoders on pre-processed/decoded strings rather than raw input alone, ensuring that outer encoding layers cannot shield inner malicious payloads.
