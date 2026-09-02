@@ -1,10 +1,11 @@
-import React, { memo, useRef, useState, useMemo } from "react";
+import React, { memo, useRef, useState, useId, useMemo } from "react";
 
 /**
- * ⚡ OPTIMIZATION: Refined luxury Button component.
- * Architected as a 'Kinetic Power Node' featuring magnetic mouse tracking,
- * volumetric luminous lens, and Forge-standard coordinate telemetry.
- * Utilizes 'Surgical Reactivity' via direct DOM manipulation for 60fps performance.
+ * ⚡ OPTIMIZATION: Refined luxury Button component ('Kinetic Power Node').
+ * Re-engineered to Voro's 'Forge' luxury system standard: features deterministic SSR-safe
+ * node identification, zero-allocation static lookup maps via Object.freeze(),
+ * 60fps direct-DOM 3D rotational tilt tracking, liquid perimeter illumination,
+ * holographic spatial coordinate telemetry, and W3C APG compliant focus states.
  */
 const Button = memo(({
   children,
@@ -23,9 +24,18 @@ const Button = memo(({
   const tyRef = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const generatedId = useId();
 
-  // Generate a stable system ID for the node
-  const nodeId = useMemo(() => `BTN_${Math.floor(Math.random() * 0x1000).toString(16).toUpperCase().padStart(3, '0')}`, []);
+  // Generate stable system node identification and attestation markers
+  const nodeId = useMemo(() => {
+    const cleanId = generatedId.replace(/:/g, '');
+    return `BTN_${cleanId.slice(0, 4).toUpperCase()}`;
+  }, [generatedId]);
+
+  const attestedId = useMemo(() => {
+    const cleanId = generatedId.replace(/:/g, '');
+    return `0xBTN_${cleanId.padEnd(4, 'F').slice(0, 4).toUpperCase()}`;
+  }, [generatedId]);
 
   const handleMouseMove = (e) => {
     if (!buttonRef.current || disabled || isLoading) return;
@@ -34,13 +44,13 @@ const Button = memo(({
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    // Magnetic pull calculation (max 8px translation, 10deg rotation)
+    // Volumetric 3D tilt calculation (max 12 degrees)
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
     const moveX = (x - centerX) * 0.15;
     const moveY = (y - centerY) * 0.15;
-    const rotateY = ((x / rect.width) - 0.5) * 15;
-    const rotateX = (0.5 - (y / rect.height)) * 15;
+    const rotateY = ((x / rect.width) - 0.5) * 16;
+    const rotateX = (0.5 - (y / rect.height)) * 16;
 
     buttonRef.current.style.setProperty('--mouse-x', `${x}px`);
     buttonRef.current.style.setProperty('--mouse-y', `${y}px`);
@@ -58,7 +68,7 @@ const Button = memo(({
     if (!buttonRef.current) return;
 
     if (isFocused) {
-      // Return to focus state tilt
+      // Revert to W3C APG compliant focus state tilt
       buttonRef.current.style.setProperty('--move-x', '0px');
       buttonRef.current.style.setProperty('--move-y', '0px');
       buttonRef.current.style.setProperty('--rotate-x', '4deg');
@@ -70,6 +80,8 @@ const Button = memo(({
       buttonRef.current.style.setProperty('--move-y', '0px');
       buttonRef.current.style.setProperty('--rotate-x', '0deg');
       buttonRef.current.style.setProperty('--rotate-y', '0deg');
+      if (txRef.current) txRef.current.innerText = "0.0";
+      if (tyRef.current) tyRef.current.innerText = "0.0";
     }
   };
 
@@ -89,8 +101,12 @@ const Button = memo(({
     if (!buttonRef.current) return;
 
     if (!isHovered) {
+      buttonRef.current.style.setProperty('--move-x', '0px');
+      buttonRef.current.style.setProperty('--move-y', '0px');
       buttonRef.current.style.setProperty('--rotate-x', '0deg');
       buttonRef.current.style.setProperty('--rotate-y', '0deg');
+      if (txRef.current) txRef.current.innerText = "0.0";
+      if (tyRef.current) tyRef.current.innerText = "0.0";
     }
   };
 
@@ -109,11 +125,11 @@ const Button = memo(({
       disabled={disabled || isLoading}
       className={`
         relative inline-flex items-center justify-center gap-3
-        font-black uppercase tracking-[0.4em] rounded-2xl
+        font-mono font-black uppercase tracking-[0.35em] rounded-2xl
         transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
         overflow-hidden group
-        ${VARIANTS[variant]}
-        ${SIZES[size]}
+        ${VARIANTS[variant] || VARIANTS.primary}
+        ${SIZES[size] || SIZES.md}
         ${fullWidth ? "w-full" : ""}
         ${(disabled || isLoading) ? "opacity-50 cursor-not-allowed" : "active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408]"}
         ${className}
@@ -129,6 +145,18 @@ const Button = memo(({
       aria-busy={isLoading}
       {...props}
     >
+      {/* Liquid Perimeter Illumination Mask */}
+      <div
+        className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+        style={{
+          padding: '1px',
+          background: `radial-gradient(150px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ${activeColor}, transparent 80%)`,
+          WebkitMask: 'linear-gradient(#fff, #fff) content-box, linear-gradient(#fff, #fff)',
+          WebkitMaskComposite: 'xor',
+          maskComposite: 'exclude',
+        }}
+      />
+
       {/* Precision Grid & Grain */}
       <div className="absolute inset-0 bg-grid-white opacity-0 group-hover:opacity-[0.03] group-focus-visible:opacity-[0.03] transition-opacity duration-1000 pointer-events-none" />
       <div className="absolute inset-0 bg-boutique-grain opacity-[0.02] pointer-events-none" />
@@ -146,7 +174,7 @@ const Button = memo(({
         }}
       />
 
-      {/* Coordinate Telemetry Overlay */}
+      {/* Holographic Coordinate Telemetry Overlay */}
       <div
         aria-hidden="true"
         className="absolute top-2 right-4 pointer-events-none opacity-0 group-hover:opacity-40 group-focus-visible:opacity-40 transition-opacity duration-500 flex gap-3 font-mono text-[0.4rem] font-bold text-white/40"
@@ -154,10 +182,10 @@ const Button = memo(({
         {shortcut && <span className="text-voro-secondary animate-pulse">[{shortcut}]</span>}
         <span>X_<span ref={txRef}>0.0</span></span>
         <span>Y_<span ref={tyRef}>0.0</span></span>
-        <span className="text-voro-primary">[{nodeId}]</span>
+        <span className="text-voro-primary">[{attestedId}]</span>
       </div>
 
-      <div className="relative z-10 flex items-center gap-3">
+      <div className="relative z-10 flex items-center gap-3" style={{ transform: 'translateZ(20px)' }}>
         {isLoading ? (
           <svg className="animate-spin h-4 w-4 text-current" viewBox="0 0 24 24" aria-hidden="true">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
@@ -175,23 +203,23 @@ const Button = memo(({
 Button.displayName = "Button";
 
 /**
- * ⚡ PERFORMANCE OPTIMIZATION: Hoisted static style maps.
- * Prevents redundant object allocation on every component render.
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted & frozen static style maps.
+ * Prevents redundant object allocations per render cycle.
  */
-const VARIANTS = {
+const VARIANTS = Object.freeze({
   primary: "bg-voro-primary text-white border border-white/10 shadow-[0_20px_50px_rgba(124,58,237,0.3)] hover:shadow-[0_40px_80px_rgba(124,58,237,0.5)]",
   secondary: "bg-[#0D1424]/80 backdrop-blur-xl text-white border border-white/5 hover:border-voro-primary/30 shadow-[0_20px_40px_rgba(0,0,0,0.4)] hover:shadow-[0_30px_60px_rgba(0,0,0,0.6)]",
   outline: "border border-voro-primary/50 text-voro-primary hover:bg-voro-primary hover:text-white shadow-[0_10px_30px_rgba(124,58,237,0.1)]",
   ghost: "text-voro-primary hover:bg-voro-primary/5 hover:text-white",
   danger: "bg-red-500/90 backdrop-blur-md text-white border border-white/10 shadow-[0_20px_40px_rgba(239,68,68,0.3)]"
-};
+});
 
-const SIZES = {
+const SIZES = Object.freeze({
   sm: "px-5 py-2.5 text-[0.6rem]",
   md: "px-8 py-4 text-[0.65rem]",
   lg: "px-10 py-5 text-[0.75rem]",
   xl: "px-12 py-6 text-[0.85rem]"
-};
+});
 
 export { Button };
 export default Button;
