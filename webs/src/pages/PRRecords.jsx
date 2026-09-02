@@ -19,16 +19,12 @@ const fullDateFormatter = new CachedDateTimeFormat('en-US', {
 });
 
 /**
- * ⚡ PERFORMANCE OPTIMIZATION: Hoisted static exercise metadata map.
- * Prevents O(N) reduction of the exercises data on every render.
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted static exercise metadata map with zero allocations.
+ * Reuses existing exercise objects directly from exercise dataset rather than allocating
+ * new objects per entry on module initialization.
  */
 const EXERCISE_METADATA_MAP = Object.freeze(exercises.reduce((acc, e) => {
-  acc[e.id] = {
-    name: e.name,
-    category: e.category,
-    equipment: e.equipment,
-    difficulty: e.difficulty
-  };
+  acc[e.id] = e;
   return acc;
 }, {}));
 
@@ -44,25 +40,7 @@ const ApexPRCard = React.memo(({ item, nodeId }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
-  /**
-   * ⚡ PERFORMANCE OPTIMIZATION: Zero-allocation estimated 1RM computation.
-   * Replaces intermediate array allocation (.map) and Math.max spread with a single
-   * pass for loop over records.
-   */
-  const estimated1RM = useMemo(() => {
-    const recs = item.records;
-    if (!recs || recs.length === 0) return 0;
-
-    let maxEst = 0;
-    for (let i = 0; i < recs.length; i++) {
-      const r = recs[i];
-      const w = parseFloat(r.weight) || 0;
-      const reps = parseInt(r.reps) || 1;
-      const est = reps === 1 ? w : w * (1 + reps / 30);
-      if (est > maxEst) maxEst = est;
-    }
-    return maxEst;
-  }, [item.records]);
+  const estimated1RM = item.estimated1RM || 0;
 
   const handleMouseMove = (e) => {
     if (!containerRef.current) return;
@@ -257,34 +235,45 @@ const PRRecords = () => {
 
   /**
    * ⚡ OPTIMIZATION: Synchronous data synthesis using useMemo.
-   * Eliminates the mount-time double-render cycle and ensures
-   * reactivity to storage changes without secondary state management.
+   * Single-pass normalization: pre-computes estimated 1RM and formats record dates
+   * to eliminate duplicate iterations and hooks inside child components.
    */
   const prs = useMemo(() => {
     const data = prHistory || {};
 
     return Object.entries(data).map(([exerciseId, records]) => {
       const meta = EXERCISE_METADATA_MAP[exerciseId] || {};
+      const sortedRecords = Array.isArray(records) ? [...records].sort((a, b) => {
+        const dA = a.date || '';
+        const dB = b.date || '';
+        return dA < dB ? 1 : dA > dB ? -1 : 0;
+      }).map(r => ({
+        ...r,
+        formattedDate: fullDateFormatter.format(r.date)
+      })) : [];
+
+      let maxEst = 0;
+      for (let i = 0; i < sortedRecords.length; i++) {
+        const r = sortedRecords[i];
+        const w = parseFloat(r.weight) || 0;
+        const reps = parseInt(r.reps) || 1;
+        const est = reps === 1 ? w : w * (1 + reps / 30);
+        if (est > maxEst) maxEst = est;
+      }
+
       return {
         exerciseId,
         exerciseName: meta.name || 'Unknown Pattern',
         category: meta.category || 'General',
         equipment: meta.equipment || 'Standard',
         difficulty: meta.difficulty || 'Advanced',
-        /* ⚡ PERFORMANCE OPTIMIZATION: Raw Relational Sort Optimization.
-           Utilizes raw string relational comparison to avoid both dynamic Date
-           allocation and localeCompare engine overhead. Safe-guarded with falls. */
-        records: Array.isArray(records) ? [...records].sort((a, b) => {
-          const dA = a.date || '';
-          const dB = b.date || '';
-          return dA < dB ? 1 : dA > dB ? -1 : 0;
-        }).map(r => ({
-          ...r,
-          formattedDate: fullDateFormatter.format(r.date)
-        })) : [],
+        records: sortedRecords,
+        estimated1RM: maxEst,
       };
     }).filter(pr => pr.records.length > 0);
   }, [prHistory]);
+
+  const sanitizedPageId = useMemo(() => pageId.replace(/:/g, ''), [pageId]);
 
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] pb-24 selection:bg-voro-primary/30 relative overflow-hidden">
@@ -335,7 +324,7 @@ const PRRecords = () => {
         {prs.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
             {prs.map((item, idx) => {
-              const uniqueNodeId = `PR_NODE_${pageId.replace(/:/g, '')}_${idx}`;
+              const uniqueNodeId = `PR_NODE_${sanitizedPageId}_${idx}`;
               return (
                 <div key={item.exerciseId} className="animate-slide-up" style={{ animationDelay: `${idx * 80}ms` }}>
                   <ApexPRCard item={item} nodeId={uniqueNodeId} />
