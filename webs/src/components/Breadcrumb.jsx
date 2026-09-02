@@ -38,23 +38,24 @@ export const Breadcrumb = memo(({ items = [], className = "" }) => {
                 {!isLast ? (
                   <Link
                     to={item.href || "#"}
+                    aria-label={`Navigate to ${item.label}`}
                     className="relative flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-500 hover:bg-white/[0.03] hover:backdrop-blur-md focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408] outline-none group/link"
                   >
                     {/* System Telemetry Marker */}
                     <span
-                      className="text-[0.45rem] font-mono font-bold text-gray-700 group-hover/link:text-voro-primary transition-colors duration-500"
+                      className="text-[0.45rem] font-mono font-bold text-gray-700 group-hover/link:text-voro-primary group-focus-visible/link:text-voro-primary transition-colors duration-500"
                       aria-hidden="true"
                     >
                       {segmentId}
                     </span>
 
                     {/* Path Segment */}
-                    <span className="text-[0.65rem] font-mono font-black uppercase tracking-[0.2em] text-gray-500 group-hover/link:text-gray-200 transition-colors duration-500">
+                    <span className="text-[0.65rem] font-mono font-black uppercase tracking-[0.2em] text-gray-500 group-hover/link:text-gray-200 group-focus-visible/link:text-gray-200 transition-colors duration-500">
                       {item.label}
                     </span>
 
                     {/* Kinetic Underline */}
-                    <div className="absolute bottom-0 left-3 right-3 h-[1px] bg-voro-primary scale-x-0 group-hover/link:scale-x-100 transition-transform duration-500 origin-left shadow-[0_0_8px_rgba(124,58,237,0.5)]" />
+                    <div className="absolute bottom-0 left-3 right-3 h-[1px] bg-voro-primary scale-x-0 group-hover/link:scale-x-100 group-focus-visible/link:scale-x-100 transition-transform duration-500 origin-left shadow-[0_0_8px_rgba(124,58,237,0.5)]" />
                   </Link>
                 ) : (
                   <div
