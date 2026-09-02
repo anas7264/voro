@@ -332,6 +332,30 @@ const decodeSuperAndSubscripts = (str) => {
   return changed ? decoded : str;
 };
 
+// Map of Unicode Braille Patterns (U+2800-U+283F) to ASCII Latin characters
+const BRAILLE_MAP = {
+  0x2801: 'a', 0x2803: 'b', 0x2809: 'c', 0x2819: 'd', 0x2811: 'e', 0x280B: 'f', 0x281B: 'g', 0x2813: 'h', 0x280A: 'i', 0x281A: 'j',
+  0x2805: 'k', 0x2807: 'l', 0x280D: 'm', 0x281D: 'n', 0x2815: 'o', 0x280F: 'p', 0x281F: 'q', 0x2817: 'r', 0x280E: 's', 0x281E: 't',
+  0x2825: 'u', 0x2827: 'v', 0x283A: 'w', 0x282D: 'x', 0x283D: 'y', 0x2835: 'z'
+};
+
+// Helper to decode Unicode Braille Patterns (U+2800-U+28FF) into standard ASCII letters
+const decodeBraillePatterns = (str) => {
+  if (!str || typeof str !== 'string') return str;
+  let decoded = '';
+  let changed = false;
+  for (const char of str) {
+    const code = char.codePointAt(0);
+    if (code >= 0x2800 && code <= 0x28FF) {
+      decoded += BRAILLE_MAP[code] || ' ';
+      changed = true;
+    } else {
+      decoded += char;
+    }
+  }
+  return changed ? decoded : str;
+};
+
 // Helper to decode Unicode Tag Characters (ASCII Smuggling / Invisible Language Tags)
 // Maps Unicode Tag code points (U+E0020 - U+E007E) to printable ASCII (0x20 - 0x7E)
 const decodeUnicodeTagCharacters = (str) => {
@@ -524,6 +548,62 @@ const BASE64_FORMAT_RE = /^[A-Za-z0-9+/]+={0,2}$/;
 const BASE32_FORMAT_RE = /^[A-Z2-7=]+$/i;
 const NON_PRINTABLE_ASCII_RE = /[\x00-\x09\x0B\x0C\x0E-\x1F\x7F-\xFF]/;
 const HEX_FORMAT_RE = /^[0-9a-fA-F]{8,}$/;
+const BINARY_MATCH_RE = /(?:[01]{7,8}(?:[\s,.\-_\/]+|$)){2,}/g;
+
+const MORSE_MAP = {
+  '.-': 'a', '-...': 'b', '-.-.': 'c', '-..': 'd', '.': 'e', '..-.': 'f', '--.': 'g', '....': 'h', '..': 'i', '.---': 'j',
+  '-.-': 'k', '.-..': 'l', '--': 'm', '-.': 'n', '---': 'o', '.--.': 'p', '--.-': 'q', '.-.': 'r', '...': 's', '-': 't',
+  '..-': 'u', '...-': 'v', '.--': 'w', '-..-': 'x', '-.--': 'y', '--..': 'z', '-----': '0', '.----': '1', '..---': '2',
+  '...--': '3', '....-': '4', '.....': '5', '-....': '6', '--...': '7', '---..': '8', '----.': '9'
+};
+
+const MORSE_MATCH_RE = /(?:[.\-•–—_]{1,7}(?:[\s\/]+|$)){3,}/g;
+const MORSE_FORMAT_RE = /^[.\-•–—_\s\/]{8,}$/;
+
+// Helper to safely decode space/byte-separated binary octets
+const safeDecodeBinary = (str) => {
+  try {
+    if (!str || typeof str !== 'string' || str.length < 14) return null;
+    const tokens = str.trim().split(/[\s,.\-_\/]+/);
+    let decoded = '';
+    for (const token of tokens) {
+      if (!token) continue;
+      if (!/^[01]{7,8}$/.test(token)) return null;
+      const code = parseInt(token, 2);
+      if (code < 32 || code > 126) return null;
+      decoded += String.fromCharCode(code);
+    }
+    return decoded.length >= 8 ? decoded : null;
+  } catch (e) {
+    return null;
+  }
+};
+
+// Helper to safely decode Morse code sequences (dots and dashes)
+const safeDecodeMorse = (str) => {
+  try {
+    if (!str || typeof str !== 'string' || str.length < 8) return null;
+    const cleanStr = str.trim().replace(/[•]/g, '.').replace(/[–—_]/g, '-');
+    if (!MORSE_FORMAT_RE.test(cleanStr)) return null;
+
+    const words = cleanStr.split(/\s*[\/]\s*|\s{2,}/);
+    let decoded = '';
+    for (const word of words) {
+      if (!word) continue;
+      const letters = word.trim().split(/\s+/);
+      for (const letter of letters) {
+        if (!letter) continue;
+        if (!MORSE_MAP[letter]) return null;
+        decoded += MORSE_MAP[letter];
+      }
+      decoded += ' ';
+    }
+    const result = decoded.trim();
+    return result.length >= 8 ? result : null;
+  } catch (e) {
+    return null;
+  }
+};
 
 // Helper to safely decode Base32 strings (RFC 4648) with printable-ASCII verification
 const safeDecodeBase32 = (str) => {
@@ -641,8 +721,8 @@ const BASE64_MATCH_RE = /[A-Za-z0-9+/]{8,}=*/g;
 export const isPromptInjection = (query, isNested = false) => {
   if (!query || typeof query !== 'string') return false;
 
-  // Security: Decode escape sequences, Enclosed Alphanumerics, Latin Small Caps, Superscript/Subscripts, Regional Indicator Symbols, Unicode Tag characters (ASCII Smuggling), URL percent-encoding, and HTML entities first
-  const decodedQuery = decodeEnclosedAlphanumerics(decodePercentEncoding(decodeHTMLEntities(decodeUnicodeTagCharacters(decodeRegionalIndicatorSymbols(decodeLatinSmallCaps(decodeSuperAndSubscripts(decodeEnclosedAlphanumerics(decodeEscapeSequences(query)))))))));
+  // Security: Decode escape sequences, Enclosed Alphanumerics, Latin Small Caps, Superscript/Subscripts, Regional Indicator Symbols, Unicode Tag characters (ASCII Smuggling), Braille patterns, URL percent-encoding, and HTML entities first
+  const decodedQuery = decodeBraillePatterns(decodeEnclosedAlphanumerics(decodePercentEncoding(decodeHTMLEntities(decodeUnicodeTagCharacters(decodeRegionalIndicatorSymbols(decodeLatinSmallCaps(decodeSuperAndSubscripts(decodeEnclosedAlphanumerics(decodeEscapeSequences(query))))))))));
 
   let normalizedQuery = decodedQuery.normalize('NFKD').toLowerCase();
   // Strip combining diacritical marks across all standard Unicode diacritic blocks (including extended, supplement, symbols, and half-marks)
@@ -650,9 +730,9 @@ export const isPromptInjection = (query, isNested = false) => {
   // Translate Cyrillic, Greek, Coptic, Armenian, Cherokee, Georgian, Hebrew, Canadian Aboriginal, Glagolitic, and Mathematical homoglyphs to Latin equivalents
   normalizedQuery = normalizedQuery.replace(/[\u0400-\u04FF\u0370-\u03FF\u2C80-\u2CFF\u0530-\u058F\uAB70-\uABBF\u10A0-\u10C5\u2D00-\u2D25\u0590-\u05FF\u1400-\u167F\u2C00-\u2C5F\u{1D400}-\u{1D7FF}]/gu, char => HOMOGLYPHS_MAP[char] || char);
 
-  // 3. Clean zero-width, formatting, Variation Selectors (U+FE00-U+FE0F & U+E0100-U+E01EF), Control Pictures (U+2400-U+243F), Musical Symbol Format Controls, Shorthand Format Controls, Egyptian Hieroglyph Format Controls, Invisible Operators, Hangul Fillers, and invisible characters, and condense consecutive whitespaces
+  // 3. Clean zero-width, formatting, Line/Paragraph Separators (U+2028, U+2029), Medium Math Space (U+205F), Ideographic Space (U+3000), Variation Selectors (U+FE00-U+FE0F & U+E0100-U+E01EF), Control Pictures (U+2400-U+243F), Musical Symbol Format Controls, Shorthand Format Controls, Egyptian Hieroglyph Format Controls, Invisible Operators, Hangul Fillers, and invisible characters, and condense consecutive whitespaces
   normalizedQuery = normalizedQuery
-    .replace(/[\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff\u00ad\u2400-\u243f\ufe00-\ufe0f\u180e\u1680\u20dd-\u20e4\u3164\uffa0\u115f\u1160]/g, '')
+    .replace(/[\u200b-\u200f\u2028\u2029\u202a-\u202e\u205f\u2060-\u206f\u3000\ufeff\u00ad\u2400-\u243f\ufe00-\ufe0f\u180e\u1680\u20dd-\u20e4\u3164\uffa0\u115f\u1160]/g, '')
     .replace(/[\u{E0100}-\u{E01EF}\u{1D173}-\u{1D17A}\u{1BCA0}-\u{1BCA3}\u{13430}-\u{1343F}]/gu, '')
     .replace(/\s+/g, ' ');
 
@@ -697,6 +777,22 @@ export const isPromptInjection = (query, isNested = false) => {
       const base32Decoded = safeDecodeBase32(targetStr.trim());
       if (base32Decoded && isPromptInjection(base32Decoded, true)) {
         return true;
+      }
+
+      const binaryMatches = targetStr.match(BINARY_MATCH_RE) || [];
+      for (const match of binaryMatches) {
+        const binaryDecoded = safeDecodeBinary(match);
+        if (binaryDecoded && isPromptInjection(binaryDecoded, true)) {
+          return true;
+        }
+      }
+
+      const morseMatches = targetStr.match(MORSE_MATCH_RE) || [];
+      for (const match of morseMatches) {
+        const morseDecoded = safeDecodeMorse(match);
+        if (morseDecoded && isPromptInjection(morseDecoded, true)) {
+          return true;
+        }
       }
 
       // Security: Handle ROT13 and ROT47-encoded obfuscation and evaluate recursively
