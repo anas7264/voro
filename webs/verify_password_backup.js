@@ -279,6 +279,24 @@ const runTests = async () => {
     throw new Error("❌ Failure: v2 backup import failed!");
   }
 
+  // --- TEST 6: Out-of-bounds PBKDF2 iterations are safely rejected ---
+  console.log("🛡️ Test 6: Verifying out-of-bounds, negative, or non-finite PBKDF2 iteration values in backup decryption are safely rejected...");
+  const maliciousPayload1 = { ...encrypted, iterations: 100000000 }; // 100M iterations (DoS vector)
+  const maliciousPayload2 = { ...encrypted, iterations: 500 }; // < 10000 iterations (weak key derivation)
+  const maliciousPayload3 = { ...encrypted, iterations: -50 }; // Negative iterations
+  const maliciousPayload4 = { ...encrypted, iterations: "invalid" }; // Non-numeric iterations
+
+  const res1 = await voroCrypto.decryptWithPassword(maliciousPayload1, password);
+  const res2 = await voroCrypto.decryptWithPassword(maliciousPayload2, password);
+  const res3 = await voroCrypto.decryptWithPassword(maliciousPayload3, password);
+  const res4 = await voroCrypto.decryptWithPassword(maliciousPayload4, password);
+
+  if (res1 === null && res2 === null && res3 === null && res4 === null) {
+    console.log("✅ Success: Out-of-bounds and invalid PBKDF2 iteration vectors were safely rejected without hanging.");
+  } else {
+    throw new Error("❌ Failure: Malicious iteration payloads were not properly rejected!");
+  }
+
   console.log("\n🎉 ALL PASSWORD-BASED BACKUP SECURITY TESTS PASSED SUCCESSFULLY!");
   console.log("=========================================");
   process.exit(0);

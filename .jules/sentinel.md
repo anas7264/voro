@@ -292,3 +292,14 @@ Secondary obfuscation decoders must be executed over `decodedQuery` (after initi
 
 **Prevention:**
 Always run secondary and recursive obfuscation decoders on pre-processed/decoded strings rather than raw input alone, ensuring that outer encoding layers cannot shield inner malicious payloads.
+
+## 2026-09-02 - PBKDF2 Iteration Bounds Validation Shield in Backup Decryption
+
+**Vulnerability:**
+Encrypted backup payloads containing user data use PBKDF2 + AES-GCM key derivation during password-authenticated decryption (`decryptWithPassword`). An attacker supplying a malicious or untrusted backup JSON payload could specify an arbitrary `iterations` parameter (e.g. `iterations: 100000000` or negative/non-numeric values). When the application attempts decryption, PBKDF2 derivation with extreme iteration counts causes CPU thread hanging and client-side Denial of Service (DoS), while abnormally small counts allow weak key derivation.
+
+**Learning:**
+Cryptographic parameters provided in untrusted serialization payloads must never be passed directly to WebCrypto derivation sinks (`crypto.subtle.deriveKey`) without strict range and type enforcement. Validating that `iterations` is an integer within strict bounds (10,000 to 1,000,000) prevents algorithmic resource exhaustion while maintaining standard 100,000-iteration key derivation security.
+
+**Prevention:**
+Always validate and bound all parameters (iteration counts, salt/IV lengths, key sizes) extracted from untrusted serialization formats before passing them into cryptographic derivation or decryption APIs.

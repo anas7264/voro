@@ -572,6 +572,15 @@ class CryptoManager {
       throw new Error("Security Sentinel: Missing cryptographic parameters in payload.");
     }
 
+    let iterCount = 100000;
+    if (iterations !== undefined && iterations !== null) {
+      if (typeof iterations !== 'number' || !Number.isInteger(iterations) || iterations < 10000 || iterations > 1000000) {
+        console.warn("Security Sentinel: Invalid or untrusted PBKDF2 iteration count in backup payload.");
+        return null;
+      }
+      iterCount = iterations;
+    }
+
     if (window.VORO_COMPROMISED || !validateCallStack()) {
       throw new Error("Security Sentinel: Decryption blocked due to environment compromise or unauthorized provenance.");
     }
@@ -611,7 +620,7 @@ class CryptoManager {
           {
             name: 'PBKDF2',
             salt,
-            iterations: iterations || 100000,
+            iterations: iterCount,
             hash: 'SHA-256'
           },
           passwordKey,
