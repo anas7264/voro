@@ -1,4 +1,4 @@
-import React, { memo, useRef, useMemo } from "react";
+import React, { memo, useRef, useMemo, useId } from "react";
 
 /**
  * ⚡ REFINEMENT: Luxury Forge-Standard Card Container ('Spatial Artifact Enclave').
@@ -20,16 +20,18 @@ const Card = memo(({
   onBlur,
   ...props
 }) => {
+  const generatedId = useId();
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
 
-  // Generate a deterministic sub-pixel hash badge
+  // Generate a deterministic sub-pixel hash badge using useId for SSR safety
   const subpixelHash = useMemo(() => {
-    return `0xCRD_${Math.floor(Math.random() * 0x10000).toString(16).toUpperCase().padStart(4, '0')}`;
-  }, []);
+    const cleanId = generatedId.replace(/:/g, '');
+    return `0xCRD_${cleanId.slice(0, 4).toUpperCase().padStart(4, '0')}`;
+  }, [generatedId]);
 
   const isInteractive = hover || variant === "premium" || variant === "interactive";
 

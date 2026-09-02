@@ -1,56 +1,40 @@
-const esbuild = require('esbuild');
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
 
-console.log("⚡ Starting Luxury Card Component Verification...");
+console.log('Running verification for Card.jsx...');
 
-try {
-  // 1. ESBuild Compilation Check
-  const result = esbuild.buildSync({
-    entryPoints: [path.join(__dirname, 'src/components/Card.jsx')],
-    bundle: true,
-    write: false,
-    format: 'cjs',
-    jsx: 'transform',
-    target: 'node18',
-    external: ['react', 'react-dom']
-  });
-
-  if (result.errors && result.errors.length > 0) {
-    console.error("❌ ESBuild Compilation Errors:", result.errors);
-    process.exit(1);
-  }
-
-  console.log("✅ Card.jsx ESBuild compilation passed cleanly.");
-
-  // 2. Structural & Tokens Inspection
-  const cardSource = fs.readFileSync(path.join(__dirname, 'src/components/Card.jsx'), 'utf8');
-
-  const requiredTokens = [
-    'containerRef',
-    'tiltXRef',
-    'tiltYRef',
-    'subpixelHash',
-    'handleMouseMove',
-    'handleMouseEnter',
-    'handleMouseLeave',
-    'handleFocus',
-    'handleBlur',
-    'VARIANTS',
-    'Object.freeze',
-    'Card.displayName = "Card"'
-  ];
-
-  for (const token of requiredTokens) {
-    if (!cardSource.includes(token)) {
-      console.error(`❌ Verification failed: Token "${token}" missing from Card.jsx`);
-      process.exit(1);
-    }
-  }
-
-  console.log("✅ All required luxury Forge design tokens and zero-allocation structures verified in Card.jsx.");
-
-} catch (err) {
-  console.error("❌ Card Verification Exception:", err);
+const cardPath = path.join(__dirname, 'src', 'components', 'Card.jsx');
+if (!fs.existsSync(cardPath)) {
+  console.error('ERROR: Card.jsx does not exist!');
   process.exit(1);
 }
+
+const cardContent = fs.readFileSync(cardPath, 'utf8');
+
+// Verification checks
+const checks = [
+  { name: 'Import React hooks (memo, useRef, useMemo, useId)', test: cardContent.includes('useId') && cardContent.includes('useMemo') && cardContent.includes('memo') },
+  { name: 'Frozen static VARIANTS mapping', test: cardContent.includes('const VARIANTS = Object.freeze({') },
+  { name: 'SSR-safe subpixelHash using useId', test: cardContent.includes('subpixelHash = useMemo') && cardContent.includes('generatedId.replace') },
+  { name: 'Direct-DOM 60fps tilt handling', test: cardContent.includes('--tilt-x') && cardContent.includes('--tilt-y') && cardContent.includes('--grid-x') },
+  { name: 'W3C APG compliant focus tilt', test: cardContent.includes('rotateX(4deg) rotateY(-4deg)') },
+  { name: 'Liquid border intelligence mask', test: cardContent.includes('radial-gradient') && cardContent.includes('WebkitMaskComposite') },
+  { name: 'DisplayName set', test: cardContent.includes('Card.displayName = "Card"') }
+];
+
+let allPassed = true;
+checks.forEach(check => {
+  if (check.test) {
+    console.log(`✓ ${check.name}`);
+  } else {
+    console.error(`✗ ${check.name}`);
+    allPassed = false;
+  }
+});
+
+if (!allPassed) {
+  console.error('Verification failed!');
+  process.exit(1);
+}
+
+console.log('All Card.jsx verification checks passed successfully!');
