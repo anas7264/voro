@@ -3,7 +3,7 @@ import { Send, Loader, Bot, Sparkles, AlertCircle, ShieldCheck, Activity } from 
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
-import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
+import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useAI } from '@/hooks/useAI';
 import { useNotifications } from '@/hooks/useNotifications';
 import { isValidChatQuery, isPromptInjection } from '@/utils/validators';
@@ -30,6 +30,9 @@ const LOCAL_RESPONSES = Object.freeze({
   'workout': `Tomorrow I'd suggest: Chest & Triceps - Bench Press 4×6, Incline DB 3×8, Cable Flies 3×10, Dips 3×8, plus 20min cardio. Rest 90s between sets.`,
   'metabolic velocity': `Your metabolic velocity is governed by the pacing and composition of your daily macronutrients. Maintaining structured fasting windows optimizes glucose-to-lipid metabolic switching, sustaining steady cellular ATP yield.`,
 });
+
+const EMPTY_ARRAY = Object.freeze([]);
+const selectChatHistory = (history) => history || EMPTY_ARRAY;
 
 const generateLocalFallback = (userInput) => {
   const queryLower = userInput.toLowerCase();
@@ -296,7 +299,7 @@ const QuickPromptCard = memo(({ prompt, onClick }) => {
 QuickPromptCard.displayName = "QuickPromptCard";
 
 const AICoach = () => {
-  const savedHistory = useStorageKey('chat_history');
+  const savedHistory = useStorageKeySelector('chat_history', selectChatHistory);
   const { setItem } = useStorageMethods();
   const { chat, loading: aiLoading } = useAI();
   const { addNotification } = useNotifications();

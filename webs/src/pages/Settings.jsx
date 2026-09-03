@@ -4,19 +4,44 @@ import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Select from '@/components/Select';
 import Toggle from '@/components/Toggle';
-import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
+import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useAppContext as useApp } from '@/hooks/useAppContext';
 import { executeSecurely, safeJSONParse } from '@/utils/security';
 import { useNotifications } from '@/hooks/useNotifications';
 import { isValidPassword } from '@/utils/validators';
 
+const EMPTY_SETTINGS = Object.freeze({});
+const selectSettings = (s) => s || EMPTY_SETTINGS;
+
+const FONT_SIZE_OPTIONS = Object.freeze([
+  { value: 'small', label: 'Compact' },
+  { value: 'medium', label: 'Standard' },
+  { value: 'large', label: 'Expanded' },
+]);
+
+const ACCENT_COLOR_OPTIONS = Object.freeze([
+  { value: 'voro-primary', label: 'Violet Spectrum' },
+  { value: 'voro-secondary', label: 'Emerald Flux' },
+  { value: 'voro-accent', label: 'Amber Kinetic' },
+]);
+
+const WEIGHT_UNIT_OPTIONS = Object.freeze([
+  { value: 'kg', label: 'Kilograms (kg)' },
+  { value: 'lbs', label: 'Pounds (lbs)' },
+]);
+
+const HEIGHT_UNIT_OPTIONS = Object.freeze([
+  { value: 'cm', label: 'Centimeters (cm)' },
+  { value: 'ft', label: 'Feet (ft)' },
+]);
+
 const Settings = () => {
   /**
    * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
-   * Replaced broad useStorage() with useStorageKey('settings') to isolate re-renders.
+   * Replaced useStorageKey('settings') with useStorageKeySelector('settings', selectSettings) to isolate re-renders.
    * useStorageMethods provides stable references for write operations.
    */
-  const settings = useStorageKey('settings') || {};
+  const settings = useStorageKeySelector('settings', selectSettings);
   const { setItem, deleteItem } = useStorageMethods();
   // Retrieve exportData and clearAllData securely from useStorageMethods without subscribing to volatile storageState.
   const { exportData, importData, clearAllData } = useStorageMethods();
@@ -183,11 +208,7 @@ const Settings = () => {
                     id={fontSizeId}
                     value={settings.fontSize || 'medium'}
                     onChange={(e) => handleSettingChange('fontSize', e.target.value)}
-                    options={[
-                      { value: 'small', label: 'Compact' },
-                      { value: 'medium', label: 'Standard' },
-                      { value: 'large', label: 'Expanded' },
-                    ]}
+                    options={FONT_SIZE_OPTIONS}
                     className="w-48"
                   />
                 </div>
@@ -201,11 +222,7 @@ const Settings = () => {
                     id={accentColorId}
                     value={settings.accentColor || 'voro-primary'}
                     onChange={(e) => handleSettingChange('accentColor', e.target.value)}
-                    options={[
-                      { value: 'voro-primary', label: 'Violet Spectrum' },
-                      { value: 'voro-secondary', label: 'Emerald Flux' },
-                      { value: 'voro-accent', label: 'Amber Kinetic' },
-                    ]}
+                    options={ACCENT_COLOR_OPTIONS}
                     className="w-48"
                   />
                 </div>
@@ -225,10 +242,7 @@ const Settings = () => {
                 id={weightUnitId}
                 value={settings.weightUnit || 'kg'}
                 onChange={(e) => handleSettingChange('weightUnit', e.target.value)}
-                options={[
-                  { value: 'kg', label: 'Kilograms (kg)' },
-                  { value: 'lbs', label: 'Pounds (lbs)' },
-                ]}
+                options={WEIGHT_UNIT_OPTIONS}
                 className="w-48"
               />
             </div>
@@ -240,10 +254,7 @@ const Settings = () => {
                 id={heightUnitId}
                 value={settings.heightUnit || 'cm'}
                 onChange={(e) => handleSettingChange('heightUnit', e.target.value)}
-                options={[
-                  { value: 'cm', label: 'Centimeters (cm)' },
-                  { value: 'ft', label: 'Feet (ft)' },
-                ]}
+                options={HEIGHT_UNIT_OPTIONS}
                 className="w-48"
               />
             </div>

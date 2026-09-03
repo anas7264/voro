@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, memo } from 'react';
 import { Zap, TrendingUp, Activity, Scale, Dumbbell, ShieldCheck, Cpu, Target as TargetIcon } from 'lucide-react';
 import { Button, LineChartComponent, RadarChartComponent, Stat } from '@/components';
-import { useStorageKey } from '@/hooks/useStorage';
+import { useStorageKeySelector } from '@/hooks/useStorage';
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted fallback static data structure.
@@ -14,6 +14,8 @@ const DEFAULT_PERFORMANCE = Object.freeze({
   maxDeadlift: 200,
   bodyweight: 80,
 });
+
+const selectPerformanceData = (data) => data || DEFAULT_PERFORMANCE;
 
 /**
  * ⚡ REFINEMENT: KineticCapabilityNode Component.
@@ -242,24 +244,14 @@ KineticInteractiveCard.displayName = 'KineticInteractiveCard';
 
 const PerformanceMetrics = () => {
   /**
-   * ⚡ OPTIMIZATION: Surgical Reactivity.
-   * Subscribe only to 'voro_performance' data to prevent redundant re-renders
-   * when unrelated storage keys change.
+   * ⚡ OPTIMIZATION: Surgical Reactivity via Selector.
+   * Subscribe strictly to 'voro_performance' data slice to isolate re-renders.
    */
-  const performanceData = useStorageKey('voro_performance');
+  const metrics = useStorageKeySelector('voro_performance', selectPerformanceData);
 
   useEffect(() => {
     document.title = 'VORO | Kinetic Capabilities Enclave';
   }, []);
-
-  /**
-   * ⚡ OPTIMIZATION: Synchronous data derivation using useMemo.
-   * Eliminates the initial mount-time double-render cycle and ensures
-   * reactivity to StorageContext updates without manual load calls.
-   */
-  const metrics = useMemo(() => {
-    return performanceData || DEFAULT_PERFORMANCE;
-  }, [performanceData]);
 
   const strengthMetrics = useMemo(() => [
     { lift: 'Bench Press', max: metrics.maxBench, unit: 'kg', color: 'voro-primary' },
