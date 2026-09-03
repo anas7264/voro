@@ -395,6 +395,21 @@ const decodeRegionalIndicatorSymbols = (str) => {
   return hasRegionalChars ? decoded : str;
 };
 
+// Map of Latin Ligatures to ASCII letter sequences
+const LIGATURES_MAP = {
+  'æ': 'ae', 'Æ': 'AE',
+  'œ': 'oe', 'Œ': 'OE',
+  'ß': 'ss', 'ẞ': 'SS',
+  'ĳ': 'ij', 'Ĳ': 'IJ',
+  'ﬀ': 'ff', 'ﬁ': 'fi', 'ﬂ': 'fl', 'ﬃ': 'ffi', 'ﬄ': 'ffl', 'ﬅ': 'ft', 'ﬆ': 'st'
+};
+
+// Helper to decode Latin Ligatures to standard ASCII letter sequences
+const decodeLatinLigatures = (str) => {
+  if (!str || typeof str !== 'string') return str;
+  return str.replace(/[æÆœŒßẞĳĲﬀﬁﬂﬃﬄﬅﬆ]/g, m => LIGATURES_MAP[m] || m);
+};
+
 // Map of Latin Small Capital Letters and IPA small cap extensions to ASCII Latin equivalents
 const SMALL_CAPS_MAP = {
   0x026A: 'i', 0x0262: 'g', 0x0274: 'n', 0x0280: 'r', 0x029F: 'l', 0x029E: 'y', 0x028F: 'y', 0x0299: 'b', 0x0263: 'g', 0x0270: 'm', 0x0271: 'm', 0x0273: 'n', 0x027D: 'r', 0x0281: 'r',
@@ -546,6 +561,9 @@ const decodeHTMLEntities = (str) => {
 
 const BASE64_FORMAT_RE = /^[A-Za-z0-9+/]+={0,2}$/;
 const BASE32_FORMAT_RE = /^[A-Z2-7=]+$/i;
+const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+const BASE58_FORMAT_RE = /^[1-9A-HJ-NP-Za-km-z]{8,}$/;
+const BASE58_MATCH_RE = /[1-9A-HJ-NP-Za-km-z]{12,}/g;
 const NON_PRINTABLE_ASCII_RE = /[\x00-\x09\x0B\x0C\x0E-\x1F\x7F-\xFF]/;
 const HEX_FORMAT_RE = /^[0-9a-fA-F]{8,}$/;
 const BINARY_MATCH_RE = /(?:[01]{7,8}(?:[\s,.\-_\/]+|$)){2,}/g;
@@ -648,6 +666,50 @@ const safeDecodeRot47 = (str) => {
   return changed ? decoded : null;
 };
 
+// Helper to safely decode Atbash cipher-encoded text (a<->z, A<->Z)
+const safeDecodeAtbash = (str) => {
+  if (!str || typeof str !== 'string' || str.length < 8) return null;
+  let decoded = '';
+  let changed = false;
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    if (code >= 65 && code <= 90) {
+      decoded += String.fromCharCode(90 - (code - 65));
+      changed = true;
+    } else if (code >= 97 && code <= 122) {
+      decoded += String.fromCharCode(122 - (code - 97));
+      changed = true;
+    } else {
+      decoded += str[i];
+    }
+  }
+  return changed ? decoded : null;
+};
+
+// Helper to safely decode Base58-encoded text with printable-ASCII verification
+const safeDecodeBase58 = (str) => {
+  try {
+    if (!str || typeof str !== 'string' || !BASE58_FORMAT_RE.test(str)) return null;
+    let num = 0n;
+    for (let i = 0; i < str.length; i++) {
+      const charIndex = BASE58_ALPHABET.indexOf(str[i]);
+      if (charIndex === -1) return null;
+      num = num * 58n + BigInt(charIndex);
+    }
+    let hex = num.toString(16);
+    if (hex.length % 2 !== 0) hex = '0' + hex;
+    let decoded = '';
+    for (let i = 0; i < hex.length; i += 2) {
+      const code = parseInt(hex.substring(i, i + 2), 16);
+      if (code < 32 || code > 126) return null;
+      decoded += String.fromCharCode(code);
+    }
+    return decoded.length >= 8 ? decoded : null;
+  } catch (e) {
+    return null;
+  }
+};
+
 // Helper to safely decode Base64 strings with auto-padding and printable-ASCII verification (XSS/DoS safe)
 const safeAtob = (str) => {
   try {
@@ -721,8 +783,8 @@ const BASE64_MATCH_RE = /[A-Za-z0-9+/]{8,}=*/g;
 export const isPromptInjection = (query, isNested = false) => {
   if (!query || typeof query !== 'string') return false;
 
-  // Security: Decode escape sequences, Enclosed Alphanumerics, Latin Small Caps, Superscript/Subscripts, Regional Indicator Symbols, Unicode Tag characters (ASCII Smuggling), Braille patterns, URL percent-encoding, and HTML entities first
-  const decodedQuery = decodeBraillePatterns(decodeEnclosedAlphanumerics(decodePercentEncoding(decodeHTMLEntities(decodeUnicodeTagCharacters(decodeRegionalIndicatorSymbols(decodeLatinSmallCaps(decodeSuperAndSubscripts(decodeEnclosedAlphanumerics(decodeEscapeSequences(query))))))))));
+  // Security: Decode escape sequences, Enclosed Alphanumerics, Latin Small Caps, Latin Ligatures, Superscript/Subscripts, Regional Indicator Symbols, Unicode Tag characters (ASCII Smuggling), Braille patterns, URL percent-encoding, and HTML entities first
+  const decodedQuery = decodeBraillePatterns(decodeEnclosedAlphanumerics(decodePercentEncoding(decodeHTMLEntities(decodeUnicodeTagCharacters(decodeRegionalIndicatorSymbols(decodeLatinSmallCaps(decodeLatinLigatures(decodeSuperAndSubscripts(decodeEnclosedAlphanumerics(decodeEscapeSequences(query)))))))))));
 
   let normalizedQuery = decodedQuery.normalize('NFKD').toLowerCase();
   // Strip combining diacritical marks across all standard Unicode diacritic blocks (including extended, supplement, symbols, and half-marks)
@@ -779,6 +841,14 @@ export const isPromptInjection = (query, isNested = false) => {
         return true;
       }
 
+      const base58Matches = targetStr.match(BASE58_MATCH_RE) || [];
+      for (const match of base58Matches) {
+        const base58Decoded = safeDecodeBase58(match);
+        if (base58Decoded && isPromptInjection(base58Decoded, true)) {
+          return true;
+        }
+      }
+
       const binaryMatches = targetStr.match(BINARY_MATCH_RE) || [];
       for (const match of binaryMatches) {
         const binaryDecoded = safeDecodeBinary(match);
@@ -803,6 +873,11 @@ export const isPromptInjection = (query, isNested = false) => {
 
       const rot47Decoded = safeDecodeRot47(targetStr);
       if (rot47Decoded && isPromptInjection(rot47Decoded, true)) {
+        return true;
+      }
+
+      const atbashDecoded = safeDecodeAtbash(targetStr);
+      if (atbashDecoded && isPromptInjection(atbashDecoded, true)) {
         return true;
       }
 
