@@ -303,3 +303,14 @@ Cryptographic parameters provided in untrusted serialization payloads must never
 
 **Prevention:**
 Always validate and bound all parameters (iteration counts, salt/IV lengths, key sizes) extracted from untrusted serialization formats before passing them into cryptographic derivation or decryption APIs.
+
+## 2026-09-03 - Decimal ASCII Character Code & Hex Byte Prompt Injection Shield
+
+**Vulnerability:**
+Prompt injection detectors analyzing decoded text or standard base-encodings can be bypassed if an attacker obfuscates prompt override instructions (such as "ignore previous") as space-, comma-, or byte-separated decimal ASCII character codes (e.g. `105 103 110 111 114 101 32 112 114 101 118 105 111 117 115` or `105, 103, 110...`) or hex byte tokens (e.g. `0x69, 0x67, 0x6e...`). LLMs easily parse and interpret raw decimal/hex character arrays as natural language instructions, bypassing text-based blocklists and boundary validations during query processing.
+
+**Learning:**
+Neutralizing decimal ASCII character code obfuscation requires scanning inputs for sequences of 4 or more space/comma/byte-delimited integers (or `0x`-prefixed hex values). By verifying that each number falls strictly within the printable ASCII range (32 to 126 or standard whitespace) and assembling the decoded string under strict length bounds, we can pass the decoded string back through recursive `isPromptInjection` checks without false-positive triggers on standard lists of numbers.
+
+**Prevention:**
+Always implement non-destructive character code and hex byte parsing layers in prompt validators. Extract candidate byte arrays, decode under strict printable ASCII bounds, and recursively evaluate decoded payloads against injection patterns prior to transmitting user input to LLM execution contexts.
