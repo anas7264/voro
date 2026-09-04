@@ -37,16 +37,17 @@ export const Checkbox = memo(({
       <div className="flex items-center gap-4">
         <div className="relative flex items-center justify-center transition-all active:scale-90">
           <input
+            {...props}
             type="checkbox"
             id={inputId}
             checked={checked}
-            onChange={(e) => onChange(e.target.checked)}
+            onChange={(e) => onChange && onChange(e.target.checked)}
             disabled={disabled}
             required={required}
             className="peer absolute opacity-0 w-8 h-8 cursor-pointer z-10 disabled:cursor-not-allowed"
             aria-invalid={!!error}
             aria-describedby={error ? errorId : undefined}
-            {...props}
+            title={disabled ? (props.title || "This option is disabled") : props.title}
           />
 
           {/* Architectural Box: High-end charcoal node */}
