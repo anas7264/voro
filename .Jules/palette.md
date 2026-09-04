@@ -1,0 +1,3 @@
+## 2025-05-18 - Defensive Handlers and Proper Native Attribute Forwarding in Form Primitives
+**Learning:** Adding redundant `aria-disabled` or generic role names as fallback `aria-label` (e.g. `aria-label="Checkbox"`) on native inputs is an accessibility anti-pattern because screen readers already announce the role and native state. Instead, focus on defensive optional callbacks (`onChange?.()`), clear tooltips (`title`) for disabled interactive elements, and proper prop order so consumer overrides take precedence.
+**Action:** When refining form primitive components, avoid adding redundant ARIA attributes that duplicate native input semantics, and ensure prop spreading occurs prior to explicit component attributes or defaults.
