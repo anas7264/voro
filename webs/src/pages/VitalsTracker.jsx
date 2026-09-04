@@ -4,15 +4,19 @@ import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
 import { Stat } from '@/components/Stat';
-import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
+import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { validateVitals } from '@/utils/validators';
 import { CachedDateTimeFormat } from '@/utils/formatters';
 
 /**
- * ⚡ PERFORMANCE OPTIMIZATION: Hoisted cached formatters.
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted cached formatters & static fallback data structures.
  * Prevents redundant object instantiation of Intl.DateTimeFormat and new Date in loops.
  */
+const EMPTY_ARRAY = Object.freeze([]);
+const selectVitals = (v) => (Array.isArray(v) ? v : EMPTY_ARRAY);
+const TICKS_10 = Object.freeze([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+
 const fullDateFormatter = new CachedDateTimeFormat('en-US', {
   month: 'short',
   day: 'numeric',
@@ -232,6 +236,7 @@ const VitalsSlider = memo(({ id, label, value, min = 1, max = 10, onChange, colo
   const statusInfo = stateLabel(value);
 
   const ticks = useMemo(() => {
+    if (min === 1 && max === 10) return TICKS_10;
     return Array.from({ length: max - min + 1 }, (_, i) => min + i);
   }, [min, max]);
 
@@ -448,9 +453,9 @@ VitalsHistoryCard.displayName = "VitalsHistoryCard";
 
 const VitalsTracker = () => {
   /**
-   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity via useStorageKey.
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity via selector hook.
    */
-  const history = useStorageKey('vitals') || [];
+  const history = useStorageKeySelector('vitals', selectVitals);
   const { setItem } = useStorageMethods();
   const { addNotification } = useNotifications();
   const [vitals, setVitals] = useState({
@@ -470,7 +475,7 @@ const VitalsTracker = () => {
   }, []);
 
   /**
-   * ⚡ PERFORMANCE OPTIMIZATION: Memoized recent history transformation with pre-formatted dates.
+   * ⚡ PERFORMANCE OPTIMIZATION: Memoized recent history transformation with pre-formatted dates and pre-calculated clinical status lookups.
    */
   const recentHistory = useMemo(() => {
     return history
@@ -485,7 +490,11 @@ const VitalsTracker = () => {
         }
         return {
           ...entry,
-          _formattedDate: formattedDate
+          _formattedDate: formattedDate,
+          bpmInfo: getHeartRateStatus(entry.heartRate),
+          bpInfo: getBloodPressureStatus(entry.bloodPressure),
+          moodInfo: getMoodStatus(entry.mood),
+          energyInfo: getEnergyStatus(entry.energy)
         };
       });
   }, [history]);
@@ -823,23 +832,16 @@ const VitalsTracker = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-              {recentHistory.map((entry, idx) => {
-                const bpmInfo = getHeartRateStatus(entry.heartRate);
-                const bpInfo = getBloodPressureStatus(entry.bloodPressure);
-                const moodInfo = getMoodStatus(entry.mood);
-                const energyInfo = getEnergyStatus(entry.energy);
-
-                return (
-                  <VitalsHistoryCard
-                    key={entry.date || idx}
-                    entry={entry}
-                    bpmInfo={bpmInfo}
-                    bpInfo={bpInfo}
-                    moodInfo={moodInfo}
-                    energyInfo={energyInfo}
-                  />
-                );
-              })}
+              {recentHistory.map((entry, idx) => (
+                <VitalsHistoryCard
+                  key={entry.date || idx}
+                  entry={entry}
+                  bpmInfo={entry.bpmInfo}
+                  bpInfo={entry.bpInfo}
+                  moodInfo={entry.moodInfo}
+                  energyInfo={entry.energyInfo}
+                />
+              ))}
             </div>
           </section>
         )}
