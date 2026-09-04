@@ -417,6 +417,18 @@ const SMALL_CAPS_MAP = {
   0x1D0F: 'o', 0x1D18: 'p', 0x1D19: 'r', 0x1D1A: 'r', 0x1D1B: 't', 0x1D1C: 'u', 0x1D20: 'v', 0x1D21: 'w', 0x1D22: 'z'
 };
 
+// Map of Leetspeak / Alphanumeric Substitution characters to standard ASCII Latin characters
+const LEET_MAP = {
+  '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '6': 'g', '7': 't', '8': 'b', '9': 'g',
+  '@': 'a', '$': 's', '!': 'i', '+': 't'
+};
+
+// Helper to decode Leetspeak / Alphanumeric Substitution to standard ASCII Latin characters
+const decodeLeetspeak = (str) => {
+  if (!str || typeof str !== 'string') return str;
+  return str.replace(/[013456789@$!+]/g, char => LEET_MAP[char] || char);
+};
+
 // Helper to decode Latin Small Capital Letters (U+1D00-U+1D2B) and IPA Small Cap extensions
 const decodeLatinSmallCaps = (str) => {
   if (!str || typeof str !== 'string') return str;
@@ -813,7 +825,7 @@ export const isPromptInjection = (query, isNested = false) => {
   // Security: Decode escape sequences, Enclosed Alphanumerics, Latin Small Caps, Latin Ligatures, Superscript/Subscripts, Regional Indicator Symbols, Unicode Tag characters (ASCII Smuggling), Braille patterns, URL percent-encoding, and HTML entities first
   const decodedQuery = decodeBraillePatterns(decodeEnclosedAlphanumerics(decodePercentEncoding(decodeHTMLEntities(decodeUnicodeTagCharacters(decodeRegionalIndicatorSymbols(decodeLatinSmallCaps(decodeLatinLigatures(decodeSuperAndSubscripts(decodeEnclosedAlphanumerics(decodeEscapeSequences(query)))))))))));
 
-  let normalizedQuery = decodedQuery.normalize('NFKD').toLowerCase();
+  let normalizedQuery = decodeLeetspeak(decodedQuery).normalize('NFKD').toLowerCase();
   // Strip combining diacritical marks across all standard Unicode diacritic blocks (including extended, supplement, symbols, and half-marks)
   normalizedQuery = normalizedQuery.replace(/[\u0300-\u036f\u1ab0-\u1aff\u1dc0-\u1dff\u20d0-\u20ff\ufe20-\ufe2f]/g, '');
   // Translate Cyrillic, Greek, Coptic, Armenian, Cherokee, Georgian, Hebrew, Canadian Aboriginal, Glagolitic, and Mathematical homoglyphs to Latin equivalents
