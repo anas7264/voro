@@ -1,15 +1,16 @@
-import React, { memo, useRef, useMemo } from "react";
+import React, { memo, useRef, useMemo, useId } from "react";
 
 /**
  * ⚡ REFINEMENT: Luxury Forge-Standard Status Node ('Badge').
  * Re-engineered conforming to Voro's 'Forge' luxury system aesthetic and zero-allocation performance standards.
  * Features ultra-high-fidelity glassmorphism, 60fps direct-DOM 3D volumetric tilt tracking,
  * magnetic liquid border intelligence, holographic coordinate telemetry overlays,
- * sub-pixel hash badging, and W3C APG compliant keyboard focus states.
+ * SSR-safe deterministic sub-pixel hash badging (`0xBDG_...`), and W3C APG compliant keyboard focus states.
  */
 export const Badge = memo(({
   children,
   variant = "voro-primary",
+  size = "md",
   dot = false,
   nodeId = "BDG_01",
   interactive = false,
@@ -29,13 +30,16 @@ export const Badge = memo(({
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
 
+  const generatedId = useId();
+
   // Determine whether the component responds to interactive gestures
   const isInteractive = interactive || Boolean(onClick);
 
-  // Generate a deterministic sub-pixel hash badge
+  // Generate an SSR-safe deterministic sub-pixel hash badge
   const subpixelHash = useMemo(() => {
-    return `0xBDG_${Math.floor(Math.random() * 0x10000).toString(16).toUpperCase().padStart(4, '0')}`;
-  }, []);
+    const cleanId = generatedId.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    return `0xBDG_${cleanId.slice(-4).padStart(4, '0')}`;
+  }, [generatedId]);
 
   const handleMouseMove = (e) => {
     if (onMouseMove) onMouseMove(e);
@@ -121,11 +125,13 @@ export const Badge = memo(({
   };
 
   const variantClass = VARIANTS[variant] || VARIANTS['voro-primary'];
+  const sizeClass = SIZES[size] || SIZES['md'];
   const dotColorClass = DOT_COLORS[variant] || DOT_COLORS['voro-primary'];
   const glowColor = GLOW_COLORS[variant] || GLOW_COLORS['voro-primary'];
 
   const baseClasses = [
-    "relative inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[0.6rem] font-mono font-black uppercase tracking-[0.2em] backdrop-blur-2xl border transition-all duration-500 overflow-hidden group/badge focus:outline-none focus-visible:ring-2 focus-visible:ring-voro-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408]",
+    "relative inline-flex items-center gap-2 rounded-full font-mono font-black uppercase tracking-[0.2em] backdrop-blur-2xl border transition-all duration-500 overflow-hidden group/badge focus:outline-none focus-visible:ring-2 focus-visible:ring-voro-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408]",
+    sizeClass,
     variantClass,
     isInteractive && "cursor-pointer hover:shadow-[0_15px_30px_-5px_rgba(0,0,0,0.6)]",
     className
@@ -218,6 +224,12 @@ Badge.displayName = "Badge";
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted & Frozen Static Lookup Objects.
  * Zero heap allocations during component render cycles.
  */
+const SIZES = Object.freeze({
+  'sm': "px-2.5 py-0.5 text-[0.55rem]",
+  'md': "px-3.5 py-1.5 text-[0.6rem]",
+  'lg': "px-4.5 py-2 text-[0.65rem]"
+});
+
 const VARIANTS = Object.freeze({
   'voro-primary': "bg-voro-primary/10 text-voro-primary border-voro-primary/30 shadow-[0_4px_12px_rgba(124,58,237,0.15)]",
   'voro-secondary': "bg-voro-secondary/10 text-voro-secondary border-voro-secondary/30 shadow-[0_4px_12px_rgba(16,185,129,0.15)]",
