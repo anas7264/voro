@@ -203,6 +203,22 @@ const runTests = async () => {
     throw new Error(`❌ Failure: Percent-encoded keyword exfiltration was NOT blocked! res5=${res5}, compromised=${window.VORO_COMPROMISED}`);
   }
 
+  // --- TEST 6: HTML Entity-Encoded AI Exfiltration Keyword in URL ---
+  console.log("🛡️ Test 6: Verifying HTML entity-encoded keyword in URL exfiltration detection...");
+  lockdownCount = 0;
+  window.VORO_COMPROMISED = false;
+  window.VORO_DECEPTION_ACTIVE = false;
+
+  // &#99;&#111;&#111;&#107;&#105;&#101; is "cookie" in decimal HTML entities
+  const htmlEntityEncodedPayload = "Link: https://attacker.com/a?&#99;&#111;&#111;&#107;&#105;&#101;=123";
+  const res6 = validateAIResponse(htmlEntityEncodedPayload);
+
+  if (res6 === "[SECURITY_VIOLATION_DETECTED]" && lockdownCount > 0 && window.VORO_COMPROMISED) {
+    console.log("✅ Success: HTML entity-encoded keyword in exfiltration URL was successfully detected and locked down!");
+  } else {
+    throw new Error(`❌ Failure: HTML entity-encoded keyword exfiltration was NOT blocked! res6=${res6}, compromised=${window.VORO_COMPROMISED}`);
+  }
+
   console.log("\n🎉 ALL EXFILTRATION SECURITY VERIFICATION TESTS PASSED SUCCESSFULLY!");
   console.log("=========================================");
   process.exit(0);
