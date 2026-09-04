@@ -2277,11 +2277,18 @@ export const validateAIResponse = (c, n = null) => {
         return "[SECURITY_VIOLATION_DETECTED]";
       }
 
-      // Deep Decoding: Prevent bypass via percent-encoding (e.g., %74%6F%6B%65%6E for "token")
+      // Deep Decoding: Prevent bypass via percent-encoding or HTML entity encoding (e.g., &#99;&#111;&#111;&#107;&#105;&#101; for "cookie")
       let decodedUrl = url;
       try {
         decodedUrl = decodeURIComponent(url);
       } catch (e) { /* fallback to raw url if malformed */ }
+      decodedUrl = _call.call(_replace, decodedUrl, /&amp;/gi, '&');
+      decodedUrl = _call.call(_replace, decodedUrl, /&#x([0-9a-fA-F]+);/g, (_, hex) => {
+        try { return String.fromCodePoint(parseInt(hex, 16)); } catch (err) { return _; }
+      });
+      decodedUrl = _call.call(_replace, decodedUrl, /&#(\d+);/g, (_, dec) => {
+        try { return String.fromCodePoint(parseInt(dec, 10)); } catch (err) { return _; }
+      });
 
       const lowerUrl = _call.call(_toLowerCase, decodedUrl);
       const searchStr = _call.call(_URLSearch, urlObj);
@@ -2317,6 +2324,13 @@ export const validateAIResponse = (c, n = null) => {
       // If URL parsing fails, perform a deep fallback keyword and high-entropy check on the raw string
       let decodedUrl = url;
       try { decodedUrl = decodeURIComponent(url); } catch (err) { /* fallback */ }
+      decodedUrl = _call.call(_replace, decodedUrl, /&amp;/gi, '&');
+      decodedUrl = _call.call(_replace, decodedUrl, /&#x([0-9a-fA-F]+);/g, (_, hex) => {
+        try { return String.fromCodePoint(parseInt(hex, 16)); } catch (err) { return _; }
+      });
+      decodedUrl = _call.call(_replace, decodedUrl, /&#(\d+);/g, (_, dec) => {
+        try { return String.fromCodePoint(parseInt(dec, 10)); } catch (err) { return _; }
+      });
       const lowerUrl = _call.call(_toLowerCase, decodedUrl);
       const hasHighSignal = _call.call(_some, highSignalKeywords, kw => _call.call(_SIncludes, lowerUrl, kw));
       const hasQueryOnly = _call.call(_some, queryOnlyKeywords, kw => _call.call(_SIncludes, lowerUrl, kw));

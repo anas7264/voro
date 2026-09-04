@@ -314,3 +314,14 @@ Neutralizing decimal ASCII character code obfuscation requires scanning inputs f
 
 **Prevention:**
 Always implement non-destructive character code and hex byte parsing layers in prompt validators. Extract candidate byte arrays, decode under strict printable ASCII bounds, and recursively evaluate decoded payloads against injection patterns prior to transmitting user input to LLM execution contexts.
+
+## 2026-09-04 - HTML Entity-Encoded AI Exfiltration Shield
+
+**Vulnerability:**
+AI response validation in `validateAIResponse` extracts embedded URLs and decodes percent-encoded character sequences (`decodeURIComponent`) before checking for high-signal sensitive keywords (e.g., `cookie`, `session`, `localstorage`, `voro_`, `token`, `secret`). An attacker could encode sensitive keywords in URLs using decimal (`&#99;&#111;&#111;&#107;&#105;&#101;`) or hexadecimal (`&#x63;&#x6f;&#x6f;&#x6b;&#x69;&#x65;`) HTML entities. Because `decodeURIComponent` does not decode HTML entity references, keyword detection was bypassed while browser DOM and Markdown rendering engines would decode the entity references prior to network requests, enabling data exfiltration.
+
+**Learning:**
+Deep URL decoding in AI response validation must unwrap both URL percent-encoding and HTML entity encodings (decimal, hex, and named entities) across both primary URL evaluation paths and fallback catch blocks. Pre-decoding HTML entities before keyword matching guarantees that entity-encoded exfiltration attempts trigger immediate security lockdown.
+
+**Prevention:**
+Always apply HTML entity decoding alongside percent-decoding during URL extraction and validation in AI response filters.
