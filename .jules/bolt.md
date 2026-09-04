@@ -195,3 +195,10 @@
 **Action:**
 1. Use module-scoped pre-compiled `Intl.NumberFormat` objects for common decimal precisions.
 2. Avoid replacing native `Intl` formatters with custom math rounding for general-purpose number formatting.
+
+## 2026-09-03 - Single-Pass Rank Counting vs Array Sorting Mutation
+**Learning:** Calling `.sort()` on arrays passed into utility functions mutates the caller's array in-place, which causes severe state mutation bugs when processing arrays from React state or Context. Additionally, sorting an array of size $N$ ($O(N \log N)$) followed by `findIndex` ($O(N)$) to calculate a single user's rank/leaderboard position is unnecessarily slow. Replacing `.sort()` with a single $O(N)$ loop pass counting items with higher values eliminates array mutation, avoids memory allocation, and improves complexity to $O(N)$.
+
+**Action:**
+1. Avoid calling `.sort()` on input arrays in utility functions unless a sorted array is explicitly required as the output.
+2. For rank or percentile calculations, use a single $O(N)$ pass to count elements exceeding the threshold.

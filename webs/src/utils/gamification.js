@@ -328,30 +328,58 @@ export const getActiveChallenges = (allChallenges, filterType = "all") => {
 };
 
 // Calculate rewards for multiple achievements/challenges
+// ⚡ PERFORMANCE OPTIMIZATION: Zero-allocation imperative loops.
+// Bypasses higher-order array callback allocations (`.forEach()`) and adds null safety.
 export const calculateTotalRewards = (unlockedAchievements, completedChallenges) => {
   let totalXP = 0;
-  let tierUp = false;
 
-  unlockedAchievements.forEach(achievement => {
-    totalXP += achievement.xpReward || 0;
-  });
+  if (Array.isArray(unlockedAchievements)) {
+    for (let i = 0; i < unlockedAchievements.length; i++) {
+      totalXP += unlockedAchievements[i]?.xpReward || 0;
+    }
+  }
 
-  completedChallenges.forEach(challenge => {
-    totalXP += challenge.xpReward || 0;
-  });
+  if (Array.isArray(completedChallenges)) {
+    for (let i = 0; i < completedChallenges.length; i++) {
+      totalXP += completedChallenges[i]?.xpReward || 0;
+    }
+  }
+
+  const achCount = unlockedAchievements?.length || 0;
+  const chalCount = completedChallenges?.length || 0;
 
   return {
     totalXP,
-    achievementsCount: unlockedAchievements.length,
-    challengesCount: completedChallenges.length,
+    achievementsCount: achCount,
+    challengesCount: chalCount,
     bonusXP: Math.floor(totalXP * 0.1) // 10% bonus for multiple completions
   };
 };
 
 // Leaderboard ranking
+// ⚡ PERFORMANCE OPTIMIZATION: Pure O(N) single-pass rank evaluation.
+// Eliminates in-place mutation of caller array (`allUsers.sort()`) and replaces O(N log N) sorting
+// with a zero-allocation single loop pass counting users with higher totalXP.
 export const calculateLeaderboardPosition = (userStats, allUsers) => {
-  const sortedUsers = allUsers.sort((a, b) => b.totalXP - a.totalXP);
-  const position = sortedUsers.findIndex(u => u.id === userStats.id) + 1;
+  if (!Array.isArray(allUsers) || allUsers.length === 0) {
+    return {
+      position: 1,
+      totalUsers: 0,
+      percentile: "100.0",
+      topPercentile: true
+    };
+  }
+
+  const userXP = userStats?.totalXP || 0;
+  let higherCount = 0;
+
+  for (let i = 0; i < allUsers.length; i++) {
+    if ((allUsers[i]?.totalXP || 0) > userXP) {
+      higherCount++;
+    }
+  }
+
+  const position = higherCount + 1;
   const percentile = ((allUsers.length - position) / allUsers.length) * 100;
 
   return {
@@ -363,6 +391,8 @@ export const calculateLeaderboardPosition = (userStats, allUsers) => {
 };
 
 // Achievement rarity breakdown
+// ⚡ PERFORMANCE OPTIMIZATION: Zero-allocation loop and safe division guard.
+// Avoids callback function allocations and prevents returning `"NaN"` when `unlockedAchievements` is empty.
 export const getRarityBreakdown = (unlockedAchievements) => {
   const rarities = {
     common: 0,
@@ -372,17 +402,22 @@ export const getRarityBreakdown = (unlockedAchievements) => {
     legendary: 0
   };
 
-  unlockedAchievements.forEach(ach => {
-    const rarity = ach.rarity?.toLowerCase() || "common";
-    if (rarities[rarity] !== undefined) {
-      rarities[rarity]++;
+  if (Array.isArray(unlockedAchievements)) {
+    for (let i = 0; i < unlockedAchievements.length; i++) {
+      const ach = unlockedAchievements[i];
+      const rarity = ach?.rarity?.toLowerCase() || "common";
+      if (rarities[rarity] !== undefined) {
+        rarities[rarity]++;
+      }
     }
-  });
+  }
+
+  const total = unlockedAchievements?.length || 0;
 
   return {
     ...rarities,
-    total: unlockedAchievements.length,
-    legendaryPercentage: (rarities.legendary / unlockedAchievements.length * 100).toFixed(1)
+    total,
+    legendaryPercentage: total > 0 ? ((rarities.legendary / total) * 100).toFixed(1) : "0.0"
   };
 };
 
