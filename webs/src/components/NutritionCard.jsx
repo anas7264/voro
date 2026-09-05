@@ -156,7 +156,7 @@ export const NutritionCard = memo(({
           <button
             onClick={onEdit}
             className="flex-1 py-3.5 rounded-xl bg-white/[0.02] border border-white/5 text-gray-500 hover:text-white hover:bg-white/5 hover:border-white/10 transition-all duration-500 flex items-center justify-center gap-2 group/edit focus:outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14] active:scale-95"
-            aria-label="Edit entry"
+            aria-label={meal?.name ? `Modify ${meal.name}` : "Modify entry"}
           >
             <Edit3 size={14} className="group-hover/edit:scale-110 transition-transform" />
             <span className="text-[0.55rem] font-black uppercase tracking-[0.2em]">Modify</span>
@@ -173,7 +173,11 @@ export const NutritionCard = memo(({
                 : 'bg-white/[0.02] border-white/5 text-gray-500 hover:text-red-400 hover:bg-red-400/5 hover:border-red-400/10'
               }
             `}
-            aria-label={isConfirming ? "Confirm purge" : "Delete entry"}
+            aria-label={
+              isConfirming
+                ? meal?.name ? `Confirm purge ${meal.name}` : "Confirm purge"
+                : meal?.name ? `Purge ${meal.name}` : "Purge entry"
+            }
           >
             {isConfirming ? (
               <>
