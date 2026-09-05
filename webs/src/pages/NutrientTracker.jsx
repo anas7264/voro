@@ -16,6 +16,9 @@ const NUTRIENTS = Object.freeze([
   { id: 'omega3', name: 'Omega-3', unit: 'g', dailyGoal: 1.1, warning: 'Anti-inflammatory structural lipid supporting cerebral integrity.', color: '#EC4899', glow: 'rgba(236, 72, 153, 0.2)' },
 ]);
 
+const DEFAULT_TRACKER = Object.freeze({});
+const DEFAULT_STATUS = Object.freeze({ intake: 0, fromFood: 0 });
+
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted module-scoped SVG ticks.
  * Completely eliminates heap allocations of 60 SVG rect elements on component renders.
@@ -45,9 +48,12 @@ const NutrientCard = memo(({ nutrient, isSelected, onClick }) => {
   const [isFocused, setIsFocused] = useState(false);
   const reactId = useId();
 
-  const nodeId = useMemo(() => `NTR_${reactId.replace(/:/g, '').slice(0, 4).toUpperCase()}`, [reactId]);
+  const nodeId = useMemo(() => {
+    const cleanId = reactId.replace(/:/g, '');
+    return `NTR_${cleanId.slice(0, 4).toUpperCase()}`;
+  }, [reactId]);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -64,9 +70,9 @@ const NutrientCard = memo(({ nutrient, isSelected, onClick }) => {
 
     if (txRef.current) txRef.current.innerText = tiltX.toFixed(1);
     if (tyRef.current) tyRef.current.innerText = tiltY.toFixed(1);
-  };
+  }, []);
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     setIsFocused(true);
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '4deg');
@@ -74,15 +80,17 @@ const NutrientCard = memo(({ nutrient, isSelected, onClick }) => {
       if (txRef.current) txRef.current.innerText = "4.0";
       if (tyRef.current) tyRef.current.innerText = "-4.0";
     }
-  };
+  }, []);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     setIsFocused(false);
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
-  };
+    if (txRef.current) txRef.current.innerText = "0.0";
+    if (tyRef.current) tyRef.current.innerText = "0.0";
+  }, []);
 
   const interactionActive = isHovered || isFocused;
 
@@ -91,7 +99,13 @@ const NutrientCard = memo(({ nutrient, isSelected, onClick }) => {
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        if (containerRef.current) {
+          containerRef.current.style.setProperty('--tilt-x', '0deg');
+          containerRef.current.style.setProperty('--tilt-y', '0deg');
+        }
+      }}
       onFocus={handleFocus}
       onBlur={handleBlur}
       onClick={onClick}
@@ -110,7 +124,7 @@ const NutrientCard = memo(({ nutrient, isSelected, onClick }) => {
     >
       {/* Dynamic Luminous Lens synced with nutrient color */}
       <div
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-700 pointer-events-none"
         style={{
           background: `radial-gradient(250px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), ${nutrient.glow}, transparent 50%)`,
         }}
@@ -127,8 +141,8 @@ const NutrientCard = memo(({ nutrient, isSelected, onClick }) => {
       )}
 
       {/* Precision Telemetry Overlay */}
-      <div className="absolute top-4 right-6 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-        <div className="flex items-center gap-2 font-mono text-[0.45rem] font-bold text-gray-600 tracking-widest">
+      <div className="absolute top-4 right-6 pointer-events-none opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-500">
+        <div className="flex items-center gap-2 font-mono text-[0.45rem] font-bold text-gray-600 tracking-widest select-none">
           <span>X_<span ref={txRef}>0.0</span></span>
           <span>Y_<span ref={tyRef}>0.0</span></span>
           <span>[{nodeId}]</span>
@@ -173,9 +187,12 @@ const ConcentricVisualizer = memo(({ nutrient, percentage, total, deficit }) => 
   const [isFocused, setIsFocused] = useState(false);
   const reactId = useId();
 
-  const nodeId = useMemo(() => `VIS_${reactId.replace(/:/g, '').slice(0, 4).toUpperCase()}`, [reactId]);
+  const nodeId = useMemo(() => {
+    const cleanId = reactId.replace(/:/g, '');
+    return `VIS_${cleanId.slice(0, 4).toUpperCase()}`;
+  }, [reactId]);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -191,9 +208,9 @@ const ConcentricVisualizer = memo(({ nutrient, percentage, total, deficit }) => 
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
-  };
+  }, []);
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     setIsFocused(true);
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '4deg');
@@ -201,15 +218,17 @@ const ConcentricVisualizer = memo(({ nutrient, percentage, total, deficit }) => 
       if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     }
-  };
+  }, []);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     setIsFocused(false);
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
-  };
+    if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+    if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
+  }, []);
 
   const interactionActive = isHovered || isFocused;
 
@@ -218,7 +237,13 @@ const ConcentricVisualizer = memo(({ nutrient, percentage, total, deficit }) => 
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        if (containerRef.current) {
+          containerRef.current.style.setProperty('--tilt-x', '0deg');
+          containerRef.current.style.setProperty('--tilt-y', '0deg');
+        }
+      }}
       onFocus={handleFocus}
       onBlur={handleBlur}
       tabIndex="0"
@@ -334,7 +359,7 @@ const ConcentricVisualizer = memo(({ nutrient, percentage, total, deficit }) => 
         className="absolute top-10 right-14 pointer-events-none opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-all duration-500"
         style={{ transform: 'translateZ(80px)' }}
       >
-        <div className="flex flex-col items-end font-mono text-[0.4rem] font-bold tracking-[0.2em] space-y-0.5" style={{ color: nutrient.color }}>
+        <div className="flex flex-col items-end font-mono text-[0.4rem] font-bold tracking-[0.2em] space-y-0.5 select-none" style={{ color: nutrient.color }}>
           <span>TX_<span ref={tiltXRef}>0.0</span>°</span>
           <span>TY_<span ref={tiltYRef}>0.0</span>°</span>
           <span className="text-white/20">[{nodeId}]</span>
@@ -345,8 +370,6 @@ const ConcentricVisualizer = memo(({ nutrient, percentage, total, deficit }) => 
 });
 
 ConcentricVisualizer.displayName = "ConcentricVisualizer";
-
-const DEFAULT_TRACKER = Object.freeze({});
 
 const NutrientTracker = () => {
   /**
@@ -377,25 +400,25 @@ const NutrientTracker = () => {
     };
   }, []);
 
-  const currentNutrient = useMemo(() =>
-    NUTRIENTS.find(n => n.id === selectedNutrientId)
-  , [selectedNutrientId]);
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Consolidated Single-Pass Metrics Calculation.
+   * Derives currentNutrient, currentStatus, total, deficit, and percentage in a single pass.
+   */
+  const { currentNutrient, currentStatus, total, deficit, percentage } = useMemo(() => {
+    const nutrient = NUTRIENTS.find(n => n.id === selectedNutrientId) || NUTRIENTS[0];
+    const status = tracker[selectedNutrientId] || DEFAULT_STATUS;
+    const tot = (status.intake || 0) + (status.fromFood || 0);
+    const def = Math.max(0, nutrient.dailyGoal - tot);
+    const pct = Math.min(Math.round((tot / nutrient.dailyGoal) * 100), 100);
 
-  const currentStatus = useMemo(() =>
-    tracker[selectedNutrientId] || { intake: 0, fromFood: 0 }
-  , [tracker, selectedNutrientId]);
-
-  const total = useMemo(() => {
-    return (currentStatus.intake || 0) + (currentStatus.fromFood || 0);
-  }, [currentStatus]);
-
-  const deficit = useMemo(() => {
-    return Math.max(0, currentNutrient.dailyGoal - total);
-  }, [currentNutrient.dailyGoal, total]);
-
-  const percentage = useMemo(() => {
-    return Math.min(Math.round((total / currentNutrient.dailyGoal) * 100), 100);
-  }, [total, currentNutrient.dailyGoal]);
+    return {
+      currentNutrient: nutrient,
+      currentStatus: status,
+      total: tot,
+      deficit: def,
+      percentage: pct
+    };
+  }, [tracker, selectedNutrientId]);
 
   const handleLogIntake = useCallback(async () => {
     const val = parseFloat(logValue);
@@ -428,7 +451,7 @@ const NutrientTracker = () => {
       await updateItem('nutrient_tracker', {
         [id]: { intake: 0, fromFood: 0 }
       });
-      addNotification(`${targetNutrient.name} synthesis database purged.`, 'info');
+      addNotification(`${targetNutrient?.name || 'Nutrient'} synthesis database purged.`, 'info');
     } else {
       setPurgeActive(true);
       setPurgeCountdown(3);

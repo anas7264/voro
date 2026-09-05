@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useDeferredValue } from 'react';
+import React, { useEffect, useState, useMemo, useDeferredValue, useCallback, memo } from 'react';
 import { Search, Activity } from 'lucide-react';
 import { exercises } from '@/data/exercises';
 import { ExerciseCard } from '@/components/ExerciseCard';
@@ -29,11 +29,33 @@ const EXERCISES_BY_CATEGORY = Object.freeze(EXERCISES_LOWERCASE.reduce((acc, exe
   return acc;
 }, {}));
 
+/**
+ * ⚡ SUBCOMPONENT: ExerciseItemWrapper
+ * Memoized item container that encapsulates entrance animation styling,
+ * preventing inline style object allocations inside the parent render map loop.
+ */
+const ExerciseItemWrapper = memo(({ exercise, index, onSelect }) => {
+  const animationStyle = useMemo(() => ({
+    animationDelay: `${Math.min(index, 10) * 50}ms`
+  }), [index]);
+
+  return (
+    <div className="animate-slide-up" style={animationStyle}>
+      <ExerciseCard
+        exercise={exercise}
+        onSelect={onSelect}
+      />
+    </div>
+  );
+});
+
+ExerciseItemWrapper.displayName = 'ExerciseItemWrapper';
+
 const ExerciseLibrary = () => {
   const [searchQuery, setSearchQuery] = useState('');
   /**
    * ⚡ OPTIMIZATION: Concurrent Rendering with useDeferredValue.
-   * Eliminates the mandatory 200ms debounce delay.
+   * Eliminates mandatory debounce delay while maintaining smooth UI typing.
    */
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -50,14 +72,18 @@ const ExerciseLibrary = () => {
     setVisibleCount(PAGE_SIZE);
   }, [deferredSearchQuery, selectedCategory]);
 
-  const handleSelectExercise = React.useCallback((exercise) => {
+  const handleSelectExercise = useCallback((exercise) => {
     // Stable handler reference prevents ExerciseCard React.memo invalidation
-    console.log('Selected:', exercise.name);
+    console.log('Selected movement pattern:', exercise?.name || exercise);
+  }, []);
+
+  const handleLoadMore = useCallback(() => {
+    setVisibleCount(prev => prev + PAGE_SIZE);
   }, []);
 
   /**
    * ⚡ OPTIMIZATION: Replace useEffect + useState pattern with useMemo for filtering.
-   * This eliminates the double-render cycle and provides cleaner data derivation.
+   * This eliminates double-render cycles and provides clean, single-pass data derivation.
    */
   const filteredExercises = useMemo(() => {
     /**
@@ -66,15 +92,17 @@ const ExerciseLibrary = () => {
      */
     let filtered = selectedCategory === 'All' ? EXERCISES_LOWERCASE : (EXERCISES_BY_CATEGORY[selectedCategory] || []);
 
-    if (deferredSearchQuery.trim()) {
-      const query = deferredSearchQuery.toLowerCase();
-      filtered = filtered.filter(e =>
-        e._nameLower.includes(query)
-      );
+    const query = deferredSearchQuery.trim().toLowerCase();
+    if (query) {
+      filtered = filtered.filter(e => e._nameLower.includes(query));
     }
 
     return filtered;
   }, [deferredSearchQuery, selectedCategory]);
+
+  const visibleExercises = useMemo(() => {
+    return filteredExercises.slice(0, visibleCount);
+  }, [filteredExercises, visibleCount]);
 
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30 pb-24">
@@ -119,6 +147,7 @@ const ExerciseLibrary = () => {
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
+                aria-pressed={selectedCategory === cat}
                 className={`px-6 py-2.5 rounded-full text-[0.6rem] font-black uppercase tracking-[0.25em] transition-all border outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408] ${
                   selectedCategory === cat
                     ? 'bg-white text-black border-white shadow-xl shadow-white/5'
@@ -133,13 +162,13 @@ const ExerciseLibrary = () => {
 
         {/* Exercises Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {filteredExercises.slice(0, visibleCount).map((exercise, idx) => (
-            <div key={exercise.id} className="animate-slide-up" style={{ animationDelay: `${idx * 50}ms` }}>
-              <ExerciseCard
-                exercise={exercise}
-                onSelect={handleSelectExercise}
-              />
-            </div>
+          {visibleExercises.map((exercise, idx) => (
+            <ExerciseItemWrapper
+              key={exercise.id}
+              exercise={exercise}
+              index={idx}
+              onSelect={handleSelectExercise}
+            />
           ))}
         </div>
 
@@ -154,7 +183,7 @@ const ExerciseLibrary = () => {
           <div className="mt-12 flex justify-center">
             <Button
               variant="secondary"
-              onClick={() => setVisibleCount(prev => prev + PAGE_SIZE)}
+              onClick={handleLoadMore}
             >
               Load More Exercises
             </Button>
