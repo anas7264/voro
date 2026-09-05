@@ -1089,7 +1089,7 @@ export const validateWorkoutEntry = (workout) => {
           errors[`exercise_${idx}`] = "Invalid exercise object";
           return;
         }
-        if (!ex.name?.trim()) {
+        if (typeof ex.name !== 'string' || !ex.name.trim()) {
           errors[`exercise_${idx}_name`] = "Exercise name is required";
         } else if (ex.name.length > 100) {
           errors[`exercise_${idx}_name`] = "Exercise name must be less than 100 characters";
@@ -1109,7 +1109,7 @@ export const validateWorkoutEntry = (workout) => {
     if (!isValidDate(workout.date)) errors.date = "Date is invalid";
   } else {
     // Single entry validation
-    if (!workout.exercise?.trim()) {
+    if (typeof workout.exercise !== 'string' || !workout.exercise.trim()) {
       errors.exercise = "Exercise is required";
     } else if (workout.exercise.length > 100) {
       errors.exercise = "Exercise name must be less than 100 characters";
@@ -1130,7 +1130,7 @@ export const validateNutritionEntry = (nutrition) => {
   }
   const errors = {};
 
-  if (!nutrition.food?.trim()) {
+  if (typeof nutrition.food !== 'string' || !nutrition.food.trim()) {
     errors.food = "Food is required";
   } else if (nutrition.food.length > 100) {
     errors.food = "Food name must be less than 100 characters";
@@ -1152,7 +1152,7 @@ export const validateHabit = (habit) => {
   }
   const errors = {};
 
-  if (!habit.name?.trim()) {
+  if (typeof habit.name !== 'string' || !habit.name.trim()) {
     errors.name = "Habit name is required";
   } else if (habit.name.length > 50) {
     errors.name = "Habit name must be less than 50 characters";
@@ -1176,7 +1176,7 @@ export const validateRecipe = (recipe) => {
   }
   const errors = {};
 
-  if (!recipe.name?.trim()) {
+  if (typeof recipe.name !== 'string' || !recipe.name.trim()) {
     errors.name = "Recipe name is required";
   } else if (recipe.name.length > 100) {
     errors.name = "Recipe name must be less than 100 characters";
