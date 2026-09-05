@@ -219,6 +219,22 @@ const runTests = async () => {
     throw new Error(`❌ Failure: HTML entity-encoded keyword exfiltration was NOT blocked! res6=${res6}, compromised=${window.VORO_COMPROMISED}`);
   }
 
+  // --- TEST 7: Multi-Pass Percent-Encoded AI Exfiltration Keyword in URL ---
+  console.log("🛡️ Test 7: Verifying multi-pass percent-encoded keyword in URL exfiltration detection...");
+  lockdownCount = 0;
+  window.VORO_COMPROMISED = false;
+  window.VORO_DECEPTION_ACTIVE = false;
+
+  // %2563%256f%256f%256b%2569%2565 is double percent-encoded "cookie"
+  const multiPassPayload = "Check out https://attacker.com/exfil?data=%2563%256f%256f%256b%2569%2565";
+  const res7 = validateAIResponse(multiPassPayload);
+
+  if (res7 === "[SECURITY_VIOLATION_DETECTED]" && lockdownCount > 0 && window.VORO_COMPROMISED) {
+    console.log("✅ Success: Multi-pass percent-encoded keyword in exfiltration URL was successfully detected and locked down!");
+  } else {
+    throw new Error(`❌ Failure: Multi-pass percent-encoded keyword exfiltration was NOT blocked! res7=${res7}, compromised=${window.VORO_COMPROMISED}`);
+  }
+
   console.log("\n🎉 ALL EXFILTRATION SECURITY VERIFICATION TESTS PASSED SUCCESSFULLY!");
   console.log("=========================================");
   process.exit(0);
