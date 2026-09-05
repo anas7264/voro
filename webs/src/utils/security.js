@@ -2277,11 +2277,17 @@ export const validateAIResponse = (c, n = null) => {
         return "[SECURITY_VIOLATION_DETECTED]";
       }
 
-      // Deep Decoding: Prevent bypass via percent-encoding or HTML entity encoding (e.g., &#99;&#111;&#111;&#107;&#105;&#101; for "cookie")
+      // Deep Decoding: Prevent bypass via multi-pass percent-encoding or HTML entity encoding (e.g., %2563%256f... or &#99;&#111;&#111;&#107;&#105;&#101; for "cookie")
       let decodedUrl = url;
-      try {
-        decodedUrl = decodeURIComponent(url);
-      } catch (e) { /* fallback to raw url if malformed */ }
+      let prevUrl;
+      let passes = 5;
+      do {
+        prevUrl = decodedUrl;
+        try {
+          decodedUrl = decodeURIComponent(decodedUrl);
+        } catch (e) { /* fallback to last valid decode if malformed */ }
+      } while (decodedUrl !== prevUrl && --passes > 0);
+
       decodedUrl = _call.call(_replace, decodedUrl, /&amp;/gi, '&');
       decodedUrl = _call.call(_replace, decodedUrl, /&#x([0-9a-fA-F]+);/g, (_, hex) => {
         try { return String.fromCodePoint(parseInt(hex, 16)); } catch (err) { return _; }
@@ -2289,6 +2295,15 @@ export const validateAIResponse = (c, n = null) => {
       decodedUrl = _call.call(_replace, decodedUrl, /&#(\d+);/g, (_, dec) => {
         try { return String.fromCodePoint(parseInt(dec, 10)); } catch (err) { return _; }
       });
+
+      // Secondary percent-decoding pass to decode any percent-encoded sequences revealed after HTML entity expansion
+      passes = 5;
+      do {
+        prevUrl = decodedUrl;
+        try {
+          decodedUrl = decodeURIComponent(decodedUrl);
+        } catch (e) { /* fallback */ }
+      } while (decodedUrl !== prevUrl && --passes > 0);
 
       const lowerUrl = _call.call(_toLowerCase, decodedUrl);
       const searchStr = _call.call(_URLSearch, urlObj);
@@ -2323,7 +2338,15 @@ export const validateAIResponse = (c, n = null) => {
     } catch (e) {
       // If URL parsing fails, perform a deep fallback keyword and high-entropy check on the raw string
       let decodedUrl = url;
-      try { decodedUrl = decodeURIComponent(url); } catch (err) { /* fallback */ }
+      let prevUrl;
+      let passes = 5;
+      do {
+        prevUrl = decodedUrl;
+        try {
+          decodedUrl = decodeURIComponent(decodedUrl);
+        } catch (err) { /* fallback */ }
+      } while (decodedUrl !== prevUrl && --passes > 0);
+
       decodedUrl = _call.call(_replace, decodedUrl, /&amp;/gi, '&');
       decodedUrl = _call.call(_replace, decodedUrl, /&#x([0-9a-fA-F]+);/g, (_, hex) => {
         try { return String.fromCodePoint(parseInt(hex, 16)); } catch (err) { return _; }
@@ -2331,6 +2354,14 @@ export const validateAIResponse = (c, n = null) => {
       decodedUrl = _call.call(_replace, decodedUrl, /&#(\d+);/g, (_, dec) => {
         try { return String.fromCodePoint(parseInt(dec, 10)); } catch (err) { return _; }
       });
+
+      passes = 5;
+      do {
+        prevUrl = decodedUrl;
+        try {
+          decodedUrl = decodeURIComponent(decodedUrl);
+        } catch (err) { /* fallback */ }
+      } while (decodedUrl !== prevUrl && --passes > 0);
       const lowerUrl = _call.call(_toLowerCase, decodedUrl);
       const hasHighSignal = _call.call(_some, highSignalKeywords, kw => _call.call(_SIncludes, lowerUrl, kw));
       const hasQueryOnly = _call.call(_some, queryOnlyKeywords, kw => _call.call(_SIncludes, lowerUrl, kw));
