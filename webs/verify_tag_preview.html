@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VORO — Tag Component Verification</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'voro-primary': '#7C3AED',
+            'voro-secondary': '#10B981',
+            'voro-accent': '#F59E0B',
+            'voro-danger': '#EF4444',
+            'voro-info': '#3B82F6',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #020408;
+      color: #F0F4FF;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-12 bg-[#020408] text-[#F0F4FF] relative overflow-hidden">
+  <!-- Precision Background Depth -->
+  <div class="fixed inset-0 pointer-events-none">
+    <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#7C3AED]/10 rounded-full blur-[150px]"></div>
+    <div class="absolute bottom-[10%] right-[-5%] w-[40%] h-[40%] bg-[#10B981]/10 rounded-full blur-[130px]"></div>
+  </div>
+
+  <div class="relative z-10 max-w-4xl w-full space-y-12 bg-[#0A0C14] border border-white/10 rounded-[2.5rem] p-12 shadow-2xl">
+    <div class="space-y-4">
+      <div class="flex items-center gap-3 text-[#7C3AED]">
+        <div class="w-2.5 h-2.5 rounded-full bg-[#7C3AED] shadow-[0_0_12px_#7C3AED] animate-pulse"></div>
+        <span class="font-mono text-xs font-black uppercase tracking-[0.4em] text-gray-400">Forge Component Showcase // 0xTAG_SPECIMEN</span>
+      </div>
+      <h1 class="text-4xl font-serif italic font-medium text-white tracking-tight">Kinetic Neural Metadata Nodes</h1>
+      <p class="text-gray-400 text-sm font-mono uppercase tracking-widest">Re-engineered with 60fps Direct-DOM 3D tilt tracking, liquid border illumination, and sub-pixel attestation hash badging.</p>
+    </div>
+
+    <!-- Tag Variants Row -->
+    <div class="space-y-6">
+      <h2 class="text-xs font-mono font-bold uppercase tracking-[0.3em] text-gray-500">Specimen Array (Variants)</h2>
+      <div class="flex flex-wrap items-center gap-4">
+        <!-- Voro Primary Tag -->
+        <span class="relative inline-flex items-center gap-2.5 px-3.5 py-1 text-[0.55rem] rounded-full backdrop-blur-2xl border transition-all duration-500 overflow-hidden bg-[#7C3AED]/[0.04] text-[#7C3AED] border-[#7C3AED]/30 shadow-[0_4px_12px_rgba(124,58,237,0.12)] cursor-pointer hover:scale-105">
+          <span class="relative flex h-1.5 w-1.5 flex-shrink-0">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#7C3AED] opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#7C3AED] shadow-[0_0_8px_#7C3AED]"></span>
+          </span>
+          <span class="font-mono font-black uppercase tracking-[0.25em]">System Core // Active</span>
+          <span class="font-mono text-[0.35rem] font-bold text-white/30 ml-2">0xTAG_8F2A</span>
+        </span>
+
+        <!-- Voro Secondary Tag -->
+        <span class="relative inline-flex items-center gap-2.5 px-3.5 py-1 text-[0.55rem] rounded-full backdrop-blur-2xl border transition-all duration-500 overflow-hidden bg-[#10B981]/[0.04] text-[#10B981] border-[#10B981]/30 shadow-[0_4px_12px_rgba(16,185,129,0.12)] cursor-pointer hover:scale-105">
+          <span class="relative flex h-1.5 w-1.5 flex-shrink-0">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#10B981] opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#10B981] shadow-[0_0_8px_#10B981]"></span>
+          </span>
+          <span class="font-mono font-black uppercase tracking-[0.25em]">Metabolic Status // Nominal</span>
+          <span class="font-mono text-[0.35rem] font-bold text-white/30 ml-2">0xTAG_19E4</span>
+        </span>
+
+        <!-- Voro Accent Tag -->
+        <span class="relative inline-flex items-center gap-2.5 px-3.5 py-1 text-[0.55rem] rounded-full backdrop-blur-2xl border transition-all duration-500 overflow-hidden bg-[#F59E0B]/[0.04] text-[#F59E0B] border-[#F59E0B]/30 shadow-[0_4px_12px_rgba(245,158,11,0.12)] cursor-pointer hover:scale-105">
+          <span class="relative flex h-1.5 w-1.5 flex-shrink-0">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F59E0B] opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#F59E0B] shadow-[0_0_8px_#F59E0B]"></span>
+          </span>
+          <span class="font-mono font-black uppercase tracking-[0.25em]">Zone // Threshold</span>
+          <span class="font-mono text-[0.35rem] font-bold text-white/30 ml-2">0xTAG_C77B</span>
+        </span>
+
+        <!-- Voro Danger Tag -->
+        <span class="relative inline-flex items-center gap-2.5 px-3.5 py-1 text-[0.55rem] rounded-full backdrop-blur-2xl border transition-all duration-500 overflow-hidden bg-[#EF4444]/[0.04] text-[#EF4444] border-[#EF4444]/30 shadow-[0_4px_12px_rgba(239,68,68,0.12)] cursor-pointer hover:scale-105">
+          <span class="relative flex h-1.5 w-1.5 flex-shrink-0">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#EF4444] opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#EF4444] shadow-[0_0_8px_#EF4444]"></span>
+          </span>
+          <span class="font-mono font-black uppercase tracking-[0.25em]">Cortisol Spike // Elev</span>
+          <span class="font-mono text-[0.35rem] font-bold text-white/30 ml-2">0xTAG_5D02</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- Sizes Specimen -->
+    <div class="space-y-6">
+      <h2 class="text-xs font-mono font-bold uppercase tracking-[0.3em] text-gray-500">Scale Hierarchy (Sizes: SM / MD / LG)</h2>
+      <div class="flex items-center gap-4">
+        <span class="inline-flex items-center gap-2 px-2.5 py-0.5 text-[0.5rem] rounded-full border bg-[#7C3AED]/[0.04] text-[#7C3AED] border-[#7C3AED]/30 font-mono font-black uppercase tracking-[0.25em]">
+          <span class="w-1 h-1 rounded-full bg-[#7C3AED]"></span> SM Node
+        </span>
+        <span class="inline-flex items-center gap-2.5 px-3.5 py-1 text-[0.55rem] rounded-full border bg-[#7C3AED]/[0.04] text-[#7C3AED] border-[#7C3AED]/30 font-mono font-black uppercase tracking-[0.25em]">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#7C3AED]"></span> MD Node
+        </span>
+        <span class="inline-flex items-center gap-3 px-4.5 py-1.5 text-[0.6rem] rounded-full border bg-[#7C3AED]/[0.04] text-[#7C3AED] border-[#7C3AED]/30 font-mono font-black uppercase tracking-[0.25em]">
+          <span class="w-2 h-2 rounded-full bg-[#7C3AED]"></span> LG Node
+        </span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
