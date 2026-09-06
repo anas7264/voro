@@ -260,12 +260,16 @@ const ShoppingList = () => {
 
   /**
    * ⚡ PERFORMANCE OPTIMIZATION: Zero-Allocation Parent metrics useMemo.
-   * Completely avoids garbage-collection thrashing by performing linear scans
-   * in a single pass and memoizing the structural values.
+   * Performs linear scan in a single imperative loop pass without closure allocations.
    */
   const metrics = useMemo(() => {
     const total = shoppingList.length;
-    const secured = shoppingList.reduce((acc, item) => item.checked ? acc + 1 : acc, 0);
+    let secured = 0;
+    for (let i = 0; i < total; i++) {
+      if (shoppingList[i].checked) {
+        secured++;
+      }
+    }
     const rate = total > 0 ? Math.round((secured / total) * 100) : 0;
     const isOptimal = total > 0 && secured === total;
 
