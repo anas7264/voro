@@ -1,9 +1,16 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Plus, Trash2, Target, Zap, Activity, ChevronRight, Download } from 'lucide-react';
-import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
+import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Module-scoped selector & stable fallback.
+ * Prevents redundant object instantiation and isolates re-renders to 'plans' storage changes.
+ */
+const EMPTY_OBJ = Object.freeze({});
+const selectPlans = (data) => data || EMPTY_OBJ;
 
 const CONFIG = {
   duration: ['4 Weeks', '8 Weeks', '12 Weeks', '16 Weeks'],
@@ -68,11 +75,11 @@ const generateMockBlueprint = (selections) => {
 
 const TrainingPlan = () => {
   /**
-   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
-   * Replaced broad useStorage() with useStorageKey('plans') for reactive data
-   * and useStorageMethods for stable action references.
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity via useStorageKeySelector.
+   * Replaced useStorageKey('plans') with useStorageKeySelector('plans', selectPlans)
+   * to guarantee referential stability and isolate component re-renders.
    */
-  const plansData = useStorageKey('plans') || {};
+  const plansData = useStorageKeySelector('plans', selectPlans);
   const { updateItem } = useStorageMethods();
   const { addNotification } = useNotifications();
   const [isGenerating, setIsGenerating] = useState(false);
