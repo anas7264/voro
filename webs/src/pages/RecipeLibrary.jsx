@@ -4,8 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
-import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
+import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
+
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Module-scoped selector & stable fallback.
+ * Prevents redundant array allocation and isolates re-renders to 'recipes' storage changes.
+ */
+const EMPTY_ARRAY = Object.freeze([]);
+const selectRecipes = (data) => data || EMPTY_ARRAY;
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted, frozen static datasets.
@@ -317,8 +324,8 @@ const RecipeLibrary = () => {
   const { setItem, getItem } = useStorageMethods();
   const { addNotification } = useNotifications();
 
-  // Storage key reactive subscription
-  const storedRecipes = useStorageKey('recipes');
+  // Storage key reactive subscription via useStorageKeySelector
+  const storedRecipes = useStorageKeySelector('recipes', selectRecipes);
 
   // Cinematic alignment loader state
   const [loading, setLoading] = useState(true);

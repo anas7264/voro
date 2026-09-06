@@ -2,9 +2,16 @@ import React, { useEffect, useState, useCallback, useRef, memo } from 'react';
 import { Trash2, Calendar, Zap, Target, Activity, AlertCircle, Compass, Cpu, Sparkles } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
-import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
+import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { formatDate } from '@/utils/formatters';
+
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Module-scoped selector & stable fallback.
+ * Prevents redundant array allocation and isolates re-renders to 'periodization' storage changes.
+ */
+const EMPTY_ARRAY = Object.freeze([]);
+const selectPeriodizationBlocks = (data) => data || EMPTY_ARRAY;
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted and frozen static metadata.
@@ -364,11 +371,11 @@ KineticAlignmentOverlay.displayName = 'KineticAlignmentOverlay';
  */
 const Periodization = () => {
   /**
-   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
-   * Replaced broad useStorage() with useStorageKey for specific data and
-   * useStorageMethods for stable action references.
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity via useStorageKeySelector.
+   * Replaced useStorageKey with useStorageKeySelector('periodization', selectPeriodizationBlocks)
+   * to guarantee referential stability and isolate component re-renders.
    */
-  const blocks = useStorageKey('periodization') || [];
+  const blocks = useStorageKeySelector('periodization', selectPeriodizationBlocks);
   const { setItem } = useStorageMethods();
   const { addNotification } = useNotifications();
   const [isAligning, setIsAligning] = useState(false);
