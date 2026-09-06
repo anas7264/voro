@@ -277,11 +277,18 @@ const MealPlanner = () => {
   const { addNotification } = useNotifications();
   const { user } = useAppContext();
 
-  // ⚡ PERFORMANCE OPTIMIZATION: Granular state selector replaces full object subscription
+  // ⚡ PERFORMANCE OPTIMIZATION: Granular state selector with lightweight array comparison
   const savedMealPlans = useStorageKeySelector(
     'plans',
-    useCallback((state) => (state || {}).savedMealPlans || [], []),
-    useCallback((a, b) => JSON.stringify(a) === JSON.stringify(b), [])
+    useCallback((state) => (state || {}).savedMealPlans || Object.freeze([]), []),
+    useCallback((a, b) => {
+      if (a === b) return true;
+      if (!a || !b || a.length !== b.length) return false;
+      for (let i = 0; i < a.length; i++) {
+        if (a[i] !== b[i]) return false;
+      }
+      return true;
+    }, [])
   );
 
   const [loading, setLoading] = useState(false);

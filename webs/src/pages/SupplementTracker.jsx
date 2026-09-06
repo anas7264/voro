@@ -121,7 +121,7 @@ const CatalogItem = memo(({ supp, onAdd }) => {
     ? `${supp.servingSize} ${supp.servingSizeUnit || ''}`
     : `${supp.dosageMin}–${supp.dosageMax} ${supp.dosageUnit || ''}`;
 
-  const nodeId = `CATALOG_0x${supp.id?.toString().slice(-4).toUpperCase()}`;
+  const nodeId = useMemo(() => `CATALOG_0x${supp.id?.toString().slice(-4).toUpperCase()}`, [supp.id]);
 
   return (
     <button
@@ -268,15 +268,18 @@ const ActiveProtocolCard = memo(({ supp, index, onRemove }) => {
     ? `${supp.servingSize} ${supp.servingSizeUnit || ''}`
     : `${supp.dosageMin}–${supp.dosageMax} ${supp.dosageUnit || ''}`;
 
-  const formattedStartDate = useMemo(() => {
+  const { formattedStartDate, nodeId } = useMemo(() => {
+    let dt = 'ACTIVE';
     try {
-      return fullDateFormatter.format(new Date(supp.startDate));
+      if (supp.startDate) dt = fullDateFormatter.format(new Date(supp.startDate));
     } catch {
-      return 'ACTIVE';
+      dt = 'ACTIVE';
     }
-  }, [supp.startDate]);
-
-  const nodeId = `SUPP_0x${supp.id?.toString().slice(-4).toUpperCase()}`;
+    return {
+      formattedStartDate: dt,
+      nodeId: `SUPP_0x${supp.id?.toString().slice(-4).toUpperCase()}`
+    };
+  }, [supp.startDate, supp.id]);
   const interactionActive = isHovered || isFocused;
 
   return (
@@ -537,14 +540,18 @@ const SupplementTracker = () => {
     const q = searchQuery.trim().toLowerCase();
     const cat = selectedCategory;
 
+    if (!q && cat === 'All') return PRE_PROCESSED_SUPPLEMENTS;
+
     return PRE_PROCESSED_SUPPLEMENTS.filter(supp => {
       const matchesCategory = cat === 'All' || supp.category === cat;
-      const matchesSearch = !q ||
+      if (!matchesCategory) return false;
+      if (!q) return true;
+
+      return (
         supp._nameLower.includes(q) ||
         supp._categoryLower.includes(q) ||
-        supp._descriptionLower.includes(q);
-
-      return matchesCategory && matchesSearch;
+        supp._descriptionLower.includes(q)
+      );
     });
   }, [searchQuery, selectedCategory]);
 

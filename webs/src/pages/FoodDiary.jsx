@@ -266,21 +266,31 @@ const FoodDiary = () => {
   const [selectedSlot, setSelectedSlot] = useState(null);
 
   /**
-   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
-   * Subscribes strictly to data for the selected date slice in 'nutrition_log'.
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity & Single-Pass Loop.
+   * Subscribes strictly to data for the selected date slice in 'nutrition_log'
+   * using imperative loop execution to avoid array function allocations.
    */
   const nutritionLog = useStorageKeySelector(
     'nutrition_log',
     useCallback((logs) => {
       const log = (logs || {})[date] || INITIAL_LOG_TEMPLATE;
-
+      const meals = log.meals || INITIAL_LOG_TEMPLATE.meals;
       const mealTotals = {};
-      MEAL_SLOTS.forEach(slot => {
-        mealTotals[slot] = (log.meals?.[slot] || []).reduce((sum, food) => sum + (food.calories || 0), 0);
-      });
+
+      for (let i = 0; i < MEAL_SLOTS.length; i++) {
+        const slot = MEAL_SLOTS[i];
+        const slotList = meals[slot];
+        let sum = 0;
+        if (Array.isArray(slotList)) {
+          for (let j = 0; j < slotList.length; j++) {
+            sum += (slotList[j].calories || 0);
+          }
+        }
+        mealTotals[slot] = sum;
+      }
 
       return {
-        meals: log.meals || INITIAL_LOG_TEMPLATE.meals,
+        meals,
         water: log.water || 0,
         totals: log.totals || INITIAL_LOG_TEMPLATE.totals,
         mealTotals

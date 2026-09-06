@@ -36,11 +36,14 @@ const JournalEntryCard = memo(({ entry, onDelete, index }) => {
   const [purgeState, setPurgeState] = useState(false);
   const [announcement, setAnnouncement] = useState('');
 
-  const dateObj = useMemo(() => new Date(entry.date), [entry.date]);
-  const formattedDate = useMemo(() => dateFormatter.format(dateObj), [dateObj]);
-  const formattedTime = useMemo(() => timeFormatter.format(dateObj), [dateObj]);
-
-  const nodeId = useMemo(() => `0xJRN_${entry.id?.toString().slice(-4) || 'LOG'}`, [entry.id]);
+  const { formattedDate, formattedTime, nodeId } = useMemo(() => {
+    const d = new Date(entry.date);
+    return {
+      formattedDate: dateFormatter.format(d),
+      formattedTime: timeFormatter.format(d),
+      nodeId: `0xJRN_${entry.id?.toString().slice(-4) || 'LOG'}`
+    };
+  }, [entry.date, entry.id]);
 
   const handleMouseMove = (e) => {
     if (!cardRef.current) return;
