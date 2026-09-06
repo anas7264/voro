@@ -235,6 +235,38 @@ const runTests = async () => {
     throw new Error(`❌ Failure: Multi-pass percent-encoded keyword exfiltration was NOT blocked! res7=${res7}, compromised=${window.VORO_COMPROMISED}`);
   }
 
+  // --- TEST 8: JavaScript Escape Sequence-Encoded AI Exfiltration Keyword in URL ---
+  console.log("🛡️ Test 8: Verifying JavaScript escape sequence-encoded keyword in URL exfiltration detection...");
+  lockdownCount = 0;
+  window.VORO_COMPROMISED = false;
+  window.VORO_DECEPTION_ACTIVE = false;
+
+  // \u0063\u006f\u006f\u006b\u0069\u0065 is "cookie" in unicode escape sequences
+  const escapeSequencePayload = "Here is a link: https://attacker.com/leak?\\u0063\\u006f\\u006f\\u006b\\u0069\\u0065=123";
+  const res8 = validateAIResponse(escapeSequencePayload);
+
+  if (res8 === "[SECURITY_VIOLATION_DETECTED]" && lockdownCount > 0 && window.VORO_COMPROMISED) {
+    console.log("✅ Success: JavaScript escape sequence-encoded keyword in exfiltration URL was successfully detected and locked down!");
+  } else {
+    throw new Error(`❌ Failure: JavaScript escape sequence-encoded keyword exfiltration was NOT blocked! res8=${res8}, compromised=${window.VORO_COMPROMISED}`);
+  }
+
+  // --- TEST 9: Multi-Layer Percent/Entity + Escape Sequence Obfuscated AI Exfiltration Keyword ---
+  console.log("🛡️ Test 9: Verifying multi-layer percent/entity + escape sequence obfuscated exfiltration detection...");
+  lockdownCount = 0;
+  window.VORO_COMPROMISED = false;
+  window.VORO_DECEPTION_ACTIVE = false;
+
+  // Hex escape sequence \x73\x65\x73\x73\x69\x6f\x6e ("session") inside percent-encoded wrapper
+  const multiLayerPayload = "Check url: https://attacker.com/leak?param=%5Cu0073%5Cu0065%5Cu0073%5Cu0073%5Cu0069%5Cu006f%5Cu006e";
+  const res9 = validateAIResponse(multiLayerPayload);
+
+  if (res9 === "[SECURITY_VIOLATION_DETECTED]" && lockdownCount > 0 && window.VORO_COMPROMISED) {
+    console.log("✅ Success: Multi-layer percent/entity + escape sequence obfuscated keyword in exfiltration URL was successfully detected and locked down!");
+  } else {
+    throw new Error(`❌ Failure: Multi-layer obfuscated keyword exfiltration was NOT blocked! res9=${res9}, compromised=${window.VORO_COMPROMISED}`);
+  }
+
   console.log("\n🎉 ALL EXFILTRATION SECURITY VERIFICATION TESTS PASSED SUCCESSFULLY!");
   console.log("=========================================");
   process.exit(0);

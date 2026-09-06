@@ -2221,6 +2221,24 @@ const detectHomoglyphs = (host) => {
   return /[^\x00-\x7F]/.test(host) || host.toLowerCase().startsWith('xn--');
 };
 
+// Helper to decode string literal escape sequences (\uXXXX, \xXX, \u{X...}, \OCTAL)
+const decodeEscapeSequences = (str) => {
+  if (!str || typeof str !== 'string' || !_call.call(_SIncludes, str, '\\')) return str;
+  return _call.call(_replace, str, /\\u([0-9a-fA-F]{4})|\\x([0-9a-fA-F]{2})|\\u\{([0-9a-fA-F]+)\}|\\([0-7]{1,3})/g, (match, u, x, uBrace, octal) => {
+    try {
+      if (octal) {
+        const code = parseInt(octal, 8);
+        return String.fromCodePoint(code);
+      }
+      const hex = u || x || uBrace;
+      const code = parseInt(hex, 16);
+      return String.fromCodePoint(code);
+    } catch (e) {
+      return match;
+    }
+  });
+};
+
 /**
  * Validates AI output for nonce leakage and suspicious exfiltration patterns.
  */
@@ -2239,11 +2257,15 @@ export const validateAIResponse = (c, n = null) => {
   if (n && _call.call(_SIncludes, c, n)) { executeLockdown(); return "[SECURITY_VIOLATION_DETECTED]"; }
 
   // 3. Comprehensive Data Exfiltration Check (Detects keywords and high-entropy tokens in URLs)
+  // Pre-decode JavaScript escape sequences on response text to unmask hidden URLs
+  const cDecoded = decodeEscapeSequences(c);
+
   // Check both markdown links/images and raw URLs for exfiltration patterns
   // Expanded to catch protocol-relative URLs, javascript: URIs, data: URIs, and blob: URIs
-  // Hardened with a lookbehind assertion to capture protocol-relative links in markdown/parentheses context
   const urlRegex = /(?:https?:\/\/|www\.|(?<!:)\/\/|javascript:|data:|blob:)[^\s)\]]+/gi;
-  const urls = _call.call(_match, c, urlRegex) || [];
+  const rawUrls = _call.call(_match, c, urlRegex) || [];
+  const decodedUrls = _call.call(_match, cDecoded, urlRegex) || [];
+  const urls = [...rawUrls, ...decodedUrls];
 
   // High-signal keywords that trigger on any match within the URL
   const highSignalKeywords = ['cookie', 'session', 'localstorage', 'voro_', 'token', 'secret', 'credential', 'password'];
@@ -2277,7 +2299,7 @@ export const validateAIResponse = (c, n = null) => {
         return "[SECURITY_VIOLATION_DETECTED]";
       }
 
-      // Deep Decoding: Prevent bypass via multi-pass percent-encoding or HTML entity encoding (e.g., %2563%256f... or &#99;&#111;&#111;&#107;&#105;&#101; for "cookie")
+      // Deep Decoding: Multi-pass percent-encoding, HTML entity decoding, and JavaScript escape sequence unwrapping
       let decodedUrl = url;
       let prevUrl;
       let passes = 5;
@@ -2286,30 +2308,24 @@ export const validateAIResponse = (c, n = null) => {
         try {
           decodedUrl = decodeURIComponent(decodedUrl);
         } catch (e) { /* fallback to last valid decode if malformed */ }
-      } while (decodedUrl !== prevUrl && --passes > 0);
 
-      decodedUrl = _call.call(_replace, decodedUrl, /&amp;/gi, '&');
-      decodedUrl = _call.call(_replace, decodedUrl, /&#x([0-9a-fA-F]+);/g, (_, hex) => {
-        try { return String.fromCodePoint(parseInt(hex, 16)); } catch (err) { return _; }
-      });
-      decodedUrl = _call.call(_replace, decodedUrl, /&#(\d+);/g, (_, dec) => {
-        try { return String.fromCodePoint(parseInt(dec, 10)); } catch (err) { return _; }
-      });
+        decodedUrl = _call.call(_replace, decodedUrl, /&amp;/gi, '&');
+        decodedUrl = _call.call(_replace, decodedUrl, /&#x([0-9a-fA-F]+);/g, (_, hex) => {
+          try { return String.fromCodePoint(parseInt(hex, 16)); } catch (err) { return _; }
+        });
+        decodedUrl = _call.call(_replace, decodedUrl, /&#(\d+);/g, (_, dec) => {
+          try { return String.fromCodePoint(parseInt(dec, 10)); } catch (err) { return _; }
+        });
 
-      // Secondary percent-decoding pass to decode any percent-encoded sequences revealed after HTML entity expansion
-      passes = 5;
-      do {
-        prevUrl = decodedUrl;
-        try {
-          decodedUrl = decodeURIComponent(decodedUrl);
-        } catch (e) { /* fallback */ }
+        decodedUrl = decodeEscapeSequences(decodedUrl);
+        decodedUrl = _call.call(_replace, decodedUrl, /\\\/|\\\\/g, '/');
       } while (decodedUrl !== prevUrl && --passes > 0);
 
       const lowerUrl = _call.call(_toLowerCase, decodedUrl);
       const searchStr = _call.call(_URLSearch, urlObj);
       const hashStr = _call.call(_URLHash, urlObj);
-      const lowerQuery = searchStr ? _call.call(_toLowerCase, decodeURIComponent(searchStr)) : "";
-      const lowerHash = hashStr ? _call.call(_toLowerCase, decodeURIComponent(hashStr)) : "";
+      const lowerQuery = searchStr ? _call.call(_toLowerCase, decodeURIComponent(decodeEscapeSequences(searchStr))) : "";
+      const lowerHash = hashStr ? _call.call(_toLowerCase, decodeURIComponent(decodeEscapeSequences(hashStr))) : "";
 
       // Check high-signal keywords anywhere in URL
       if (_call.call(_some, highSignalKeywords, kw => _call.call(_SIncludes, lowerUrl, kw))) {
@@ -2345,23 +2361,19 @@ export const validateAIResponse = (c, n = null) => {
         try {
           decodedUrl = decodeURIComponent(decodedUrl);
         } catch (err) { /* fallback */ }
+
+        decodedUrl = _call.call(_replace, decodedUrl, /&amp;/gi, '&');
+        decodedUrl = _call.call(_replace, decodedUrl, /&#x([0-9a-fA-F]+);/g, (_, hex) => {
+          try { return String.fromCodePoint(parseInt(hex, 16)); } catch (err) { return _; }
+        });
+        decodedUrl = _call.call(_replace, decodedUrl, /&#(\d+);/g, (_, dec) => {
+          try { return String.fromCodePoint(parseInt(dec, 10)); } catch (err) { return _; }
+        });
+
+        decodedUrl = decodeEscapeSequences(decodedUrl);
+        decodedUrl = _call.call(_replace, decodedUrl, /\\\/|\\\\/g, '/');
       } while (decodedUrl !== prevUrl && --passes > 0);
 
-      decodedUrl = _call.call(_replace, decodedUrl, /&amp;/gi, '&');
-      decodedUrl = _call.call(_replace, decodedUrl, /&#x([0-9a-fA-F]+);/g, (_, hex) => {
-        try { return String.fromCodePoint(parseInt(hex, 16)); } catch (err) { return _; }
-      });
-      decodedUrl = _call.call(_replace, decodedUrl, /&#(\d+);/g, (_, dec) => {
-        try { return String.fromCodePoint(parseInt(dec, 10)); } catch (err) { return _; }
-      });
-
-      passes = 5;
-      do {
-        prevUrl = decodedUrl;
-        try {
-          decodedUrl = decodeURIComponent(decodedUrl);
-        } catch (err) { /* fallback */ }
-      } while (decodedUrl !== prevUrl && --passes > 0);
       const lowerUrl = _call.call(_toLowerCase, decodedUrl);
       const hasHighSignal = _call.call(_some, highSignalKeywords, kw => _call.call(_SIncludes, lowerUrl, kw));
       const hasQueryOnly = _call.call(_some, queryOnlyKeywords, kw => _call.call(_SIncludes, lowerUrl, kw));
