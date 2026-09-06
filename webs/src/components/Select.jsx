@@ -178,6 +178,7 @@ export const Select = memo(({
             onBlur={handleBlur}
             disabled={disabled}
             required={required}
+            title={disabled ? (props.title || "This option is disabled") : props.title}
             className={`
               w-full bg-transparent px-6 py-5 text-white font-mono text-sm tracking-widest
               focus:outline-none transition-all duration-500 appearance-none cursor-pointer
@@ -208,7 +209,10 @@ export const Select = memo(({
         </div>
 
         {/* Error Manifestation */}
-        <div className={`
+        <div
+          role="alert"
+          aria-live="polite"
+          className={`
           overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]
           ${error ? "max-h-10 opacity-100 mt-2" : "max-h-0 opacity-0"}
         `}>

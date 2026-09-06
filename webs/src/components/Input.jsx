@@ -191,6 +191,7 @@ export const Input = memo(({
             placeholder={placeholder}
             disabled={disabled}
             maxLength={maxLength}
+            title={disabled ? (props.title || "This field is disabled") : props.title}
             className={`
               w-full bg-transparent px-6 py-5 text-white font-mono text-sm tracking-wide
               placeholder:font-serif placeholder:italic placeholder:text-gray-700
@@ -212,7 +213,10 @@ export const Input = memo(({
         </div>
 
         {/* Error Manifestation */}
-        <div className={`
+        <div
+          role="alert"
+          aria-live="polite"
+          className={`
           overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]
           ${error ? "max-h-10 opacity-100 mt-2" : "max-h-0 opacity-0"}
         `}>
