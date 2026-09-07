@@ -817,6 +817,13 @@ const MARKDOWN_RE = /[\*_~`]/g;
 const NON_ALPHANUM_RE = /[^a-z0-9]/g;
 const HEX_MATCH_RE = /[0-9a-fA-F]{8,}/g;
 const BASE64_MATCH_RE = /[A-Za-z0-9+/]{8,}=*/g;
+const INVISIBLE_CHARS_RE = /[\u200b-\u200f\u2028\u2029\u202a-\u202e\u205f\u2060-\u206f\u3000\ufeff\u00ad\u2400-\u243f\ufe00-\ufe0f\u180e\u1680\u20dd-\u20e4\u3164\uffa0\u115f\u1160]|[\u{E0100}-\u{E01EF}\u{1D173}-\u{1D17A}\u{1BCA0}-\u{1BCA3}\u{13430}-\u{1343F}]/gu;
+
+// Helper to scrub zero-width and invisible formatting characters from encoded strings
+const stripInvisibleCharacters = (str) => {
+  if (!str || typeof str !== 'string') return str;
+  return str.replace(INVISIBLE_CHARS_RE, '');
+};
 
 // Prompt injection / jailbreak / delimiter hijacking detection
 export const isPromptInjection = (query, isNested = false) => {
@@ -832,10 +839,7 @@ export const isPromptInjection = (query, isNested = false) => {
   normalizedQuery = normalizedQuery.replace(/[\u0400-\u04FF\u0370-\u03FF\u2C80-\u2CFF\u0530-\u058F\uAB70-\uABBF\u10A0-\u10C5\u2D00-\u2D25\u0590-\u05FF\u1400-\u167F\u2C00-\u2C5F\u{1D400}-\u{1D7FF}]/gu, char => HOMOGLYPHS_MAP[char] || char);
 
   // 3. Clean zero-width, formatting, Line/Paragraph Separators (U+2028, U+2029), Medium Math Space (U+205F), Ideographic Space (U+3000), Variation Selectors (U+FE00-U+FE0F & U+E0100-U+E01EF), Control Pictures (U+2400-U+243F), Musical Symbol Format Controls, Shorthand Format Controls, Egyptian Hieroglyph Format Controls, Invisible Operators, Hangul Fillers, and invisible characters, and condense consecutive whitespaces
-  normalizedQuery = normalizedQuery
-    .replace(/[\u200b-\u200f\u2028\u2029\u202a-\u202e\u205f\u2060-\u206f\u3000\ufeff\u00ad\u2400-\u243f\ufe00-\ufe0f\u180e\u1680\u20dd-\u20e4\u3164\uffa0\u115f\u1160]/g, '')
-    .replace(/[\u{E0100}-\u{E01EF}\u{1D173}-\u{1D17A}\u{1BCA0}-\u{1BCA3}\u{13430}-\u{1343F}]/gu, '')
-    .replace(/\s+/g, ' ');
+  normalizedQuery = stripInvisibleCharacters(normalizedQuery).replace(/\s+/g, ' ');
 
   // 1. Delimiter hijacking detection (VORO specific nonced blocks or closing tags, evaluated after full normalization and invisible character stripping)
   const collapsedTag = normalizedQuery.replace(/[^\[\]\/a-z0-9_]/gi, '');
@@ -855,16 +859,29 @@ export const isPromptInjection = (query, isNested = false) => {
 
   // Security: Scan and decode Base64, Base32, Hex, ROT13, ROT47, and reversed-string obfuscated prompt injection payloads.
   // Evaluate over decodedQuery (which strips escape sequences, HTML entities, and percent-encoding) as well as raw query
-  // to neutralize multi-pass encoding bypass attempts.
+  // to neutralize multi-pass encoding bypass attempts. Include scrubbed versions to neutralize zero-width / invisible formatting character fragmentation.
   if (!isNested) {
-    const targets = decodedQuery !== query ? [decodedQuery, query] : [query];
+    const rawTargets = decodedQuery !== query ? [decodedQuery, query] : [query];
+    const targets = new Set();
+    for (const t of rawTargets) {
+      targets.add(t);
+      const scrubbed = stripInvisibleCharacters(t);
+      if (scrubbed !== t) {
+        targets.add(scrubbed);
+      }
+    }
     for (const targetStr of targets) {
       const hexMatches = targetStr.match(HEX_MATCH_RE) || [];
+      const hexDecodedList = [];
       for (const match of hexMatches) {
         const decoded = safeDecodeHex(match);
-        if (decoded && isPromptInjection(decoded, true)) {
-          return true;
+        if (decoded) {
+          if (isPromptInjection(decoded, true)) return true;
+          hexDecodedList.push(decoded);
         }
+      }
+      if (hexDecodedList.length > 1) {
+        if (isPromptInjection(hexDecodedList.join(' '), true)) return true;
       }
 
       const decimalMatches = targetStr.match(DECIMAL_MATCH_RE) || [];
@@ -876,11 +893,16 @@ export const isPromptInjection = (query, isNested = false) => {
       }
 
       const base64Matches = targetStr.match(BASE64_MATCH_RE) || [];
+      const base64DecodedList = [];
       for (const match of base64Matches) {
         const decoded = safeAtob(match);
-        if (decoded && isPromptInjection(decoded, true)) {
-          return true;
+        if (decoded) {
+          if (isPromptInjection(decoded, true)) return true;
+          base64DecodedList.push(decoded);
         }
+      }
+      if (base64DecodedList.length > 1) {
+        if (isPromptInjection(base64DecodedList.join(' '), true)) return true;
       }
 
       const base32Decoded = safeDecodeBase32(targetStr.trim());
