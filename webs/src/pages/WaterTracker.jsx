@@ -200,8 +200,13 @@ HydroVessel.displayName = "HydroVessel";
  */
 const CatalystCard = memo(({ amount, onAdd }) => {
   const containerRef = useRef(null);
+  const timerRef = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
+
+  const formattedAmount = amount >= 1000 ? `${(amount / 1000).toFixed(1)} liters` : `${amount} milliliters`;
+  const formattedShort = amount >= 1000 ? `${(amount / 1000).toFixed(1)}L` : `${amount}ml`;
 
   const handleMouseMove = (e) => {
     if (!containerRef.current) return;
@@ -234,6 +239,21 @@ const CatalystCard = memo(({ amount, onAdd }) => {
     }
   };
 
+  const handleClick = () => {
+    onAdd(amount);
+    setJustAdded(true);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      setJustAdded(false);
+    }, 1200);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
   const isActive = isHovered || isFocused;
 
   return (
@@ -244,7 +264,9 @@ const CatalystCard = memo(({ amount, onAdd }) => {
       onMouseLeave={() => setIsHovered(false)}
       onFocus={handleFocus}
       onBlur={handleBlur}
-      onClick={() => onAdd(amount)}
+      onClick={handleClick}
+      aria-label={`Add ${formattedAmount} hydration`}
+      title={`Add ${formattedShort} hydration`}
       style={{
         transform: isActive
           ? 'perspective(800px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-3px)'
@@ -253,10 +275,10 @@ const CatalystCard = memo(({ amount, onAdd }) => {
         transformStyle: 'preserve-3d'
       }}
       className={`
-        group relative p-8 rounded-[2.25rem] bg-[#0A0C14] border border-white/5
-        transition-all duration-500 text-center overflow-hidden outline-none cursor-pointer
+        group relative p-8 rounded-[2.25rem] bg-[#0A0C14] border transition-all duration-500 text-center overflow-hidden outline-none cursor-pointer
         hover:border-blue-500/30 hover:shadow-[0_20px_40px_rgba(59,130,246,0.15)]
         focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408]
+        ${justAdded ? 'border-blue-500/50 bg-blue-950/20 shadow-[0_0_25px_rgba(59,130,246,0.3)]' : 'border-white/5'}
       `}
     >
       {/* 🛰️ Liquid Border Intelligence */}
@@ -280,12 +302,12 @@ const CatalystCard = memo(({ amount, onAdd }) => {
       />
 
       <div style={{ transform: 'translateZ(30px)' }} className="relative z-10">
-        <Droplet size={18} className="text-blue-500 mx-auto mb-4 group-hover:scale-125 transition-transform duration-500" />
+        <Droplet size={18} className={`mx-auto mb-4 transition-transform duration-500 ${justAdded ? 'text-blue-400 scale-125 animate-bounce' : 'text-blue-500 group-hover:scale-125'}`} />
         <p className="text-3xl font-serif italic font-medium text-white mb-1">
           {amount >= 1000 ? (amount / 1000).toFixed(1) : amount}
         </p>
-        <p className="text-[0.6rem] font-mono font-bold text-gray-500 uppercase tracking-[0.2em] group-hover:text-blue-400 transition-colors">
-          {amount >= 1000 ? 'Liters' : 'ml'} catalyst
+        <p className={`text-[0.6rem] font-mono font-bold uppercase tracking-[0.2em] transition-colors ${justAdded ? 'text-blue-400 font-black' : 'text-gray-500 group-hover:text-blue-400'}`}>
+          {justAdded ? `+${formattedShort} INJECTED` : `${amount >= 1000 ? 'Liters' : 'ml'} catalyst`}
         </p>
       </div>
     </button>
@@ -360,7 +382,8 @@ const HydrationHistoryItem = memo(({ log, onDelete }) => {
             : 'text-gray-600 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-red-500'
           }
         `}
-        aria-label={purgeState ? `Confirm deletion of ${log.amount} milliliters entry` : `Delete hydration entry`}
+        aria-label={purgeState ? `Confirm deletion of ${log.amount}ml entry` : `Delete ${log.amount}ml hydration entry recorded at ${log.time}`}
+        title={purgeState ? "Click to confirm deletion" : "Delete entry"}
       >
         {purgeState ? (
           <>
@@ -513,6 +536,7 @@ const WaterTracker = () => {
                 onClick={() => handleDateChange(-1)}
                 className="p-4 hover:bg-white/5 rounded-[1.75rem] text-gray-500 hover:text-white transition-all active:scale-90 focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:border-blue-500/50 outline-none cursor-pointer"
                 aria-label="Previous chronological index"
+                title="Previous date"
               >
                 <ChevronLeft size={20} />
               </button>
@@ -524,6 +548,7 @@ const WaterTracker = () => {
                 onClick={() => handleDateChange(1)}
                 className="p-4 hover:bg-white/5 rounded-[1.75rem] text-gray-500 hover:text-white transition-all active:scale-90 focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:border-blue-500/50 outline-none cursor-pointer"
                 aria-label="Next chronological index"
+                title="Next date"
               >
                 <ChevronRight size={20} />
               </button>
