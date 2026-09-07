@@ -9,6 +9,12 @@ import { defaultHabits } from '@/data/defaultHabits';
 
 const EMPTY_LOG = Object.freeze({});
 
+const COLOR_HEX_MAP = Object.freeze({
+  'voro-primary': '#7C3AED',
+  'voro-secondary': '#10B981',
+  'voro-accent': '#F59E0B',
+});
+
 const selectHabitsList = (data) => (Array.isArray(data?.list) && data.list.length > 0 ? data.list : defaultHabits);
 const selectTodayLog = (data) => {
   const today = new Date().toISOString().split('T')[0];
@@ -39,11 +45,7 @@ const HabitItem = memo(({ habit, isDone, onToggle, onRemove }) => {
   }, [reactId]);
 
   const colorHex = useMemo(() => {
-    if (habit.color === 'voro-primary') return '#7C3AED';
-    if (habit.color === 'voro-secondary') return '#10B981';
-    if (habit.color === 'voro-accent') return '#F59E0B';
-    if (habit.color && habit.color.startsWith('#')) return habit.color;
-    return '#7C3AED';
+    return COLOR_HEX_MAP[habit.color] || (habit.color && habit.color.startsWith('#') ? habit.color : '#7C3AED');
   }, [habit.color]);
 
   const handleMouseMove = (e) => {
