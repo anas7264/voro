@@ -191,7 +191,7 @@ const Challenges = () => {
               key={c.id}
               challenge={c}
               completed={completed[c.id]}
-              onClaim={() => handleClaimReward(c)}
+              onClaim={handleClaimReward}
               progress={completed[c.id] ? 100 : c.progress}
             />
           ))}
@@ -208,7 +208,7 @@ const Challenges = () => {
               key={c.id}
               challenge={c}
               completed={completed[c.id]}
-              onClaim={() => handleClaimReward(c)}
+              onClaim={handleClaimReward}
               progress={completed[c.id] ? 100 : c.progress}
             />
           ))}
@@ -225,14 +225,14 @@ const Challenges = () => {
               key={c.id}
               challenge={c}
               completed={completed[c.id]}
-              onClaim={() => handleClaimReward(c)}
+              onClaim={handleClaimReward}
               progress={completed[c.id] ? 100 : c.progress}
             />
           ))}
         </div>
       )
     }
-  ], [completed]);
+  ], [completed, handleClaimReward]);
 
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] pb-24 relative overflow-hidden selection:bg-voro-primary/30">

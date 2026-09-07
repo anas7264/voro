@@ -31,6 +31,38 @@ const IconMap = {
 };
 
 /**
+ * ⚡ PERFORMANCE OPTIMIZATION:
+ * Hoisted frozen static difficulty styles dictionary.
+ * Prevents allocating 4 nested objects per card component on every render cycle.
+ */
+const DIFFICULTY_STYLES = Object.freeze({
+  Beginner: Object.freeze({
+    glow: "#10B981", // Emerald
+    text: "text-emerald-400",
+    border: "border-emerald-500/20",
+    accent: "bg-emerald-500"
+  }),
+  Intermediate: Object.freeze({
+    glow: "#7C3AED", // Primary (Violet)
+    text: "text-voro-primary-light",
+    border: "border-voro-primary/20",
+    accent: "bg-voro-primary"
+  }),
+  Advanced: Object.freeze({
+    glow: "#F97316", // Orange
+    text: "text-orange-400",
+    border: "border-orange-500/20",
+    accent: "bg-orange-500"
+  }),
+  Legendary: Object.freeze({
+    glow: "#EAB308", // Yellow
+    text: "text-yellow-400",
+    border: "border-yellow-500/20",
+    accent: "bg-yellow-500"
+  })
+});
+
+/**
  * ⚡ REFINEMENT: ChallengeCard transformed into a "Strategic Objective Artifact".
  * Architected to the 'Forge' luxury standard with 3D spatial transforms,
  * magnetic mouse tracking, and industrial telemetry markers.
@@ -87,34 +119,7 @@ export const ChallengeCard = memo(({ challenge, progress = 0, completed, onClaim
     setIsFocused(false);
   };
 
-  const difficultyStyles = {
-    Beginner: {
-      glow: "#10B981", // Emerald
-      text: "text-emerald-400",
-      border: "border-emerald-500/20",
-      accent: "bg-emerald-500"
-    },
-    Intermediate: {
-      glow: "#7C3AED", // Primary (Violet)
-      text: "text-voro-primary-light",
-      border: "border-voro-primary/20",
-      accent: "bg-voro-primary"
-    },
-    Advanced: {
-      glow: "#F97316", // Orange
-      text: "text-orange-400",
-      border: "border-orange-500/20",
-      accent: "bg-orange-500"
-    },
-    Legendary: {
-      glow: "#EAB308", // Yellow
-      text: "text-yellow-400",
-      border: "border-yellow-500/20",
-      accent: "bg-yellow-500"
-    }
-  };
-
-  const style = difficultyStyles[challenge.difficulty] || difficultyStyles.Beginner;
+  const style = DIFFICULTY_STYLES[challenge.difficulty] || DIFFICULTY_STYLES.Beginner;
   const percentage = Math.min(progress, 100);
   const interactionActive = isHovered || isFocused;
 
@@ -269,7 +274,7 @@ export const ChallengeCard = memo(({ challenge, progress = 0, completed, onClaim
           <div className="flex gap-4">
             {!completed ? (
               <button
-                onClick={onClaim}
+                onClick={() => onClaim?.(challenge)}
                 aria-label={percentage >= 100 ? `Claim reward for ${challenge?.name || 'objective'}` : `Claim achievement for ${challenge?.name || 'objective'}`}
                 className="flex-1 py-4 bg-white text-black rounded-2xl text-[0.6rem] font-black uppercase tracking-[0.3em] transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_40px_rgba(255,255,255,0.1)] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14] outline-none shadow-xl shadow-white/5 group/claim relative overflow-hidden"
               >
