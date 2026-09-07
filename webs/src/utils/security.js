@@ -133,7 +133,8 @@ const _StorageRemoveItem = (typeof window !== 'undefined' && typeof Storage !== 
 const _StorageClear = (typeof window !== 'undefined' && typeof Storage !== 'undefined') ? Storage.prototype.clear : null;
 
 // Crypto & SubtleCrypto Prototype Pinning
-const _CryptoGetRandomValues = (typeof window !== 'undefined' && window.crypto) ? window.crypto.getRandomValues : null;
+const _getCrypto = () => (typeof window !== 'undefined' && window.crypto) ? window.crypto : ((typeof globalThis !== 'undefined' && globalThis.crypto) ? globalThis.crypto : null);
+const _CryptoGetRandomValues = (typeof Crypto !== 'undefined' && Crypto.prototype && Crypto.prototype.getRandomValues) ? Crypto.prototype.getRandomValues : null;
 const _SubtleEncrypt = (typeof window !== 'undefined' && window.crypto?.subtle) ? window.crypto.subtle.encrypt : null;
 const _SubtleDecrypt = (typeof window !== 'undefined' && window.crypto?.subtle) ? window.crypto.subtle.decrypt : null;
 const _SubtleDeriveKey = (typeof window !== 'undefined' && window.crypto?.subtle) ? window.crypto.subtle.deriveKey : null;
@@ -724,11 +725,12 @@ export const sanitizeInput = (input) => {
  * Generates a cryptographically secure ephemeral nonce for request isolation.
  */
 export function generateSecurityNonce() {
-  if (typeof window === 'undefined' || !_CryptoGetRandomValues || !window.crypto) {
+  const gCrypto = _getCrypto();
+  if (!gCrypto || !gCrypto.getRandomValues) {
     return Math.random().toString(36).substring(2, 15);
   }
   const array = new Uint8Array(16);
-  _call.call(_CryptoGetRandomValues, window.crypto, array);
+  _call.call(gCrypto.getRandomValues, gCrypto, array);
   return _call.call(_join, _call.call(_map, _ArrayFrom(array), byte => _call.call(_padStart, _call.call(_NToString, byte, 16), 2, '0')), '');
 }
 
@@ -2568,8 +2570,9 @@ class PolymorphicKeyEnclave {
 
   _generateMask(len) {
     const mask = new _Uint8Array(len);
-    if (typeof window !== 'undefined' && _CryptoGetRandomValues && window.crypto) {
-      _call.call(_CryptoGetRandomValues, window.crypto, mask);
+    const gCrypto = _getCrypto();
+    if (gCrypto && gCrypto.getRandomValues) {
+      _call.call(gCrypto.getRandomValues, gCrypto, mask);
     } else {
       for (let i = 0; i < len; i++) mask[i] = Math.floor(Math.random() * 256);
     }

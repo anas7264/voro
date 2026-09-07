@@ -32,8 +32,9 @@ const SecretVault = (() => {
    */
   const _generateMask = (len) => {
     const mask = new Uint8Array(len);
-    if (typeof window !== 'undefined' && window.crypto) {
-      window.crypto.getRandomValues(mask);
+    const gCrypto = (typeof globalThis !== 'undefined' && globalThis.crypto) ? globalThis.crypto : (typeof window !== 'undefined' ? window.crypto : null);
+    if (gCrypto && gCrypto.getRandomValues) {
+      gCrypto.getRandomValues(mask);
     } else {
       for (let i = 0; i < len; i++) mask[i] = Math.floor(Math.random() * 256);
     }
