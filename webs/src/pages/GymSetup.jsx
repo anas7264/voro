@@ -397,6 +397,16 @@ const GymSetup = () => {
   const { setItem } = useStorageMethods();
   const { addNotification } = useNotifications();
 
+  // ⚡ PERFORMANCE OPTIMIZATION: Convert O(N) array scans to O(1) Set lookup
+  const equipmentSet = useMemo(() => {
+    const set = new Set();
+    const len = equipment.length;
+    for (let i = 0; i < len; i++) {
+      set.add(equipment[i].id);
+    }
+    return set;
+  }, [equipment]);
+
   // 2.5-second cinematic loading sequence state
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -582,7 +592,7 @@ const GymSetup = () => {
                           <KineticHardwareCell
                             key={item.id}
                             item={item}
-                            isChecked={equipment.some(e => e.id === item.id)}
+                            isChecked={equipmentSet.has(item.id)}
                             onToggle={() => handleToggleEquipment(item)}
                           />
                         ))}

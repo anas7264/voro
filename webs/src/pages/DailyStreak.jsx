@@ -321,11 +321,22 @@ const DailyStreak = () => {
 
   const chartData = useMemo(() => WEEKLY_MATRIX_TEMPLATE, []);
 
-  const streakGoals = useMemo(() => {
-    return STREAK_METRICS_CONFIG.map(config => ({
-      ...config,
-      current: streaks[config.key] ?? DEFAULT_STREAKS[config.key] ?? 0
-    }));
+  const { streakGoals, totalActiveStreakDays } = useMemo(() => {
+    let totalDays = 0;
+    const len = STREAK_METRICS_CONFIG.length;
+    const goals = new Array(len);
+
+    for (let i = 0; i < len; i++) {
+      const config = STREAK_METRICS_CONFIG[i];
+      const currentVal = streaks[config.key] ?? DEFAULT_STREAKS[config.key] ?? 0;
+      totalDays += (streaks[config.key] || 0);
+      goals[i] = {
+        ...config,
+        current: currentVal
+      };
+    }
+
+    return { streakGoals: goals, totalActiveStreakDays: totalDays };
   }, [streaks]);
 
   const handleChartMouseMove = (e) => {
@@ -360,10 +371,6 @@ const DailyStreak = () => {
   const handleChartBlur = () => {
     setChartFocused(false);
   };
-
-  const totalActiveStreakDays = useMemo(() => {
-    return (streaks.trainingDays || 0) + (streaks.nutritionLogging || 0) + (streaks.waterIntake || 0) + (streaks.sleepGoal || 0);
-  }, [streaks]);
 
   const handleResetTrigger = useCallback(() => {
     if (purgeActive) {
