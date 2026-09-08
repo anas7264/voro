@@ -2259,6 +2259,41 @@ const decodeEscapeSequences = (str) => {
   });
 };
 
+// Helper to safely decode percent-encoded byte sequences (%XX) without throwing on malformed sequences
+const safePercentDecode = (str) => {
+  if (!str || typeof str !== 'string' || !_call.call(_SIncludes, str, '%')) return str;
+  let decoded = str;
+  let prev;
+  let passes = 5;
+  do {
+    prev = decoded;
+    decoded = _call.call(_replace, decoded, /%([0-9a-fA-F]{2})/g, (match, hex) => {
+      try {
+        const code = parseInt(hex, 16);
+        return String.fromCharCode(code);
+      } catch (e) {
+        return match;
+      }
+    });
+  } while (decoded !== prev && --passes > 0);
+  return decoded;
+};
+
+// Helper to pre-unwrap text across percent-encoding, HTML entities, and JS escape sequences
+const decodeUnwrapText = (str) => {
+  if (!str || typeof str !== 'string') return str;
+  let current = str;
+  let prev;
+  let passes = 5;
+  do {
+    prev = current;
+    current = safePercentDecode(current);
+    current = decodeHTMLEntities(current);
+    current = decodeEscapeSequences(current);
+  } while (current !== prev && --passes > 0);
+  return current;
+};
+
 /**
  * Validates AI output for nonce leakage and suspicious exfiltration patterns.
  */
@@ -2277,15 +2312,17 @@ export const validateAIResponse = (c, n = null) => {
   if (n && _call.call(_SIncludes, c, n)) { executeLockdown(); return "[SECURITY_VIOLATION_DETECTED]"; }
 
   // 3. Comprehensive Data Exfiltration Check (Detects keywords and high-entropy tokens in URLs)
-  // Pre-decode HTML entities and JavaScript escape sequences on response text to unmask hidden URLs
+  // Pre-decode multi-pass percent-encoding, HTML entities, and JavaScript escape sequences on response text to unmask hidden URLs and schemes
   const cDecoded = decodeEscapeSequences(decodeHTMLEntities(c));
+  const cUnwrapped = decodeUnwrapText(c);
 
-  // Check both markdown links/images and raw URLs for exfiltration patterns
+  // Check markdown links/images and raw URLs for exfiltration patterns
   // Expanded to catch protocol-relative URLs, javascript: URIs, data: URIs, and blob: URIs
   const urlRegex = /(?:https?:\/\/|www\.|(?<!:)\/\/|javascript:|data:|blob:)[^\s)\]]+/gi;
   const rawUrls = _call.call(_match, c, urlRegex) || [];
   const decodedUrls = _call.call(_match, cDecoded, urlRegex) || [];
-  const urls = [...rawUrls, ...decodedUrls];
+  const unwrappedUrls = _call.call(_match, cUnwrapped, urlRegex) || [];
+  const urls = [...rawUrls, ...decodedUrls, ...unwrappedUrls];
 
   // High-signal keywords that trigger on any match within the URL
   const highSignalKeywords = ['cookie', 'session', 'localstorage', 'voro_', 'token', 'secret', 'credential', 'password'];
