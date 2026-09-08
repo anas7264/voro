@@ -1,30 +1,31 @@
 import { useMemo, useCallback } from "react";
-import { useStorageMethods, useStorageKey } from "./useStorage";
+import { useStorageMethods, useStorageKeySelector } from "./useStorage";
 import * as gamification from "../utils/gamification";
+
+const DEFAULT_GAMIFICATION_DATA = Object.freeze({
+  totalXP: 0,
+  level: 1,
+  currentStreak: 0,
+  bestStreak: 0,
+  achievements: Object.freeze([]),
+  completedChallenges: Object.freeze([]),
+  leaderboardPosition: 0,
+  totalWorkouts: 0,
+  totalNutritionDays: 0,
+  milestones: Object.freeze([])
+});
+
+const selectGamification = (val) => val || DEFAULT_GAMIFICATION_DATA;
 
 export const useGamification = () => {
   const { setItem } = useStorageMethods();
-  const gamificationData = useStorageKey("gamification");
 
   /**
    * ⚡ OPTIMIZATION: Surgical Reactivity.
-   * Subscribe only to 'gamification' data to prevent redundant re-renders
-   * when unrelated storage keys change.
+   * Subscribes specifically to 'gamification' data via useStorageKeySelector
+   * to prevent redundant re-renders when unrelated storage keys change.
    */
-  const gameState = useMemo(() => {
-    return gamificationData || {
-      totalXP: 0,
-      level: 1,
-      currentStreak: 0,
-      bestStreak: 0,
-      achievements: [],
-      completedChallenges: [],
-      leaderboardPosition: 0,
-      totalWorkouts: 0,
-      totalNutritionDays: 0,
-      milestones: []
-    };
-  }, [gamificationData]);
+  const gameState = useStorageKeySelector("gamification", selectGamification);
 
   // Award XP for action
   const awardXP = useCallback((action, metadata = {}) => {

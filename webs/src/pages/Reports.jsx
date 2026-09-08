@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useRef, useCallback, memo } from 'react';
 import { Download, FileText, ShieldCheck, Cpu, ChevronRight, RefreshCw, Sparkles, Layers, Terminal, Activity, FileCheck } from 'lucide-react';
-import { useStorageMethods } from '@/hooks/useStorage';
+import { useStorageMethods, useStorageKeySelector } from '@/hooks/useStorage';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import Card from '@/components/Card';
@@ -30,6 +30,11 @@ const SYNTHESIS_STEPS = Object.freeze([
   "STAMPING ARCHIVAL SIGNATURE...",
   "COMPILING FORENSIC DOSSIER..."
 ]);
+
+const EMPTY_OBJ = Object.freeze({});
+const selectWorkoutLog = (val) => val || EMPTY_OBJ;
+const selectNutritionLog = (val) => val || EMPTY_OBJ;
+const selectBodyMetrics = (val) => val || EMPTY_OBJ;
 
 /**
  * ⚡ LUXURY REFINEMENT: DossierReportCard Subcomponent
@@ -336,31 +341,35 @@ const Reports = () => {
     return () => clearTimeout(timer);
   }, [activeGen, genStep, stepDelay, triggerDownload]);
 
-  // Retrieve storage data points
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Storage Subscriptions.
+   * Directly subscribes to storage keys via useStorageKeySelector.
+   */
+  const workoutsObj = useStorageKeySelector('workout_log', selectWorkoutLog);
+  const nutritionObj = useStorageKeySelector('nutrition_log', selectNutritionLog);
+  const metricsObj = useStorageKeySelector('body_metrics', selectBodyMetrics);
+
   const rawWorkouts = useMemo(() => {
-    const workouts = getItem('workout_log') || {};
-    return Object.entries(workouts).map(([date, w]) => ({ date, ...w }));
-  }, [getItem]);
+    return Object.entries(workoutsObj).map(([date, w]) => ({ date, ...w }));
+  }, [workoutsObj]);
 
   const rawNutrition = useMemo(() => {
-    const nutrition = getItem('nutrition_log') || {};
-    return Object.entries(nutrition).map(([date, n]) => ({
+    return Object.entries(nutritionObj).map(([date, n]) => ({
       date,
       logged: !!n.totals?.calories,
       calories: n.totals?.calories || 0
     }));
-  }, [getItem]);
+  }, [nutritionObj]);
 
   const rawMetrics = useMemo(() => {
-    const metrics = getItem('body_metrics') || {};
-    const weights = metrics.weights || [];
-    const bodyFat = metrics.bodyFat || [];
+    const weights = metricsObj.weights || [];
+    const bodyFat = metricsObj.bodyFat || [];
 
     const weightChange = weights.length > 1 ? (weights[weights.length - 1].value - weights[0].value) : 0;
     const bodyFatChange = bodyFat.length > 1 ? (bodyFat[bodyFat.length - 1].value - bodyFat[0].value) : 0;
 
     return { weightChange, bodyFatChange };
-  }, [getItem]);
+  }, [metricsObj]);
 
   const handleJSONExport = useCallback(async (key) => {
     try {

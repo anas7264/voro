@@ -36,6 +36,140 @@ const EXPRESS_HYDRATION = Object.freeze([
   { amount: '1000', label: 'Maximum', nodeId: '0xEXP_HY_1000' }
 ]);
 
+const QUICK_LOG_TABS = Object.freeze([
+  Object.freeze({ id: 'food', label: 'Nutrition', icon: <Utensils size={16} /> }),
+  Object.freeze({ id: 'workout', label: 'Kinetic', icon: <Dumbbell size={16} /> }),
+  Object.freeze({ id: 'water', label: 'Hydration', icon: <Droplets size={16} /> }),
+]);
+
+const QuickLogNutritionTab = memo(({ onQuickFoodLog }) => (
+  <div className="animate-slide-up space-y-6">
+    <div>
+      <div className="flex items-center justify-between mb-6 px-1">
+        <h3 className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-[0.4em]">
+          Trophic Archetype Manifests
+        </h3>
+        <span className="text-[0.45rem] font-mono text-voro-primary uppercase tracking-widest">
+          0xMET_EXPRESS_ARRAY
+        </span>
+      </div>
+      <div className="space-y-4">
+        {EXPRESS_FOODS.map(food => (
+          <KineticExpressCard
+            key={food.id}
+            nodeId={food.nodeId}
+            onClick={() => onQuickFoodLog(food.name)}
+            accentColor="primary"
+            actionLabel="Quick Manifest"
+            actionIcon={Zap}
+          >
+            <div className="flex items-center gap-5">
+              <div className="w-12 h-12 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-center text-2xl shadow-inner">
+                {food.icon}
+              </div>
+              <div className="space-y-1">
+                <span className="text-xl font-serif italic font-medium text-white group-hover:text-voro-primary transition-colors">
+                  {food.name}
+                </span>
+                <div className="flex items-center gap-3 font-mono text-[0.55rem] text-gray-500">
+                  <span>{food.calories} kcal</span>
+                  <div className="w-1 h-1 rounded-full bg-white/10" />
+                  <span>P: {food.protein}g</span>
+                  <div className="w-1 h-1 rounded-full bg-white/10" />
+                  <span>C: {food.carbs}g</span>
+                </div>
+              </div>
+            </div>
+          </KineticExpressCard>
+        ))}
+      </div>
+    </div>
+  </div>
+));
+QuickLogNutritionTab.displayName = 'QuickLogNutritionTab';
+
+const QuickLogKineticTab = memo(({ onQuickWorkoutLog }) => (
+  <div className="animate-slide-up space-y-6">
+    <div>
+      <div className="flex items-center justify-between mb-6 px-1">
+        <h3 className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-[0.4em]">
+          Energy Manifestation Nodes
+        </h3>
+        <span className="text-[0.45rem] font-mono text-voro-secondary uppercase tracking-widest">
+          0xKIN_EXPRESS_ARRAY
+        </span>
+      </div>
+      <div className="space-y-4">
+        {EXPRESS_WORKOUTS.map(workout => (
+          <KineticExpressCard
+            key={workout.id}
+            nodeId={workout.nodeId}
+            onClick={() => onQuickWorkoutLog(workout.name, workout.type)}
+            accentColor="secondary"
+            actionLabel="Record Evolution"
+            actionIcon={CheckCircle2}
+          >
+            <div className="flex items-center gap-5">
+              <div className="w-12 h-12 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-center text-2xl shadow-inner">
+                {workout.icon}
+              </div>
+              <div className="space-y-1">
+                <span className="text-xl font-serif italic font-medium text-white group-hover:text-voro-secondary transition-colors">
+                  {workout.name}
+                </span>
+                <div className="flex items-center gap-3 font-mono text-[0.55rem] text-gray-500">
+                  <span>{workout.detail}</span>
+                  <div className="w-1 h-1 rounded-full bg-white/10" />
+                  <span className="text-voro-secondary">{workout.type}</span>
+                </div>
+              </div>
+            </div>
+          </KineticExpressCard>
+        ))}
+      </div>
+    </div>
+  </div>
+));
+QuickLogKineticTab.displayName = 'QuickLogKineticTab';
+
+const QuickLogHydrationTab = memo(({ onQuickWaterLog }) => (
+  <div className="animate-slide-up space-y-6">
+    <div>
+      <div className="flex items-center justify-between mb-6 px-1">
+        <h3 className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-[0.4em]">
+          Intracellular Matrix Hydration
+        </h3>
+        <span className="text-[0.45rem] font-mono text-voro-primary uppercase tracking-widest">
+          0xHYD_EXPRESS_ARRAY
+        </span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {EXPRESS_HYDRATION.map(water => (
+          <KineticExpressCard
+            key={water.amount}
+            nodeId={water.nodeId}
+            onClick={() => onQuickWaterLog(water.amount)}
+            accentColor="primary"
+            actionLabel="Inject"
+            actionIcon={Droplets}
+          >
+            <div className="flex flex-col items-start gap-1 py-2">
+              <div className="text-3xl font-serif italic font-bold text-white group-hover:text-voro-primary transition-colors">
+                +{water.amount}
+                <span className="text-[0.6rem] not-italic font-mono font-black text-voro-primary uppercase ml-1">ml</span>
+              </div>
+              <span className="text-[0.55rem] font-mono font-bold text-gray-500 uppercase tracking-widest">
+                {water.label} Protocol
+              </span>
+            </div>
+          </KineticExpressCard>
+        ))}
+      </div>
+    </div>
+  </div>
+));
+QuickLogHydrationTab.displayName = 'QuickLogHydrationTab';
+
 /**
  * ⚡ LUXURY FORGE MASTERCLASS SUBCOMPONENT: KineticExpressCard
  * Volumetric 3D interactive item featuring direct-DOM 60fps rotational tilt,
@@ -337,149 +471,18 @@ const QuickLog = () => {
     addNotification(`Hydration matrix updated: +${amount}ml`, 'success');
   }, [getItem, updateItem, addNotification]);
 
-  const quickLogTabs = useMemo(() => [
-    {
-      id: 'food',
-      label: 'Nutrition',
-      icon: <Utensils size={16} />,
-      content: (
-        <div className="animate-slide-up space-y-6">
-          <div>
-            <div className="flex items-center justify-between mb-6 px-1">
-              <h3 className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-[0.4em]">
-                Trophic Archetype Manifests
-              </h3>
-              <span className="text-[0.45rem] font-mono text-voro-primary uppercase tracking-widest">
-                0xMET_EXPRESS_ARRAY
-              </span>
-            </div>
-            <div className="space-y-4">
-              {EXPRESS_FOODS.map(food => (
-                <KineticExpressCard
-                  key={food.id}
-                  nodeId={food.nodeId}
-                  onClick={() => handleQuickFoodLog(food.name)}
-                  accentColor="primary"
-                  actionLabel="Quick Manifest"
-                  actionIcon={Zap}
-                >
-                  <div className="flex items-center gap-5">
-                    <div className="w-12 h-12 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-center text-2xl shadow-inner">
-                      {food.icon}
-                    </div>
-                    <div className="space-y-1">
-                      <span className="text-xl font-serif italic font-medium text-white group-hover:text-voro-primary transition-colors">
-                        {food.name}
-                      </span>
-                      <div className="flex items-center gap-3 font-mono text-[0.55rem] text-gray-500">
-                        <span>{food.calories} kcal</span>
-                        <div className="w-1 h-1 rounded-full bg-white/10" />
-                        <span>P: {food.protein}g</span>
-                        <div className="w-1 h-1 rounded-full bg-white/10" />
-                        <span>C: {food.carbs}g</span>
-                      </div>
-                    </div>
-                  </div>
-                </KineticExpressCard>
-              ))}
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: 'workout',
-      label: 'Kinetic',
-      icon: <Dumbbell size={16} />,
-      content: (
-        <div className="animate-slide-up space-y-6">
-          <div>
-            <div className="flex items-center justify-between mb-6 px-1">
-              <h3 className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-[0.4em]">
-                Energy Manifestation Nodes
-              </h3>
-              <span className="text-[0.45rem] font-mono text-voro-secondary uppercase tracking-widest">
-                0xKIN_EXPRESS_ARRAY
-              </span>
-            </div>
-            <div className="space-y-4">
-              {EXPRESS_WORKOUTS.map(workout => (
-                <KineticExpressCard
-                  key={workout.id}
-                  nodeId={workout.nodeId}
-                  onClick={() => handleQuickWorkoutLog(workout.name, workout.type)}
-                  accentColor="secondary"
-                  actionLabel="Record Evolution"
-                  actionIcon={CheckCircle2}
-                >
-                  <div className="flex items-center gap-5">
-                    <div className="w-12 h-12 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-center text-2xl shadow-inner">
-                      {workout.icon}
-                    </div>
-                    <div className="space-y-1">
-                      <span className="text-xl font-serif italic font-medium text-white group-hover:text-voro-secondary transition-colors">
-                        {workout.name}
-                      </span>
-                      <div className="flex items-center gap-3 font-mono text-[0.55rem] text-gray-500">
-                        <span>{workout.detail}</span>
-                        <div className="w-1 h-1 rounded-full bg-white/10" />
-                        <span className="text-voro-secondary">{workout.type}</span>
-                      </div>
-                    </div>
-                  </div>
-                </KineticExpressCard>
-              ))}
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: 'water',
-      label: 'Hydration',
-      icon: <Droplets size={16} />,
-      content: (
-        <div className="animate-slide-up space-y-6">
-          <div>
-            <div className="flex items-center justify-between mb-6 px-1">
-              <h3 className="text-[0.6rem] font-mono font-black text-gray-500 uppercase tracking-[0.4em]">
-                Intracellular Matrix Hydration
-              </h3>
-              <span className="text-[0.45rem] font-mono text-voro-primary uppercase tracking-widest">
-                0xHYD_EXPRESS_ARRAY
-              </span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {EXPRESS_HYDRATION.map(water => (
-                <KineticExpressCard
-                  key={water.amount}
-                  nodeId={water.nodeId}
-                  onClick={() => handleQuickWaterLog(water.amount)}
-                  accentColor="primary"
-                  actionLabel="Inject"
-                  actionIcon={Droplets}
-                >
-                  <div className="flex flex-col items-start gap-1 py-2">
-                    <div className="text-3xl font-serif italic font-bold text-white group-hover:text-voro-primary transition-colors">
-                      +{water.amount}
-                      <span className="text-[0.6rem] not-italic font-mono font-black text-voro-primary uppercase ml-1">ml</span>
-                    </div>
-                    <span className="text-[0.55rem] font-mono font-bold text-gray-500 uppercase tracking-widest">
-                      {water.label} Protocol
-                    </span>
-                  </div>
-                </KineticExpressCard>
-              ))}
-            </div>
-          </div>
-        </div>
-      )
-    },
-  ], [handleQuickFoodLog, handleQuickWorkoutLog, handleQuickWaterLog]);
-
   const activeContent = useMemo(() => {
-    return quickLogTabs.find(t => t.id === activeTab)?.content;
-  }, [quickLogTabs, activeTab]);
+    switch (activeTab) {
+      case 'food':
+        return <QuickLogNutritionTab onQuickFoodLog={handleQuickFoodLog} />;
+      case 'workout':
+        return <QuickLogKineticTab onQuickWorkoutLog={handleQuickWorkoutLog} />;
+      case 'water':
+        return <QuickLogHydrationTab onQuickWaterLog={handleQuickWaterLog} />;
+      default:
+        return null;
+    }
+  }, [activeTab, handleQuickFoodLog, handleQuickWorkoutLog, handleQuickWaterLog]);
 
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30 pb-24">
@@ -511,7 +514,7 @@ const QuickLog = () => {
         {/* Tab Selection */}
         <div className="mb-12">
           <Tabs
-            tabs={quickLogTabs}
+            tabs={QUICK_LOG_TABS}
             activeTab={activeTab}
             onTabChange={setActiveTab}
           />
