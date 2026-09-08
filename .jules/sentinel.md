@@ -325,3 +325,14 @@ Deep URL decoding in AI response validation must unwrap both URL percent-encodin
 
 **Prevention:**
 Always apply HTML entity decoding alongside percent-decoding during URL extraction and validation in AI response filters.
+
+## 2026-09-08 - Octal Character Code Obfuscation in Prompt Injection Shields
+
+**Vulnerability:**
+Prompt injection detectors analyzing decimal or hex character codes can be bypassed if an attacker obfuscates prompt override instructions (such as "ignore previous") using `0o`-prefixed octal character codes (e.g. `0o151 0o147 0o156 0o157...`). Language models and downstream parsing engines easily decode octal character arrays back to ASCII instructions, bypassing text-based blocklists and boundary validations.
+
+**Learning:**
+Neutralizing octal character code obfuscation requires expanding token-matching regexes and character-code decoding logic to recognize `0o`-prefixed octal representations alongside hex (`0x`) and decimal character codes. Verifying that parsed octal values fall strictly within printable ASCII bounds (32 to 126 or whitespace) allows the decoded string to be evaluated recursively against injection patterns without triggering false positives on standard numeric arrays.
+
+**Prevention:**
+Ensure character-code decoding layers in prompt validators support all standard numeric literal representations (decimal, hex `0x`, and octal `0o`) under strict printable ASCII bounds before evaluating user input against injection rules.

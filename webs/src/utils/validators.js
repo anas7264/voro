@@ -579,7 +579,7 @@ const BASE58_MATCH_RE = /[1-9A-HJ-NP-Za-km-z]{12,}/g;
 const NON_PRINTABLE_ASCII_RE = /[\x00-\x09\x0B\x0C\x0E-\x1F\x7F-\xFF]/;
 const HEX_FORMAT_RE = /^[0-9a-fA-F]{8,}$/;
 const BINARY_MATCH_RE = /(?:[01]{7,8}(?:[\s,.\-_\/]+|$)){2,}/g;
-const DECIMAL_MATCH_RE = /(?:(?:0x[0-9a-fA-F]{1,2}|\d{1,3})(?:[\s,.\-_\/]+|$)){4,}/g;
+const DECIMAL_MATCH_RE = /(?:(?:0x[0-9a-fA-F]{1,2}|0o[0-7]{1,3}|\d{1,3})(?:[\s,.\-_\/]+|$)){4,}/g;
 
 const MORSE_MAP = {
   '.-': 'a', '-...': 'b', '-.-.': 'c', '-..': 'd', '.': 'e', '..-.': 'f', '--.': 'g', '....': 'h', '..': 'i', '.---': 'j',
@@ -591,7 +591,7 @@ const MORSE_MAP = {
 const MORSE_MATCH_RE = /(?:[.\-•–—_]{1,7}(?:[\s\/]+|$)){3,}/g;
 const MORSE_FORMAT_RE = /^[.\-•–—_\s\/]{8,}$/;
 
-// Helper to safely decode space/comma/byte-separated decimal or hex character codes into ASCII
+// Helper to safely decode space/comma/byte-separated decimal, hex, or octal character codes into ASCII
 const safeDecodeDecimal = (str) => {
   try {
     if (!str || typeof str !== 'string' || str.length < 8) return null;
@@ -603,6 +603,8 @@ const safeDecodeDecimal = (str) => {
       let code;
       if (/^0x[0-9a-fA-F]{1,2}$/i.test(token)) {
         code = parseInt(token, 16);
+      } else if (/^0o[0-7]{1,3}$/i.test(token)) {
+        code = parseInt(token.slice(2), 8);
       } else if (/^\d{1,3}$/.test(token)) {
         code = parseInt(token, 10);
       } else {
