@@ -1,4 +1,4 @@
-import React, { memo, useState, useMemo, useRef } from "react";
+import React, { memo, useState, useMemo, useRef, useId } from "react";
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted & Frozen static lookup mappings.
@@ -25,7 +25,7 @@ const TELEMETRY_STREAM_NODES = Object.freeze(
  * 2. 60fps Direct-DOM volumetric 3D hover tilt tracking with dynamic coordinate telemetry overlays.
  * 3. Golden ratio spatial architecture & high-contrast luxury typography (Playfair Display italic serif values).
  * 4. Static 4-degree keyboard focus tilts compliant with W3C APG standards.
- * 5. Sub-pixel hash badging (`0xSTAT_VAULT_...`) and internal parallax refraction layers.
+ * 5. SSR-safe deterministic sub-pixel hash badging (`0xSTAT_...`) via React's native `useId()` hook and internal parallax refraction layers.
  */
 export const Stat = memo(({
   label,
@@ -43,11 +43,14 @@ export const Stat = memo(({
   const tiltYRef = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const generatedId = useId();
 
-  // Generate deterministic sub-pixel system attestation badge
+  // SSR-safe deterministic sub-pixel system attestation badge using React's native useId hook
   const subpixelHash = useMemo(() => {
-    return `0xSTAT_${Math.floor(Math.random() * 0x10000).toString(16).toUpperCase().padStart(4, '0')}`;
-  }, []);
+    const cleanId = generatedId.replace(/:/g, '');
+    const suffix = cleanId.padEnd(4, '0').slice(0, 4).toUpperCase();
+    return `0xSTAT_${suffix}`;
+  }, [generatedId]);
 
   const handleMouseMove = (e) => {
     if (!containerRef.current) return;
