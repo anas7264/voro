@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useId, useMemo } from "react";
+import React, { memo, useEffect, useId, useMemo, useRef } from "react";
 import { X } from "lucide-react";
 
 /**
@@ -16,6 +16,7 @@ import { X } from "lucide-react";
 export const Modal = memo(({ isOpen, onClose, title, children, size = "md", ...props }) => {
   const generatedId = useId();
   const titleId = `${generatedId}-title`;
+  const modalRef = useRef(null);
 
   // Generate a stable system ID for the modal node
   const nodeId = useMemo(() => {
@@ -24,22 +25,53 @@ export const Modal = memo(({ isOpen, onClose, title, children, size = "md", ...p
   }, [generatedId]);
 
   useEffect(() => {
-    const handleEscape = (e) => {
+    if (!isOpen) return;
+
+    const previousFocus = document.activeElement;
+
+    const handleKeyDown = (e) => {
       if (e.key === "Escape") {
         onClose();
+        return;
+      }
+
+      if (e.key === "Tab" && modalRef.current) {
+        const focusables = modalRef.current.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusables.length === 0) return;
+
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+
+        if (e.shiftKey && (document.activeElement === first || document.activeElement === modalRef.current)) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     };
 
-    if (isOpen) {
-      const originalOverflow = window.getComputedStyle(document.body).overflow;
-      window.addEventListener("keydown", handleEscape);
-      document.body.style.overflow = "hidden";
+    const originalOverflow = window.getComputedStyle(document.body).overflow;
+    window.addEventListener("keydown", handleKeyDown);
+    document.body.style.overflow = "hidden";
 
-      return () => {
-        window.removeEventListener("keydown", handleEscape);
-        document.body.style.overflow = originalOverflow;
-      };
-    }
+    const focusTimer = setTimeout(() => {
+      if (modalRef.current) {
+        modalRef.current.focus();
+      }
+    }, 0);
+
+    return () => {
+      clearTimeout(focusTimer);
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = originalOverflow;
+      if (previousFocus && typeof previousFocus.focus === "function") {
+        previousFocus.focus();
+      }
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -52,6 +84,8 @@ export const Modal = memo(({ isOpen, onClose, title, children, size = "md", ...p
     "2xl": "max-w-4xl"
   };
 
+  const closeLabel = typeof title === "string" && title ? `Close ${title}` : "Close modal";
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-hidden">
       {/* Dynamic Backdrop: Glassmorphic Absorption */}
@@ -63,10 +97,12 @@ export const Modal = memo(({ isOpen, onClose, title, children, size = "md", ...p
 
       {/* Modal Container: Architectural Interruption Chamber */}
       <div
+        ref={modalRef}
+        tabIndex={-1}
         className={`
           relative w-full max-h-full rounded-[3rem] bg-[#0A0C14] border border-white/5
           shadow-[0_80px_160px_-40px_rgba(0,0,0,0.8),inset_0_1px_1px_0_rgba(255,255,255,0.05)]
-          flex flex-col overflow-hidden animate-scale-in
+          flex flex-col overflow-hidden animate-scale-in outline-none
           ${sizes[size] || sizes.md}
         `}
         role="dialog"
@@ -109,7 +145,8 @@ export const Modal = memo(({ isOpen, onClose, title, children, size = "md", ...p
               focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14]
               group
             `}
-            aria-label={typeof title === "string" && title ? `Close ${title}` : "Close modal"}
+            aria-label={closeLabel}
+            title={closeLabel}
           >
             <X size={20} className="group-hover:rotate-90 transition-transform duration-500" />
           </button>
