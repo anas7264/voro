@@ -1,24 +1,25 @@
 import { useMemo, useCallback } from "react";
-import { useStorageMethods, useStorageKey } from "./useStorage";
+import { useStorageMethods, useStorageKeySelector } from "./useStorage";
 import { getFastDateStr } from "@/utils/formatters";
+
+const DEFAULT_STREAK_DATA = Object.freeze({
+  current: 0,
+  best: 0,
+  completedDates: Object.freeze([]),
+  lastCompletedDate: null
+});
+
+const selectStreak = (val) => val || DEFAULT_STREAK_DATA;
 
 export const useStreak = () => {
   const { setItem } = useStorageMethods();
-  const streakDataFromStorage = useStorageKey("streak");
 
   /**
    * ⚡ OPTIMIZATION: Surgical Reactivity.
-   * Subscribe only to 'streak' data to prevent redundant re-renders
-   * when unrelated storage keys change.
+   * Subscribes specifically to 'streak' data via useStorageKeySelector
+   * to prevent redundant re-renders when unrelated storage keys change.
    */
-  const streakData = useMemo(() => {
-    return streakDataFromStorage || {
-      current: 0,
-      best: 0,
-      completedDates: [],
-      lastCompletedDate: null
-    };
-  }, [streakDataFromStorage]);
+  const streakData = useStorageKeySelector("streak", selectStreak);
 
   // Derived metrics from streak data
   const currentStreak = streakData.current;

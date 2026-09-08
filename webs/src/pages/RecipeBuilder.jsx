@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Input from '@/components/Input';
-import { useStorageKey, useStorageMethods } from '@/hooks/useStorage';
+import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { validateRecipe } from '@/utils/validators';
 import { foods } from '@/data/foods';
@@ -30,6 +30,9 @@ const FOODS_PREPROCESSED = Object.freeze(
     lowerName: f.name.toLowerCase()
   }))
 );
+
+const EMPTY_ARRAY = Object.freeze([]);
+const selectRecipes = (val) => val || EMPTY_ARRAY;
 
 /**
  * ⚡ REFINEMENT: Re-engineered IngredientItem component.
@@ -330,9 +333,9 @@ const RecipeBuilder = () => {
 
   /**
    * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
-   * Directly subscribing to 'recipes' key prevents re-renders when other keys change.
+   * Directly subscribing to 'recipes' key via useStorageKeySelector prevents re-renders when other keys change.
    */
-  const savedRecipes = useStorageKey('recipes') || [];
+  const savedRecipes = useStorageKeySelector('recipes', selectRecipes);
 
   const [ingredients, setIngredients] = useState([]);
   const [recipeName, setRecipeName] = useState('');

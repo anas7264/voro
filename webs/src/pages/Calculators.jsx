@@ -499,18 +499,18 @@ const DeficitCalculator = memo(({ weight, height, age, gender, activityLevel, ca
   const forecast = useMemo(() => {
     const list = [];
     let currentWt = parseFloat(weight);
+    const totalDeficitKcal = deficitTarget * 7;
+    const weeklyFatLostKg = totalDeficitKcal / 7700;
 
     for (let wk = 1; wk <= 12; wk++) {
-      // 1kg of adipose tissue is roughly 7700 kcal
-      const totalDeficitKcal = deficitTarget * 7;
-      const fatLostKg = totalDeficitKcal / 7700;
-      currentWt -= fatLostKg;
+      currentWt -= weeklyFatLostKg;
+      const cumulativeLoss = weeklyFatLostKg * wk;
 
       list.push({
         week: wk,
         weight: currentWt.toFixed(1),
-        cumulativeFatLoss: (fatLostKg * wk).toFixed(1),
-        cumulativeDeficit: numberFormatter.format(deficitTarget * 7 * wk)
+        cumulativeFatLoss: cumulativeLoss.toFixed(1),
+        cumulativeDeficit: numberFormatter.format(totalDeficitKcal * wk)
       });
     }
     return list;
@@ -906,6 +906,19 @@ const VolumetricComputationNode = memo(({ children, nodeId }) => {
 VolumetricComputationNode.displayName = "VolumetricComputationNode";
 
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted and frozen calculator tabs matrix.
+ * Pre-instantiated at module scope to remove array & JSX element allocation per render.
+ */
+const CALCULATOR_TABS = Object.freeze([
+  Object.freeze({ id: 'bmi', label: 'BMI', icon: <Activity size={18} /> }),
+  Object.freeze({ id: 'bmr', label: 'BMR', icon: <Flame size={18} /> }),
+  Object.freeze({ id: 'tdee', label: 'TDEE', icon: <Zap size={18} /> }),
+  Object.freeze({ id: 'ideal', label: 'Ideal Weight', icon: <Target size={18} /> }),
+  Object.freeze({ id: 'ffmi', label: 'FFMI', icon: <Dumbbell size={18} /> }),
+  Object.freeze({ id: 'deficit', label: 'Deficit', icon: <TrendingDown size={18} /> }),
+]);
+
 // MAIN MASTERCLASS PAGE
 const Calculators = () => {
   const {
@@ -944,16 +957,6 @@ const Calculators = () => {
     document.title = 'VORO | Biometric Computation Engine';
   }, []);
 
-  const calculatorTabs = useMemo(() => {
-    return [
-      { id: 'bmi', label: 'BMI', icon: <Activity size={18} /> },
-      { id: 'bmr', label: 'BMR', icon: <Flame size={18} /> },
-      { id: 'tdee', label: 'TDEE', icon: <Zap size={18} /> },
-      { id: 'ideal', label: 'Ideal Weight', icon: <Target size={18} /> },
-      { id: 'ffmi', label: 'FFMI', icon: <Dumbbell size={18} /> },
-      { id: 'deficit', label: 'Deficit', icon: <TrendingDown size={18} /> },
-    ];
-  }, []);
 
   const activeContent = useMemo(() => {
     switch (active) {
@@ -1114,7 +1117,7 @@ const Calculators = () => {
           <section className="xl:col-span-8 space-y-8">
             <div className="mb-8">
               <Tabs
-                tabs={calculatorTabs}
+                tabs={CALCULATOR_TABS}
                 activeTab={active}
                 onTabChange={setActive}
               />
