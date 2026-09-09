@@ -1,16 +1,17 @@
-import React, { memo, useRef, useState, useMemo } from "react";
+import React, { memo, useRef, useState, useMemo, useId } from "react";
 
 /**
  * ⚡ REFINEMENT: Luxury Neural Progress Conduit ('Volumetric Progress Lens').
  * Re-engineered with Voro's elite 'Forge' luxury design system standard:
  * high-fidelity charcoal architecture, 60fps direct-DOM volumetric mouse tracking,
- * interactive holographic telemetry, and W3C APG compliant focus physics.
+ * interactive holographic telemetry, dynamic liquid perimeter illumination,
+ * and W3C APG compliant focus physics.
  *
  * DESIGN PHILOSOPHY:
  * 1. Authority: Heavy charcoal surfaces (#0C0906) with multi-layered glassmorphic depth.
  * 2. Precision: Playfair Display italic headers paired with monospaced telemetry metadata.
  * 3. Motion: Direct-DOM 60fps 3D volumetric hover tilts bypassing React render passes.
- * 4. Atmosphere: Kinetic shimmer gradients, luminous lead-edge optics, and sub-pixel grid texture.
+ * 4. Atmosphere: Kinetic shimmer gradients, dynamic liquid border lighting, and sub-pixel grid texture.
  */
 export const Progress = memo(({
   value = 0,
@@ -30,12 +31,18 @@ export const Progress = memo(({
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
-  // Generate a stable system node ID for telemetry attestation
+  // Generate stable system node ID & attestation hash for telemetry attestation
+  const reactId = useId();
   const nodeId = useMemo(() => {
     if (customNodeId) return customNodeId;
-    const randomHex = Math.floor(Math.random() * 0x1000).toString(16).toUpperCase().padStart(3, '0');
-    return `PRG_${randomHex}`;
-  }, [customNodeId]);
+    const cleanId = reactId.replace(/:/g, '');
+    return `PRG_${cleanId.slice(0, 4).toUpperCase()}`;
+  }, [customNodeId, reactId]);
+
+  const attestationHash = useMemo(() => {
+    const cleanId = reactId.replace(/:/g, '');
+    return `0x${cleanId.padEnd(6, 'F').slice(0, 6).toUpperCase()}`;
+  }, [reactId]);
 
   const percentage = Math.min(Math.max(0, (value / max) * 100), 100);
 
@@ -97,6 +104,7 @@ export const Progress = memo(({
 
   const activeColor = CONDUIT_COLORS[color] || CONDUIT_COLORS.primary;
   const activeGlow = GLOW_COLORS[color] || GLOW_COLORS.primary;
+  const activeBorderGlow = BORDER_GLOW_COLORS[color] || BORDER_GLOW_COLORS.primary;
   const activeSize = SIZES[size] || SIZES.md;
   const interactionActive = isHovered || isFocused;
 
@@ -144,6 +152,18 @@ export const Progress = memo(({
           }}
         />
       </div>
+
+      {/* Dynamic Liquid Border Perimeter Illumination */}
+      <div
+        className="absolute inset-0 rounded-2xl md:rounded-3xl opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-700 pointer-events-none"
+        style={{
+          padding: '1px',
+          background: `radial-gradient(350px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ${activeBorderGlow}, transparent 80%)`,
+          WebkitMask: 'linear-gradient(#fff, #fff) content-box, linear-gradient(#fff, #fff)',
+          WebkitMaskComposite: 'xor',
+          maskComposite: 'exclude',
+        }}
+      />
 
       {/* Header Info: Label, Percentage, & Holographic Telemetry */}
       <div className="relative z-10 flex items-center justify-between mb-3.5 gap-4" style={{ transform: 'translateZ(20px)' }}>
@@ -214,7 +234,7 @@ export const Progress = memo(({
         className="relative z-10 flex items-center justify-between mt-2.5 text-[0.45rem] font-mono text-white/20 tracking-[0.3em] uppercase pointer-events-none"
         style={{ transform: 'translateZ(10px)' }}
       >
-        <span>SYS_CONDUIT // LIVE</span>
+        <span>SYS_CONDUIT // {attestationHash}</span>
         <span>{value} / {max} UNIT</span>
       </div>
     </div>
@@ -241,6 +261,14 @@ const GLOW_COLORS = Object.freeze({
   accent: "rgba(245, 158, 11, 0.12)",
   danger: "rgba(239, 68, 68, 0.12)",
   info: "rgba(59, 130, 246, 0.12)",
+});
+
+const BORDER_GLOW_COLORS = Object.freeze({
+  primary: "rgba(124, 58, 237, 0.45)",
+  secondary: "rgba(16, 185, 129, 0.45)",
+  accent: "rgba(245, 158, 11, 0.45)",
+  danger: "rgba(239, 68, 68, 0.45)",
+  info: "rgba(59, 130, 246, 0.45)",
 });
 
 const SIZES = Object.freeze({
