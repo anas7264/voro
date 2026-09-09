@@ -23,6 +23,7 @@ const longDateFormatter = new Intl.DateTimeFormat('en-US', {
 
 const VESSEL_TICKS = Object.freeze([2000, 1500, 1000, 500]);
 const CATALYST_PRESETS = Object.freeze([250, 500, 750, 1000]);
+const EMPTY_LOGS = Object.freeze([]);
 
 /**
  * ⚡ BIOLOGICAL STATE MATRIX: Hoisted and frozen configuration lookup.
@@ -414,7 +415,15 @@ const WaterTracker = () => {
    */
   const dailyLogs = useStorageKeySelector(
     'water_log',
-    useCallback((logs) => (logs || {})[date] || [], [date])
+    useCallback((logs) => (logs || {})[date] || EMPTY_LOGS, [date]),
+    useCallback((a, b) => {
+      if (a === b) return true;
+      if (!a || !b || a.length !== b.length) return false;
+      for (let i = 0; i < a.length; i++) {
+        if (a[i].id !== b[i].id || a[i].amount !== b[i].amount || a[i].time !== b[i].time) return false;
+      }
+      return true;
+    }, [])
   );
 
   const todayTotal = useStorageKeySelector(
@@ -431,6 +440,14 @@ const WaterTracker = () => {
           date: getFastShortDate(d),
           water: amount,
         }));
+    }, []),
+    useCallback((a, b) => {
+      if (a === b) return true;
+      if (!a || !b || a.length !== b.length) return false;
+      for (let i = 0; i < a.length; i++) {
+        if (a[i].date !== b[i].date || a[i].water !== b[i].water) return false;
+      }
+      return true;
     }, [])
   );
 

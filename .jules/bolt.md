@@ -209,3 +209,10 @@
 **Action:**
 1. Use `CachedDateTimeFormat` for date/time formatting across components instead of raw `Intl.DateTimeFormat`.
 2. Pass pre-formatted ISO strings directly to `CachedDateTimeFormat.format()` and use `Date.parse()` for date arithmetic to avoid unnecessary `new Date()` heap allocations.
+
+## 2026-09-09 - Custom Equality Functions for Transformed Selectors
+**Learning:** `useStorageKeySelector` calls `getSnapshot()` whenever storage updates. If a selector transforms or maps data into new array or object instances (e.g., via `.map()` or fallback `|| []`), `defaultEquality` performs a shallow check (`a[i] !== b[i]`). Because newly allocated object instances fail referential equality, `defaultEquality` evaluates to `false` on every storage change, triggering redundant component re-renders and invalidating `React.memo` child components (such as chart components).
+
+**Action:**
+1. Always provide custom element-wise property equality functions to `useStorageKeySelector` whenever the selector returns array or object transformations.
+2. Hoist frozen fallback objects (`EMPTY_LOGS = Object.freeze([])`) outside component bodies to eliminate fallback allocations.
