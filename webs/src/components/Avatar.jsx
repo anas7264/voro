@@ -64,10 +64,21 @@ export const Avatar = memo(({
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full bg-white/5 flex items-center justify-center font-serif italic text-white/20">V</div>
+            <div
+              role="img"
+              aria-label={alt}
+              className="w-full h-full bg-white/5 flex items-center justify-center font-serif italic text-white/20"
+            >
+              V
+            </div>
           )}
         </div>
-        <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-[#080B14] ${currentStatusColor}`} />
+        <div
+          role="status"
+          aria-label={`Status: ${status}`}
+          title={`Status: ${status}`}
+          className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-[#080B14] ${currentStatusColor}`}
+        />
       </div>
     );
   }
@@ -94,7 +105,11 @@ export const Avatar = memo(({
               className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-1000 ease-out scale-110 group-hover:scale-100"
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-white/5 to-white/[0.01] flex items-center justify-center">
+            <div
+              role="img"
+              aria-label={alt}
+              className="w-full h-full bg-gradient-to-br from-white/5 to-white/[0.01] flex items-center justify-center"
+            >
                <span className="font-serif italic text-4xl text-white/10 group-hover:text-voro-primary/40 transition-colors duration-700">V</span>
             </div>
           )}
@@ -108,7 +123,12 @@ export const Avatar = memo(({
       </div>
 
       {/* Kinetic Status Node */}
-      <div className="absolute -bottom-2 -right-2 p-2 bg-[#0A0C14] rounded-full border border-white/10 shadow-2xl transition-transform duration-700 group-hover:scale-110">
+      <div
+        role="status"
+        aria-label={`Status: ${status}`}
+        title={`Status: ${status}`}
+        className="absolute -bottom-2 -right-2 p-2 bg-[#0A0C14] rounded-full border border-white/10 shadow-2xl transition-transform duration-700 group-hover:scale-110"
+      >
         <div className="relative flex h-3 w-3">
           <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-40 ${currentStatusColor}`}></span>
           <span className={`relative inline-flex rounded-full h-3 w-3 ${currentStatusColor}`}></span>
