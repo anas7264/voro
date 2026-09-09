@@ -336,3 +336,14 @@ Neutralizing octal character code obfuscation requires expanding token-matching 
 
 **Prevention:**
 Ensure character-code decoding layers in prompt validators support all standard numeric literal representations (decimal, hex `0x`, and octal `0o`) under strict printable ASCII bounds before evaluating user input against injection rules.
+
+## 2026-09-09 - Delimiter Expansion for Character Code Prompt Injection Shields
+
+**Vulnerability:**
+Prompt injection detectors matching sequences of numeric or hex character codes (such as decimal ASCII codes `105 103 110...` or hex bytes `0x69 0x67...`) relied on a restricted set of token delimiters (`[\s,.\-_\/]`). An attacker could supply prompt override instructions delimited by colon (`:`), semicolon (`;`), plus (`+`), or equals (`=`) signs (e.g. `105:103:110:111:114:101:32:112:114:101:118:105:111:117:115` or `105;103;110;...` or `0x69:0x67:0x6e...` for "ignore previous"). Because the token-matching regexes failed to recognize these delimiters, character code extraction was bypassed and malicious payloads reached downstream LLMs.
+
+**Learning:**
+Obfuscated character code arrays can use a wide variety of delimiter characters commonly found in query strings, path segments, header values, or encoded parameters (`:`, `;`, `+`, `=`). Character code matching regexes (`DECIMAL_MATCH_RE`, `OCTAL_MATCH_RE`, `HEX_BYTES_MATCH_RE`, `MULTI_RADIX_MATCH_RE`, `BINARY_MATCH_RE`) and splitting logic in safe decoders must include all standard punctuation and symbol delimiters (`[\s,.\-_\/:;+=]`) to ensure candidate byte sequences are correctly parsed and decoded into ASCII before prompt injection evaluation.
+
+**Prevention:**
+Always include comprehensive delimiter character classes (`[\s,.\-_\/:;+=]`) in character-code matching regexes and array splitting functions in prompt injection validators to prevent delimiter-based evasion.
