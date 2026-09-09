@@ -580,6 +580,9 @@ const NON_PRINTABLE_ASCII_RE = /[\x00-\x09\x0B\x0C\x0E-\x1F\x7F-\xFF]/;
 const HEX_FORMAT_RE = /^[0-9a-fA-F]{8,}$/;
 const BINARY_MATCH_RE = /(?:[01]{7,8}(?:[\s,.\-_\/]+|$)){2,}/g;
 const DECIMAL_MATCH_RE = /(?:(?:0x[0-9a-fA-F]{1,2}|0o[0-7]{1,3}|\d{1,3})(?:[\s,.\-_\/]+|$)){4,}/g;
+const OCTAL_MATCH_RE = /(?:(?:0o)?[0-7]{3}(?:[\s,.\-_\/]+|$)){4,}/g;
+const HEX_BYTES_MATCH_RE = /(?:(?:0x)?[0-9a-fA-F]{2}(?:[\s,.\-_\/]+|$)){4,}/g;
+const MULTI_RADIX_MATCH_RE = /(?:(?:0x[0-9a-fA-F]{1,2}|0o[0-7]{1,3}|[0-9a-fA-F]{2}|\d{1,3})(?:[\s,.\-_\/]+|$)){4,}/g;
 
 const MORSE_MAP = {
   '.-': 'a', '-...': 'b', '-.-.': 'c', '-..': 'd', '.': 'e', '..-.': 'f', '--.': 'g', '....': 'h', '..': 'i', '.---': 'j',
@@ -611,6 +614,94 @@ const safeDecodeDecimal = (str) => {
         return null;
       }
       if (code < 9 || (code > 13 && code < 32) || code > 126) return null;
+      decoded += String.fromCharCode(code);
+    }
+    return decoded.length >= 8 ? decoded : null;
+  } catch (e) {
+    return null;
+  }
+};
+
+// Helper to safely decode space/comma/dash-separated octal ASCII character codes (3-digit or 0o-prefixed)
+const safeDecodeOctal = (str) => {
+  try {
+    if (!str || typeof str !== 'string' || str.length < 8) return null;
+    const tokens = str.trim().split(/[\s,.\-_\/]+/);
+    if (tokens.length < 4) return null;
+    let decoded = '';
+    for (const token of tokens) {
+      if (!token) continue;
+      let code;
+      if (/^0o[0-7]{1,3}$/i.test(token)) {
+        code = parseInt(token.slice(2), 8);
+      } else if (/^[0-7]{3}$/.test(token)) {
+        code = parseInt(token, 8);
+      } else {
+        return null;
+      }
+      if (code < 9 || (code > 13 && code < 32) || code > 126) return null;
+      decoded += String.fromCharCode(code);
+    }
+    return decoded.length >= 8 ? decoded : null;
+  } catch (e) {
+    return null;
+  }
+};
+
+// Helper to safely decode space/comma/dash-separated 2-digit hex byte sequences into ASCII
+const safeDecodeHexBytes = (str) => {
+  try {
+    if (!str || typeof str !== 'string' || str.length < 8) return null;
+    const tokens = str.trim().split(/[\s,.\-_\/]+/);
+    if (tokens.length < 4) return null;
+    let decoded = '';
+    for (const token of tokens) {
+      if (!token) continue;
+      let code;
+      if (/^0x[0-9a-fA-F]{1,2}$/i.test(token)) {
+        code = parseInt(token, 16);
+      } else if (/^[0-9a-fA-F]{2}$/.test(token)) {
+        code = parseInt(token, 16);
+      } else {
+        return null;
+      }
+      if (code < 9 || (code > 13 && code < 32) || code > 126) return null;
+      decoded += String.fromCharCode(code);
+    }
+    return decoded.length >= 8 ? decoded : null;
+  } catch (e) {
+    return null;
+  }
+};
+
+// Helper to safely decode space/comma/dash-separated multi-radix (decimal, hex 0x/2-digit, octal 0o/3-digit) character codes
+const safeDecodeMultiRadix = (str) => {
+  try {
+    if (!str || typeof str !== 'string' || str.length < 8) return null;
+    const tokens = str.trim().split(/[\s,.\-_\/]+/);
+    if (tokens.length < 4) return null;
+    let decoded = '';
+    for (const token of tokens) {
+      if (!token) continue;
+      let code = null;
+      if (/^0x[0-9a-fA-F]{1,2}$/i.test(token)) {
+        code = parseInt(token.slice(2), 16);
+      } else if (/^0o[0-7]{1,3}$/i.test(token)) {
+        code = parseInt(token.slice(2), 8);
+      } else if (/^[0-9a-fA-F]{2}$/i.test(token) && /[a-fA-F]/i.test(token)) {
+        code = parseInt(token, 16);
+      } else if (/^\d{1,3}$/.test(token)) {
+        const val = parseInt(token, 10);
+        if (val >= 32 && val <= 126) {
+          code = val;
+        } else if (/^[0-7]{3}$/.test(token)) {
+          const octVal = parseInt(token, 8);
+          if (octVal >= 32 && octVal <= 126) {
+            code = octVal;
+          }
+        }
+      }
+      if (code === null || code < 9 || (code > 13 && code < 32) || code > 126) return null;
       decoded += String.fromCharCode(code);
     }
     return decoded.length >= 8 ? decoded : null;
@@ -890,6 +981,30 @@ export const isPromptInjection = (query, isNested = false) => {
       for (const match of decimalMatches) {
         const decimalDecoded = safeDecodeDecimal(match);
         if (decimalDecoded && isPromptInjection(decimalDecoded, true)) {
+          return true;
+        }
+      }
+
+      const octalMatches = targetStr.match(OCTAL_MATCH_RE) || [];
+      for (const match of octalMatches) {
+        const octalDecoded = safeDecodeOctal(match);
+        if (octalDecoded && isPromptInjection(octalDecoded, true)) {
+          return true;
+        }
+      }
+
+      const hexByteMatches = targetStr.match(HEX_BYTES_MATCH_RE) || [];
+      for (const match of hexByteMatches) {
+        const hexByteDecoded = safeDecodeHexBytes(match);
+        if (hexByteDecoded && isPromptInjection(hexByteDecoded, true)) {
+          return true;
+        }
+      }
+
+      const multiRadixMatches = targetStr.match(MULTI_RADIX_MATCH_RE) || [];
+      for (const match of multiRadixMatches) {
+        const multiRadixDecoded = safeDecodeMultiRadix(match);
+        if (multiRadixDecoded && isPromptInjection(multiRadixDecoded, true)) {
           return true;
         }
       }

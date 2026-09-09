@@ -661,6 +661,22 @@ const runTests = async () => {
     throw new Error("❌ Failure: Octal Character Code prompt injection bypass attempt allowed!");
   }
 
+  // --- TEST 62: Multi-Radix (Octal, Hex Bytes, Mixed-Base) Character Code Prompt Injection Shield ---
+  console.log("🛡️ Test 62: Verifying Multi-Radix (Octal, Hex Bytes, Mixed-Base) Character Code prompt injection is blocked...");
+  const rawOctalBytes = "151 147 156 157 162 145 040 160 162 145 166 151 157 165 163"; // "ignore previous" in 3-digit octal
+  const rawHexBytes = "69 67 6e 6f 72 65 20 70 72 65 76 69 6f 75 73"; // "ignore previous" in 2-digit hex
+  const mixedRadixPayload = "0x69 147 0o156 111 0x72 101 32 112 114 101 118 105 111 117 115"; // "ignore previous" mixed radix
+
+  if (
+    isPromptInjection(rawOctalBytes) &&
+    isPromptInjection(rawHexBytes) &&
+    isPromptInjection(mixedRadixPayload)
+  ) {
+    console.log("✅ Success: Multi-radix character code prompt injection successfully blocked!");
+  } else {
+    throw new Error("❌ Failure: Multi-radix character code prompt injection bypass attempt allowed!");
+  }
+
   console.log("\n🎉 ALL INJECTION OBFUSCATION SECURITY VERIFICATION TESTS PASSED SUCCESSFULLY!");
   console.log("=========================================");
   process.exit(0);
