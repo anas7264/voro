@@ -1,57 +1,18 @@
-import React, { useEffect, memo, useRef, useState, useId, useMemo } from 'react';
+import React, { useEffect, memo, useRef, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Dumbbell, TrendingDown, ArrowRight, Activity, Zap, Shield, Sparkles } from 'lucide-react';
+import { BarChart3, Dumbbell, TrendingDown, TrendingUp, ArrowRight, Shield, Sparkles, Zap } from 'lucide-react';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Progress from '@/components/Progress';
 import Header from '@/components/Header';
+import { useAppContext } from '@/hooks/useAppContext';
+import { useStorageKeySelector } from '@/hooks/useStorage';
+import { getFastDateStr } from '@/utils/formatters';
 
 /**
  * ⚡ PERFORMANCE & DESIGN OPTIMIZATION: Hoisted & Frozen Static Config Datasets
  * Zero heap allocations per component render cycle.
  */
-const MATRIX_CONFIGS = Object.freeze([
-  {
-    id: 'MATRIX_01',
-    nodeHash: '0xMX_NTR_01',
-    label: 'Nutritional Audit',
-    value: '1,850',
-    unit: 'kcal logged',
-    subtext: 'Target Ceiling: 2,200 kcal',
-    icon: BarChart3,
-    color: 'voro-info',
-    badgeText: 'NOMINAL',
-    borderColor: 'hover:border-voro-info/30',
-    iconBg: 'bg-voro-info/10 text-voro-info shadow-voro-info/20'
-  },
-  {
-    id: 'MATRIX_02',
-    nodeHash: '0xMX_KNT_02',
-    label: 'Kinetic Stimulus',
-    value: '45',
-    unit: 'Min Depth',
-    subtext: 'Archetype: Upper Body Push',
-    icon: Dumbbell,
-    color: 'voro-secondary',
-    badgeText: 'ACTIVE',
-    borderColor: 'hover:border-voro-secondary/30',
-    iconBg: 'bg-voro-secondary/10 text-voro-secondary shadow-voro-secondary/20'
-  },
-  {
-    id: 'MATRIX_03',
-    nodeHash: '0xMX_BMT_03',
-    label: 'Biological Trajectory',
-    value: '↓ 2.5',
-    unit: 'kg Mass',
-    subtext: 'Temporal Frame: 30D Matrix',
-    icon: TrendingDown,
-    color: 'voro-primary',
-    badgeText: 'OPTIMAL',
-    borderColor: 'hover:border-voro-primary/30',
-    iconBg: 'bg-voro-primary/10 text-voro-primary shadow-voro-primary/20'
-  }
-]);
-
 const COMMAND_CONFIGS = Object.freeze([
   {
     code: '01',
@@ -73,44 +34,32 @@ const COMMAND_CONFIGS = Object.freeze([
   }
 ]);
 
-const GOAL_CONFIGS = Object.freeze([
-  {
-    label: 'Energy Balance',
-    value: 1850,
-    max: 2200,
-    color: 'info',
-    unit: 'kcal'
-  },
-  {
-    label: 'Protein Density',
-    value: 148,
-    max: 160,
-    color: 'secondary',
-    unit: 'g'
-  },
-  {
-    label: 'Cellular Hydration',
-    value: 1300,
-    max: 2000,
-    color: 'info',
-    unit: 'ml'
-  }
-]);
+const INITIAL_NUTRITION = Object.freeze({
+  meals: Object.freeze({}),
+  water: 0,
+  totals: Object.freeze({ calories: 0, protein: 0, carbs: 0, fat: 0 })
+});
+
+const DEFAULT_USER_GOALS = Object.freeze({
+  calorieGoal: 2000,
+  proteinGoal: 160,
+  waterGoal: 2000
+});
+
+const selectWeights = (metrics) => metrics?.weights || [];
 
 /**
  * ⚡ LUXURY REFINEMENT: Volumetric 3D Matrix Node Card
  * Direct-DOM 60fps tilt tracking, holographic coordinate telemetry, sub-pixel node hash,
- * and W3C APG compliant static 4-degree keyboard focus tilts.
+ * zero React state re-allocation during hover, and W3C APG compliant static 4-degree keyboard focus tilts.
  */
 const KineticMatrixCard = memo(({ item }) => {
   const cardRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
   const IconComponent = item.icon;
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -126,48 +75,54 @@ const KineticMatrixCard = memo(({ item }) => {
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
-  };
+  }, []);
 
-  const handleFocus = () => {
-    setIsFocused(true);
+  const handleMouseEnter = useCallback(() => {
     if (cardRef.current) {
-      cardRef.current.style.setProperty('--tilt-x', '4deg');
-      cardRef.current.style.setProperty('--tilt-y', '-4deg');
-      if (tiltXRef.current) tiltXRef.current.innerText = '4.0';
-      if (tiltYRef.current) tiltYRef.current.innerText = '-4.0';
+      cardRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
+      cardRef.current.style.transition = 'none';
     }
-  };
+  }, []);
 
-  const handleBlur = () => {
-    setIsFocused(false);
-    if (cardRef.current && !isHovered) {
+  const handleMouseLeave = useCallback(() => {
+    if (cardRef.current) {
+      cardRef.current.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      cardRef.current.style.transition = 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)';
       cardRef.current.style.setProperty('--tilt-x', '0deg');
       cardRef.current.style.setProperty('--tilt-y', '0deg');
     }
-  };
+  }, []);
 
-  const interactionActive = isHovered || isFocused;
+  const handleFocus = useCallback(() => {
+    if (cardRef.current) {
+      cardRef.current.style.transform = 'perspective(1200px) rotateX(4deg) rotateY(-4deg) translateY(-4px)';
+      cardRef.current.style.transition = 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+      if (tiltXRef.current) tiltXRef.current.innerText = '4.0';
+      if (tiltYRef.current) tiltYRef.current.innerText = '-4.0';
+    }
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    if (cardRef.current) {
+      cardRef.current.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      cardRef.current.style.transition = 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)';
+      cardRef.current.style.setProperty('--tilt-x', '0deg');
+      cardRef.current.style.setProperty('--tilt-y', '0deg');
+    }
+  }, []);
 
   return (
     <div
       ref={cardRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        if (cardRef.current && !isFocused) {
-          cardRef.current.style.setProperty('--tilt-x', '0deg');
-          cardRef.current.style.setProperty('--tilt-y', '0deg');
-        }
-      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
       tabIndex={0}
       style={{
-        transform: interactionActive
-          ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
-          : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: isHovered ? 'none' : 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)',
+        transform: 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
       }}
       className={`
@@ -259,9 +214,13 @@ KineticMatrixCard.displayName = "KineticMatrixCard";
  * ⚡ LUXURY REFINEMENT: Kinetic Interactive Command Node Button
  */
 const KineticCommandButton = memo(({ config, onNavigate }) => {
+  const handleClick = useCallback(() => {
+    onNavigate(config.path);
+  }, [config.path, onNavigate]);
+
   return (
     <button
-      onClick={() => onNavigate(config.path)}
+      onClick={handleClick}
       className="
         w-full group/cmd relative flex items-center justify-between p-6 sm:p-8 rounded-2xl
         bg-white/[0.02] border border-white/5 hover:border-voro-primary/40 hover:bg-voro-primary/[0.04]
@@ -293,10 +252,111 @@ KineticCommandButton.displayName = "KineticCommandButton";
 
 const Dashboard2 = () => {
   const navigate = useNavigate();
+  const { user } = useAppContext();
 
   useEffect(() => {
     document.title = 'VORO | Bespoke Systems Architecture';
   }, []);
+
+  const today = useMemo(() => getFastDateStr(new Date()), []);
+
+  const selectNutritionToday = useCallback((log) => (log || {})[today] || INITIAL_NUTRITION, [today]);
+  const selectWorkoutToday = useCallback((log) => (log || {})[today], [today]);
+
+  const nutritionToday = useStorageKeySelector('nutrition_log', selectNutritionToday);
+  const workoutToday = useStorageKeySelector('workout_log', selectWorkoutToday);
+  const weights = useStorageKeySelector('body_metrics', selectWeights);
+
+  const userCalorieGoal = user?.calorieGoal || DEFAULT_USER_GOALS.calorieGoal;
+  const userProteinGoal = user?.proteinGoal || DEFAULT_USER_GOALS.proteinGoal;
+  const userWaterGoal = user?.waterGoal || DEFAULT_USER_GOALS.waterGoal;
+
+  const loggedCalories = nutritionToday?.totals?.calories || 0;
+  const loggedProtein = nutritionToday?.totals?.protein || 0;
+  const loggedWater = nutritionToday?.water || 0;
+
+  const workoutDuration = workoutToday?.duration ? `${workoutToday.duration}` : '0';
+  const workoutType = workoutToday?.type || 'Rest & Recovery';
+
+  const massDeltaStr = useMemo(() => {
+    if (!weights || weights.length < 2) return '0.0';
+    const recent = weights.slice(-30);
+    const startWeight = recent[0]?.value || 0;
+    const currentWeight = recent[recent.length - 1]?.value || 0;
+    const diff = currentWeight - startWeight;
+    const arrow = diff < 0 ? '↓ ' : diff > 0 ? '↑ ' : '';
+    return `${arrow}${Math.abs(diff).toFixed(1)}`;
+  }, [weights]);
+
+  const matrixConfigs = useMemo(() => [
+    {
+      id: 'MATRIX_01',
+      nodeHash: '0xMX_NTR_01',
+      label: 'Nutritional Audit',
+      value: loggedCalories.toLocaleString(),
+      unit: 'kcal logged',
+      subtext: `Target Ceiling: ${userCalorieGoal.toLocaleString()} kcal`,
+      icon: BarChart3,
+      color: 'voro-info',
+      badgeText: loggedCalories > userCalorieGoal ? 'EXCEEDED' : 'NOMINAL',
+      borderColor: 'hover:border-voro-info/30',
+      iconBg: 'bg-voro-info/10 text-voro-info shadow-voro-info/20'
+    },
+    {
+      id: 'MATRIX_02',
+      nodeHash: '0xMX_KNT_02',
+      label: 'Kinetic Stimulus',
+      value: workoutDuration,
+      unit: 'Min Depth',
+      subtext: `Archetype: ${workoutType}`,
+      icon: Dumbbell,
+      color: 'voro-secondary',
+      badgeText: workoutToday?.attended ? 'ACTIVE' : 'IDLE',
+      borderColor: 'hover:border-voro-secondary/30',
+      iconBg: 'bg-voro-secondary/10 text-voro-secondary shadow-voro-secondary/20'
+    },
+    {
+      id: 'MATRIX_03',
+      nodeHash: '0xMX_BMT_03',
+      label: 'Biological Trajectory',
+      value: massDeltaStr,
+      unit: 'kg Mass',
+      subtext: 'Temporal Frame: 30D Matrix',
+      icon: massDeltaStr.startsWith('↑') ? TrendingUp : TrendingDown,
+      color: 'voro-primary',
+      badgeText: 'OPTIMAL',
+      borderColor: 'hover:border-voro-primary/30',
+      iconBg: 'bg-voro-primary/10 text-voro-primary shadow-voro-primary/20'
+    }
+  ], [loggedCalories, userCalorieGoal, workoutDuration, workoutType, workoutToday?.attended, massDeltaStr]);
+
+  const goalConfigs = useMemo(() => [
+    {
+      label: 'Energy Balance',
+      value: loggedCalories,
+      max: userCalorieGoal,
+      color: 'info',
+      unit: 'kcal'
+    },
+    {
+      label: 'Protein Density',
+      value: loggedProtein,
+      max: userProteinGoal,
+      color: 'secondary',
+      unit: 'g'
+    },
+    {
+      label: 'Cellular Hydration',
+      value: loggedWater,
+      max: userWaterGoal,
+      color: 'info',
+      unit: 'ml'
+    }
+  ], [loggedCalories, userCalorieGoal, loggedProtein, userProteinGoal, loggedWater, userWaterGoal]);
+
+  const handleStandardApexNavigate = useCallback(() => {
+    navigate('/dashboard');
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30 pb-24 relative overflow-hidden">
@@ -314,7 +374,7 @@ const Dashboard2 = () => {
           subtitle="A high-fidelity perspective on your cellular velocity, metabolic balance, and system telemetry."
           action={
             <Button
-              onClick={() => navigate('/dashboard')}
+              onClick={handleStandardApexNavigate}
               variant="secondary"
               className="!rounded-full border-white/10 hover:border-white/20"
             >
@@ -330,7 +390,7 @@ const Dashboard2 = () => {
           aria-label="Biological Trajectory Telemetry Grid"
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 mb-16"
         >
-          {MATRIX_CONFIGS.map((item) => (
+          {matrixConfigs.map((item) => (
             <KineticMatrixCard key={item.id} item={item} />
           ))}
         </section>
@@ -390,20 +450,23 @@ const Dashboard2 = () => {
             </div>
 
             <div className="space-y-8">
-              {GOAL_CONFIGS.map((goal) => (
-                <div key={goal.label} className="space-y-2">
-                  <Progress
-                    label={goal.label}
-                    value={goal.value}
-                    max={goal.max}
-                    color={goal.color}
-                  />
-                  <div className="flex justify-between items-center text-[0.55rem] font-mono font-bold text-gray-500 uppercase tracking-widest px-1">
-                    <span>STATUS: {Math.round((goal.value / goal.max) * 100)}% REACHED</span>
-                    <span>{goal.value} / {goal.max} {goal.unit}</span>
+              {goalConfigs.map((goal) => {
+                const percentage = goal.max > 0 ? Math.round((goal.value / goal.max) * 100) : 0;
+                return (
+                  <div key={goal.label} className="space-y-2">
+                    <Progress
+                      label={goal.label}
+                      value={goal.value}
+                      max={goal.max}
+                      color={goal.color}
+                    />
+                    <div className="flex justify-between items-center text-[0.55rem] font-mono font-bold text-gray-500 uppercase tracking-widest px-1">
+                      <span>STATUS: {percentage}% REACHED</span>
+                      <span>{goal.value} / {goal.max} {goal.unit}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="pt-4 border-t border-white/[0.03] flex items-center justify-between font-mono text-[0.45rem] text-white/20 tracking-[0.4em] uppercase">
