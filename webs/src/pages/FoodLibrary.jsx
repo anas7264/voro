@@ -1,35 +1,53 @@
 import React, { useState, useEffect, useMemo, useDeferredValue, useRef, useCallback, memo } from 'react';
 import { Search, Filter, Heart, Utensils, ChevronRight, Sparkles, Zap, Info, ShieldCheck, Leaf, Wheat } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { foods } from '@/data/foods';
 
 const PAGE_SIZE = 24;
+const EMPTY_FAVORITES = Object.freeze([]);
+const selectFoodFavorites = (val) => val || EMPTY_FAVORITES;
 
 /**
- * ⚡ PERFORMANCE OPTIMIZATION: Hoisted categories.
- * Prevents O(N) extraction on component render cycles.
+ * ⚡ PERFORMANCE OPTIMIZATION: Pre-calculate lowercase properties and freeze static foods dataset.
+ * Avoids string lowercasing conversions on every search keystroke and prevents GC pressure.
  */
-const CATEGORIES = ['All', ...new Set(foods.map(f => f.category))];
+const FOODS_LOWERCASE = Object.freeze(
+  foods.map(f =>
+    Object.freeze({
+      ...f,
+      _nameLower: f.name.toLowerCase(),
+      _subCategoryLower: f.subCategory ? f.subCategory.toLowerCase() : '',
+    })
+  )
+);
 
 /**
- * ⚡ PERFORMANCE OPTIMIZATION: Pre-calculate lowercase properties for static foods dataset.
- * Avoids string lowercasing conversions on every search keystroke.
+ * ⚡ PERFORMANCE OPTIMIZATION: Single-pass Hoisted Category Extraction & Category Map.
+ * Provides O(1) lookup for category filtering with zero heap allocations on render cycles.
  */
-const FOODS_LOWERCASE = foods.map(f => ({
-  ...f,
-  _nameLower: f.name.toLowerCase(),
-  _subCategoryLower: f.subCategory ? f.subCategory.toLowerCase() : '',
-}));
+const { CATEGORIES, FOOD_BY_CATEGORY } = (() => {
+  const cats = new Set(['All']);
+  const categoryMap = {};
 
-/**
- * ⚡ PERFORMANCE OPTIMIZATION: Hoisted Category Map.
- * Provides O(1) lookup for category filtering, avoiding O(N) array scans.
- */
-const FOOD_BY_CATEGORY = FOODS_LOWERCASE.reduce((acc, food) => {
-  if (!acc[food.category]) acc[food.category] = [];
-  acc[food.category].push(food);
-  return acc;
-}, {});
+  for (let i = 0; i < FOODS_LOWERCASE.length; i++) {
+    const food = FOODS_LOWERCASE[i];
+    cats.add(food.category);
+    if (!categoryMap[food.category]) {
+      categoryMap[food.category] = [];
+    }
+    categoryMap[food.category].push(food);
+  }
+
+  for (const cat in categoryMap) {
+    Object.freeze(categoryMap[cat]);
+  }
+
+  return {
+    CATEGORIES: Object.freeze(Array.from(cats)),
+    FOOD_BY_CATEGORY: Object.freeze(categoryMap),
+  };
+})();
 
 /**
  * ⚡ REFINEMENT: FoodArtifactCard Subcomponent.
@@ -47,7 +65,7 @@ const FoodArtifactCard = memo(({ food, idx, isFavorite, onToggleFavorite, onInsp
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
-  const nodeId = useMemo(() => `FOOD_NODE_0${idx}`, [idx]);
+  const nodeId = `FOOD_NODE_0${idx}`;
 
   const handleMouseMove = (e) => {
     if (!containerRef.current) return;
@@ -90,6 +108,17 @@ const FoodArtifactCard = memo(({ food, idx, isFavorite, onToggleFavorite, onInsp
 
   const interactionActive = isHovered || isFocused;
 
+  const { proteinPct, carbsPct, fatPct } = useMemo(() => {
+    if (!food.calories || food.calories <= 0) {
+      return { proteinPct: 0, carbsPct: 0, fatPct: 0 };
+    }
+    return {
+      proteinPct: (food.protein * 4 / food.calories) * 100,
+      carbsPct: (food.carbs * 4 / food.calories) * 100,
+      fatPct: (food.fat * 9 / food.calories) * 100,
+    };
+  }, [food.calories, food.protein, food.carbs, food.fat]);
+
   return (
     <div
       ref={containerRef}
@@ -113,7 +142,6 @@ const FoodArtifactCard = memo(({ food, idx, isFavorite, onToggleFavorite, onInsp
           : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
         transition: isHovered ? 'none' : 'transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d',
-        animationDelay: `${idx * 40}ms`
       }}
       className="group relative bg-[#0A0C14]/60 backdrop-blur-xl border border-white/5 p-10 rounded-[3rem] hover:border-white/10 flex flex-col shadow-2xl overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-voro-primary/80 focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408] animate-slide-up"
     >
@@ -220,15 +248,15 @@ const FoodArtifactCard = memo(({ food, idx, isFavorite, onToggleFavorite, onInsp
               <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden flex">
                 <div
                   className="h-full bg-voro-primary shadow-[0_0_10px_rgba(124,58,237,0.5)]"
-                  style={{ width: `${(food.protein * 4 / food.calories) * 100}%` }}
+                  style={{ width: `${proteinPct}%` }}
                 />
                 <div
                   className="h-full bg-voro-secondary shadow-[0_0_10px_rgba(16,185,129,0.5)]"
-                  style={{ width: `${(food.carbs * 4 / food.calories) * 100}%` }}
+                  style={{ width: `${carbsPct}%` }}
                 />
                 <div
                   className="h-full bg-voro-accent shadow-[0_0_10px_rgba(245,158,11,0.5)]"
-                  style={{ width: `${(food.fat * 9 / food.calories) * 100}%` }}
+                  style={{ width: `${fatPct}%` }}
                 />
               </div>
             </div>
@@ -252,8 +280,36 @@ const FoodArtifactCard = memo(({ food, idx, isFavorite, onToggleFavorite, onInsp
 
 FoodArtifactCard.displayName = 'FoodArtifactCard';
 
+/**
+ * ⚡ SUBCOMPONENT: FoodArtifactItemWrapper
+ * Memoized item container that encapsulates entrance animation styling,
+ * preventing inline style object allocations inside the parent render map loop.
+ */
+const FoodArtifactItemWrapper = memo(({ food, idx, isFavorite, onToggleFavorite, onInspect }) => {
+  const animationStyle = useMemo(() => ({
+    animationDelay: `${Math.min(idx, 10) * 40}ms`
+  }), [idx]);
+
+  return (
+    <div style={animationStyle}>
+      <FoodArtifactCard
+        food={food}
+        idx={idx}
+        isFavorite={isFavorite}
+        onToggleFavorite={onToggleFavorite}
+        onInspect={onInspect}
+      />
+    </div>
+  );
+});
+
+FoodArtifactItemWrapper.displayName = 'FoodArtifactItemWrapper';
+
 const FoodLibrary = () => {
   const { addNotification } = useNotifications();
+  const { updateStorageKey } = useStorageMethods();
+  const favorites = useStorageKeySelector('food_favorites', selectFoodFavorites);
+
   const [searchQuery, setSearchQuery] = useState('');
   /**
    * ⚡ OPTIMIZATION: Concurrent Rendering with useDeferredValue.
@@ -262,7 +318,6 @@ const FoodLibrary = () => {
    */
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [favorites, setFavorites] = useState([]);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
@@ -287,8 +342,8 @@ const FoodLibrary = () => {
      */
     let filtered = selectedCategory === 'All' ? FOODS_LOWERCASE : (FOOD_BY_CATEGORY[selectedCategory] || []);
 
-    if (deferredSearchQuery.trim()) {
-      const query = deferredSearchQuery.toLowerCase();
+    const query = deferredSearchQuery.trim().toLowerCase();
+    if (query) {
       filtered = filtered.filter(f =>
         f._nameLower.includes(query) ||
         (f.nameAr && f.nameAr.includes(query)) ||
@@ -307,12 +362,17 @@ const FoodLibrary = () => {
 
   const toggleFavorite = useCallback((food) => {
     const isFav = favoritesSet.has(food.id);
-    setFavorites(prev => isFav ? prev.filter(id => id !== food.id) : [...prev, food.id]);
+    const nextFavorites = isFav
+      ? favorites.filter(id => id !== food.id)
+      : [...favorites, food.id];
+
+    updateStorageKey('food_favorites', nextFavorites);
+
     addNotification(
       isFav ? `${food.name} removed from vault` : `${food.name} archived in favorites`,
       isFav ? 'info' : 'success'
     );
-  }, [favoritesSet, addNotification]);
+  }, [favoritesSet, favorites, updateStorageKey, addNotification]);
 
   const handleInspectFood = useCallback((food) => {
     addNotification(`Detailed structural analysis of ${food.name} synthesized.`, 'info');
@@ -381,7 +441,7 @@ const FoodLibrary = () => {
         {/* Artifact Matrix */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {filteredFoods.slice(0, visibleCount).map((food, idx) => (
-            <FoodArtifactCard
+            <FoodArtifactItemWrapper
               key={food.id}
               food={food}
               idx={idx}
