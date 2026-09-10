@@ -231,6 +231,13 @@ const KineticPhotoNode = React.memo(({ photo, isSelected, onClick, onDelete, isS
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick?.(e);
+    }
+  };
+
   const startPurgeSequence = (e) => {
     e.stopPropagation();
     if (showPurgeConfirm) {
@@ -268,6 +275,7 @@ const KineticPhotoNode = React.memo(({ photo, isSelected, onClick, onDelete, isS
       }}
       onFocus={handleFocus}
       onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
       onClick={onClick}
       tabIndex={0}
       role="button"
