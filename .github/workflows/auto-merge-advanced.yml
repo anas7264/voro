@@ -224,13 +224,19 @@ jobs:
             const pr = context.payload.pull_request;
             console.log(`✅ Approving PR #${pr.number}...`);
             
-            await github.rest.pulls.createReview({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: pr.number,
-              event: 'APPROVE',
-              body: '🤖 Auto-approved by VORO Auto-Merge Bot\n\n✅ All checks passed:\n- Build verification\n- Test suite\n- Security checks\n- Code quality\n\n*This approval is automated.*'
-            });
+            try {
+              await github.rest.pulls.createReview({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+                event: 'APPROVE',
+                body: '🤖 Auto-approved by VORO Auto-Merge Bot\n\n✅ All checks passed:\n- Build verification\n- Test suite\n- Security checks\n- Code quality\n\n*This approval is automated.*'
+              });
+              console.log(`✅ PR #${pr.number} approved successfully`);
+            } catch (error) {
+              console.log(`⚠️ Approval skipped or failed gracefully (e.g. self-approval restriction): ${error.message}`);
+            }
+        continue-on-error: true
       
       - name: 💬 Add Success Comment
         uses: actions/github-script@v7
