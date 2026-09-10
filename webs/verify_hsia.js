@@ -158,7 +158,22 @@ const runTests = async () => {
   if (voroCrypto.constantTimeCompare(sig1, sig4)) {
     throw new Error("❌ Failure: constantTimeCompare returned true for different lengths!");
   }
-  console.log("✅ Success: Constant-time comparison verified.");
+  if (!voroCrypto.constantTimeCompare("", "")) {
+    throw new Error("❌ Failure: constantTimeCompare returned false for two empty strings!");
+  }
+  if (voroCrypto.constantTimeCompare(sig1, "")) {
+    throw new Error("❌ Failure: constantTimeCompare returned true when comparing a string against an empty string!");
+  }
+  if (voroCrypto.constantTimeCompare("", sig1)) {
+    throw new Error("❌ Failure: constantTimeCompare returned true when comparing an empty string against a non-empty string!");
+  }
+  if (voroCrypto.constantTimeCompare("d83fb2215c2cfca89de", "d83fb2215c2cfca89d")) {
+    throw new Error("❌ Failure: constantTimeCompare returned true for a prefix match with different length!");
+  }
+  if (voroCrypto.constantTimeCompare(null, "abc") || voroCrypto.constantTimeCompare("abc", undefined) || voroCrypto.constantTimeCompare(123, "123")) {
+    throw new Error("❌ Failure: constantTimeCompare failed to reject non-string inputs!");
+  }
+  console.log("✅ Success: Constant-time comparison verified across edge cases.");
 
   // Test 2: Cryptographic State Integrity Signature Generation
   console.log("🟢 Test 2: Verifying cryptographically keyed signature generation...");
