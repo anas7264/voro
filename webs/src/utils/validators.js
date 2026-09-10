@@ -508,22 +508,29 @@ const decodeEnclosedAlphanumerics = (str) => {
   return changed ? decoded : str;
 };
 
-// Helper to decode string literal escape sequences (\uXXXX, \xXX, \u{X...}, \OCTAL)
+// Helper to decode string literal escape sequences (\uXXXX, \xXX, \u{X...}, \OCTAL) (handles multi-pass/nested escape sequences up to 5 passes)
 const decodeEscapeSequences = (str) => {
   if (!str || typeof str !== 'string' || !str.includes('\\')) return str;
-  return str.replace(/\\u([0-9a-fA-F]{4})|\\x([0-9a-fA-F]{2})|\\u\{([0-9a-fA-F]+)\}|\\([0-7]{1,3})/g, (match, u, x, uBrace, octal) => {
-    try {
-      if (octal) {
-        const code = parseInt(octal, 8);
+  let decoded = str;
+  let prev;
+  let limit = 5;
+  do {
+    prev = decoded;
+    decoded = decoded.replace(/\\u([0-9a-fA-F]{4})|\\x([0-9a-fA-F]{2})|\\u\{([0-9a-fA-F]+)\}|\\([0-7]{1,3})/g, (match, u, x, uBrace, octal) => {
+      try {
+        if (octal) {
+          const code = parseInt(octal, 8);
+          return String.fromCodePoint(code);
+        }
+        const hex = u || x || uBrace;
+        const code = parseInt(hex, 16);
         return String.fromCodePoint(code);
+      } catch (e) {
+        return match;
       }
-      const hex = u || x || uBrace;
-      const code = parseInt(hex, 16);
-      return String.fromCodePoint(code);
-    } catch (e) {
-      return match;
-    }
-  });
+    });
+  } while (decoded !== prev && --limit > 0);
+  return decoded;
 };
 
 const OVERRIDE_RE = /ignore previous|ignore above|ignore all instructions|ignore system|bypass instructions|override system|system override|developer mode|dan mode|do anything now|forget previous|forget all instructions|forget what was said|you must now ignore|you are now a developer|you are now an unrestricted|unrestricted mode|without restrictions|disable safety|bypass filters/i;
@@ -548,27 +555,34 @@ const decodePercentEncoding = (str) => {
   }
 };
 
-// Helper to decode HTML entities (handles decimal, hex, and named entities)
+// Helper to decode HTML entities (handles decimal, hex, and named entities, multi-pass up to 5 passes)
 const decodeHTMLEntities = (str) => {
-  if (!str || typeof str !== 'string') return str;
-  return str.replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => {
-      try {
-        return String.fromCodePoint(parseInt(hex, 16));
-      } catch (e) {
-        return _;
-      }
-    })
-    .replace(/&#(\d+);/g, (_, dec) => {
-      try {
-        return String.fromCodePoint(parseInt(dec, 10));
-      } catch (e) {
-        return _;
-      }
-    });
+  if (!str || typeof str !== 'string' || !str.includes('&')) return str;
+  let decoded = str;
+  let prev;
+  let limit = 5;
+  do {
+    prev = decoded;
+    decoded = decoded.replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => {
+        try {
+          return String.fromCodePoint(parseInt(hex, 16));
+        } catch (e) {
+          return _;
+        }
+      })
+      .replace(/&#(\d+);/g, (_, dec) => {
+        try {
+          return String.fromCodePoint(parseInt(dec, 10));
+        } catch (e) {
+          return _;
+        }
+      });
+  } while (decoded.includes('&') && decoded !== prev && --limit > 0);
+  return decoded;
 };
 
 const BASE64_FORMAT_RE = /^[A-Za-z0-9+/]+={0,2}$/;
