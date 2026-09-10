@@ -149,7 +149,7 @@ const ChronoArchiveCard = React.memo(({ workout, idx, isExpanded, onToggle, node
         <button
           id={triggerId}
           type="button"
-          onClick={onToggle}
+          onClick={() => onToggle(idx)}
           aria-expanded={isExpanded}
           aria-controls={contentId}
           className="w-full text-left transition-all outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408] rounded-[1.5rem]"
@@ -252,9 +252,14 @@ const WorkoutHistory = () => {
   const workoutLog = useStorageKeySelector('workout_log', selectWorkoutLog);
   const navigate = useNavigate();
   const pageId = useId();
+  const cleanPageId = useMemo(() => pageId.replace(/:/g, ''), [pageId]);
   const [expandedIdx, setExpandedIdx] = useState(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [selectedArchetype, setSelectedArchetype] = useState('All');
+
+  const handleToggle = useCallback((idx) => {
+    setExpandedIdx(prev => (prev === idx ? null : idx));
+  }, []);
 
   useEffect(() => {
     document.title = 'VORO | Absolute Kinetic Chronicles';
@@ -434,14 +439,14 @@ const WorkoutHistory = () => {
             {/* Chronological Archives List */}
             <section className="space-y-6">
               {filteredWorkouts.slice(0, visibleCount).map((workout, idx) => {
-                const uniqueNodeId = `CHRONO_NODE_${pageId.replace(/:/g, '')}_${idx}`;
+                const uniqueNodeId = `CHRONO_NODE_${cleanPageId}_${idx}`;
                 return (
                   <div key={workout.date} className="animate-slide-up" style={{ animationDelay: `${idx * 50}ms` }}>
                     <ChronoArchiveCard
                       workout={workout}
                       idx={idx}
                       isExpanded={expandedIdx === idx}
-                      onToggle={() => setExpandedIdx(expandedIdx === idx ? null : idx)}
+                      onToggle={handleToggle}
                       nodeId={uniqueNodeId}
                     />
                   </div>
