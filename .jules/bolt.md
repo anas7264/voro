@@ -216,3 +216,10 @@
 **Action:**
 1. Always provide custom element-wise property equality functions to `useStorageKeySelector` whenever the selector returns array or object transformations.
 2. Hoist frozen fallback objects (`EMPTY_LOGS = Object.freeze([])`) outside component bodies to eliminate fallback allocations.
+
+## 2026-09-11 - Module-Scoped Selectors & Shallow Array Equality
+**Learning:** Using inline closures and `JSON.stringify(a) === JSON.stringify(b)` inside `useStorageKeySelector` creates closure allocation churn on every render and incurs expensive $O(N)$ string serialization on every storage update check. Replacing inline comparators with module-scoped selector functions and an element-wise `shallowArrayEqual` helper eliminates string serialization overhead and reduces memory allocation.
+
+**Action:**
+1. Hoist selector functions (`selectPrepPlan`, `selectProvisions`) to module scope outside component bodies.
+2. Use a module-scoped shallow array equality check instead of `JSON.stringify` serialization in `useStorageKeySelector`.
