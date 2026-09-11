@@ -347,3 +347,14 @@ Obfuscated character code arrays can use a wide variety of delimiter characters 
 
 **Prevention:**
 Always include comprehensive delimiter character classes (`[\s,.\-_\/:;+=]`) in character-code matching regexes and array splitting functions in prompt injection validators to prevent delimiter-based evasion.
+
+## 2026-09-10 - 0b-Prefixed Binary Character Code Prompt Injection Shield
+
+**Vulnerability:**
+Prompt injection detectors matching space/delimiter-separated binary octets (such as `01101001 01100111 01101110...`) failed to recognize binary strings formatted with explicit `0b` or `0B` prefixes (e.g., `0b01101001 0b01100111 0b01101110...` for "ignore previous"). Because the regex `BINARY_MATCH_RE` only looked for raw 7-8 digit binary strings without optional prefix handling, the candidate binary string was ignored during pattern extraction and malicious prompt override instructions bypassed injection validation.
+
+**Learning:**
+Binary representations in untrusted user inputs frequently use programming language literal syntax like `0b` or `0B`. Updating `BINARY_MATCH_RE` to allow an optional `(?:0b)?` prefix and stripping the prefix inside `safeDecodeBinary` before verifying the 7-8 bit length and converting to printable ASCII allows the decoded string to be evaluated recursively against prompt injection patterns.
+
+**Prevention:**
+Ensure binary character code decoders and matching regexes explicitly support standard binary literal notation (`0b`/`0B`) in addition to raw binary octet strings before evaluating input against injection rules.
