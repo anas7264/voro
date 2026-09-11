@@ -20,6 +20,8 @@ const EXERCISES_LOWERCASE = Object.freeze(exercises.map(e => ({
   _categoryLower: e.category.toLowerCase(),
 })));
 
+const INITIAL_15_EXERCISES = Object.freeze(EXERCISES_LOWERCASE.slice(0, 15));
+
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted static default workout fallback.
  * Prevents heap allocations on every storage key snapshot evaluation.
@@ -43,7 +45,7 @@ const ExerciseSearchModal = memo(({ isOpen, onClose, onSelectExercise }) => {
   const filteredExercises = useMemo(() => {
     if (!isOpen) return [];
     const query = deferredSearchQuery.toLowerCase().trim();
-    if (!query) return EXERCISES_LOWERCASE.slice(0, 15);
+    if (!query) return INITIAL_15_EXERCISES;
     return EXERCISES_LOWERCASE.filter(e =>
       e._nameLower.includes(query) ||
       e._categoryLower.includes(query)
@@ -169,7 +171,7 @@ const KineticExerciseCard = memo(({ exercise, exerciseIdx, onUpdateSet, onAddSet
   const [isFocused, setIsFocused] = useState(false);
   const [isPurging, setIsPurging] = useState(false);
 
-  const nodeId = useMemo(() => `EX_${reactId.replace(/:/g, '').slice(0, 4).toUpperCase()}`, [reactId]);
+  const nodeId = `EX_${reactId.replace(/:/g, '').slice(0, 4).toUpperCase()}`;
 
   useEffect(() => {
     return () => {

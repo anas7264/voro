@@ -9,6 +9,9 @@ import { useNotifications } from '@/hooks/useNotifications';
  * ⚡ PROTOCOL OPTIONS & PHASE METADATA: Hoisted metadata.
  * Module-level frozen constants for elite performance and zero-allocation.
  */
+const DEFAULT_FASTING_DATA = Object.freeze({ window: '16:8', started: null, status: 'idle' });
+const selectFastingData = (data) => data || DEFAULT_FASTING_DATA;
+
 const WINDOW_OPTIONS = Object.freeze([
   { id: '16:8', label: '16:8 Intermittent', desc: 'Optimal Intermittent Efficiency & Growth Hormone boost', fastHours: 16, breakHours: 8 },
   { id: '18:6', label: '18:6 Advanced', desc: 'Enhanced Autophagy Sequence & cellular recycling', fastHours: 18, breakHours: 6 },
@@ -626,12 +629,9 @@ const FastingTracker = () => {
 
   /**
    * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
-   * Subscribe only to the 'fasting' key.
+   * Subscribe only to the 'fasting' key using module-scoped selector.
    */
-  const fastingData = useStorageKeySelector(
-    'fasting',
-    useCallback((data) => data || { window: '16:8', started: null, status: 'idle' }, []),
-  );
+  const fastingData = useStorageKeySelector('fasting', selectFastingData);
 
   const [elapsed, setElapsed] = useState(0);
   const [isPaused, setIsPaused] = useState(true);

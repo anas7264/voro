@@ -83,7 +83,8 @@ const RAW_ARTICLES = Object.freeze([
 const PRE_PROCESSED_ARTICLES = Object.freeze(RAW_ARTICLES.map(a => Object.freeze({
   ...a,
   _titleLower: a.title.toLowerCase(),
-  _excerptLower: a.excerpt.toLowerCase()
+  _excerptLower: a.excerpt.toLowerCase(),
+  _initials: a.author.split(' ').map(n => n[0]).join('')
 })));
 
 const CATEGORIES = Object.freeze(['All', 'Nutrition', 'Training', 'Recovery']);
@@ -280,7 +281,7 @@ const DossierHero = memo(({ article, onAccessDossier }) => {
           <div className="flex flex-wrap items-center gap-8 pt-4">
             <div className="flex items-center gap-5 pointer-events-auto group/author">
               <div className="w-14 h-14 rounded-full bg-voro-primary/20 backdrop-blur-xl border border-white/10 flex items-center justify-center font-serif italic text-white text-xl shadow-2xl transition-all duration-500 group-hover/author:border-voro-primary/40 group-hover/author:scale-110">
-                {article.author.split(' ').map(n => n[0]).join('')}
+                {article._initials || article.author.split(' ').map(n => n[0]).join('')}
               </div>
               <div className="flex flex-col">
                 <p className="text-[0.8rem] font-black uppercase tracking-[0.3em] text-white">{article.author}</p>

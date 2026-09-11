@@ -15,6 +15,11 @@ import { getFastShortDate } from '@/utils/formatters';
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters & static datasets.
  * Prevents redundant object instantiation of Intl.DateTimeFormat & array allocations.
  */
+const EMPTY_ARRAY = Object.freeze([]);
+const selectWeights = (metrics) => metrics?.weights || EMPTY_ARRAY;
+const selectBodyFatRecords = (metrics) => metrics?.bodyFat || EMPTY_ARRAY;
+const selectMeasurementsRecord = (metrics) => metrics?.measurements || EMPTY_ARRAY;
+
 const longDateFormatter = new Intl.DateTimeFormat('en-US', {
   weekday: 'long',
   year: 'numeric',
@@ -120,24 +125,12 @@ const BodyMetrics = () => {
   }, []);
 
   /**
-   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity.
-   * Replaced broad body_metrics subscription with useStorageKeySelector to isolate
-   * weights, body fat, and measurements.
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity with module-scoped selectors.
+   * Eliminates allocation of new fallback arrays and selector function churn on every render.
    */
-  const weights = useStorageKeySelector(
-    'body_metrics',
-    useCallback((metrics) => metrics?.weights || [], [])
-  );
-
-  const bodyFatRecords = useStorageKeySelector(
-    'body_metrics',
-    useCallback((metrics) => metrics?.bodyFat || [], [])
-  );
-
-  const measurementsRecord = useStorageKeySelector(
-    'body_metrics',
-    useCallback((metrics) => metrics?.measurements || [], [])
-  );
+  const weights = useStorageKeySelector('body_metrics', selectWeights);
+  const bodyFatRecords = useStorageKeySelector('body_metrics', selectBodyFatRecords);
+  const measurementsRecord = useStorageKeySelector('body_metrics', selectMeasurementsRecord);
 
   // Volumetric Hover & Coordinate Telemetry Handler
   const handleVolumetricMove = useCallback((e, cardRef, tiltXRef, tiltYRef) => {
