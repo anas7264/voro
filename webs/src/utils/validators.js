@@ -592,7 +592,7 @@ const BASE58_FORMAT_RE = /^[1-9A-HJ-NP-Za-km-z]{8,}$/;
 const BASE58_MATCH_RE = /[1-9A-HJ-NP-Za-km-z]{12,}/g;
 const NON_PRINTABLE_ASCII_RE = /[\x00-\x09\x0B\x0C\x0E-\x1F\x7F-\xFF]/;
 const HEX_FORMAT_RE = /^[0-9a-fA-F]{8,}$/;
-const BINARY_MATCH_RE = /(?:[01]{7,8}(?:[\s,.\-_\/:;+=]+|$)){2,}/g;
+const BINARY_MATCH_RE = /(?:(?:0b)?[01]{7,8}(?:[\s,.\-_\/:;+=]+|$)){2,}/gi;
 const DECIMAL_MATCH_RE = /(?:(?:0x[0-9a-fA-F]{1,2}|0o[0-7]{1,3}|\d{1,3})(?:[\s,.\-_\/:;+=]+|$)){4,}/g;
 const OCTAL_MATCH_RE = /(?:(?:0o)?[0-7]{3}(?:[\s,.\-_\/:;+=]+|$)){4,}/g;
 const HEX_BYTES_MATCH_RE = /(?:(?:0x)?[0-9a-fA-F]{2}(?:[\s,.\-_\/:;+=]+|$)){4,}/g;
@@ -724,7 +724,7 @@ const safeDecodeMultiRadix = (str) => {
   }
 };
 
-// Helper to safely decode space/byte-separated binary octets
+// Helper to safely decode space/byte-separated binary octets (supports optional 0b prefix)
 const safeDecodeBinary = (str) => {
   try {
     if (!str || typeof str !== 'string' || str.length < 14) return null;
@@ -732,8 +732,9 @@ const safeDecodeBinary = (str) => {
     let decoded = '';
     for (const token of tokens) {
       if (!token) continue;
-      if (!/^[01]{7,8}$/.test(token)) return null;
-      const code = parseInt(token, 2);
+      const cleanToken = token.toLowerCase().startsWith('0b') ? token.slice(2) : token;
+      if (!/^[01]{7,8}$/.test(cleanToken)) return null;
+      const code = parseInt(cleanToken, 2);
       if (code < 32 || code > 126) return null;
       decoded += String.fromCharCode(code);
     }
