@@ -4,7 +4,8 @@ import {
   LayoutDashboard, Utensils, Dumbbell, Activity, BarChart3,
   Trophy, Bot, Calculator, BookOpen, User, Settings,
   X, Calendar, ShieldCheck, Zap, Coffee, Star, Camera,
-  Heart, TrendingUp, Target, Clock, BookMarked, Layers, ShoppingCart, Flame
+  Heart, TrendingUp, Target, Clock, BookMarked, Layers, ShoppingCart, Flame,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import VoroLogo from './VoroLogo';
 
@@ -255,12 +256,11 @@ const Sidebar = ({ collapsed, setCollapsed, isMobile }) => {
     >
       {/* Editorial Logo Section */}
       <div className={`
-        flex items-center h-28 px-10 flex-shrink-0 relative
-        ${collapsed && !isMobile ? 'justify-center' : 'justify-between'}
-        border-b border-white/5 bg-white/[0.01]
+        flex h-28 flex-shrink-0 relative border-b border-white/5 bg-white/[0.01] transition-all duration-500
+        ${collapsed && !isMobile ? 'flex-col items-center justify-center gap-2 px-3' : 'flex-row items-center justify-between px-8 md:px-10'}
       `}>
         <VoroLogo
-          size={48}
+          size={collapsed && !isMobile ? 40 : 48}
           withText={!collapsed || isMobile}
           className="cursor-pointer"
           onClick={() => navigate('/dashboard')}
@@ -271,8 +271,20 @@ const Sidebar = ({ collapsed, setCollapsed, isMobile }) => {
             onClick={() => setCollapsed(true)}
             className="text-gray-600 hover:text-white transition-colors p-2.5 rounded-2xl bg-white/[0.02] border border-white/5 focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408] outline-none active:scale-90"
             aria-label="Close sidebar"
+            title="Close sidebar"
           >
             <X size={18} />
+          </button>
+        )}
+
+        {!isMobile && (
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="text-gray-400 hover:text-white transition-colors p-2 rounded-xl bg-white/[0.02] border border-white/5 focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408] outline-none active:scale-90"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
           </button>
         )}
       </div>
