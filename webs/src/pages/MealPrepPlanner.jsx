@@ -32,13 +32,33 @@ const DEFAULT_PROVISIONS = Object.freeze([
 ]);
 
 /**
+ * ⚡ PERFORMANCE OPTIMIZATION: Module-scoped state selectors.
+ * Eliminates per-render closure allocations inside useStorageKeySelector.
+ */
+const selectPrepPlan = (state) => (state && state.plan) || DEFAULT_PREP_PLAN;
+const selectProvisions = (state) => (state && state.provisions) || DEFAULT_PROVISIONS;
+
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Zero-allocation shallow array equality check.
+ * Replaces O(N) JSON.stringify serialization with high-performance element equality comparison.
+ */
+const shallowArrayEqual = (a, b) => {
+  if (a === b) return true;
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+};
+
+/**
  * ⚡ PERFORMANCE OPTIMIZATION: PrepSessionCard.
  * Memoized subcomponent. Incorporates:
  * - Decoupled focus-state tracking and static 4deg keyboard tilt accessibility.
  * - Smooth CSS variables and requestAnimationFrame-throttled hover tilts.
  * - Self-contained 3s self-canceling deletion confirmation mechanics, leaving page-level states untouched.
  */
-const PrepSessionCard = React.memo(({ session, index, onDelete }) => {
+const PrepSessionCard = React.memo(({ session, index, onDelete, style }) => {
   const cardRef = useRef(null);
   const teleRefX = useRef(null);
   const teleRefY = useRef(null);
@@ -140,12 +160,7 @@ const PrepSessionCard = React.memo(({ session, index, onDelete }) => {
       role="listitem"
       aria-label={`Session on ${session.day}. Recipes: ${session.recipes.join(', ')}`}
       className="group relative p-0 overflow-hidden bg-[#0A0C14] border border-white/5 rounded-3xl transition-all duration-500 shadow-2xl hover:border-voro-primary/25 outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-black animate-slide-up"
-      style={{
-        animationDelay: `${index * 150}ms`,
-        transformStyle: 'preserve-3d',
-        perspective: '1000px',
-        transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.5s, box-shadow 0.5s'
-      }}
+      style={style}
     >
       {/* Volumetric Hover Luminous Lens */}
       <div
@@ -237,6 +252,22 @@ const PrepSessionCard = React.memo(({ session, index, onDelete }) => {
 PrepSessionCard.displayName = 'PrepSessionCard';
 
 /**
+ * ⚡ PERFORMANCE OPTIMIZATION: PrepSessionCardWrapper.
+ * Memoized wrapper component to isolate animation style object allocation from parent render loops.
+ */
+const PrepSessionCardWrapper = React.memo(({ session, index, onDelete }) => {
+  const style = useMemo(() => ({
+    animationDelay: `${index * 150}ms`,
+    transformStyle: 'preserve-3d',
+    perspective: '1000px',
+    transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.5s, box-shadow 0.5s'
+  }), [index]);
+
+  return <PrepSessionCard session={session} index={index} onDelete={onDelete} style={style} />;
+});
+PrepSessionCardWrapper.displayName = 'PrepSessionCardWrapper';
+
+/**
  * ⚡ PERFORMANCE OPTIMIZATION: ProvisionItemCard.
  * Memoized subcomponent to eliminate re-rendering when parent input forms alter.
  */
@@ -276,18 +307,9 @@ const MealPrepPlanner = () => {
   const [newRecipe, setNewRecipe] = useState('');
   const [tempRecipes, setTempRecipes] = useState([]);
 
-  // ⚡ PERFORMANCE OPTIMIZATION: Granular state selectors via useStorageKeySelector
-  const prepPlan = useStorageKeySelector(
-    'meal_prep',
-    useCallback((state) => (state || {}).plan || DEFAULT_PREP_PLAN, []),
-    useCallback((a, b) => JSON.stringify(a) === JSON.stringify(b), [])
-  );
-
-  const provisions = useStorageKeySelector(
-    'meal_prep',
-    useCallback((state) => (state || {}).provisions || DEFAULT_PROVISIONS, []),
-    useCallback((a, b) => JSON.stringify(a) === JSON.stringify(b), [])
-  );
+  // ⚡ PERFORMANCE OPTIMIZATION: Surgical reactivity via module-scoped selectors & shallowArrayEqual
+  const prepPlan = useStorageKeySelector('meal_prep', selectPrepPlan, shallowArrayEqual);
+  const provisions = useStorageKeySelector('meal_prep', selectProvisions, shallowArrayEqual);
 
   // ⚡ OPTIMISTIC UI: Fast-path updates mapped locally to completely eliminate IndexedDB write latencies
   const [optimisticPrepPlan, setOptimisticPrepPlan] = useState(null);
@@ -566,7 +588,7 @@ const MealPrepPlanner = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {activePrepPlan.map((session, idx) => (
-                <PrepSessionCard
+                <PrepSessionCardWrapper
                   key={session.id}
                   session={session}
                   index={idx}
