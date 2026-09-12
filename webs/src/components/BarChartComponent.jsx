@@ -1,41 +1,64 @@
 import React, { memo, useId } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from "recharts";
 
-const CustomTooltip = ({ active, payload, label, series }) => {
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted & Frozen Fallbacks.
+ * Zero object allocations during component render passes.
+ */
+const DEFAULT_MARGIN = Object.freeze({ top: 10, right: 10, left: -20, bottom: 0 });
+const DEFAULT_TICK_X = Object.freeze({ fill: "#4B5563", fontSize: 10, fontFamily: 'JetBrains Mono', fontWeight: 500 });
+const DEFAULT_TICK_Y = Object.freeze({ fill: "#4B5563", fontSize: 10, fontFamily: 'JetBrains Mono', fontWeight: 500 });
+const DEFAULT_CURSOR = Object.freeze({ fill: 'rgba(255, 255, 255, 0.03)' });
+
+const CustomTooltip = memo(({ active, payload, label, series }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-[#0A0C14]/80 backdrop-blur-xl border border-white/10 p-4 rounded-2xl shadow-2xl">
-        <p className="text-[0.6rem] font-mono text-gray-500 uppercase tracking-[0.2em] mb-2">{label}</p>
-        {payload.map((entry, index) => {
-          const color = series?.find(s => s.key === entry.dataKey)?.color || entry.color;
-          return (
-            <div key={index} className="flex items-baseline gap-3">
-              <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
-              <span className="text-2xl font-serif italic font-medium text-white tracking-tight">
-                {entry.value}
-              </span>
-              <span className="text-[0.6rem] font-mono text-gray-400 uppercase tracking-widest">
-                {entry.name}
-              </span>
-            </div>
-          );
-        })}
+      <div className="bg-[#0A0C14]/95 backdrop-blur-3xl border border-white/10 p-5 rounded-2xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)] relative overflow-hidden min-w-[180px]">
+        {/* Boutique Grain Texture */}
+        <div className="absolute inset-0 bg-boutique-grain opacity-[0.03] pointer-events-none" />
+
+        <div className="relative z-10 space-y-3">
+          <div className="flex items-center justify-between gap-4 border-b border-white/5 pb-2">
+            <span className="text-[0.55rem] font-mono font-black text-gray-500 uppercase tracking-[0.3em]">
+              {label}
+            </span>
+            <span className="text-[0.45rem] font-mono font-bold text-voro-primary/80 tracking-widest uppercase">
+              0xBAR_TELEMETRY
+            </span>
+          </div>
+
+          {payload.map((entry, index) => {
+            const color = series?.find(s => s.key === entry.dataKey)?.color || entry.color;
+            return (
+              <div key={index} className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]"
+                    style={{ backgroundColor: color, color: color }}
+                  />
+                  <span className="text-[0.6rem] font-mono font-bold text-gray-400 uppercase tracking-widest">
+                    {entry.name}
+                  </span>
+                </div>
+                <span className="text-2xl font-serif italic font-medium text-white tracking-tight">
+                  {entry.value}
+                </span>
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   }
   return null;
-};
+});
+
+CustomTooltip.displayName = "CustomTooltip";
 
 /**
  * ⚡ REFINEMENT: Luxury Neural Bar Matrix (BarChartComponent).
  * Re-engineered with the Forge design system: atmospheric gradients,
  * kinetic glow filters, and high-fidelity editorial typography.
- *
- * DESIGN PHILOSOPHY:
- * 1. Authority: Playfair Display serif for terminal data nodes (tooltips).
- * 2. Precision: JetBrains Mono for system markers and axis telemetry.
- * 3. Motion: Kinetic glow filters suggesting active data synthesis.
- * 4. Atmosphere: Subtle architectural grids and gradient-weighted bars.
  */
 export const BarChartComponent = memo(({
   data,
@@ -47,6 +70,7 @@ export const BarChartComponent = memo(({
   height = 300,
   xDataKey = "date",
   referenceValue,
+  margin = DEFAULT_MARGIN,
   ...props
 }) => {
   const filterId = useId().replace(/:/g, '');
@@ -56,7 +80,7 @@ export const BarChartComponent = memo(({
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} {...props}>
+      <BarChart data={data} margin={margin} {...props}>
         <defs>
           {series.map((s, idx) => (
             <React.Fragment key={s.key}>
@@ -76,17 +100,17 @@ export const BarChartComponent = memo(({
           dataKey={xDataKey}
           axisLine={false}
           tickLine={false}
-          tick={{ fill: "#4B5563", fontSize: 10, fontFamily: 'JetBrains Mono', fontWeight: 500 }}
+          tick={DEFAULT_TICK_X}
           dy={10}
         />
         <YAxis
           axisLine={false}
           tickLine={false}
-          tick={{ fill: "#4B5563", fontSize: 10, fontFamily: 'JetBrains Mono', fontWeight: 500 }}
+          tick={DEFAULT_TICK_Y}
         />
         <Tooltip
           content={<CustomTooltip series={series} />}
-          cursor={{ fill: 'rgba(255, 255, 255, 0.03)' }}
+          cursor={DEFAULT_CURSOR}
         />
         {series.length > 1 && (
           <Legend
