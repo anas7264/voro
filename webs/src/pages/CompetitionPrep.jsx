@@ -16,6 +16,9 @@ const longDateFormatter = new Intl.DateTimeFormat('en-US', {
   year: 'numeric'
 });
 
+const PAD_STRINGS = Object.freeze(Array.from({ length: 100 }, (_, i) => String(i).padStart(2, '0')));
+const pad2 = (num) => PAD_STRINGS[num] || String(num).padStart(2, '0');
+
 const DEFAULT_COMP_DATA = Object.freeze({
   date: null,
   phase: 'Preparation',
@@ -74,22 +77,20 @@ const ChronoTicker = memo(({ targetDate }) => {
     return () => clearInterval(interval);
   }, [targetDate]);
 
-  const pad = (num) => String(num).padStart(2, '0');
-
   return (
     <div className="flex gap-4 items-center justify-center font-mono text-xl md:text-2xl font-bold tracking-widest text-voro-primary/90 mt-6 bg-white/[0.02] border border-white/5 py-3 px-6 rounded-2xl select-none">
       <div className="text-center">
-        <span className="text-white block text-2xl md:text-3xl tracking-tight leading-none">{pad(timeLeft.hours)}</span>
+        <span className="text-white block text-2xl md:text-3xl tracking-tight leading-none">{pad2(timeLeft.hours)}</span>
         <span className="text-[0.45rem] font-black text-gray-500 uppercase tracking-[0.2em]">HRS</span>
       </div>
       <span className="text-voro-primary/40 animate-pulse">:</span>
       <div className="text-center">
-        <span className="text-white block text-2xl md:text-3xl tracking-tight leading-none">{pad(timeLeft.minutes)}</span>
+        <span className="text-white block text-2xl md:text-3xl tracking-tight leading-none">{pad2(timeLeft.minutes)}</span>
         <span className="text-[0.45rem] font-black text-gray-500 uppercase tracking-[0.2em]">MIN</span>
       </div>
       <span className="text-voro-primary/40 animate-pulse">:</span>
       <div className="text-center">
-        <span className="text-white block text-2xl md:text-3xl tracking-tight leading-none">{pad(timeLeft.seconds)}</span>
+        <span className="text-white block text-2xl md:text-3xl tracking-tight leading-none">{pad2(timeLeft.seconds)}</span>
         <span className="text-[0.45rem] font-black text-gray-500 uppercase tracking-[0.2em]">SEC</span>
       </div>
     </div>
@@ -339,6 +340,15 @@ const ChronosNode = memo(({ daysUntilComp, targetDate, activePhase, onDeleteTrig
 
   const interactionActive = isHovered || isFocused;
 
+  const formattedTargetDate = useMemo(() => {
+    if (!targetDate) return '';
+    try {
+      return longDateFormatter.format(new Date(targetDate)).toUpperCase();
+    } catch (e) {
+      return String(targetDate);
+    }
+  }, [targetDate]);
+
   return (
     <div
       ref={containerRef}
@@ -418,7 +428,7 @@ const ChronosNode = memo(({ daysUntilComp, targetDate, activePhase, onDeleteTrig
             <div className="space-y-4">
               <h3 className="text-[0.65rem] font-mono font-medium text-gray-600 uppercase tracking-[0.4em]">Target Event</h3>
               <p className="text-2xl font-mono font-bold text-white tracking-[0.2em] leading-tight">
-                {longDateFormatter.format(new Date(targetDate)).toUpperCase()}
+                {formattedTargetDate}
               </p>
             </div>
           </div>
@@ -589,13 +599,11 @@ const CompetitionPrep = () => {
   };
 
   const handleToggleChecklist = async (itemIndex) => {
-    const updatedChecklist = [...(compData.checklist || [])];
-    if (updatedChecklist.includes(itemIndex)) {
-      const index = updatedChecklist.indexOf(itemIndex);
-      updatedChecklist.splice(index, 1);
-    } else {
-      updatedChecklist.push(itemIndex);
-    }
+    const checklist = compData.checklist || [];
+    const isChecked = checklist.includes(itemIndex);
+    const updatedChecklist = isChecked
+      ? checklist.filter(idx => idx !== itemIndex)
+      : [...checklist, itemIndex];
     await setItem('competition', { ...compData, checklist: updatedChecklist });
   };
 

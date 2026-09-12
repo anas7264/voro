@@ -44,6 +44,8 @@ const generateLocalFallback = (userInput) => {
   return `I'm here to help! Ask me about your nutrition, training, goals, or progress, and I'll give you personalized advice based on your VORO data.`;
 };
 
+const timeFormatter = new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
 /**
  * ⚡ LUXURY REFINEMENT: MessageItem Dialogue Bubble
  * Re-engineered into a "Neural Synthesis Manifest" featuring custom backglows,
@@ -53,12 +55,21 @@ const generateLocalFallback = (userInput) => {
 const MessageItem = memo(({ msg }) => {
   const isAssistant = msg.role === 'assistant';
   const nodeRef = useRef(null);
-  const [telemetry, setTelemetry] = useState({ tx: '0.0', ty: '0.0' });
+  const tiltXRef = useRef(null);
+  const tiltYRef = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const reactId = useId();
 
   const nodeId = useMemo(() => `MSG_${reactId.replace(/:/g, '').slice(0, 4).toUpperCase()}`, [reactId]);
+
+  const formattedTime = useMemo(() => {
+    try {
+      return timeFormatter.format(new Date(msg.timestamp));
+    } catch (e) {
+      return msg.timestamp;
+    }
+  }, [msg.timestamp]);
 
   const handleMouseMove = (e) => {
     if (!nodeRef.current || !isAssistant) return;
@@ -74,7 +85,8 @@ const MessageItem = memo(({ msg }) => {
     nodeRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
     nodeRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
 
-    setTelemetry({ tx: tiltX.toFixed(1), ty: tiltY.toFixed(1) });
+    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
   };
 
   const handleFocus = () => {
@@ -83,7 +95,8 @@ const MessageItem = memo(({ msg }) => {
     if (nodeRef.current) {
       nodeRef.current.style.setProperty('--tilt-x', '3deg');
       nodeRef.current.style.setProperty('--tilt-y', '-3deg');
-      setTelemetry({ tx: '3.0', ty: '-3.0' });
+      if (tiltXRef.current) tiltXRef.current.innerText = "3.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "-3.0";
     }
   };
 
@@ -93,7 +106,6 @@ const MessageItem = memo(({ msg }) => {
     if (nodeRef.current) {
       nodeRef.current.style.setProperty('--tilt-x', '0deg');
       nodeRef.current.style.setProperty('--tilt-y', '0deg');
-      setTelemetry({ tx: '0.0', ty: '0.0' });
     }
   };
 
@@ -141,8 +153,8 @@ const MessageItem = memo(({ msg }) => {
           <div className="absolute top-4 right-6 pointer-events-none opacity-0 group-hover/msg:opacity-100 transition-opacity duration-500"
                style={{ transform: 'translateZ(40px)' }}>
             <div className="flex items-center gap-2 font-mono text-[0.45rem] font-bold text-voro-primary/60 tracking-widest uppercase">
-              <span>TX_{telemetry.tx}°</span>
-              <span>TY_{telemetry.ty}°</span>
+              <span>TX_<span ref={tiltXRef}>0.0</span>°</span>
+              <span>TY_<span ref={tiltYRef}>0.0</span>°</span>
               <span>[{nodeId}]</span>
             </div>
           </div>
@@ -154,7 +166,7 @@ const MessageItem = memo(({ msg }) => {
             {isAssistant ? 'Neural Insight // ORACLE' : 'Biometric Query // INTEL'}
           </span>
           <span className="text-[0.55rem] font-mono text-gray-700 ml-auto tracking-widest">
-            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            {formattedTime}
           </span>
         </div>
 
@@ -197,7 +209,8 @@ MessageItem.displayName = 'MessageItem';
  */
 const QuickPromptCard = memo(({ prompt, onClick }) => {
   const containerRef = useRef(null);
-  const [telemetry, setTelemetry] = useState({ tx: '0.0', ty: '0.0' });
+  const tiltXRef = useRef(null);
+  const tiltYRef = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const reactId = useId();
@@ -218,7 +231,8 @@ const QuickPromptCard = memo(({ prompt, onClick }) => {
     containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
     containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
 
-    setTelemetry({ tx: tiltX.toFixed(1), ty: tiltY.toFixed(1) });
+    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
   };
 
   const handleFocus = () => {
@@ -226,7 +240,8 @@ const QuickPromptCard = memo(({ prompt, onClick }) => {
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '4deg');
       containerRef.current.style.setProperty('--tilt-y', '-4deg');
-      setTelemetry({ tx: '4.0', ty: '-4.0' });
+      if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     }
   };
 
@@ -235,7 +250,6 @@ const QuickPromptCard = memo(({ prompt, onClick }) => {
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
-      setTelemetry({ tx: '0.0', ty: '0.0' });
     }
   };
 
@@ -274,8 +288,8 @@ const QuickPromptCard = memo(({ prompt, onClick }) => {
       <div className="absolute top-4 right-6 pointer-events-none opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-all duration-500"
            style={{ transform: 'translateZ(50px)' }}>
         <div className="flex items-center gap-3 font-mono text-[0.45rem] font-bold text-voro-primary/60 tracking-widest">
-          <span>TX_{telemetry.tx}°</span>
-          <span>TY_{telemetry.ty}°</span>
+          <span>TX_<span ref={tiltXRef}>0.0</span>°</span>
+          <span>TY_<span ref={tiltYRef}>0.0</span>°</span>
           <span>[{nodeId}]</span>
         </div>
       </div>
