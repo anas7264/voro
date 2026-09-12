@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef, memo, useDeferredValue } from 'react';
-import { BookOpen, Clock, ArrowUpRight, Search, Bookmark, Share2, Sparkles, Filter, Newspaper, Cpu, ShieldCheck, Activity } from 'lucide-react';
+import { BookOpen, Clock, ArrowUpRight, Search, Bookmark, Share2, Sparkles, Filter, Newspaper, Cpu, ShieldCheck, Activity, X } from 'lucide-react';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Badge from '@/components/Badge';
@@ -600,10 +600,23 @@ const EducationHub = () => {
                 <input
                   type="text"
                   placeholder="Query Research Database..."
+                  aria-label="Query research database"
+                  title="Query research database"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-white/[0.02] border border-white/5 rounded-2xl py-4 pl-12 pr-6 text-xs font-mono tracking-wider focus:outline-none focus:border-voro-primary focus:ring-1 focus:ring-voro-primary transition-all placeholder:text-gray-700"
+                  className="w-full bg-white/[0.02] border border-white/5 rounded-2xl py-4 pl-12 pr-10 text-xs font-mono tracking-wider focus:outline-none focus:border-voro-primary focus:ring-1 focus:ring-voro-primary transition-all placeholder:text-gray-700"
                 />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    aria-label="Clear search query"
+                    title="Clear search query"
+                    className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-white focus-visible:text-white transition-colors outline-none focus-visible:ring-1 focus-visible:ring-voro-primary rounded-full p-1"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
               </div>
 
               <div className="flex flex-wrap gap-2">
