@@ -1,4 +1,4 @@
-import React, { memo, useRef, useState, useId, useMemo } from "react";
+import React, { memo, useRef, useState, useId, useMemo, useCallback } from "react";
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted and frozen static default fallbacks.
@@ -10,13 +10,13 @@ const EMPTY_ROWS = Object.freeze([]);
 /**
  * ⚡ REFINEMENT: Precision Data Matrix Node (Table).
  * Re-engineered to Voro's 'Forge' luxury architecture with 3D spatial transforms,
- * 60fps direct-DOM magnetic mouse tracking, holographic coordinate telemetry,
+ * 60fps direct-DOM magnetic mouse & row tracking, holographic coordinate telemetry,
  * dynamic liquid perimeter illumination, and high-contrast editorial typography.
  *
  * DESIGN PHILOSOPHY:
  * 1. Authority: Playfair Display italic serif table headers for editorial prestige and weight.
  * 2. Precision: JetBrains Mono tabular figures for alignment with sub-pixel hash badging.
- * 3. Motion: Direct-DOM 3D volumetric tilt tracking with liquid light perimeter glow.
+ * 3. Motion: Direct-DOM 3D volumetric tilt tracking with liquid light perimeter glow and 60fps magnetic row vector tracking.
  * 4. Spatial Architecture: Mathematical padding with golden-ratio whitespace spacing.
  */
 export const Table = memo(({
@@ -29,6 +29,7 @@ export const Table = memo(({
   compact = false
 }) => {
   const containerRef = useRef(null);
+  const tbodyRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
@@ -46,7 +47,7 @@ export const Table = memo(({
     return `0xTBL_MTX_${cleanId.padEnd(6, '0').slice(0, 6).toUpperCase()}`;
   }, [reactId]);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -58,14 +59,60 @@ export const Table = memo(({
 
     containerRef.current.style.setProperty("--mouse-x", `${x}px`);
     containerRef.current.style.setProperty("--mouse-y", `${y}px`);
-    containerRef.current.style.setProperty("--tilt-x", `${tiltX}deg`);
-    containerRef.current.style.setProperty("--tilt-y", `${tiltY}deg`);
+    containerRef.current.style.setProperty("--tilt-x", `${tiltX.toFixed(2)}deg`);
+    containerRef.current.style.setProperty("--tilt-y", `${tiltY.toFixed(2)}deg`);
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
-  };
 
-  const handleFocus = () => {
+    // Direct DOM 60fps magnetic row vector tracking with batched read/write layout optimization
+    if (tbodyRef.current && hoverable) {
+      const rowNodes = tbodyRef.current.querySelectorAll('tr[data-table-row="true"]');
+      const rowData = [];
+
+      // Phase 1: Read geometries (prevents forced synchronous reflow)
+      for (let i = 0; i < rowNodes.length; i++) {
+        const rowNode = rowNodes[i];
+        rowData.push({ rowNode, rowRect: rowNode.getBoundingClientRect() });
+      }
+
+      // Phase 2: Batch write styles
+      for (let i = 0; i < rowData.length; i++) {
+        const { rowNode, rowRect } = rowData[i];
+        const rowCenterY = rowRect.top + rowRect.height / 2;
+        const distY = Math.abs(e.clientY - rowCenterY);
+
+        if (distY < rowRect.height) {
+          rowNode.style.transition = 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s ease';
+          rowNode.style.transform = 'translate3d(0, 0, 8px) scale(1.003)';
+        } else {
+          rowNode.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s ease';
+          rowNode.style.transform = 'translate3d(0, 0, 0) scale(1)';
+        }
+      }
+    }
+  }, [hoverable]);
+
+  const handleMouseEnter = useCallback(() => {
+    setIsHovered(true);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setIsHovered(false);
+    if (containerRef.current && !isFocused) {
+      containerRef.current.style.setProperty('--tilt-x', '0deg');
+      containerRef.current.style.setProperty('--tilt-y', '0deg');
+    }
+    if (tbodyRef.current) {
+      const rowNodes = tbodyRef.current.querySelectorAll('tr[data-table-row="true"]');
+      rowNodes.forEach((rowNode) => {
+        rowNode.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s ease';
+        rowNode.style.transform = 'translate3d(0, 0, 0) scale(1)';
+      });
+    }
+  }, [isFocused]);
+
+  const handleFocus = useCallback(() => {
     setIsFocused(true);
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '3deg');
@@ -73,15 +120,15 @@ export const Table = memo(({
       if (tiltXRef.current) tiltXRef.current.innerText = "3.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-3.0";
     }
-  };
+  }, []);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     setIsFocused(false);
     if (containerRef.current && !isHovered) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
-  };
+  }, [isHovered]);
 
   const interactionActive = isHovered || isFocused;
 
@@ -164,6 +211,7 @@ export const Table = memo(({
               {headers.map((header, index) => (
                 <th
                   key={index}
+                  scope="col"
                   className={`
                     text-left text-[0.65rem] font-mono font-bold text-voro-primary uppercase tracking-[0.4em]
                     ${compact ? 'px-6 py-5' : 'px-10 py-8'}
@@ -179,7 +227,7 @@ export const Table = memo(({
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody ref={tbodyRef}>
             {rows.length === 0 ? (
               <tr>
                 <td
@@ -202,6 +250,7 @@ export const Table = memo(({
               rows.map((row, rowIndex) => (
                 <tr
                   key={rowIndex}
+                  data-table-row="true"
                   onClick={() => onRowClick && onRowClick(row, rowIndex)}
                   className={`
                     group/row border-b border-white/[0.03] last:border-0 transition-all duration-500 relative
