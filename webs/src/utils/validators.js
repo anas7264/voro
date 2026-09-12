@@ -585,7 +585,7 @@ const decodeHTMLEntities = (str) => {
   return decoded;
 };
 
-const BASE64_FORMAT_RE = /^[A-Za-z0-9+/]+={0,2}$/;
+const BASE64_FORMAT_RE = /^[A-Za-z0-9+\/\-_]+={0,2}$/;
 const BASE32_FORMAT_RE = /^[A-Z2-7=]+$/i;
 const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 const BASE58_FORMAT_RE = /^[1-9A-HJ-NP-Za-km-z]{8,}$/;
@@ -857,13 +857,15 @@ const safeDecodeBase58 = (str) => {
   }
 };
 
-// Helper to safely decode Base64 strings with auto-padding and printable-ASCII verification (XSS/DoS safe)
+// Helper to safely decode Base64 and URL-safe Base64 (RFC 4648 §5) strings with auto-padding and printable-ASCII verification (XSS/DoS safe)
 const safeAtob = (str) => {
   try {
-    if (!BASE64_FORMAT_RE.test(str) || str.length < 8) {
+    if (!str || typeof str !== 'string' || str.length < 8) return null;
+    const normalized = str.replace(/-/g, '+').replace(/_/g, '/');
+    if (!BASE64_FORMAT_RE.test(normalized)) {
       return null;
     }
-    let padded = str;
+    let padded = normalized;
     while (padded.length % 4 !== 0) {
       padded += '=';
     }
@@ -924,7 +926,7 @@ const DELIMITER_RE = /\[\/?(?:USER_?DATA|SECURITY_?PROTOCOL|MESSAGE_?HISTORY|USE
 const MARKDOWN_RE = /[\*_~`]/g;
 const NON_ALPHANUM_RE = /[^a-z0-9]/g;
 const HEX_MATCH_RE = /[0-9a-fA-F]{8,}/g;
-const BASE64_MATCH_RE = /[A-Za-z0-9+/]{8,}=*/g;
+const BASE64_MATCH_RE = /[A-Za-z0-9+\/\-_]{8,}=*/g;
 const INVISIBLE_CHARS_RE = /[\u200b-\u200f\u2028\u2029\u202a-\u202e\u205f\u2060-\u206f\u3000\ufeff\u00ad\u2400-\u243f\ufe00-\ufe0f\u180e\u1680\u20dd-\u20e4\u3164\uffa0\u115f\u1160]|[\u{E0100}-\u{E01EF}\u{1D173}-\u{1D17A}\u{1BCA0}-\u{1BCA3}\u{13430}-\u{1343F}]/gu;
 
 // Helper to scrub zero-width and invisible formatting characters from encoded strings
