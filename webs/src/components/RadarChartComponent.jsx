@@ -10,18 +10,37 @@ import {
   ResponsiveContainer
 } from "recharts";
 
-const CustomTooltip = ({ active, payload, label }) => {
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted & Frozen Fallbacks.
+ * Zero object allocations during component render passes.
+ */
+const DEFAULT_MARGIN = Object.freeze({ top: 20, right: 30, bottom: 20, left: 30 });
+const DEFAULT_TICK_ANGLE = Object.freeze({
+  fill: "#4B5563",
+  fontSize: 10,
+  fontFamily: 'JetBrains Mono',
+  fontWeight: 800,
+  letterSpacing: '0.15em'
+});
+const DEFAULT_CURSOR = Object.freeze({ stroke: 'rgba(255, 255, 255, 0.05)', strokeWidth: 1 });
+
+const CustomTooltip = memo(({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-[#0A0C14]/80 backdrop-blur-xl border border-white/10 p-5 rounded-2xl shadow-2xl relative overflow-hidden">
+      <div className="bg-[#0A0C14]/95 backdrop-blur-3xl border border-white/10 p-5 rounded-2xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)] relative overflow-hidden min-w-[180px]">
         {/* Boutique Grain Texture */}
         <div className="absolute inset-0 bg-boutique-grain opacity-[0.03] pointer-events-none" />
 
-        <div className="relative z-10">
-          <p className="text-[0.55rem] font-mono text-gray-500 uppercase tracking-[0.3em] mb-3 flex items-center gap-2">
-            <span className="w-1 h-1 rounded-full bg-voro-primary animate-pulse" />
-            {label}
-          </p>
+        <div className="relative z-10 space-y-3">
+          <div className="flex items-center justify-between gap-4 border-b border-white/5 pb-2">
+            <span className="text-[0.55rem] font-mono font-black text-gray-500 uppercase tracking-[0.3em]">
+              {label}
+            </span>
+            <span className="text-[0.45rem] font-mono font-bold text-voro-primary/80 tracking-widest uppercase">
+              0xRADAR_TELEMETRY
+            </span>
+          </div>
+
           {payload.map((entry, index) => (
             <div key={index} className="flex flex-col gap-1">
               <div className="flex items-baseline gap-3">
@@ -42,18 +61,14 @@ const CustomTooltip = ({ active, payload, label }) => {
     );
   }
   return null;
-};
+});
+
+CustomTooltip.displayName = "CustomTooltip";
 
 /**
  * ⚡ REFINEMENT: Luxury Neural Capability Specimen (RadarChart).
  * Re-engineered to the 'Forge' luxury standard: volumetric donut architecture,
  * atmospheric linear gradients, kinetic glow filters, and bespoke glassmorphism.
- *
- * DESIGN PHILOSOPHY:
- * 1. Authority: Playfair Display serif for primary data suggests prestige.
- * 2. Precision: JetBrains Mono for industrial telemetry markers.
- * 3. Motion: Kinetic glow filters and 1500ms draw animation.
- * 4. Atmosphere: Luminous, low-opacity polar grids for a "biological artifact" feel.
  */
 export const RadarChartComponent = memo(({
   data,
@@ -62,6 +77,7 @@ export const RadarChartComponent = memo(({
   fill = "#7C3AED",
   height = 400,
   strokeWidth = 2,
+  margin = DEFAULT_MARGIN,
   ...props
 }) => {
   const id = useId().replace(/:/g, '');
@@ -70,7 +86,7 @@ export const RadarChartComponent = memo(({
     <ResponsiveContainer width="100%" height={height}>
       <RadarChart
         data={data}
-        margin={{ top: 20, right: 30, bottom: 20, left: 30 }}
+        margin={margin}
         {...props}
       >
         <defs>
@@ -91,13 +107,7 @@ export const RadarChartComponent = memo(({
 
         <PolarAngleAxis
           dataKey="subject"
-          tick={{
-            fill: "#4B5563",
-            fontSize: 10,
-            fontFamily: 'JetBrains Mono',
-            fontWeight: 800,
-            letterSpacing: '0.15em'
-          }}
+          tick={DEFAULT_TICK_ANGLE}
         />
 
         <PolarRadiusAxis
@@ -109,7 +119,7 @@ export const RadarChartComponent = memo(({
 
         <Tooltip
           content={<CustomTooltip />}
-          cursor={{ stroke: 'rgba(255, 255, 255, 0.05)', strokeWidth: 1 }}
+          cursor={DEFAULT_CURSOR}
         />
 
         <Radar
