@@ -735,7 +735,7 @@ const safeDecodeBinary = (str) => {
       const cleanToken = token.toLowerCase().startsWith('0b') ? token.slice(2) : token;
       if (!/^[01]{7,8}$/.test(cleanToken)) return null;
       const code = parseInt(cleanToken, 2);
-      if (code < 32 || code > 126) return null;
+      if (code < 9 || (code > 13 && code < 32) || code > 126) return null;
       decoded += String.fromCharCode(code);
     }
     return decoded.length >= 8 ? decoded : null;
