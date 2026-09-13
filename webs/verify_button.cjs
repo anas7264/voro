@@ -13,7 +13,7 @@ const buttonContent = fs.readFileSync(buttonPath, 'utf8');
 
 // Verification checks
 const checks = [
-  { name: 'Import React hooks (memo, useRef, useState, useId, useMemo)', test: buttonContent.includes('useId') && buttonContent.includes('useMemo') && buttonContent.includes('memo') },
+  { name: 'Import React hooks (memo, useRef, useId, useMemo)', test: buttonContent.includes('useId') && buttonContent.includes('useMemo') && buttonContent.includes('memo') },
   { name: 'Frozen static VARIANTS mapping', test: buttonContent.includes('const VARIANTS = Object.freeze({') },
   { name: 'Frozen static SIZES mapping', test: buttonContent.includes('const SIZES = Object.freeze({') },
   { name: 'SSR-safe attestedId using useId', test: buttonContent.includes('0xBTN_') && buttonContent.includes('generatedId.replace') },

@@ -1,11 +1,12 @@
-import React, { memo, useRef, useState, useId, useMemo } from "react";
+import React, { memo, useRef, useId, useMemo } from "react";
 
 /**
  * ⚡ OPTIMIZATION: Refined luxury Button component ('Kinetic Power Node').
  * Re-engineered to Voro's 'Forge' luxury system standard: features deterministic SSR-safe
  * node identification, zero-allocation static lookup maps via Object.freeze(),
  * 60fps direct-DOM 3D rotational tilt tracking, liquid perimeter illumination,
- * holographic spatial coordinate telemetry, and W3C APG compliant focus states.
+ * holographic spatial coordinate telemetry, W3C APG compliant focus states,
+ * and zero-re-render interaction tracking via useRef flags (isHoveredRef, isFocusedRef).
  */
 const Button = memo(({
   children,
@@ -22,8 +23,8 @@ const Button = memo(({
   const buttonRef = useRef(null);
   const txRef = useRef(null);
   const tyRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
   const generatedId = useId();
 
   // Generate stable system node identification and attestation markers
@@ -52,72 +53,86 @@ const Button = memo(({
     const rotateY = ((x / rect.width) - 0.5) * 16;
     const rotateX = (0.5 - (y / rect.height)) * 16;
 
-    buttonRef.current.style.setProperty('--mouse-x', `${x}px`);
-    buttonRef.current.style.setProperty('--mouse-y', `${y}px`);
-    buttonRef.current.style.setProperty('--move-x', `${moveX}px`);
-    buttonRef.current.style.setProperty('--move-y', `${moveY}px`);
-    buttonRef.current.style.setProperty('--rotate-x', `${rotateX}deg`);
-    buttonRef.current.style.setProperty('--rotate-y', `${rotateY}deg`);
+    const style = buttonRef.current.style;
+    style.setProperty('--mouse-x', `${x}px`);
+    style.setProperty('--mouse-y', `${y}px`);
+    style.setProperty('--move-x', `${moveX}px`);
+    style.setProperty('--move-y', `${moveY}px`);
+    style.setProperty('--rotate-x', `${rotateX}deg`);
+    style.setProperty('--rotate-y', `${rotateY}deg`);
 
     if (txRef.current) txRef.current.innerText = rotateX.toFixed(1);
     if (tyRef.current) tyRef.current.innerText = rotateY.toFixed(1);
   };
 
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
+    if (buttonRef.current) {
+      buttonRef.current.style.setProperty('transition', 'none');
+    }
+  };
+
   const handleMouseLeave = () => {
-    setIsHovered(false);
+    isHoveredRef.current = false;
     if (!buttonRef.current) return;
 
-    if (isFocused) {
+    const style = buttonRef.current.style;
+    style.setProperty('transition', 'all 0.7s cubic-bezier(0.16,1,0.3,1)');
+
+    if (isFocusedRef.current) {
       // Revert to W3C APG compliant focus state tilt
-      buttonRef.current.style.setProperty('--move-x', '0px');
-      buttonRef.current.style.setProperty('--move-y', '0px');
-      buttonRef.current.style.setProperty('--rotate-x', '4deg');
-      buttonRef.current.style.setProperty('--rotate-y', '-4deg');
+      style.setProperty('--move-x', '0px');
+      style.setProperty('--move-y', '0px');
+      style.setProperty('--rotate-x', '4deg');
+      style.setProperty('--rotate-y', '-4deg');
       if (txRef.current) txRef.current.innerText = "4.0";
       if (tyRef.current) tyRef.current.innerText = "-4.0";
     } else {
-      buttonRef.current.style.setProperty('--move-x', '0px');
-      buttonRef.current.style.setProperty('--move-y', '0px');
-      buttonRef.current.style.setProperty('--rotate-x', '0deg');
-      buttonRef.current.style.setProperty('--rotate-y', '0deg');
+      style.setProperty('--move-x', '0px');
+      style.setProperty('--move-y', '0px');
+      style.setProperty('--rotate-x', '0deg');
+      style.setProperty('--rotate-y', '0deg');
       if (txRef.current) txRef.current.innerText = "0.0";
       if (tyRef.current) tyRef.current.innerText = "0.0";
     }
   };
 
   const handleFocus = () => {
-    setIsFocused(true);
+    isFocusedRef.current = true;
     if (!buttonRef.current) return;
 
+    const style = buttonRef.current.style;
+    style.setProperty('transition', 'all 0.7s cubic-bezier(0.16,1,0.3,1)');
     // Static 4-degree tilt for focus feedback
-    buttonRef.current.style.setProperty('--rotate-x', '4deg');
-    buttonRef.current.style.setProperty('--rotate-y', '-4deg');
+    style.setProperty('--rotate-x', '4deg');
+    style.setProperty('--rotate-y', '-4deg');
     if (txRef.current) txRef.current.innerText = "4.0";
     if (tyRef.current) tyRef.current.innerText = "-4.0";
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
+    isFocusedRef.current = false;
     if (!buttonRef.current) return;
 
-    if (!isHovered) {
-      buttonRef.current.style.setProperty('--move-x', '0px');
-      buttonRef.current.style.setProperty('--move-y', '0px');
-      buttonRef.current.style.setProperty('--rotate-x', '0deg');
-      buttonRef.current.style.setProperty('--rotate-y', '0deg');
+    if (!isHoveredRef.current) {
+      const style = buttonRef.current.style;
+      style.setProperty('transition', 'all 0.7s cubic-bezier(0.16,1,0.3,1)');
+      style.setProperty('--move-x', '0px');
+      style.setProperty('--move-y', '0px');
+      style.setProperty('--rotate-x', '0deg');
+      style.setProperty('--rotate-y', '0deg');
       if (txRef.current) txRef.current.innerText = "0.0";
       if (tyRef.current) tyRef.current.innerText = "0.0";
     }
   };
 
   const activeColor = variant === 'secondary' ? '#7C3AED' : variant === 'danger' ? '#EF4444' : '#7C3AED';
-  const interactionActive = isHovered || isFocused;
 
   return (
     <button
       ref={buttonRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
@@ -135,12 +150,9 @@ const Button = memo(({
         ${className}
       `}
       style={{
-        transform: interactionActive
-          ? 'translate3d(var(--move-x, 0), var(--move-y, 0), 0) rotateX(var(--rotate-x, 0)) rotateY(var(--rotate-y, 0))'
-          : 'translate3d(0, 0, 0) rotateX(0) rotateY(0)',
+        transform: 'translate3d(var(--move-x, 0px), var(--move-y, 0px), 0px) rotateX(var(--rotate-x, 0deg)) rotateY(var(--rotate-y, 0deg))',
         transformStyle: 'preserve-3d',
-        perspective: '1000px',
-        transition: isHovered ? 'none' : 'all 0.7s cubic-bezier(0.16,1,0.3,1)'
+        perspective: '1000px'
       }}
       aria-busy={isLoading}
       {...props}
@@ -168,9 +180,7 @@ const Button = memo(({
       <div
         className="absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-500 pointer-events-none"
         style={{
-          background: isHovered
-            ? `radial-gradient(120px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), ${activeColor}25, transparent 70%)`
-            : `radial-gradient(120px circle at 50% 50%, ${activeColor}25, transparent 70%)`,
+          background: `radial-gradient(120px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ${activeColor}25, transparent 70%)`,
         }}
       />
 
