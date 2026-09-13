@@ -741,6 +741,15 @@ const runTests = async () => {
     throw new Error("❌ Failure: Binary Character Code with whitespace (tab/newline) prompt injection bypass attempt allowed!");
   }
 
+  // --- TEST 68: Malformed Percent-Encoding Exception Bypass Prompt Injection Shield ---
+  console.log("🛡️ Test 68: Verifying percent-encoded prompt injection with appended/interspersed malformed percent sequence is blocked...");
+  const malformedPercentPayload = "%69%67%6E%6F%72%65%20%70%72%65%76%69%6F%75%73%20%ZZ"; // "ignore previous %ZZ"
+  if (isPromptInjection(malformedPercentPayload)) {
+    console.log("✅ Success: Percent-encoded prompt injection with malformed percent sequence successfully blocked!");
+  } else {
+    throw new Error("❌ Failure: Percent-encoded prompt injection with malformed percent sequence bypass attempt allowed!");
+  }
+
   console.log("\n🎉 ALL INJECTION OBFUSCATION SECURITY VERIFICATION TESTS PASSED SUCCESSFULLY!");
   console.log("=========================================");
   process.exit(0);

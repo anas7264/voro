@@ -539,20 +539,28 @@ const HARVESTING_RE = /repeat the system prompt|reveal your instructions|reveal 
 
 const ROLEPLAY_RE = /roleplay as|adopt the persona|pretend to be|you are now a terminal|you are now a linux|starting now you are|you are no longer an ai assistant|you are no longer a helpful/i;
 
-// Helper to decode URL percent encoding (handles double/recursive encoding up to 5 times)
+// Helper to decode URL percent encoding (handles double/recursive encoding up to 5 times with fallback for malformed sequences)
 const decodePercentEncoding = (str) => {
-  try {
-    let decoded = str;
-    let prev;
-    let limit = 5;
-    do {
-      prev = decoded;
+  if (!str || typeof str !== 'string' || !str.includes('%')) return str;
+  let decoded = str;
+  let prev;
+  let limit = 5;
+  do {
+    prev = decoded;
+    try {
       decoded = decodeURIComponent(decoded);
-    } while (decoded !== prev && --limit > 0);
-    return decoded;
-  } catch (e) {
-    return str;
-  }
+    } catch (e) {
+      decoded = decoded.replace(/%([0-9a-fA-F]{2})/g, (match, hex) => {
+        try {
+          const code = parseInt(hex, 16);
+          return String.fromCharCode(code);
+        } catch (err) {
+          return match;
+        }
+      });
+    }
+  } while (decoded !== prev && --limit > 0);
+  return decoded;
 };
 
 // Helper to decode HTML entities (handles decimal, hex, and named entities, multi-pass up to 5 passes)
