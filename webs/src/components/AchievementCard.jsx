@@ -99,7 +99,7 @@ const RARITY_STYLES = Object.freeze({
  * 60fps direct-DOM mouse tracking, liquid perimeter border lighting, sub-pixel
  * attestation hash badging, and W3C APG compliant keyboard focus states.
  */
-export const AchievementCard = memo(({ achievement, unlocked, className = "" }) => {
+export const AchievementCard = memo(({ achievement, unlocked, onClick, className = "" }) => {
   const Icon = ICON_MAP[achievement?.icon] || Trophy;
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
@@ -154,8 +154,22 @@ export const AchievementCard = memo(({ achievement, unlocked, className = "" }) 
     }
   };
 
+  const handleClick = (e) => {
+    if (!unlocked) return;
+    onClick?.(e);
+  };
+
+  const handleKeyDown = (e) => {
+    if (!unlocked) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onClick?.(e);
+    }
+  };
+
   const style = RARITY_STYLES[achievement?.rarity] || RARITY_STYLES.Common;
   const interactionActive = (isHovered || isFocused) && unlocked;
+  const cardLabel = `Achievement: ${achievement?.name || 'Artifact'}. ${achievement?.description || ''}. Rarity: ${achievement?.rarity || 'Common'}. Status: ${unlocked ? 'Unlocked' : 'Locked'}`;
 
   return (
     <div
@@ -171,9 +185,11 @@ export const AchievementCard = memo(({ achievement, unlocked, className = "" }) 
       }}
       onFocus={handleFocus}
       onBlur={handleBlur}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
       tabIndex={unlocked ? 0 : -1}
-      role="article"
-      aria-label={`Achievement: ${achievement?.name || 'Artifact'}. ${achievement?.description || ''}. Rarity: ${achievement?.rarity || 'Common'}. Status: ${unlocked ? 'Unlocked' : 'Locked'}`}
+      role={onClick ? "button" : "article"}
+      aria-label={cardLabel}
       style={{
         transform: interactionActive
           ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-8px)'
