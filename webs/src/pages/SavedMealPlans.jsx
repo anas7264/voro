@@ -12,6 +12,7 @@ import { CachedDateTimeFormat } from '@/utils/formatters';
  * Prevents redundant object instantiation of Intl.DateTimeFormat and new Date in loops or high-frequency renders.
  */
 const EMPTY_OBJECT = Object.freeze({});
+const EMPTY_ARRAY = Object.freeze([]);
 
 const dateStrFormatter = new CachedDateTimeFormat('en-US', {
   month: 'short',
@@ -216,13 +217,15 @@ const SavedMealPlans = () => {
    * the useMemo block. Replaces .reduce with a single zero-allocation for loop.
    */
   const plans = useMemo(() => {
-    const rawPlans = plansData.savedMealPlans || [];
+    const rawPlans = plansData.savedMealPlans || EMPTY_ARRAY;
     const len = rawPlans.length;
+    if (len === 0) return EMPTY_ARRAY;
+
     const result = new Array(len);
 
     for (let i = 0; i < len; i++) {
       const plan = rawPlans[i];
-      const days = plan.days || [];
+      const days = plan.days || EMPTY_ARRAY;
       let totalCalories = 0;
       for (let j = 0; j < days.length; j++) {
         totalCalories += (days[j].calories || 0);
@@ -285,6 +288,10 @@ const SavedMealPlans = () => {
     }
   }, [addNotification]);
 
+  const handleAnalyze = useCallback(() => {
+    navigate('/nutrition/planner');
+  }, [navigate]);
+
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] pb-32 selection:bg-voro-primary/30">
       {/* Ambient Architectural Lighting */}
@@ -326,7 +333,7 @@ const SavedMealPlans = () => {
                 idx={idx}
                 isConfirming={confirmingDeleteId === plan.id}
                 onDelete={handleDeletePlan}
-                onAnalyze={() => navigate('/nutrition/planner')}
+                onAnalyze={handleAnalyze}
                 onExport={handleExportJSON}
               />
             ))}

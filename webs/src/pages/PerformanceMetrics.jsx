@@ -253,33 +253,34 @@ const PerformanceMetrics = () => {
     document.title = 'VORO | Kinetic Capabilities Enclave';
   }, []);
 
-  const strengthMetrics = useMemo(() => [
-    { lift: 'Bench Press', max: metrics.maxBench, unit: 'kg', color: 'voro-primary' },
-    { lift: 'Squat', max: metrics.maxSquat, unit: 'kg', color: 'voro-secondary' },
-    { lift: 'Deadlift', max: metrics.maxDeadlift, unit: 'kg', color: 'voro-accent' },
-  ], [metrics]);
-
-  const radarData = useMemo(() => [
-    { subject: 'Bench', A: metrics.maxBench, fullMark: 200 },
-    { subject: 'Squat', A: metrics.maxSquat, fullMark: 300 },
-    { subject: 'Deadlift', A: metrics.maxDeadlift, fullMark: 350 },
-    { subject: 'Press', A: Math.round(metrics.maxBench * 0.65), fullMark: 120 },
-    { subject: 'Row', A: Math.round(metrics.maxBench * 0.9), fullMark: 180 },
-  ], [metrics]);
-
-  const volumeData = useMemo(() => [
-    { date: 'Week 1', volume: 16000 },
-    { date: 'Week 2', volume: 17200 },
-    { date: 'Week 3', volume: 18100 },
-    { date: 'Week 4', volume: metrics.avgVolume || 18500 },
-  ], [metrics.avgVolume]);
-
-  const wilksScore = useMemo(() =>
-    Math.round((metrics.maxBench + metrics.maxSquat + metrics.maxDeadlift) / 3),
-  [metrics]);
-
   const benchTarget = 150;
-  const targetProgress = Math.min(100, Math.round((metrics.maxBench / benchTarget) * 100));
+
+  const { strengthMetrics, radarData, volumeData, wilksScore, targetProgress } = useMemo(() => {
+    const { maxBench = 0, maxSquat = 0, maxDeadlift = 0, avgVolume = 18500 } = metrics;
+
+    return {
+      strengthMetrics: [
+        { lift: 'Bench Press', max: maxBench, unit: 'kg', color: 'voro-primary' },
+        { lift: 'Squat', max: maxSquat, unit: 'kg', color: 'voro-secondary' },
+        { lift: 'Deadlift', max: maxDeadlift, unit: 'kg', color: 'voro-accent' },
+      ],
+      radarData: [
+        { subject: 'Bench', A: maxBench, fullMark: 200 },
+        { subject: 'Squat', A: maxSquat, fullMark: 300 },
+        { subject: 'Deadlift', A: maxDeadlift, fullMark: 350 },
+        { subject: 'Press', A: Math.round(maxBench * 0.65), fullMark: 120 },
+        { subject: 'Row', A: Math.round(maxBench * 0.9), fullMark: 180 },
+      ],
+      volumeData: [
+        { date: 'Week 1', volume: 16000 },
+        { date: 'Week 2', volume: 17200 },
+        { date: 'Week 3', volume: 18100 },
+        { date: 'Week 4', volume: avgVolume },
+      ],
+      wilksScore: Math.round((maxBench + maxSquat + maxDeadlift) / 3),
+      targetProgress: Math.min(100, Math.round((maxBench / benchTarget) * 100))
+    };
+  }, [metrics]);
 
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30 pb-24 relative overflow-hidden">
