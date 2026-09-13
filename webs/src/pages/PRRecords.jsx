@@ -184,7 +184,7 @@ const ApexPRCard = React.memo(({ item, nodeId }) => {
           <div className="space-y-3 max-h-[220px] overflow-y-auto no-scrollbar">
             {item.records.map((record, idx) => (
               <div
-                key={idx}
+                key={record.id || record.date || idx}
                 className={`flex items-center justify-between p-5 rounded-2xl border transition-all duration-500 ${
                   idx === 0
                     ? 'bg-voro-primary/[0.03] border-voro-primary/20 shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.02)]'
@@ -240,28 +240,40 @@ const PRRecords = () => {
    */
   const prs = useMemo(() => {
     const data = prHistory || {};
+    const entries = Object.entries(data);
+    const result = [];
 
-    return Object.entries(data).map(([exerciseId, records]) => {
+    for (let e = 0; e < entries.length; e++) {
+      const [exerciseId, records] = entries[e];
+      if (!Array.isArray(records) || records.length === 0) continue;
+
       const meta = EXERCISE_METADATA_MAP[exerciseId] || {};
-      const sortedRecords = Array.isArray(records) ? [...records].sort((a, b) => {
+
+      // Fast single-pass copy & sort without duplicate allocations
+      const len = records.length;
+      const sortedRecords = new Array(len);
+      let maxEst = 0;
+
+      for (let i = 0; i < len; i++) {
+        const r = records[i];
+        const w = typeof r.weight === 'number' ? r.weight : (parseFloat(r.weight) || 0);
+        const reps = typeof r.reps === 'number' ? r.reps : (parseInt(r.reps, 10) || 1);
+        const est = reps === 1 ? w : w * (1 + reps / 30);
+        if (est > maxEst) maxEst = est;
+
+        sortedRecords[i] = {
+          ...r,
+          formattedDate: fullDateFormatter.format(r.date)
+        };
+      }
+
+      sortedRecords.sort((a, b) => {
         const dA = a.date || '';
         const dB = b.date || '';
         return dA < dB ? 1 : dA > dB ? -1 : 0;
-      }).map(r => ({
-        ...r,
-        formattedDate: fullDateFormatter.format(r.date)
-      })) : [];
+      });
 
-      let maxEst = 0;
-      for (let i = 0; i < sortedRecords.length; i++) {
-        const r = sortedRecords[i];
-        const w = parseFloat(r.weight) || 0;
-        const reps = parseInt(r.reps) || 1;
-        const est = reps === 1 ? w : w * (1 + reps / 30);
-        if (est > maxEst) maxEst = est;
-      }
-
-      return {
+      result.push({
         exerciseId,
         exerciseName: meta.name || 'Unknown Pattern',
         category: meta.category || 'General',
@@ -269,8 +281,10 @@ const PRRecords = () => {
         difficulty: meta.difficulty || 'Advanced',
         records: sortedRecords,
         estimated1RM: maxEst,
-      };
-    }).filter(pr => pr.records.length > 0);
+      });
+    }
+
+    return result;
   }, [prHistory]);
 
   const sanitizedPageId = useMemo(() => pageId.replace(/:/g, ''), [pageId]);

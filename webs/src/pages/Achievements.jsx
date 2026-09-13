@@ -49,14 +49,13 @@ const Achievements = () => {
 
   const earnedIds = useMemo(() => new Set(earned), [earned]);
 
-  const xpToNextLevel = useMemo(() => {
-    const currentLevelXP = level * 1000; // Simplified logic for UI
-    return currentLevelXP - (xp % currentLevelXP);
-  }, [level, xp]);
-
-  const progressPercentage = useMemo(() => {
+  const { xpToNextLevel, progressPercentage } = useMemo(() => {
     const currentLevelXP = level * 1000;
-    return ((xp % currentLevelXP) / currentLevelXP) * 100;
+    const remainder = xp % currentLevelXP;
+    return {
+      xpToNextLevel: currentLevelXP - remainder,
+      progressPercentage: (remainder / currentLevelXP) * 100
+    };
   }, [level, xp]);
 
   const handleHeroMouseMove = (e) => {

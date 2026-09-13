@@ -23,6 +23,7 @@ import { CachedDateTimeFormat } from '@/utils/formatters';
  * Bypasses re-instantiation of Intl.DateTimeFormat and dynamic Date allocations.
  */
 const EMPTY_OBJECT = Object.freeze({});
+const EMPTY_ARRAY = Object.freeze([]);
 
 const dateStrFormatter = new CachedDateTimeFormat('en-US', {
   month: 'short',
@@ -315,8 +316,14 @@ const SavedTrainingPlans = () => {
    * Computes formatted dates, node IDs, and metrics synchronously inside useMemo.
    */
   const plans = useMemo(() => {
-    const rawPlans = plansData.savedTrainingPlans || [];
-    return rawPlans.map(plan => {
+    const rawPlans = plansData.savedTrainingPlans || EMPTY_ARRAY;
+    const len = rawPlans.length;
+    if (len === 0) return EMPTY_ARRAY;
+
+    const result = new Array(len);
+
+    for (let i = 0; i < len; i++) {
+      const plan = rawPlans[i];
       let formattedDate = 'N/A';
       if (plan.createdAt) {
         try {
@@ -326,12 +333,14 @@ const SavedTrainingPlans = () => {
         }
       }
 
-      return {
+      result[i] = {
         ...plan,
         _formattedDate: formattedDate,
         _nodeId: `KINETIC_BLUEPRINT_0x${plan.id?.toString().slice(-4).toUpperCase() || 'UNKN'}`
       };
-    });
+    }
+
+    return result;
   }, [plansData.savedTrainingPlans]);
 
   const handleDeletePlan = useCallback(async (id) => {

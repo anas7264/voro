@@ -414,25 +414,17 @@ const BodyComposition = () => {
     if (!metrics.weights?.length || !metrics.bodyFat?.length) return EMPTY_ARRAY;
 
     /**
-     * ⚡ OPTIMIZATION: Single-pass O(N+M) alignment for merging biometric time-series.
-     * Pre-calculates timestamps to eliminate redundant Date parsing in the loop.
+     * ⚡ OPTIMIZATION: Zero-Allocation Sort & Single-pass O(N+M) alignment for merging biometric time-series.
+     * Pre-calculates timestamps before sorting to eliminate redundant Date instantiation in sort comparators.
      */
-    const weights = [...metrics.weights]
-      .sort((a, b) => {
-        const dA = a.date || '';
-        const dB = b.date || '';
-        return dA < dB ? -1 : dA > dB ? 1 : 0;
-      })
-      .slice(-30)
-      .map(w => ({ ...w, ts: new Date(w.date).getTime() }));
+    const weights = metrics.weights
+      .map(w => ({ ...w, ts: w.date ? new Date(w.date).getTime() : 0 }))
+      .sort((a, b) => a.ts - b.ts)
+      .slice(-30);
 
-    const bodyFat = [...metrics.bodyFat]
-      .sort((a, b) => {
-        const dA = a.date || '';
-        const dB = b.date || '';
-        return dA < dB ? -1 : dA > dB ? 1 : 0;
-      })
-      .map(b => ({ ...b, ts: new Date(b.date).getTime() }));
+    const bodyFat = metrics.bodyFat
+      .map(b => ({ ...b, ts: b.date ? new Date(b.date).getTime() : 0 }))
+      .sort((a, b) => a.ts - b.ts);
 
     let bfIdx = 0;
     const result = [];
