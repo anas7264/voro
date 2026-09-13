@@ -159,8 +159,8 @@ export const isDateInPast = (dateString) => {
   return date < new Date();
 };
 
-const INTERNAL_IP_RE = /^(?:127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+|169\.254\.\d+\.\d+|0\.0\.0\.0)$/;
-const INTERNAL_IPV6_RE = /^\[?(?:0*:0*:0*:0*:0*:0*:0*:0*1|0*:0*:0*:0*:0*:0*:0*:0*|::1|::|fe80:.*|f[cd][0-9a-f]{2}:.*|::ffff:(?:127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+|169\.254\.\d+\.\d+|[0-9a-f]{1,4}:[0-9a-f]{1,4}))\]?$/i;
+const INTERNAL_IP_RE = /^(?:127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+|169\.254\.\d+\.\d+|0\.\d+\.\d+\.\d+|100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.\d+\.\d+|198\.1[89]\.\d+\.\d+|192\.0\.0\.\d+|192\.0\.2\.\d+|198\.51\.100\.\d+|203\.0\.113\.\d+|192\.88\.99\.\d+|(?:22[4-9]|23\d)\.\d+\.\d+\.\d+|(?:24\d|25[0-5])\.\d+\.\d+\.\d+)$/;
+const INTERNAL_IPV6_RE = /^\[?(?:0*:0*:0*:0*:0*:0*:0*:0*1|0*:0*:0*:0*:0*:0*:0*:0*|::1|::|fe[89ab][0-9a-f]:.*|f[cd][0-9a-f]{2}:.*|::ffff:(?:127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+|169\.254\.\d+\.\d+|100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.\d+\.\d+|198\.1[89]\.\d+\.\d+|192\.0\.0\.\d+|192\.0\.2\.\d+|198\.51\.100\.\d+|203\.0\.113\.\d+|[0-9a-f]{1,4}:[0-9a-f]{1,4}))\]?$/i;
 
 // URL validation
 export const isValidURL = (url) => {
@@ -585,6 +585,22 @@ const decodeHTMLEntities = (str) => {
   return decoded;
 };
 
+// Helper to decode Quoted-Printable encoding (handles =XX hex byte sequences and =\r\n soft line breaks)
+const decodeQuotedPrintable = (str) => {
+  if (!str || typeof str !== 'string' || !str.includes('=')) return str;
+  let decoded = str;
+  decoded = decoded.replace(/=(?:\r\n|\n|\r)/g, '');
+  decoded = decoded.replace(/=([0-9a-fA-F]{2})/g, (match, hex) => {
+    try {
+      const code = parseInt(hex, 16);
+      return String.fromCharCode(code);
+    } catch (e) {
+      return match;
+    }
+  });
+  return decoded;
+};
+
 const BASE64_FORMAT_RE = /^[A-Za-z0-9+\/\-_]+={0,2}$/;
 const BASE32_FORMAT_RE = /^[A-Z2-7=]+$/i;
 const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
@@ -939,8 +955,8 @@ const stripInvisibleCharacters = (str) => {
 export const isPromptInjection = (query, isNested = false) => {
   if (!query || typeof query !== 'string') return false;
 
-  // Security: Decode escape sequences, Enclosed Alphanumerics, Latin Small Caps, Latin Ligatures, Superscript/Subscripts, Regional Indicator Symbols, Unicode Tag characters (ASCII Smuggling), Braille patterns, URL percent-encoding, and HTML entities first
-  const decodedQuery = decodeBraillePatterns(decodeEnclosedAlphanumerics(decodePercentEncoding(decodeHTMLEntities(decodeUnicodeTagCharacters(decodeRegionalIndicatorSymbols(decodeLatinSmallCaps(decodeLatinLigatures(decodeSuperAndSubscripts(decodeEnclosedAlphanumerics(decodeEscapeSequences(query)))))))))));
+  // Security: Decode escape sequences, Enclosed Alphanumerics, Latin Small Caps, Latin Ligatures, Superscript/Subscripts, Regional Indicator Symbols, Unicode Tag characters (ASCII Smuggling), Braille patterns, URL percent-encoding, HTML entities, and Quoted-Printable first
+  const decodedQuery = decodeQuotedPrintable(decodeBraillePatterns(decodeEnclosedAlphanumerics(decodePercentEncoding(decodeHTMLEntities(decodeUnicodeTagCharacters(decodeRegionalIndicatorSymbols(decodeLatinSmallCaps(decodeLatinLigatures(decodeSuperAndSubscripts(decodeEnclosedAlphanumerics(decodeEscapeSequences(query))))))))))));
 
   let normalizedQuery = decodeLeetspeak(decodedQuery).normalize('NFKD').toLowerCase();
   // Strip combining diacritical marks across all standard Unicode diacritic blocks (including extended, supplement, symbols, and half-marks)
