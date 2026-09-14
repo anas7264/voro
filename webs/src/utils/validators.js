@@ -943,6 +943,92 @@ const safeReverseString = (str) => {
   return str.split('').reverse().join('');
 };
 
+// Helper to safely decode single-byte XOR cipher-encoded payloads (hex/decimal/octal/binary tokens or raw strings) across keys 1..255
+const safeDecodeXOR = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8) return null;
+
+  // 1. Try tokenized byte sequence decoding (space, comma, colon, semicolon, plus, equals, or slash-separated)
+  const tokens = targetStr.trim().split(/[\s,.\-_\/:;+=]+/);
+  if (tokens.length >= 4) {
+    const decBytes = [];
+    let isAllDec = true;
+    const hexBytes = [];
+    let isAllHex = true;
+
+    for (const token of tokens) {
+      if (!token) continue;
+
+      if (/^\d{1,3}$/.test(token)) {
+        const dVal = parseInt(token, 10);
+        if (dVal >= 0 && dVal <= 255) decBytes.push(dVal);
+        else isAllDec = false;
+      } else {
+        isAllDec = false;
+      }
+
+      let hVal = null;
+      if (/^0x[0-9a-fA-F]{1,2}$/i.test(token)) {
+        hVal = parseInt(token.slice(2), 16);
+      } else if (/^0o[0-7]{1,3}$/i.test(token)) {
+        hVal = parseInt(token.slice(2), 8);
+      } else if (/^0b[01]{7,8}$/i.test(token)) {
+        hVal = parseInt(token.slice(2), 2);
+      } else if (/^[0-9a-fA-F]{1,2}$/i.test(token)) {
+        hVal = parseInt(token, 16);
+      }
+      if (hVal !== null && hVal >= 0 && hVal <= 255) hexBytes.push(hVal);
+      else isAllHex = false;
+    }
+
+    const candidateByteArrays = [];
+    if (isAllDec && decBytes.length >= 4) candidateByteArrays.push(decBytes);
+    if (isAllHex && hexBytes.length >= 4) candidateByteArrays.push(hexBytes);
+
+    for (const bytes of candidateByteArrays) {
+      for (let k = 1; k < 256; k++) {
+        let isValidASCII = true;
+        let decoded = '';
+        for (let i = 0; i < bytes.length; i++) {
+          const code = bytes[i] ^ k;
+          if (code < 9 || (code > 13 && code < 32) || code > 126) {
+            isValidASCII = false;
+            break;
+          }
+          decoded += String.fromCharCode(code);
+        }
+        if (isValidASCII && decoded.length >= 8) {
+          if (isPromptInjection(decoded, true)) {
+            return decoded;
+          }
+        }
+      }
+    }
+  }
+
+  // 2. Try raw character string XOR decoding
+  if (targetStr.length <= 2000) {
+    for (let k = 1; k < 256; k++) {
+      let isValidASCII = true;
+      let decoded = '';
+      for (let i = 0; i < targetStr.length; i++) {
+        const code = targetStr.charCodeAt(i) ^ k;
+        if (code < 9 || (code > 13 && code < 32) || code > 126) {
+          isValidASCII = false;
+          break;
+        }
+        decoded += String.fromCharCode(code);
+      }
+      if (isValidASCII && decoded.length >= 8) {
+        if (isPromptInjection(decoded, true)) {
+          return decoded;
+        }
+      }
+    }
+  }
+
+  return null;
+};
+
 // Consolidated regex of compressed patterns to detect spacer-based prompt injection obfuscation (e.g., i.g.n.o.r.e)
 const COMPRESSED_BLOCKLIST_RE = /ignoreprevious|ignoreabove|ignoreallinstructions|ignoresystem|bypassinstructions|overridesystem|systemoverride|developermode|danmode|doanythingnow|forgetprevious|forgetallinstructions|forgetwhatwassaid|youmustnowignore|youarenowadeveloper|youarenowanunrestricted|unrestrictedmode|withoutrestrictions|disablesafety|bypassfilters|repeatthesystemprompt|revealyourinstructions|revealthesystemprompt|revealinstructions|outputthesysteminstructions|outputyourinstructions|outputthetextabove|showyoursystemprompt|showsystemprompt|whatisyoursystemprompt|whatisyourprompt|whatareyourinstructions|whatareyourdeveloperinstructions|revealthenonce|outputyournonces|roleplayas|adoptthepersona|pretendtobe|youarenowaterminal|youarenowalinux|startingnowyouare|youarenolongeranaiassistant|youarenolongerahelpful/i;
 
@@ -1111,6 +1197,12 @@ export const isPromptInjection = (query, isNested = false) => {
       // Security: Handle reversed-string/words obfuscation and evaluate recursively
       const reversedStr = safeReverseString(targetStr);
       if (reversedStr && isPromptInjection(reversedStr, true)) {
+        return true;
+      }
+
+      // Security: Handle Single-Byte XOR cipher-encoded payloads across keys 1..255 and evaluate recursively
+      const xorDecoded = safeDecodeXOR(targetStr);
+      if (xorDecoded) {
         return true;
       }
     }
