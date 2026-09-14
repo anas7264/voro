@@ -616,10 +616,10 @@ const BASE58_FORMAT_RE = /^[1-9A-HJ-NP-Za-km-z]{8,}$/;
 const BASE58_MATCH_RE = /[1-9A-HJ-NP-Za-km-z]{12,}/g;
 const NON_PRINTABLE_ASCII_RE = /[\x00-\x09\x0B\x0C\x0E-\x1F\x7F-\xFF]/;
 const HEX_FORMAT_RE = /^[0-9a-fA-F]{8,}$/;
-const BINARY_MATCH_RE = /(?:(?:0b)?[01]{7,8}(?:[\s,.\-_\/:;+=]+|$)){2,}/gi;
+const BINARY_MATCH_RE = /(?:(?:0b)?[01]{7,8}(?:[\s,.\-_\/:;+=]+|$)){2,}|(?:0b[01]{7,8}){2,}/gi;
 const DECIMAL_MATCH_RE = /(?:(?:0x[0-9a-fA-F]{1,2}|0o[0-7]{1,3}|\d{1,3})(?:[\s,.\-_\/:;+=]+|$)){4,}/g;
-const OCTAL_MATCH_RE = /(?:(?:0o)?[0-7]{3}(?:[\s,.\-_\/:;+=]+|$)){4,}/g;
-const HEX_BYTES_MATCH_RE = /(?:(?:0x)?[0-9a-fA-F]{2}(?:[\s,.\-_\/:;+=]+|$)){4,}/g;
+const OCTAL_MATCH_RE = /(?:(?:0o)?[0-7]{3}(?:[\s,.\-_\/:;+=]+|$)){4,}|(?:0o[0-7]{1,3}){4,}/gi;
+const HEX_BYTES_MATCH_RE = /(?:(?:0x)?[0-9a-fA-F]{2}(?:[\s,.\-_\/:;+=]+|$)){4,}|(?:0x[0-9a-fA-F]{1,2}){4,}/gi;
 const MULTI_RADIX_MATCH_RE = /(?:(?:0x[0-9a-fA-F]{1,2}|0o[0-7]{1,3}|[0-9a-fA-F]{2}|\d{1,3})(?:[\s,.\-_\/:;+=]+|$)){4,}/g;
 
 const MORSE_MAP = {
@@ -664,7 +664,9 @@ const safeDecodeDecimal = (str) => {
 const safeDecodeOctal = (str) => {
   try {
     if (!str || typeof str !== 'string' || str.length < 8) return null;
-    const tokens = str.trim().split(/[\s,.\-_\/:;+=]+/);
+    const tokens = str.toLowerCase().includes('0o')
+      ? (str.match(/0o[0-7]{1,3}/gi) || []).map(t => t.slice(2))
+      : str.trim().split(/[\s,.\-_\/:;+=]+/);
     if (tokens.length < 4) return null;
     let decoded = '';
     for (const token of tokens) {
@@ -672,7 +674,7 @@ const safeDecodeOctal = (str) => {
       let code;
       if (/^0o[0-7]{1,3}$/i.test(token)) {
         code = parseInt(token.slice(2), 8);
-      } else if (/^[0-7]{3}$/.test(token)) {
+      } else if (/^[0-7]{1,3}$/.test(token)) {
         code = parseInt(token, 8);
       } else {
         return null;
@@ -690,15 +692,17 @@ const safeDecodeOctal = (str) => {
 const safeDecodeHexBytes = (str) => {
   try {
     if (!str || typeof str !== 'string' || str.length < 8) return null;
-    const tokens = str.trim().split(/[\s,.\-_\/:;+=]+/);
+    const tokens = str.toLowerCase().includes('0x')
+      ? (str.match(/0x[0-9a-fA-F]{1,2}/gi) || []).map(t => t.slice(2))
+      : str.trim().split(/[\s,.\-_\/:;+=]+/);
     if (tokens.length < 4) return null;
     let decoded = '';
     for (const token of tokens) {
       if (!token) continue;
       let code;
       if (/^0x[0-9a-fA-F]{1,2}$/i.test(token)) {
-        code = parseInt(token, 16);
-      } else if (/^[0-9a-fA-F]{2}$/.test(token)) {
+        code = parseInt(token.slice(2), 16);
+      } else if (/^[0-9a-fA-F]{1,2}$/.test(token)) {
         code = parseInt(token, 16);
       } else {
         return null;
@@ -752,7 +756,10 @@ const safeDecodeMultiRadix = (str) => {
 const safeDecodeBinary = (str) => {
   try {
     if (!str || typeof str !== 'string' || str.length < 14) return null;
-    const tokens = str.trim().split(/[\s,.\-_\/:;+=]+/);
+    const tokens = str.toLowerCase().includes('0b')
+      ? (str.match(/0b[01]{7,8}/gi) || []).map(t => t.slice(2))
+      : str.trim().split(/[\s,.\-_\/:;+=]+/);
+    if (tokens.length < 2) return null;
     let decoded = '';
     for (const token of tokens) {
       if (!token) continue;
