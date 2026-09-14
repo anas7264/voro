@@ -181,12 +181,14 @@ export const DatePicker = memo(({
               onBlur={handleInputBlur}
               disabled={disabled}
               required={required}
+              title={disabled ? (props.title || "This field is disabled") : props.title}
               className={`
                 w-full bg-transparent px-6 py-5 text-white font-mono text-sm tracking-wide
                 focus:outline-none transition-all duration-500
                 [color-scheme:dark]
                 ${disabled ? "cursor-not-allowed" : ""}
               `}
+              aria-label={!label ? (props['aria-label'] || "Temporal input date selector") : undefined}
               aria-invalid={!!error}
               aria-describedby={error ? errorId : undefined}
               {...props}
@@ -206,7 +208,10 @@ export const DatePicker = memo(({
         </div>
 
         {/* Error Manifestation */}
-        <div className={`
+        <div
+          role="alert"
+          aria-live="polite"
+          className={`
           overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]
           ${error ? "max-h-10 opacity-100 mt-2" : "max-h-0 opacity-0"}
         `}>
