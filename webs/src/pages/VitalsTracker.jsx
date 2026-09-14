@@ -101,7 +101,8 @@ const getEnergyStatus = (val) => {
  */
 const ECGMachine = memo(({ bpm }) => {
   const cardRef = useRef(null);
-  const [coords, setCoords] = useState({ tx: '+0.0°', ty: '+0.0°' });
+  const tiltXRef = useRef(null);
+  const tiltYRef = useRef(null);
   const pulseDuration = useMemo(() => `${60 / Math.max(bpm, 1)}s`, [bpm]);
 
   const handleMouseMove = useCallback((e) => {
@@ -119,31 +120,32 @@ const ECGMachine = memo(({ bpm }) => {
     cardRef.current.style.setProperty('--tilt-x', `${rotateX.toFixed(2)}deg`);
     cardRef.current.style.setProperty('--tilt-y', `${rotateY.toFixed(2)}deg`);
 
-    setCoords({
-      tx: `${rotateY >= 0 ? '+' : ''}${rotateY.toFixed(1)}°`,
-      ty: `${rotateX >= 0 ? '+' : ''}${rotateX.toFixed(1)}°`
-    });
+    if (tiltXRef.current) tiltXRef.current.innerText = `${rotateY >= 0 ? '+' : ''}${rotateY.toFixed(1)}°`;
+    if (tiltYRef.current) tiltYRef.current.innerText = `${rotateX >= 0 ? '+' : ''}${rotateX.toFixed(1)}°`;
   }, []);
 
   const handleMouseLeave = useCallback(() => {
     if (!cardRef.current) return;
     cardRef.current.style.setProperty('--tilt-x', '0deg');
     cardRef.current.style.setProperty('--tilt-y', '0deg');
-    setCoords({ tx: '+0.0°', ty: '+0.0°' });
+    if (tiltXRef.current) tiltXRef.current.innerText = '+0.0°';
+    if (tiltYRef.current) tiltYRef.current.innerText = '+0.0°';
   }, []);
 
   const handleFocus = useCallback(() => {
     if (!cardRef.current) return;
     cardRef.current.style.setProperty('--tilt-x', '-2deg');
     cardRef.current.style.setProperty('--tilt-y', '4deg');
-    setCoords({ tx: '+4.0°', ty: '-2.0°' });
+    if (tiltXRef.current) tiltXRef.current.innerText = '+4.0°';
+    if (tiltYRef.current) tiltYRef.current.innerText = '-2.0°';
   }, []);
 
   const handleBlur = useCallback(() => {
     if (!cardRef.current) return;
     cardRef.current.style.setProperty('--tilt-x', '0deg');
     cardRef.current.style.setProperty('--tilt-y', '0deg');
-    setCoords({ tx: '+0.0°', ty: '+0.0°' });
+    if (tiltXRef.current) tiltXRef.current.innerText = '+0.0°';
+    if (tiltYRef.current) tiltYRef.current.innerText = '+0.0°';
   }, []);
 
   return (
@@ -180,7 +182,7 @@ const ECGMachine = memo(({ bpm }) => {
             REAL_TIME_MONITORING // {bpm} BPM
           </span>
           <span className="text-gray-600 tracking-tighter" aria-hidden="true">
-            TX_{coords.tx} TY_{coords.ty}
+            TX_<span ref={tiltXRef}>+0.0°</span> TY_<span ref={tiltYRef}>+0.0°</span>
           </span>
         </div>
       </div>
@@ -316,7 +318,8 @@ VitalsSlider.displayName = "VitalsSlider";
  */
 const VitalsHistoryCard = memo(({ entry, bpmInfo, bpInfo, moodInfo, energyInfo }) => {
   const cardRef = useRef(null);
-  const [coords, setCoords] = useState({ tx: '+0.0°', ty: '+0.0°' });
+  const tiltXRef = useRef(null);
+  const tiltYRef = useRef(null);
 
   const handleMouseMove = useCallback((e) => {
     if (!cardRef.current) return;
@@ -333,31 +336,32 @@ const VitalsHistoryCard = memo(({ entry, bpmInfo, bpInfo, moodInfo, energyInfo }
     cardRef.current.style.setProperty('--tilt-x', `${rotateX.toFixed(2)}deg`);
     cardRef.current.style.setProperty('--tilt-y', `${rotateY.toFixed(2)}deg`);
 
-    setCoords({
-      tx: `${rotateY >= 0 ? '+' : ''}${rotateY.toFixed(1)}°`,
-      ty: `${rotateX >= 0 ? '+' : ''}${rotateX.toFixed(1)}°`
-    });
+    if (tiltXRef.current) tiltXRef.current.innerText = `${rotateY >= 0 ? '+' : ''}${rotateY.toFixed(1)}°`;
+    if (tiltYRef.current) tiltYRef.current.innerText = `${rotateX >= 0 ? '+' : ''}${rotateX.toFixed(1)}°`;
   }, []);
 
   const handleMouseLeave = useCallback(() => {
     if (!cardRef.current) return;
     cardRef.current.style.setProperty('--tilt-x', '0deg');
     cardRef.current.style.setProperty('--tilt-y', '0deg');
-    setCoords({ tx: '+0.0°', ty: '+0.0°' });
+    if (tiltXRef.current) tiltXRef.current.innerText = '+0.0°';
+    if (tiltYRef.current) tiltYRef.current.innerText = '+0.0°';
   }, []);
 
   const handleFocus = useCallback(() => {
     if (!cardRef.current) return;
     cardRef.current.style.setProperty('--tilt-x', '-2deg');
     cardRef.current.style.setProperty('--tilt-y', '4deg');
-    setCoords({ tx: '+4.0°', ty: '-2.0°' });
+    if (tiltXRef.current) tiltXRef.current.innerText = '+4.0°';
+    if (tiltYRef.current) tiltYRef.current.innerText = '-2.0°';
   }, []);
 
   const handleBlur = useCallback(() => {
     if (!cardRef.current) return;
     cardRef.current.style.setProperty('--tilt-x', '0deg');
     cardRef.current.style.setProperty('--tilt-y', '0deg');
-    setCoords({ tx: '+0.0°', ty: '+0.0°' });
+    if (tiltXRef.current) tiltXRef.current.innerText = '+0.0°';
+    if (tiltYRef.current) tiltYRef.current.innerText = '+0.0°';
   }, []);
 
   return (
@@ -386,7 +390,7 @@ const VitalsHistoryCard = memo(({ entry, bpmInfo, bpInfo, moodInfo, energyInfo }
       {/* Pulse Beacon */}
       <div className="absolute top-8 right-8 flex items-center gap-3">
         <span className="font-mono text-[0.45rem] text-gray-600 tracking-tighter" aria-hidden="true">
-          TX_{coords.tx} TY_{coords.ty}
+          TX_<span ref={tiltXRef}>+0.0°</span> TY_<span ref={tiltYRef}>+0.0°</span>
         </span>
         <div className="w-2 h-2 rounded-full bg-voro-primary shadow-[0_0_10px_rgba(124,58,237,0.8)] animate-pulse" />
       </div>

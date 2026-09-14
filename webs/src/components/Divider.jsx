@@ -1,4 +1,4 @@
-import React, { memo, useRef, useState, useId, useMemo } from "react";
+import React, { memo, useRef, useId, useMemo } from "react";
 
 /**
  * ⚡ REFINEMENT: Luxury Kinetic Neural Stratum Conduit & Telemetry Node (Divider).
@@ -12,7 +12,6 @@ export const Divider = memo(({ label, className = "" }) => {
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
   const reactId = useId();
 
   // Generate stable system node identification and attestation markers
@@ -25,6 +24,12 @@ export const Divider = memo(({ label, className = "" }) => {
     const cleanId = reactId.replace(/:/g, '');
     return `0xDIV_STRATUM_${cleanId.padEnd(6, '0').slice(0, 6).toUpperCase()}`;
   }, [reactId]);
+
+  const handleMouseEnter = () => {
+    if (!containerRef.current) return;
+    containerRef.current.style.transition = 'none';
+    containerRef.current.style.setProperty('--trans-y', '-1px');
+  };
 
   const handleMouseMove = (e) => {
     if (!containerRef.current) return;
@@ -45,26 +50,26 @@ export const Divider = memo(({ label, className = "" }) => {
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
   };
 
+  const handleMouseLeave = () => {
+    if (!containerRef.current) return;
+    containerRef.current.style.transition = 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)';
+    containerRef.current.style.setProperty('--tilt-x', '0deg');
+    containerRef.current.style.setProperty('--tilt-y', '0deg');
+    containerRef.current.style.setProperty('--trans-y', '0px');
+  };
+
   return (
     <div
       ref={containerRef}
+      onMouseEnter={handleMouseEnter}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        if (containerRef.current) {
-          containerRef.current.style.setProperty('--tilt-x', '0deg');
-          containerRef.current.style.setProperty('--tilt-y', '0deg');
-        }
-      }}
+      onMouseLeave={handleMouseLeave}
       role="separator"
       aria-orientation="horizontal"
       aria-label={label ? `Stratum divider: ${label}` : "Stratum divider"}
       style={{
-        transform: isHovered
-          ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-1px)'
-          : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: isHovered ? 'none' : 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)',
+        transform: 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(var(--trans-y, 0px))',
+        transition: 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
       }}
       className={`
@@ -96,9 +101,7 @@ export const Divider = memo(({ label, className = "" }) => {
       <div
         className="absolute inset-0 opacity-0 group-hover/divider:opacity-100 pointer-events-none transition-opacity duration-700 rounded-xl"
         style={{
-          background: isHovered
-            ? `radial-gradient(400px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(124, 58, 237, 0.06), transparent 45%)`
-            : `radial-gradient(400px circle at 50% 50%, rgba(124, 58, 237, 0.06), transparent 45%)`,
+          background: `radial-gradient(400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(124, 58, 237, 0.06), transparent 45%)`,
           transform: 'translateZ(10px)'
         }}
       />
