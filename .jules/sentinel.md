@@ -358,3 +358,14 @@ Binary representations in untrusted user inputs frequently use programming langu
 
 **Prevention:**
 Ensure binary character code decoders and matching regexes explicitly support standard binary literal notation (`0b`/`0B`) in addition to raw binary octet strings before evaluating input against injection rules.
+
+## 2026-09-11 - Concatenated Prefix-Formatted Character Code Prompt Injection Shield
+
+**Vulnerability:**
+Prompt injection filters matching prefix-formatted character codes (hex `0x`, octal `0o`, binary `0b`) relied on mandatory delimiters between tokens. An attacker could concatenate prefixed byte tokens without delimiters (e.g. `0x690x670x6e...`, `0o1510o147...`, or `0b011010010b01100111...` for "ignore previous"). Because the token-matching regexes required trailing delimiters after each byte, concatenated prefix streams bypassed candidate extraction and reached downstream LLMs.
+
+**Learning:**
+Obfuscated character code streams can omit delimiters entirely when explicit radix prefixes (`0x`, `0o`, `0b`) delineate byte boundaries. Expanding token extraction regexes (`HEX_BYTES_MATCH_RE`, `OCTAL_MATCH_RE`, `BINARY_MATCH_RE`) and safe decoders (`safeDecodeHexBytes`, `safeDecodeOctal`, `safeDecodeBinary`) to recognize concatenated prefixed byte tokens allows extracting and converting concatenated character code streams into ASCII before evaluating prompt injection rules.
+
+**Prevention:**
+Ensure character-code decoders and matching regexes support both delimiter-separated and concatenated prefix-formatted byte streams (`0x`, `0o`, `0b`) before evaluating user input against prompt injection rules.
