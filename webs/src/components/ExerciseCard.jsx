@@ -1,17 +1,18 @@
-import React, { memo, useRef, useState, useId, useMemo, useCallback } from "react";
+import React, { memo, useRef, useId, useMemo, useCallback } from "react";
 import { Activity, Sparkles, ChevronRight, Edit3, Trash2 } from "lucide-react";
 import { Button } from "./Button";
 
 /**
- * ⚡ REFINEMENT: Luxury Kinetic Movement Pattern Node (ExerciseCard).
- * Re-engineered to the 'Forge' luxury standard with 3D spatial transforms,
- * magnetic mouse tracking, W3C APG accessibility focus states, and industrial telemetry markers.
+ * ⚡ OPTIMIZATION: Refined Luxury Kinetic Movement Pattern Node (ExerciseCard).
+ * Re-engineered to Voro's 'Forge' luxury standard with 3D spatial transforms,
+ * magnetic mouse tracking, W3C APG accessibility focus states, industrial telemetry markers,
+ * and zero-re-render interaction tracking via useRef flags (isHoveredRef, isFocusedRef).
  *
  * DESIGN PHILOSOPHY:
  * 1. Aesthetic: High-fidelity charcoal architecture with glassmorphic depth.
  * 2. Typography: Playfair Display for movement names; JetBrains Mono for telemetry.
  * 3. Motion: Volumetric 3D tilt and 'Liquid Light' luminous lens.
- * 4. Precision: Surgical Reactivity via direct DOM manipulation for 60fps performance.
+ * 4. Precision: Surgical Reactivity via direct DOM manipulation for 60fps zero-allocation performance.
  */
 export const ExerciseCard = memo(({
   exercise,
@@ -23,8 +24,8 @@ export const ExerciseCard = memo(({
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
   const reactId = useId();
 
   // Generate a stable system ID for the node using useMemo for zero-allocation re-renders
@@ -43,33 +44,72 @@ export const ExerciseCard = memo(({
     const tiltY = ((x / rect.width) - 0.5) * 24;
     const tiltX = (0.5 - (y / rect.height)) * 24;
 
-    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
-    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
-    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    const style = containerRef.current.style;
+    style.setProperty('--mouse-x', `${x}px`);
+    style.setProperty('--mouse-y', `${y}px`);
+    style.setProperty('--tilt-x', `${tiltX}deg`);
+    style.setProperty('--tilt-y', `${tiltY}deg`);
+    style.setProperty('transform', 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-8px)');
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
   }, []);
 
-  const handleFocus = useCallback(() => {
-    setIsFocused(true);
+  const handleMouseEnter = useCallback(() => {
+    isHoveredRef.current = true;
     if (containerRef.current) {
-      containerRef.current.style.setProperty('--tilt-x', '4deg');
-      containerRef.current.style.setProperty('--tilt-y', '-4deg');
-      if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
-      if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
+      containerRef.current.style.setProperty('transition', 'none');
     }
   }, []);
 
-  const handleBlur = useCallback(() => {
-    setIsFocused(false);
-    if (containerRef.current) {
-      containerRef.current.style.setProperty('--tilt-x', '0deg');
-      containerRef.current.style.setProperty('--tilt-y', '0deg');
+  const handleMouseLeave = useCallback(() => {
+    isHoveredRef.current = false;
+    if (!containerRef.current) return;
+
+    const style = containerRef.current.style;
+    style.setProperty('transition', 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)');
+
+    if (isFocusedRef.current) {
+      style.setProperty('--tilt-x', '4deg');
+      style.setProperty('--tilt-y', '-4deg');
+      style.setProperty('transform', 'perspective(1000px) rotateX(var(--tilt-x, 4deg)) rotateY(var(--tilt-y, -4deg)) translateY(-8px)');
+      if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
+    } else {
+      style.setProperty('--tilt-x', '0deg');
+      style.setProperty('--tilt-y', '0deg');
+      style.setProperty('transform', 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)');
+      if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
     }
-    if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
-    if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
+  }, []);
+
+  const handleFocus = useCallback(() => {
+    isFocusedRef.current = true;
+    if (!containerRef.current) return;
+
+    const style = containerRef.current.style;
+    style.setProperty('transition', 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)');
+    style.setProperty('--tilt-x', '4deg');
+    style.setProperty('--tilt-y', '-4deg');
+    style.setProperty('transform', 'perspective(1000px) rotateX(var(--tilt-x, 4deg)) rotateY(var(--tilt-y, -4deg)) translateY(-8px)');
+    if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
+    if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    isFocusedRef.current = false;
+    if (!containerRef.current) return;
+
+    if (!isHoveredRef.current) {
+      const style = containerRef.current.style;
+      style.setProperty('transition', 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)');
+      style.setProperty('--tilt-x', '0deg');
+      style.setProperty('--tilt-y', '0deg');
+      style.setProperty('transform', 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)');
+      if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
+    }
   }, []);
 
   const handleSelect = useCallback(() => {
@@ -86,30 +126,20 @@ export const ExerciseCard = memo(({
     onDelete?.(exercise);
   }, [onDelete, exercise]);
 
-  const interactionActive = isHovered || isFocused;
-
   return (
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        if (containerRef.current) {
-          containerRef.current.style.setProperty('--tilt-x', '0deg');
-          containerRef.current.style.setProperty('--tilt-y', '0deg');
-        }
-      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
       tabIndex={0}
       role="article"
       aria-label={`Movement pattern: ${exercise.name}. Category: ${exercise.category}. Difficulty: ${exercise.difficulty}.`}
       style={{
-        transform: interactionActive
-          ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-8px)'
-          : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: isHovered ? 'none' : 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)',
+        transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
       }}
       className={`
