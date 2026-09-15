@@ -1,4 +1,4 @@
-import React, { useId, memo, useMemo, useRef, useState } from "react";
+import React, { useId, memo, useMemo, useRef } from "react";
 import { ChevronDown } from "lucide-react";
 
 /**
@@ -23,6 +23,8 @@ export const Select = memo(({
   required = false,
   label,
   className = "",
+  onFocus,
+  onBlur,
   ...props
 }) => {
   const generatedId = useId();
@@ -32,8 +34,8 @@ export const Select = memo(({
   const containerRef = useRef(null);
   const txRef = useRef(null);
   const tyRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
 
   // Generate a stable system ID for the selection node
   const nodeId = useMemo(() => {
@@ -52,53 +54,76 @@ export const Select = memo(({
     const tiltY = ((x / rect.width) - 0.5) * 20;
     const tiltX = (0.5 - (y / rect.height)) * 20;
 
-    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
-    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
-    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    const style = containerRef.current.style;
+    style.setProperty('--mouse-x', `${x}px`);
+    style.setProperty('--mouse-y', `${y}px`);
+    style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
+    style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
+    style.setProperty('transform', `perspective(1000px) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg) translateY(-2px)`);
+    style.setProperty('transition', 'none');
 
     if (txRef.current) txRef.current.innerText = tiltX.toFixed(1);
     if (tyRef.current) tyRef.current.innerText = tiltY.toFixed(1);
   };
 
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('transition', 'none');
+    }
+  };
+
   const handleMouseLeave = () => {
-    setIsHovered(false);
+    isHoveredRef.current = false;
     if (!containerRef.current) return;
 
-    if (isFocused) {
+    const style = containerRef.current.style;
+    style.setProperty('transition', 'transform 0.7s cubic-bezier(0.16,1,0.3,1)');
+
+    if (isFocusedRef.current) {
       // Revert to APG static 4-degree focus tilt
-      containerRef.current.style.setProperty('--tilt-x', '4deg');
-      containerRef.current.style.setProperty('--tilt-y', '-4deg');
+      style.setProperty('--tilt-x', '4deg');
+      style.setProperty('--tilt-y', '-4deg');
+      style.setProperty('transform', 'perspective(1000px) rotateX(4deg) rotateY(-4deg) translateY(-2px)');
       if (txRef.current) txRef.current.innerText = "4.0";
       if (tyRef.current) tyRef.current.innerText = "-4.0";
     } else {
-      containerRef.current.style.setProperty('--tilt-x', '0deg');
-      containerRef.current.style.setProperty('--tilt-y', '0deg');
+      style.setProperty('--tilt-x', '0deg');
+      style.setProperty('--tilt-y', '0deg');
+      style.setProperty('transform', 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)');
+      if (txRef.current) txRef.current.innerText = "0.0";
+      if (tyRef.current) tyRef.current.innerText = "0.0";
     }
   };
 
-  const handleFocus = () => {
-    setIsFocused(true);
-    if (!containerRef.current) return;
-
-    // W3C APG compliant static 4-degree focus tilt
-    containerRef.current.style.setProperty('--tilt-x', '4deg');
-    containerRef.current.style.setProperty('--tilt-y', '-4deg');
-    if (txRef.current) txRef.current.innerText = "4.0";
-    if (tyRef.current) tyRef.current.innerText = "-4.0";
-  };
-
-  const handleBlur = () => {
-    setIsFocused(false);
-    if (!containerRef.current) return;
-
-    if (!isHovered) {
-      containerRef.current.style.setProperty('--tilt-x', '0deg');
-      containerRef.current.style.setProperty('--tilt-y', '0deg');
+  const handleFocus = (e) => {
+    isFocusedRef.current = true;
+    if (containerRef.current) {
+      const style = containerRef.current.style;
+      style.setProperty('transition', 'transform 0.7s cubic-bezier(0.16,1,0.3,1)');
+      // W3C APG compliant static 4-degree focus tilt
+      style.setProperty('--tilt-x', '4deg');
+      style.setProperty('--tilt-y', '-4deg');
+      style.setProperty('transform', 'perspective(1000px) rotateX(4deg) rotateY(-4deg) translateY(-2px)');
+      if (txRef.current) txRef.current.innerText = "4.0";
+      if (tyRef.current) tyRef.current.innerText = "-4.0";
     }
+    if (onFocus) onFocus(e);
   };
 
-  const interactionActive = isHovered || isFocused;
+  const handleBlur = (e) => {
+    isFocusedRef.current = false;
+    if (containerRef.current && !isHoveredRef.current) {
+      const style = containerRef.current.style;
+      style.setProperty('transition', 'transform 0.7s cubic-bezier(0.16,1,0.3,1)');
+      style.setProperty('--tilt-x', '0deg');
+      style.setProperty('--tilt-y', '0deg');
+      style.setProperty('transform', 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)');
+      if (txRef.current) txRef.current.innerText = "0.0";
+      if (tyRef.current) tyRef.current.innerText = "0.0";
+    }
+    if (onBlur) onBlur(e);
+  };
 
   return (
     <div className={`w-full group/select-container ${className}`}>
@@ -127,15 +152,13 @@ export const Select = memo(({
       <div
         ref={containerRef}
         onMouseMove={handleMouseMove}
-        onMouseEnter={() => setIsHovered(true)}
+        onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         className="relative transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
         style={{
-          transform: interactionActive
-            ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)'
-            : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+          transform: 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(0px)',
           transformStyle: 'preserve-3d',
-          transition: isHovered ? 'none' : 'transform 0.7s cubic-bezier(0.16,1,0.3,1)'
+          transition: 'transform 0.7s cubic-bezier(0.16,1,0.3,1)'
         }}
       >
         {/* Architectural Framing: High-end charcoal box */}
@@ -155,9 +178,7 @@ export const Select = memo(({
           <div
             className="absolute inset-0 opacity-0 group-hover/select-container:opacity-100 group-focus-within/select-container:opacity-100 transition-opacity duration-500 pointer-events-none"
             style={{
-              background: isHovered
-                ? `radial-gradient(150px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(124,58,237,0.12), transparent 70%)`
-                : `radial-gradient(150px circle at 50% 50%, rgba(124,58,237,0.12), transparent 70%)`
+              background: `radial-gradient(150px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(124,58,237,0.12), transparent 70%)`
             }}
           />
 
