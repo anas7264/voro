@@ -563,7 +563,7 @@ const decodePercentEncoding = (str) => {
   return decoded;
 };
 
-// Helper to decode HTML entities (handles decimal, hex, and named entities, multi-pass up to 5 passes)
+// Helper to decode HTML entities (handles decimal, hex, and named entities with or without trailing semicolons, multi-pass up to 5 passes)
 const decodeHTMLEntities = (str) => {
   if (!str || typeof str !== 'string' || !str.includes('&')) return str;
   let decoded = str;
@@ -575,14 +575,14 @@ const decodeHTMLEntities = (str) => {
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
       .replace(/&quot;/g, '"')
-      .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => {
+      .replace(/&#x([0-9a-fA-F]+);?/gi, (_, hex) => {
         try {
           return String.fromCodePoint(parseInt(hex, 16));
         } catch (e) {
           return _;
         }
       })
-      .replace(/&#(\d+);/g, (_, dec) => {
+      .replace(/&#(\d+);?/g, (_, dec) => {
         try {
           return String.fromCodePoint(parseInt(dec, 10));
         } catch (e) {

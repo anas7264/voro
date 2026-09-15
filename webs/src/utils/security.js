@@ -2223,7 +2223,7 @@ const detectHomoglyphs = (host) => {
   return /[^\x00-\x7F]/.test(host) || host.toLowerCase().startsWith('xn--');
 };
 
-// Helper to decode HTML entities (decimal, hex, and named entities)
+// Helper to decode HTML entities (decimal, hex, and named entities with or without trailing semicolons)
 const decodeHTMLEntities = (str) => {
   if (!str || typeof str !== 'string' || !_call.call(_SIncludes, str, '&')) return str;
   let r = str;
@@ -2232,10 +2232,10 @@ const decodeHTMLEntities = (str) => {
   r = _call.call(_replace, r, /&gt;/gi, '>');
   r = _call.call(_replace, r, /&quot;/gi, '"');
   r = _call.call(_replace, r, /&apos;/gi, "'");
-  r = _call.call(_replace, r, /&#x([0-9a-fA-F]+);/gi, (_, hex) => {
+  r = _call.call(_replace, r, /&#x([0-9a-fA-F]+);?/gi, (_, hex) => {
     try { return String.fromCodePoint(parseInt(hex, 16)); } catch (e) { return _; }
   });
-  r = _call.call(_replace, r, /&#(\d+);/g, (_, dec) => {
+  r = _call.call(_replace, r, /&#(\d+);?/g, (_, dec) => {
     try { return String.fromCodePoint(parseInt(dec, 10)); } catch (e) { return _; }
   });
   return r;
@@ -2367,10 +2367,10 @@ export const validateAIResponse = (c, n = null) => {
         } catch (e) { /* fallback to last valid decode if malformed */ }
 
         decodedUrl = _call.call(_replace, decodedUrl, /&amp;/gi, '&');
-        decodedUrl = _call.call(_replace, decodedUrl, /&#x([0-9a-fA-F]+);/g, (_, hex) => {
+        decodedUrl = _call.call(_replace, decodedUrl, /&#x([0-9a-fA-F]+);?/gi, (_, hex) => {
           try { return String.fromCodePoint(parseInt(hex, 16)); } catch (err) { return _; }
         });
-        decodedUrl = _call.call(_replace, decodedUrl, /&#(\d+);/g, (_, dec) => {
+        decodedUrl = _call.call(_replace, decodedUrl, /&#(\d+);?/g, (_, dec) => {
           try { return String.fromCodePoint(parseInt(dec, 10)); } catch (err) { return _; }
         });
 
@@ -2420,10 +2420,10 @@ export const validateAIResponse = (c, n = null) => {
         } catch (err) { /* fallback */ }
 
         decodedUrl = _call.call(_replace, decodedUrl, /&amp;/gi, '&');
-        decodedUrl = _call.call(_replace, decodedUrl, /&#x([0-9a-fA-F]+);/g, (_, hex) => {
+        decodedUrl = _call.call(_replace, decodedUrl, /&#x([0-9a-fA-F]+);?/gi, (_, hex) => {
           try { return String.fromCodePoint(parseInt(hex, 16)); } catch (err) { return _; }
         });
-        decodedUrl = _call.call(_replace, decodedUrl, /&#(\d+);/g, (_, dec) => {
+        decodedUrl = _call.call(_replace, decodedUrl, /&#(\d+);?/g, (_, dec) => {
           try { return String.fromCodePoint(parseInt(dec, 10)); } catch (err) { return _; }
         });
 
