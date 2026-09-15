@@ -223,3 +223,10 @@
 **Action:**
 1. Hoist selector functions (`selectPrepPlan`, `selectProvisions`) to module scope outside component bodies.
 2. Use a module-scoped shallow array equality check instead of `JSON.stringify` serialization in `useStorageKeySelector`.
+
+## 2026-09-15 - Zero-Allocation Interaction State Tracking in Primitive UI Controls
+**Learning:** Core form control components (`Input`, `Select`, `Textarea`) that maintain `useState` for hover and focus state trigger full React component re-renders whenever a user hovers over or focuses an input control. In form-heavy interfaces with dozens of controls, this creates noticeable main-thread render overhead. Replacing `useState` flags with `useRef` boolean flags (`isHoveredRef`, `isFocusedRef`) and performing direct DOM property updates (`containerRef.current.style`) during hover/focus/blur events completely eliminates React re-renders while preserving 60fps 3D volumetric tilt tracking and APG focus physics.
+
+**Action:**
+1. Use `useRef` for hover/focus state tracking in presentational interactive components where the state change only drives local CSS/DOM style updates.
+2. Update container styles directly (`setProperty('--tilt-x')`, `setProperty('transform')`) in event handlers to bypass React reconciliation.
