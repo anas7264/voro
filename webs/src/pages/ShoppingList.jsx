@@ -13,13 +13,13 @@ const selectShoppingList = (data) => (Array.isArray(data) ? data : EMPTY_LIST);
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted constants and static arrays.
  * Bypasses dynamic allocations and GC overhead on high-frequency renders.
  */
-const SUPPLY_LOGS = [
+const SUPPLY_LOGS = Object.freeze([
   'AWAITING_BIO_SYNC_SEQUENCE',
   'SUPPLY_CHAIN_PIPELINE_STANDBY',
   'LOCAL_INVENTORY_SEQUESTRATION_IDLE',
   'PROCUREMENT_VECTOR_STABILIZED',
   'NEURAL_METABOLIC_LINK_READY'
-];
+]);
 
 /**
  * ⚡ REFINEMENT: ProcuredResourceCard Component.

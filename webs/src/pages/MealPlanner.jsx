@@ -305,8 +305,14 @@ const MealPlanner = () => {
     budget: 'Moderate',
   });
 
+  const activeTimersRef = useRef([]);
+
   useEffect(() => {
     document.title = 'VORO | Trophic Architect';
+    return () => {
+      activeTimersRef.current.forEach(clearTimeout);
+      activeTimersRef.current = [];
+    };
   }, []);
 
   const generatePlan = useCallback(async () => {
@@ -346,12 +352,15 @@ const MealPlanner = () => {
       { prg: 100, msg: "Synthesis Complete.", delay: 2900 },
     ];
 
+    activeTimersRef.current.forEach(clearTimeout);
+    activeTimersRef.current = [];
+
     steps.forEach(({ prg, msg, delay }) => {
-      setTimeout(() => {
+      const tId = setTimeout(() => {
         setLoadingProgress(prg);
         setLoadingStatus(msg);
         if (prg === 100) {
-          setTimeout(() => {
+          const innerTId = setTimeout(() => {
             const plan = {
               id: Date.now().toString(),
               createdAt: new Date().toISOString(),
@@ -367,8 +376,10 @@ const MealPlanner = () => {
             setSavingState('idle');
             addNotification('Metabolic blueprint synthesized successfully.', 'success');
           }, 300);
+          activeTimersRef.current.push(innerTId);
         }
       }, delay);
+      activeTimersRef.current.push(tId);
     });
   }, [formData, addNotification]);
 

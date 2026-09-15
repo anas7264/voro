@@ -16,8 +16,18 @@ const NUTRIENTS = Object.freeze([
   { id: 'omega3', name: 'Omega-3', unit: 'g', dailyGoal: 1.1, warning: 'Anti-inflammatory structural lipid supporting cerebral integrity.', color: '#EC4899', glow: 'rgba(236, 72, 153, 0.2)' },
 ]);
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Pre-indexed O(1) Hash Map.
+ * Provides constant-time lookup for micronutrient profiles, bypassing array iteration.
+ */
+const NUTRIENT_MAP = Object.freeze(NUTRIENTS.reduce((acc, n) => {
+  acc[n.id] = n;
+  return acc;
+}, {}));
+
 const DEFAULT_TRACKER = Object.freeze({});
 const DEFAULT_STATUS = Object.freeze({ intake: 0, fromFood: 0 });
+const CIRCUMFERENCE = 628.31853; // 2 * Math.PI * 100
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted module-scoped SVG ticks.
@@ -328,8 +338,8 @@ const ConcentricVisualizer = memo(({ nutrient, percentage, total, deficit }) => 
               stroke="url(#visualizer-grad)"
               strokeWidth="12"
               fill="none"
-              strokeDasharray={`${2 * Math.PI * 100}`}
-              strokeDashoffset={`${2 * Math.PI * 100 * (1 - percentage / 100)}`}
+              strokeDasharray={CIRCUMFERENCE}
+              strokeDashoffset={CIRCUMFERENCE * (1 - percentage / 100)}
               strokeLinecap="round"
               className="transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)]"
               style={{ filter: `drop-shadow(0 0 15px ${nutrient.color}45)` }}
@@ -405,7 +415,7 @@ const NutrientTracker = () => {
    * Derives currentNutrient, currentStatus, total, deficit, and percentage in a single pass.
    */
   const { currentNutrient, currentStatus, total, deficit, percentage } = useMemo(() => {
-    const nutrient = NUTRIENTS.find(n => n.id === selectedNutrientId) || NUTRIENTS[0];
+    const nutrient = NUTRIENT_MAP[selectedNutrientId] || NUTRIENTS[0];
     const status = tracker[selectedNutrientId] || DEFAULT_STATUS;
     const tot = (status.intake || 0) + (status.fromFood || 0);
     const def = Math.max(0, nutrient.dailyGoal - tot);
@@ -442,7 +452,7 @@ const NutrientTracker = () => {
   }, [logValue, currentStatus, selectedNutrientId, currentNutrient, updateItem, addNotification]);
 
   const handleResetTrigger = useCallback(async (id) => {
-    const targetNutrient = NUTRIENTS.find(n => n.id === id);
+    const targetNutrient = NUTRIENT_MAP[id] || NUTRIENTS[0];
     if (purgeActive) {
       if (purgeTimerRef.current) clearInterval(purgeTimerRef.current);
       setPurgeActive(false);
