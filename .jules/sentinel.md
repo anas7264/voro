@@ -369,3 +369,14 @@ Obfuscated character code streams can omit delimiters entirely when explicit rad
 
 **Prevention:**
 Ensure character-code decoders and matching regexes support both delimiter-separated and concatenated prefix-formatted byte streams (`0x`, `0o`, `0b`) before evaluating user input against prompt injection rules.
+
+## 2026-09-12 - Caesar Cipher (ROT-1 through ROT-25) Prompt Injection Shield
+
+**Vulnerability:**
+Prompt injection detectors analyzing fixed-shift encodings (such as ROT13) failed to detect prompt override instructions (such as "ignore previous") obfuscated with non-13 Caesar cipher letter shifts (e.g., ROT1 `"jhopsf qsfwjpvt"`, ROT3 `"ljqruh suhylrxv"`, ROT5 `"nlstwj uwjantzx"`). Language models autonomously decode arbitrary Caesar ciphers during query execution, allowing the obfuscated payload to bypass text-based blocklists and boundary validations.
+
+**Learning:**
+Neutralizing Caesar cipher obfuscation requires generalizing single-shift decoders (like ROT13) into a parameterized Caesar cipher decoder `safeDecodeCaesar(str, shift)` and recursively evaluating candidate strings across all 25 possible letter shifts (`for (let s = 1; s < 26; s++)`). When any shift decodes into a blocked prompt injection phrase, the input is safely rejected.
+
+**Prevention:**
+Ensure substitution cipher decoders in prompt validators evaluate all valid shift keys in the alphabet domain (ROT-1 through ROT-25) rather than restricting checks to ROT13 alone.

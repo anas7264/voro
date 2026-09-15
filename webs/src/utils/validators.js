@@ -928,21 +928,22 @@ const safeDecodeHex = (str) => {
   }
 };
 
-// Helper to decode ROT13-encoded text (highly useful for bypassing keyword filters)
-const safeDecodeRot13 = (str) => {
+// Helper to decode Caesar cipher (ROT-N, shifts 1..25) encoded text
+const safeDecodeCaesar = (str, shift) => {
   if (!str || typeof str !== 'string' || str.length < 8) return null;
-  const decoded = str.replace(/[a-zA-Z]/g, (c) => {
+  return str.replace(/[a-zA-Z]/g, (c) => {
     const code = c.charCodeAt(0);
     if (code >= 65 && code <= 90) {
-      return String.fromCharCode(((code - 65 + 13) % 26) + 65);
+      return String.fromCharCode(((code - 65 + shift) % 26) + 65);
     }
     if (code >= 97 && code <= 122) {
-      return String.fromCharCode(((code - 97 + 13) % 26) + 97);
+      return String.fromCharCode(((code - 97 + shift) % 26) + 97);
     }
     return c;
   });
-  return decoded;
 };
+
+const safeDecodeRot13 = (str) => safeDecodeCaesar(str, 13);
 
 // Helper to reverse a string (for reversed-keyword evasion)
 const safeReverseString = (str) => {
@@ -1185,10 +1186,12 @@ export const isPromptInjection = (query, isNested = false) => {
         }
       }
 
-      // Security: Handle ROT13 and ROT47-encoded obfuscation and evaluate recursively
-      const rot13Decoded = safeDecodeRot13(targetStr);
-      if (rot13Decoded && isPromptInjection(rot13Decoded, true)) {
-        return true;
+      // Security: Handle Caesar cipher (ROT-1 through ROT-25) and ROT47-encoded obfuscation and evaluate recursively
+      for (let s = 1; s < 26; s++) {
+        const caesarDecoded = safeDecodeCaesar(targetStr, s);
+        if (caesarDecoded && isPromptInjection(caesarDecoded, true)) {
+          return true;
+        }
       }
 
       const rot47Decoded = safeDecodeRot47(targetStr);
