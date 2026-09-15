@@ -26,6 +26,7 @@ const checks = [
   { name: 'Dynamic liquid border illumination mask', test: alertContent.includes('radial-gradient') && alertContent.includes('WebkitMaskComposite') },
   { name: 'Dismiss button with accessible ARIA label', test: alertContent.includes('onClose') && alertContent.includes('aria-label') },
   { name: 'W3C APG Role & Attributes', test: alertContent.includes('role="alert"') && alertContent.includes('aria-atomic="true"') && alertContent.includes('tabIndex={0}') },
+  { name: 'Escape key dismissal keyboard support', test: alertContent.includes('handleKeyDown') && alertContent.includes('e.key === "Escape"') && alertContent.includes('onKeyDown={handleKeyDown}') },
   { name: 'DisplayName set', test: alertContent.includes('Alert.displayName = "Alert"') }
 ];
 

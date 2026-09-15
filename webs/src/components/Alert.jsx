@@ -138,6 +138,13 @@ export const Alert = memo(({ type = "info", title, message, onClose, className =
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === "Escape" && onClose) {
+      e.stopPropagation();
+      onClose();
+    }
+  };
+
   const interactionActive = isHovered || isFocused;
   const messageId = message ? `${generatedId}-msg` : undefined;
 
@@ -149,6 +156,7 @@ export const Alert = memo(({ type = "info", title, message, onClose, className =
       onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
       tabIndex={0}
       role="alert"
       aria-atomic="true"
