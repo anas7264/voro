@@ -6,6 +6,7 @@ import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { validateHabit } from '@/utils/validators';
 import { defaultHabits } from '@/data/defaultHabits';
+import { getFastDateStr } from '@/utils/formatters';
 
 const EMPTY_LOG = Object.freeze({});
 
@@ -16,8 +17,14 @@ const COLOR_HEX_MAP = Object.freeze({
 });
 
 const selectHabitsList = (data) => (Array.isArray(data?.list) && data.list.length > 0 ? data.list : defaultHabits);
+
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Zero-Allocation Date Selector.
+ * Uses cached getFastDateStr(new Date()) to eliminate ISO date string allocations
+ * during selector evaluation loops.
+ */
 const selectTodayLog = (data) => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getFastDateStr(new Date());
   return data?.log?.[today] || EMPTY_LOG;
 };
 

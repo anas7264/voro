@@ -434,12 +434,16 @@ const WaterTracker = () => {
   const waterHistory = useStorageKeySelector(
     'water_history',
     useCallback((history) => {
-      return Object.entries(history || {})
-        .slice(-30)
-        .map(([d, amount]) => ({
-          date: getFastShortDate(d),
-          water: amount,
-        }));
+      const entries = Object.entries(history || {}).slice(-30);
+      const len = entries.length;
+      const res = new Array(len);
+      for (let i = 0; i < len; i++) {
+        res[i] = {
+          date: getFastShortDate(entries[i][0]),
+          water: entries[i][1],
+        };
+      }
+      return res;
     }, []),
     useCallback((a, b) => {
       if (a === b) return true;
