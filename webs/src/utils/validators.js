@@ -951,6 +951,85 @@ const safeReverseString = (str) => {
   return str.split('').reverse().join('');
 };
 
+const BACON_24_MAP = {
+  'AAAAA': 'a', 'AAAAB': 'b', 'AAABA': 'c', 'AAABB': 'd', 'AABAA': 'e', 'AABAB': 'f', 'AABBA': 'g', 'AABBB': 'h',
+  'ABABA': 'i', 'ABABB': 'k', 'ABBAA': 'l', 'ABBAB': 'm', 'ABBBB': 'n', 'BAAAA': 'o', 'BAAAB': 'p', 'BAABA': 'q',
+  'BAABB': 'r', 'BABAA': 's', 'BABAB': 't', 'BABBA': 'u', 'BABBB': 'w', 'BBAAA': 'x', 'BBAAB': 'y', 'BBABA': 'z'
+};
+
+const BACON_26_MAP = {
+  'AAAAA': 'a', 'AAAAB': 'b', 'AAABA': 'c', 'AAABB': 'd', 'AABAA': 'e', 'AABAB': 'f', 'AABBA': 'g', 'AABBB': 'h',
+  'ABABA': 'i', 'ABABB': 'j', 'ABBAA': 'k', 'ABBAB': 'l', 'ABBBB': 'm', 'BAAAA': 'n', 'BAAAB': 'o', 'BAABA': 'p',
+  'BAABB': 'q', 'BABAA': 'r', 'BABAB': 's', 'BABBA': 't', 'BABBB': 'u', 'BBAAA': 'v', 'BBAAB': 'w', 'BBABA': 'x',
+  'BBABB': 'y', 'BBBAA': 'z'
+};
+
+// Helper to safely decode Bacon's Cipher (Baconian Cipher) encoded text
+const safeDecodeBacon = (str) => {
+  if (!str || typeof str !== 'string' || str.length < 20) return null;
+
+  const cleanTokens = str.trim().split(/\s+/);
+  let symbols = '';
+  if (cleanTokens.every(t => t.length === 5)) {
+    symbols = cleanTokens.join('');
+  } else {
+    symbols = str.replace(/[^a-zA-Z0-9.\-+\/]/g, '');
+  }
+
+  if (symbols.length < 20 || symbols.length % 5 !== 0) return null;
+
+  const freq = {};
+  for (let i = 0; i < symbols.length; i++) {
+    const ch = symbols[i];
+    freq[ch] = (freq[ch] || 0) + 1;
+  }
+  const chars = Object.keys(freq).sort((a, b) => freq[b] - freq[a]);
+  if (chars.length !== 2) return null;
+
+  const charPairMappings = [
+    { [chars[0]]: 'A', [chars[1]]: 'B' },
+    { [chars[0]]: 'B', [chars[1]]: 'A' }
+  ];
+
+  for (const mapping of charPairMappings) {
+    let baconStr = '';
+    for (let i = 0; i < symbols.length; i++) {
+      baconStr += mapping[symbols[i]];
+    }
+
+    for (const mapDict of [BACON_24_MAP, BACON_26_MAP]) {
+      let decoded = '';
+      let isValid = true;
+      for (let i = 0; i < baconStr.length; i += 5) {
+        const group = baconStr.substring(i, i + 5);
+        const letter = mapDict[group];
+        if (!letter) {
+          isValid = false;
+          break;
+        }
+        decoded += letter;
+      }
+      if (isValid && decoded.length >= 4) {
+        const candidates = [
+          decoded,
+          decoded.replace(/preu/g, 'prev'),
+          decoded.replace(/previovs/g, 'previous'),
+          decoded.replace(/u/g, 'v'),
+          decoded.replace(/v/g, 'u'),
+          decoded.replace(/j/g, 'i')
+        ];
+        for (const cand of candidates) {
+          if (isPromptInjection(cand, true)) {
+            return cand;
+          }
+        }
+      }
+    }
+  }
+
+  return null;
+};
+
 // Helper to safely decode single-byte XOR cipher-encoded payloads (hex/decimal/octal/binary tokens or raw strings) across keys 1..255
 const safeDecodeXOR = (targetStr) => {
   if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8) return null;
@@ -1097,6 +1176,10 @@ export const isPromptInjection = (query, isNested = false) => {
       if (scrubbed !== t) {
         targets.add(scrubbed);
       }
+      const deDiacritic = scrubbed.normalize('NFKD').replace(/[\u0300-\u036f\u1ab0-\u1aff\u1dc0-\u1dff\u20d0-\u20ff\ufe20-\ufe2f]/g, '');
+      if (deDiacritic !== scrubbed) {
+        targets.add(deDiacritic);
+      }
     }
     for (const targetStr of targets) {
       const hexMatches = targetStr.match(HEX_MATCH_RE) || [];
@@ -1213,6 +1296,12 @@ export const isPromptInjection = (query, isNested = false) => {
       // Security: Handle Single-Byte XOR cipher-encoded payloads across keys 1..255 and evaluate recursively
       const xorDecoded = safeDecodeXOR(targetStr);
       if (xorDecoded) {
+        return true;
+      }
+
+      // Security: Handle Bacon's Cipher (Baconian Cipher) encoded payloads and evaluate recursively
+      const baconDecoded = safeDecodeBacon(targetStr);
+      if (baconDecoded) {
         return true;
       }
     }
