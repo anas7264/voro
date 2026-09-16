@@ -380,3 +380,14 @@ Neutralizing Caesar cipher obfuscation requires generalizing single-shift decode
 
 **Prevention:**
 Ensure substitution cipher decoders in prompt validators evaluate all valid shift keys in the alphabet domain (ROT-1 through ROT-25) rather than restricting checks to ROT13 alone.
+
+## 2026-09-13 - Polybius Square Cipher Prompt Injection Shield
+
+**Vulnerability:**
+Prompt injection filters analyzing standard text or common base-encodings (Base64, Hex, ROT13, Binary, Octal) failed to detect prompt override instructions (such as "ignore previous") obfuscated as 2-digit Polybius Square coordinates (e.g. `24 22 33 34 42 15 35 42 15 51 24 34 45 43` or concatenated `2422333442153542155124344543`). Downstream LLMs easily decode Polybius coordinate grids back into natural language instructions, bypassing keyword blocklists and boundary validations during input ingestion.
+
+**Learning:**
+Neutralizing Polybius Square cipher obfuscation requires scanning inputs for sequences of 2-digit pairs where each digit falls within the 5x5 grid coordinate bounds (`1` through `5`). Parsing tokenized or concatenated pair streams, mapping grid positions `(row, col)` to Latin letters (with `I`/`J` ambiguity handling), and recursively evaluating candidate strings against `isPromptInjection` prevents coordinate-encoded injection payloads from reaching downstream LLM execution contexts.
+
+**Prevention:**
+Always include grid-based coordinate cipher decoders (such as Polybius Square) in input validation pipelines before forwarding user text to language models.
