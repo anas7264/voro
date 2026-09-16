@@ -28,6 +28,19 @@ const PRE_PROCESSED_SUPPLEMENTS = Object.freeze(
   }))
 );
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Pre-indexed Category Lookup Map.
+ * Provides O(1) constant time catalog slicing by category, avoiding linear
+ * array scans over all supplement entries.
+ */
+const SUPPLEMENTS_BY_CATEGORY = Object.freeze(
+  PRE_PROCESSED_SUPPLEMENTS.reduce((acc, supp) => {
+    if (!acc[supp.category]) acc[supp.category] = [];
+    acc[supp.category].push(supp);
+    return acc;
+  }, {})
+);
+
 const STABLE_CATEGORIES = Object.freeze([
   'All',
   'Protein',
@@ -540,19 +553,18 @@ const SupplementTracker = () => {
     const q = searchQuery.trim().toLowerCase();
     const cat = selectedCategory;
 
-    if (!q && cat === 'All') return PRE_PROCESSED_SUPPLEMENTS;
+    /**
+     * ⚡ PERFORMANCE OPTIMIZATION: Category-First O(1) Slicing.
+     * Selects category slice directly from pre-indexed hash map.
+     */
+    const baseList = cat === 'All' ? PRE_PROCESSED_SUPPLEMENTS : (SUPPLEMENTS_BY_CATEGORY[cat] || EMPTY_ARRAY);
+    if (!q) return baseList;
 
-    return PRE_PROCESSED_SUPPLEMENTS.filter(supp => {
-      const matchesCategory = cat === 'All' || supp.category === cat;
-      if (!matchesCategory) return false;
-      if (!q) return true;
-
-      return (
-        supp._nameLower.includes(q) ||
-        supp._categoryLower.includes(q) ||
-        supp._descriptionLower.includes(q)
-      );
-    });
+    return baseList.filter(supp => (
+      supp._nameLower.includes(q) ||
+      supp._categoryLower.includes(q) ||
+      supp._descriptionLower.includes(q)
+    ));
   }, [searchQuery, selectedCategory]);
 
   return (
