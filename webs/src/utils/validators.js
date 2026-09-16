@@ -1304,10 +1304,45 @@ export const isPromptInjection = (query, isNested = false) => {
       if (baconDecoded) {
         return true;
       }
+
+      // Security: Handle Polybius Square Cipher encoded payloads and evaluate recursively
+      const polybiusDecoded = safeDecodePolybius(targetStr);
+      if (polybiusDecoded) {
+        return true;
+      }
     }
   }
 
   return false;
+};
+
+// Helper to safely decode Polybius Square Cipher (5x5 grid, coordinates 11..55) encoded payloads
+const safeDecodePolybius = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8) return null;
+  const POLYBIUS_GRID = ['abcde', 'fghik', 'lmnop', 'qrstu', 'vwxyz'];
+  let pairs = [];
+  const tokens = targetStr.trim().split(/[\s,.\-_\/:;+=]+/);
+  if (tokens.length >= 4 && tokens.every(t => /^[1-5]{2}$/.test(t))) {
+    pairs = tokens;
+  } else {
+    const clean = targetStr.replace(/[\s,.\-_\/:;+=]+/g, '');
+    if (/^[1-5]+$/.test(clean) && clean.length >= 8 && clean.length % 2 === 0) {
+      for (let i = 0; i < clean.length; i += 2) pairs.push(clean.slice(i, i + 2));
+    }
+  }
+  if (pairs.length < 4) return null;
+  let decoded = '';
+  for (const p of pairs) {
+    const r = parseInt(p[0], 10) - 1;
+    const c = parseInt(p[1], 10) - 1;
+    decoded += POLYBIUS_GRID[r][c];
+  }
+  if (decoded.length >= 4) {
+    const cand1 = decoded;
+    const cand2 = decoded.replace(/i/g, 'j');
+    if (isPromptInjection(cand1, true) || isPromptInjection(cand2, true)) return cand1;
+  }
+  return null;
 };
 
 /**
