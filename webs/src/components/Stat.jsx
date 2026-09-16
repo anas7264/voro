@@ -1,4 +1,4 @@
-import React, { memo, useState, useMemo, useRef, useId } from "react";
+import React, { memo, useMemo, useRef, useId } from "react";
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted & Frozen static lookup mappings.
@@ -20,7 +20,7 @@ const TELEMETRY_STREAM_NODES = Object.freeze(
 
 /**
  * ⚡ REFINEMENT: Luxury Forge-Standard Stat Component ('Kinetic Biometric Lens').
- * Re-engineered with:
+ * Re-engineered conforming to Voro's 'Forge' luxury system aesthetic and zero-allocation performance standards:
  * 1. Zero-allocation Liquid Border Intelligence (reactive perimeter light gradient mask).
  * 2. 60fps Direct-DOM volumetric 3D hover tilt tracking with dynamic coordinate telemetry overlays.
  * 3. Golden ratio spatial architecture & high-contrast luxury typography (Playfair Display italic serif values).
@@ -41,8 +41,8 @@ export const Stat = memo(({
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
   const generatedId = useId();
 
   // SSR-safe deterministic sub-pixel system attestation badge using React's native useId hook
@@ -67,8 +67,8 @@ export const Stat = memo(({
     const gridY = (y / rect.height - 0.5) * -12;
 
     const style = containerRef.current.style;
-    style.setProperty('--mouse-x', `${x}px`);
-    style.setProperty('--mouse-y', `${y}px`);
+    style.setProperty('--mouse-x', `${x.toFixed(1)}px`);
+    style.setProperty('--mouse-y', `${y.toFixed(1)}px`);
     style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
     style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
     style.setProperty('--grid-x', `${gridX.toFixed(2)}px`);
@@ -82,8 +82,12 @@ export const Stat = memo(({
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
   };
 
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
+  };
+
   const handleFocus = () => {
-    setIsFocused(true);
+    isFocusedRef.current = true;
     if (containerRef.current) {
       // W3C APG Compliant static 4-degree tilt for keyboard focus feedback
       const style = containerRef.current.style;
@@ -102,8 +106,8 @@ export const Stat = memo(({
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
-    if (containerRef.current && !isHovered) {
+    isFocusedRef.current = false;
+    if (containerRef.current && !isHoveredRef.current) {
       const style = containerRef.current.style;
       style.setProperty('--tilt-x', '0deg');
       style.setProperty('--tilt-y', '0deg');
@@ -120,10 +124,10 @@ export const Stat = memo(({
   };
 
   const handleMouseLeave = () => {
-    setIsHovered(false);
+    isHoveredRef.current = false;
     if (!containerRef.current) return;
 
-    if (isFocused) {
+    if (isFocusedRef.current) {
       handleFocus();
     } else {
       const style = containerRef.current.style;
@@ -148,7 +152,7 @@ export const Stat = memo(({
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
@@ -160,7 +164,7 @@ export const Stat = memo(({
         perspective: '1500px'
       }}
       className={`
-        Stat group relative bg-[#0A0C14] border border-white/5 p-10 rounded-[3rem]
+        Stat group/stat relative bg-[#0A0C14] border border-white/5 p-10 rounded-[3rem]
         hover:border-white/10 hover:shadow-[0_80px_160px_rgba(0,0,0,0.9)]
         focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408]
         outline-none transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden ${className}
@@ -169,7 +173,7 @@ export const Stat = memo(({
       {/* 🛰️ Liquid Border Intelligence: Dynamic perimeter illumination gradient mask */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 rounded-[3rem] opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-700 pointer-events-none"
+        className="absolute inset-0 rounded-[3rem] opacity-0 group-hover/stat:opacity-100 group-focus-visible/stat:opacity-100 transition-opacity duration-700 pointer-events-none"
         style={{
           padding: '1px',
           background: `radial-gradient(400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(124, 58, 237, 0.4), transparent 80%)`,
@@ -186,7 +190,7 @@ export const Stat = memo(({
 
         {/* Neural Telemetry Code Stream Overlay */}
         <div
-          className="absolute inset-0 opacity-0 group-hover:opacity-[0.03] group-focus-visible:opacity-[0.03] transition-opacity duration-1000 font-mono text-[0.4rem] text-white whitespace-pre leading-tight select-none p-4"
+          className="absolute inset-0 opacity-0 group-hover/stat:opacity-[0.03] group-focus-visible/stat:opacity-[0.03] transition-opacity duration-1000 font-mono text-[0.4rem] text-white whitespace-pre leading-tight select-none p-4"
           style={{ transform: 'translateZ(5px)' }}
         >
           {TELEMETRY_STREAM_NODES.map((node, i) => (
@@ -198,16 +202,15 @@ export const Stat = memo(({
 
         {/* Volumetric Precision Grid Background */}
         <div
-          className="absolute inset-0 bg-grid-white opacity-0 group-hover:opacity-[0.12] group-focus-visible:opacity-[0.12] transition-opacity duration-1000"
+          className="absolute inset-0 bg-grid-white opacity-0 group-hover/stat:opacity-[0.12] group-focus-visible/stat:opacity-[0.12] transition-opacity duration-1000"
           style={{
-            transform: 'translate3d(var(--grid-x, 0px), var(--grid-y, 0px), 10px)',
-            transition: isHovered ? 'none' : 'transform 1s ease-out'
+            transform: 'translate3d(var(--grid-x, 0px), var(--grid-y, 0px), 10px)'
           }}
         />
 
         {/* Prismatic Refraction Layer */}
         <div
-          className="absolute -inset-2 opacity-0 group-hover:opacity-30 transition-opacity duration-700 blur-[2px] mix-blend-overlay"
+          className="absolute -inset-2 opacity-0 group-hover/stat:opacity-30 transition-opacity duration-700 blur-[2px] mix-blend-overlay"
           style={{
             background: `linear-gradient(var(--tilt-x, 0deg), transparent, rgba(124,58,237,0.15), rgba(16,185,129,0.15), transparent)`,
             transform: `translate3d(var(--refract-x, 0px), var(--refract-y, 0px), 15px)`
@@ -216,23 +219,21 @@ export const Stat = memo(({
 
         {/* Luminous Spotlight Lens */}
         <div
-          className="absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-700"
+          className="absolute inset-0 opacity-0 group-hover/stat:opacity-100 group-focus-visible/stat:opacity-100 transition-opacity duration-700"
           style={{
-            background: isHovered
-              ? `radial-gradient(800px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), color-mix(in srgb, ${activeColor}, transparent 88%), transparent 45%)`
-              : `radial-gradient(800px circle at 50% 50%, color-mix(in srgb, ${activeColor}, transparent 88%), transparent 45%)`,
+            background: `radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), color-mix(in srgb, ${activeColor}, transparent 88%), transparent 45%)`,
             transform: 'translateZ(20px)'
           }}
         />
 
         {/* Kinetic Ambient Sweep Animation */}
-        <div className="kinetic-sweep opacity-10 group-hover:opacity-30 transition-opacity duration-1000" />
+        <div className="kinetic-sweep opacity-10 group-hover/stat:opacity-30 transition-opacity duration-1000" />
       </div>
 
       {/* Holographic Precision Coordinate Telemetry Overlay */}
       <div
         aria-hidden="true"
-        className="absolute top-6 right-8 pointer-events-none transition-all duration-700 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 select-none"
+        className="absolute top-6 right-8 pointer-events-none transition-all duration-700 opacity-0 group-hover/stat:opacity-100 group-focus-visible/stat:opacity-100 select-none"
         style={{ transform: 'translateZ(70px)' }}
       >
         <div className="flex flex-col items-end font-mono text-[0.4rem] font-bold text-voro-primary/70 tracking-[0.2em] space-y-1">
@@ -245,7 +246,7 @@ export const Stat = memo(({
       {/* Sub-pixel System Attestation Badge */}
       <div
         aria-hidden="true"
-        className="absolute bottom-5 left-10 text-[0.4rem] font-mono font-bold text-white/10 group-hover:text-white/30 group-focus-visible:text-white/30 transition-colors duration-700 tracking-[0.25em] pointer-events-none select-none"
+        className="absolute bottom-5 left-10 text-[0.4rem] font-mono font-bold text-white/10 group-hover/stat:text-white/30 group-focus-visible/stat:text-white/30 transition-colors duration-700 tracking-[0.25em] pointer-events-none select-none"
         style={{ transform: 'translateZ(40px)' }}
       >
         {subpixelHash}
@@ -254,7 +255,7 @@ export const Stat = memo(({
       {/* Ambient Radial Backglow */}
       <div
         aria-hidden="true"
-        className="absolute -right-24 -top-24 w-64 h-64 rounded-full blur-[120px] opacity-0 group-hover:opacity-25 group-focus-visible:opacity-25 transition-opacity duration-1000 pointer-events-none"
+        className="absolute -right-24 -top-24 w-64 h-64 rounded-full blur-[120px] opacity-0 group-hover/stat:opacity-25 group-focus-visible/stat:opacity-25 transition-opacity duration-1000 pointer-events-none"
         style={{ backgroundColor: activeColor }}
       />
 
@@ -263,8 +264,8 @@ export const Stat = memo(({
         <div className="flex items-start justify-between mb-8">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-voro-primary opacity-60 group-hover:opacity-100 transition-opacity" />
-              <p className="text-[0.6rem] font-mono font-bold text-gray-500 uppercase tracking-[0.45em] group-hover:text-gray-300 group-focus-visible:text-gray-300 transition-colors duration-500">
+              <div className="w-1.5 h-1.5 rounded-full bg-voro-primary opacity-60 group-hover/stat:opacity-100 transition-opacity" />
+              <p className="text-[0.6rem] font-mono font-bold text-gray-500 uppercase tracking-[0.45em] group-hover/stat:text-gray-300 group-focus-visible/stat:text-gray-300 transition-colors duration-500">
                 {label}
               </p>
             </div>
@@ -285,8 +286,8 @@ export const Stat = memo(({
               style={{ transform: 'translateZ(40px)' }}
               className={`
                 p-4 rounded-2xl bg-white/[0.02] border border-white/5
-                text-gray-500 group-hover:text-white group-focus-visible:text-white group-hover:bg-white/10 group-focus-visible:bg-white/10
-                group-hover:scale-110 group-focus-visible:scale-110 group-hover:border-white/15 group-focus-visible:border-white/15
+                text-gray-500 group-hover/stat:text-white group-focus-visible/stat:text-white group-hover/stat:bg-white/10 group-focus-visible/stat:bg-white/10
+                group-hover/stat:scale-110 group-focus-visible/stat:scale-110 group-hover/stat:border-white/15 group-focus-visible/stat:border-white/15
                 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
                 flex items-center justify-center shadow-lg
               `}
@@ -307,7 +308,7 @@ export const Stat = memo(({
               {value}
             </p>
             {unit && (
-              <p className="text-[0.65rem] font-mono font-bold text-gray-500 uppercase tracking-[0.35em] group-hover:text-gray-300 group-focus-visible:text-gray-300 transition-colors duration-700">
+              <p className="text-[0.65rem] font-mono font-bold text-gray-500 uppercase tracking-[0.35em] group-hover/stat:text-gray-300 group-focus-visible/stat:text-gray-300 transition-colors duration-700">
                 {unit}
               </p>
             )}
@@ -338,7 +339,7 @@ export const Stat = memo(({
                   className="transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)]"
                 />
               </svg>
-              <span className="absolute text-[0.55rem] font-mono font-bold text-gray-400 group-hover:text-white group-focus-visible:text-white transition-colors duration-700">
+              <span className="absolute text-[0.55rem] font-mono font-bold text-gray-400 group-hover/stat:text-white group-focus-visible/stat:text-white transition-colors duration-700">
                 {Math.round(progress)}%
               </span>
             </div>
