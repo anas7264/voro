@@ -55,7 +55,7 @@ export const LoadingSpinner = memo(({
         </h2>
 
         {/* Procedural Status Stream */}
-        <div className="flex flex-col items-center gap-3">
+        <div role="status" aria-live="polite" className="flex flex-col items-center gap-3">
           <div className="flex items-center gap-3">
             <div className="h-px w-8 bg-voro-primary/40" />
             <span className="text-[0.6rem] font-mono font-black text-voro-primary uppercase tracking-[0.4em] animate-pulse">
@@ -80,7 +80,11 @@ export const LoadingSpinner = memo(({
 
   if (fullscreen) {
     return (
-      <div className="fixed inset-0 bg-[#020408]/80 backdrop-blur-2xl flex items-center justify-center z-[100] animate-fade-in">
+      <div
+        aria-busy="true"
+        aria-label={message}
+        className="fixed inset-0 bg-[#020408]/80 backdrop-blur-2xl flex items-center justify-center z-[100] animate-fade-in"
+      >
         {/* Ambient background architectural lighting */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-voro-primary/5 rounded-full blur-[150px]" />
