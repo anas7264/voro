@@ -1,4 +1,4 @@
-import React, { memo, useId, useState, useRef, useMemo } from 'react';
+import React, { memo, useId, useRef, useMemo } from 'react';
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted pre-computed trigonometric tick map.
@@ -43,8 +43,8 @@ const Ring = memo(({ value, max, size = 180, unit = 'kcal', color = '#7C3AED', l
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
 
   const safeMax = max > 0 ? max : 1;
   const percentage = Math.min((value / safeMax) * 100, 100);
@@ -82,49 +82,68 @@ const Ring = memo(({ value, max, size = 180, unit = 'kcal', color = '#7C3AED', l
     const tiltY = ((x / rect.width) - 0.5) * 30;
     const tiltX = (0.5 - (y / rect.height)) * 30;
 
-    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
-    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
-    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    const style = containerRef.current.style;
+    style.setProperty('--mouse-x', `${x.toFixed(1)}px`);
+    style.setProperty('--mouse-y', `${y.toFixed(1)}px`);
+    style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
+    style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
+    style.setProperty('transform', `perspective(1200px) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg) translateY(-4px)`);
+    style.setProperty('transition', 'none');
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
   };
 
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
+  };
+
   const handleFocus = () => {
-    setIsFocused(true);
-    if (containerRef.current) {
-      containerRef.current.style.setProperty('--tilt-x', '4deg');
-      containerRef.current.style.setProperty('--tilt-y', '-4deg');
-      if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
-      if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
-    }
+    isFocusedRef.current = true;
+    if (!containerRef.current) return;
+    const style = containerRef.current.style;
+    style.setProperty('--tilt-x', '4.00deg');
+    style.setProperty('--tilt-y', '-4.00deg');
+    style.setProperty('transform', 'perspective(1200px) rotateX(4deg) rotateY(-4deg) translateY(-4px)');
+    style.setProperty('transition', 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)');
+    if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
+    if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
-    if (containerRef.current && !isHovered) {
-      containerRef.current.style.setProperty('--tilt-x', '0deg');
-      containerRef.current.style.setProperty('--tilt-y', '0deg');
+    isFocusedRef.current = false;
+    if (!containerRef.current) return;
+    if (!isHoveredRef.current) {
+      const style = containerRef.current.style;
+      style.setProperty('--tilt-x', '0deg');
+      style.setProperty('--tilt-y', '0deg');
+      style.setProperty('transform', 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)');
+      style.setProperty('transition', 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)');
+      if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
     }
   };
 
   const handleMouseLeave = () => {
-    setIsHovered(false);
-    if (containerRef.current) {
-      if (isFocused) {
-        containerRef.current.style.setProperty('--tilt-x', '4deg');
-        containerRef.current.style.setProperty('--tilt-y', '-4deg');
-        if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
-        if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
-      } else {
-        containerRef.current.style.setProperty('--tilt-x', '0deg');
-        containerRef.current.style.setProperty('--tilt-y', '0deg');
-      }
+    isHoveredRef.current = false;
+    if (!containerRef.current) return;
+    const style = containerRef.current.style;
+    if (isFocusedRef.current) {
+      style.setProperty('--tilt-x', '4.00deg');
+      style.setProperty('--tilt-y', '-4.00deg');
+      style.setProperty('transform', 'perspective(1200px) rotateX(4deg) rotateY(-4deg) translateY(-4px)');
+      style.setProperty('transition', 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)');
+      if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
+    } else {
+      style.setProperty('--tilt-x', '0deg');
+      style.setProperty('--tilt-y', '0deg');
+      style.setProperty('transform', 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)');
+      style.setProperty('transition', 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)');
+      if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
     }
   };
-
-  const interactionActive = isHovered || isFocused;
 
   return (
     <div
@@ -136,7 +155,7 @@ const Ring = memo(({ value, max, size = 180, unit = 'kcal', color = '#7C3AED', l
       aria-valuemax={max}
       aria-label={`${label || 'Metabolic'} progress: ${Math.round(value)} of ${max} ${unit} (${Math.round(percentage)}%)`}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
@@ -150,11 +169,7 @@ const Ring = memo(({ value, max, size = 180, unit = 'kcal', color = '#7C3AED', l
         width: size + 32,
         height: size + 32,
         perspective: '1200px',
-        transformStyle: 'preserve-3d',
-        transform: interactionActive
-          ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
-          : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: isHovered ? 'none' : 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)'
+        transformStyle: 'preserve-3d'
       }}
     >
       {/* Precision Grid & Grain Architecture */}
@@ -177,9 +192,7 @@ const Ring = memo(({ value, max, size = 180, unit = 'kcal', color = '#7C3AED', l
       <div
         className="absolute inset-0 rounded-[2rem] opacity-0 group-hover/ring:opacity-100 group-focus-visible/ring:opacity-100 transition-opacity duration-700 pointer-events-none"
         style={{
-          background: isHovered
-            ? `radial-gradient(350px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ${color}15, transparent 70%)`
-            : `radial-gradient(350px circle at 50% 50%, ${color}15, transparent 70%)`,
+          background: `radial-gradient(350px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ${color}15, transparent 70%)`,
           transform: 'translateZ(20px)'
         }}
       />
@@ -209,36 +222,31 @@ const Ring = memo(({ value, max, size = 180, unit = 'kcal', color = '#7C3AED', l
       {/* Digital Complications - Displaced in 3D space on hover */}
       <div
         aria-hidden="true"
-        className="absolute inset-4 pointer-events-none p-1 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] z-10"
+        className="absolute inset-4 pointer-events-none p-1 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] z-10 group-hover/ring:[transform:translateZ(60px)_scale(1.05)] group-focus-visible/ring:[transform:translateZ(60px)_scale(1.05)]"
         style={{
           transformStyle: 'preserve-3d',
-          transform: interactionActive ? 'translateZ(60px) scale(1.05)' : 'translateZ(0px) scale(1)'
         }}
       >
         <div
-          className="absolute top-0 left-0 text-[0.4rem] font-mono text-gray-500 uppercase tracking-[0.2em] flex flex-col transition-transform duration-700"
-          style={{ transform: interactionActive ? 'translate3d(-8%, -8%, 0)' : 'translate3d(0,0,0)' }}
+          className="absolute top-0 left-0 text-[0.4rem] font-mono text-gray-500 uppercase tracking-[0.2em] flex flex-col transition-transform duration-700 group-hover/ring:-translate-x-[8%] group-hover/ring:-translate-y-[8%] group-focus-visible/ring:-translate-x-[8%] group-focus-visible/ring:-translate-y-[8%]"
         >
           <span>VORO_CORE</span>
           <span className="text-voro-secondary/80 font-bold">OPTIMAL</span>
         </div>
         <div
-          className="absolute top-0 right-0 text-[0.4rem] font-mono text-gray-500 uppercase tracking-[0.2em] flex flex-col items-end transition-transform duration-700"
-          style={{ transform: interactionActive ? 'translate3d(8%, -8%, 0)' : 'translate3d(0,0,0)' }}
+          className="absolute top-0 right-0 text-[0.4rem] font-mono text-gray-500 uppercase tracking-[0.2em] flex flex-col items-end transition-transform duration-700 group-hover/ring:translate-x-[8%] group-hover/ring:-translate-y-[8%] group-focus-visible/ring:translate-x-[8%] group-focus-visible/ring:-translate-y-[8%]"
         >
           <span>MACRO_SYNC</span>
           <span className="text-voro-primary/80 font-bold">LOCKED</span>
         </div>
         <div
-          className="absolute bottom-0 left-0 text-[0.4rem] font-mono text-gray-500 uppercase tracking-[0.2em] flex flex-col transition-transform duration-700"
-          style={{ transform: interactionActive ? 'translate3d(-8%, 8%, 0)' : 'translate3d(0,0,0)' }}
+          className="absolute bottom-0 left-0 text-[0.4rem] font-mono text-gray-500 uppercase tracking-[0.2em] flex flex-col transition-transform duration-700 group-hover/ring:-translate-x-[8%] group-hover/ring:translate-y-[8%] group-focus-visible/ring:-translate-x-[8%] group-focus-visible/ring:translate-y-[8%]"
         >
           <span>BIOMETRY</span>
           <span className="text-white/40 font-bold">STABLE</span>
         </div>
         <div
-          className="absolute bottom-0 right-0 text-[0.4rem] font-mono text-gray-500 uppercase tracking-[0.2em] flex flex-col items-end transition-transform duration-700"
-          style={{ transform: interactionActive ? 'translate3d(8%, 8%, 0)' : 'translate3d(0,0,0)' }}
+          className="absolute bottom-0 right-0 text-[0.4rem] font-mono text-gray-500 uppercase tracking-[0.2em] flex flex-col items-end transition-transform duration-700 group-hover/ring:translate-x-[8%] group-hover/ring:translate-y-[8%] group-focus-visible/ring:translate-x-[8%] group-focus-visible/ring:translate-y-[8%]"
         >
           <span>SIGNAL</span>
           <span className="text-white/40 font-bold">ENCRYPTED</span>
@@ -249,9 +257,8 @@ const Ring = memo(({ value, max, size = 180, unit = 'kcal', color = '#7C3AED', l
       <svg
         width={size}
         height={size}
-        className="relative z-10 overflow-visible transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
+        className="relative z-10 overflow-visible transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover/ring:[transform:rotateX(12deg)_translateZ(30px)] group-focus-visible/ring:[transform:rotateX(12deg)_translateZ(30px)]"
         style={{
-          transform: interactionActive ? 'rotateX(12deg) translateZ(30px)' : 'rotateX(0deg) translateZ(0px)',
           transformStyle: 'preserve-3d'
         }}
       >
@@ -278,7 +285,7 @@ const Ring = memo(({ value, max, size = 180, unit = 'kcal', color = '#7C3AED', l
             stroke={color}
             strokeWidth="0.5"
             strokeDasharray="4 4"
-            className={`transition-all duration-700 ${interactionActive ? 'opacity-40' : 'opacity-0'}`}
+            className="transition-all duration-700 opacity-0 group-hover/ring:opacity-40 group-focus-visible/ring:opacity-40"
           />
         ))}
 
@@ -366,9 +373,8 @@ const Ring = memo(({ value, max, size = 180, unit = 'kcal', color = '#7C3AED', l
 
       {/* Center Editorial Typography & Value Display */}
       <div
-        className="absolute z-20 text-center flex flex-col items-center transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] pointer-events-none"
+        className="absolute z-20 text-center flex flex-col items-center transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] pointer-events-none group-hover/ring:[transform:translateZ(90px)_scale(1.08)] group-focus-visible/ring:[transform:translateZ(90px)_scale(1.08)]"
         style={{
-          transform: interactionActive ? 'translateZ(90px) scale(1.08)' : 'translateZ(0px) scale(1)',
           transformStyle: 'preserve-3d'
         }}
       >
