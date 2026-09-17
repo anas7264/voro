@@ -1310,10 +1310,54 @@ export const isPromptInjection = (query, isNested = false) => {
       if (polybiusDecoded) {
         return true;
       }
+
+      // Security: Handle A1Z26 Cipher encoded payloads and evaluate recursively
+      const a1z26Decoded = safeDecodeA1Z26(targetStr);
+      if (a1z26Decoded) {
+        return true;
+      }
     }
   }
 
   return false;
+};
+
+// Helper to safely decode A1Z26 cipher (A=1..Z=26 or A=01..Z=26) encoded payloads (tokenized or 2-digit concatenated)
+const safeDecodeA1Z26 = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8) return null;
+
+  // 1. Tokenized A1Z26 (space, comma, dash, colon, semicolon, plus, or slash-separated numbers)
+  const tokens = targetStr.trim().split(/[\s,.\-_\/:;+=]+/);
+  if (tokens.length >= 4 && tokens.every(t => /^\d{1,2}$/.test(t) && parseInt(t, 10) >= 1 && parseInt(t, 10) <= 26)) {
+    let decoded = '';
+    for (const t of tokens) {
+      const num = parseInt(t, 10);
+      decoded += String.fromCharCode(96 + num);
+    }
+    if (decoded.length >= 4 && isPromptInjection(decoded, true)) {
+      return decoded;
+    }
+  }
+
+  // 2. 2-digit concatenated A1Z26 numbers (e.g. 0907141518051618052209152119 for "ignoreprevious")
+  const clean = targetStr.replace(/[\s,.\-_\/:;+=]+/g, '');
+  if (/^\d+$/.test(clean) && clean.length >= 8 && clean.length % 2 === 0) {
+    let isValid = true;
+    let decoded = '';
+    for (let i = 0; i < clean.length; i += 2) {
+      const num = parseInt(clean.slice(i, i + 2), 10);
+      if (num < 1 || num > 26) {
+        isValid = false;
+        break;
+      }
+      decoded += String.fromCharCode(96 + num);
+    }
+    if (isValid && decoded.length >= 4 && isPromptInjection(decoded, true)) {
+      return decoded;
+    }
+  }
+
+  return null;
 };
 
 // Helper to safely decode Polybius Square Cipher (5x5 grid, coordinates 11..55) encoded payloads

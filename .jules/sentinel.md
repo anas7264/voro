@@ -391,3 +391,14 @@ Neutralizing Polybius Square cipher obfuscation requires scanning inputs for seq
 
 **Prevention:**
 Always include grid-based coordinate cipher decoders (such as Polybius Square) in input validation pipelines before forwarding user text to language models.
+
+## 2026-09-14 - A1Z26 Substitution Cipher Prompt Injection Shield
+
+**Vulnerability:**
+Prompt injection detectors analyzing decoded text or base-encodings failed to detect prompt override instructions (such as "ignore previous") obfuscated using simple A1Z26 letter-number substitution (where A=1, B=2, ..., Z=26; e.g. tokenized `9 7 14 15 18 5 16 18 5 22 9 15 21 19` or 2-digit concatenated `0907141518051618052209152119`). Large language models natively decode A1Z26 number sequences back to natural language instructions during prompt processing, allowing obfuscated prompt injection payloads to bypass keyword filters.
+
+**Learning:**
+Neutralizing A1Z26 substitution cipher obfuscation requires scanning input candidates for sequences of numbers bounded between 1 and 26 (both tokenized by standard delimiters and 2-digit concatenated streams). Converting these number sequences to Latin letters (`a`..`z`) and recursively evaluating candidate strings against `isPromptInjection` safely rejects substitution-encoded payloads before they reach LLM execution contexts.
+
+**Prevention:**
+Always include A1Z26 substitution cipher decoders in prompt injection validation pipelines to ensure numeric letter-position encodings cannot be used to bypass system prompt boundaries.
