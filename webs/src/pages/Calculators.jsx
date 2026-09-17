@@ -797,8 +797,8 @@ const VolumetricComputationNode = memo(({ children, nodeId }) => {
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
 
   const handleMouseMove = (e) => {
     if (!containerRef.current) return;
@@ -809,59 +809,82 @@ const VolumetricComputationNode = memo(({ children, nodeId }) => {
     const tiltY = ((x / rect.width) - 0.5) * 16;
     const tiltX = (0.5 - (y / rect.height)) * 16;
 
-    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
-    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
-    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    const style = containerRef.current.style;
+    style.setProperty('--mouse-x', `${x}px`);
+    style.setProperty('--mouse-y', `${y}px`);
+    style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
+    style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
+    style.setProperty('transform', `perspective(1500px) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg) translateY(-4px)`);
+    style.setProperty('transition', 'none');
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
   };
 
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
+  };
+
+  const handleMouseLeave = () => {
+    isHoveredRef.current = false;
+    if (!containerRef.current) return;
+
+    if (isFocusedRef.current) {
+      handleFocus();
+    } else {
+      const style = containerRef.current.style;
+      style.setProperty('--tilt-x', '0deg');
+      style.setProperty('--tilt-y', '0deg');
+      style.setProperty('transform', 'perspective(1500px) rotateX(0deg) rotateY(0deg) translateY(0px)');
+      style.setProperty('transition', 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)');
+
+      if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
+    }
+  };
+
   const handleFocus = () => {
-    setIsFocused(true);
+    isFocusedRef.current = true;
     if (containerRef.current) {
-      containerRef.current.style.setProperty('--tilt-x', '4deg');
-      containerRef.current.style.setProperty('--tilt-y', '-4deg');
+      const style = containerRef.current.style;
+      style.setProperty('--tilt-x', '4.00deg');
+      style.setProperty('--tilt-y', '-4.00deg');
+      style.setProperty('transform', 'perspective(1500px) rotateX(4deg) rotateY(-4deg) translateY(-4px)');
+      style.setProperty('transition', 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)');
+
       if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     }
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
-    if (containerRef.current) {
-      containerRef.current.style.setProperty('--tilt-x', '0deg');
-      containerRef.current.style.setProperty('--tilt-y', '0deg');
+    isFocusedRef.current = false;
+    if (containerRef.current && !isHoveredRef.current) {
+      const style = containerRef.current.style;
+      style.setProperty('--tilt-x', '0deg');
+      style.setProperty('--tilt-y', '0deg');
+      style.setProperty('transform', 'perspective(1500px) rotateX(0deg) rotateY(0deg) translateY(0px)');
+      style.setProperty('transition', 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)');
+
       if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
     }
   };
 
-  const interactionActive = isHovered || isFocused;
-
   return (
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        if (containerRef.current) {
-          containerRef.current.style.setProperty('--tilt-x', '0deg');
-          containerRef.current.style.setProperty('--tilt-y', '0deg');
-        }
-      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
       tabIndex={0}
       role="region"
       aria-label={`Biometric calculation projection node: ${nodeId}`}
       style={{
-        transform: interactionActive
-          ? 'perspective(1500px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
-          : 'perspective(1500px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: isHovered ? 'none' : 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)',
+        transform: 'perspective(1500px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
       }}
       className="relative p-10 md:p-14 rounded-[3rem] bg-[#0A0C14] border border-white/5 shadow-[0_60px_120px_-20px_rgba(0,0,0,0.8)] hover:border-white/10 group/comp cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408] overflow-hidden min-h-[480px] flex flex-col justify-center"
