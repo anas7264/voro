@@ -98,8 +98,8 @@ export const Toggle = memo(({
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
 
   // Deterministic sub-pixel system attestation badge
   const subpixelHash = `0xTGL_${toggleId.slice(-4).toUpperCase()}`;
@@ -126,8 +126,12 @@ export const Toggle = memo(({
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
   };
 
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
+  };
+
   const handleFocus = () => {
-    setIsFocused(true);
+    isFocusedRef.current = true;
     if (containerRef.current) {
       // W3C APG Compliant static 4-degree tilt for keyboard focus feedback
       const style = containerRef.current.style;
@@ -142,8 +146,8 @@ export const Toggle = memo(({
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
-    if (containerRef.current && !isHovered) {
+    isFocusedRef.current = false;
+    if (containerRef.current && !isHoveredRef.current) {
       const style = containerRef.current.style;
       style.setProperty('--tilt-x', '0deg');
       style.setProperty('--tilt-y', '0deg');
@@ -156,10 +160,10 @@ export const Toggle = memo(({
   };
 
   const handleMouseLeave = () => {
-    setIsHovered(false);
+    isHoveredRef.current = false;
     if (!containerRef.current) return;
 
-    if (isFocused) {
+    if (isFocusedRef.current) {
       handleFocus();
     } else {
       const style = containerRef.current.style;
@@ -194,7 +198,7 @@ export const Toggle = memo(({
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
@@ -228,11 +232,9 @@ export const Toggle = memo(({
 
         {/* Luminous Track Spotlight */}
         <div
-          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
           style={{
-            background: isHovered
-              ? `radial-gradient(400px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), ${activeGlow}, transparent 70%)`
-              : `radial-gradient(400px circle at 50% 50%, ${activeGlow}, transparent 70%)`,
+            background: `radial-gradient(400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ${activeGlow}, transparent 70%)`,
           }}
         />
       </div>
