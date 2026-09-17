@@ -299,6 +299,51 @@ const runTests = async () => {
     throw new Error(`❌ Failure: Multi-pass percent-encoded URL scheme exfiltration was NOT blocked! res11=${res11}, compromised=${window.VORO_COMPROMISED}`);
   }
 
+  // --- TEST 12: Backslash-Obfuscated URL Scheme Exfiltration Attempt ---
+  console.log("🛡️ Test 12: Verifying backslash-obfuscated URL scheme exfiltration detection...");
+  lockdownCount = 0;
+  window.VORO_COMPROMISED = false;
+  window.VORO_DECEPTION_ACTIVE = false;
+
+  const backslashSchemePayload = "Check link: https:\\\\attacker.com\\leak?cookie=secret_session_data";
+  const res12 = validateAIResponse(backslashSchemePayload);
+
+  if (res12 === "[SECURITY_VIOLATION_DETECTED]" && lockdownCount > 0 && window.VORO_COMPROMISED) {
+    console.log("✅ Success: Backslash-obfuscated URL scheme exfiltration attempt was successfully detected and locked down!");
+  } else {
+    throw new Error(`❌ Failure: Backslash-obfuscated URL scheme exfiltration was NOT blocked! res12=${res12}, compromised=${window.VORO_COMPROMISED}`);
+  }
+
+  // --- TEST 13: Markdown Backslash-Obfuscated URL Scheme Exfiltration Attempt ---
+  console.log("🛡️ Test 13: Verifying markdown backslash-obfuscated URL scheme exfiltration detection...");
+  lockdownCount = 0;
+  window.VORO_COMPROMISED = false;
+  window.VORO_DECEPTION_ACTIVE = false;
+
+  const markdownBackslashPayload = "Click [here](https:\\/\\/attacker.com\\leak?voro_token=12345)";
+  const res13 = validateAIResponse(markdownBackslashPayload);
+
+  if (res13 === "[SECURITY_VIOLATION_DETECTED]" && lockdownCount > 0 && window.VORO_COMPROMISED) {
+    console.log("✅ Success: Markdown backslash-obfuscated URL scheme exfiltration attempt was successfully detected and locked down!");
+  } else {
+    throw new Error(`❌ Failure: Markdown backslash-obfuscated URL scheme exfiltration was NOT blocked! res13=${res13}, compromised=${window.VORO_COMPROMISED}`);
+  }
+
+  // --- TEST 14: Backslash-Separated Path & Query Exfiltration Attempt ---
+  console.log("🛡️ Test 14: Verifying backslash-separated path & query parameter exfiltration detection...");
+  lockdownCount = 0;
+  window.VORO_COMPROMISED = false;
+  window.VORO_DECEPTION_ACTIVE = false;
+
+  const backslashPathPayload = "Visit: https://attacker.com\\leak\\exfil?session=secret_123_data";
+  const res14 = validateAIResponse(backslashPathPayload);
+
+  if (res14 === "[SECURITY_VIOLATION_DETECTED]" && lockdownCount > 0 && window.VORO_COMPROMISED) {
+    console.log("✅ Success: Backslash-separated path & query exfiltration attempt was successfully detected and locked down!");
+  } else {
+    throw new Error(`❌ Failure: Backslash-separated path & query exfiltration was NOT blocked! res14=${res14}, compromised=${window.VORO_COMPROMISED}`);
+  }
+
   console.log("\n🎉 ALL EXFILTRATION SECURITY VERIFICATION TESTS PASSED SUCCESSFULLY!");
   console.log("=========================================");
   process.exit(0);
