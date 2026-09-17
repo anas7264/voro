@@ -256,7 +256,7 @@ const AccordionItem = memo(({ item, isOpen, onToggle, index }) => {
             ${isOpen ? "rotate-180 bg-voro-primary/10 text-voro-primary border-voro-primary/20 shadow-[0_0_15px_rgba(124,58,237,0.3)]" : "group-hover/accordion-item:text-white group-hover/accordion-item:border-white/10"}
           `}
         >
-          <ChevronDown size={20} />
+          <ChevronDown size={20} aria-hidden="true" />
         </div>
       </button>
 
@@ -265,6 +265,7 @@ const AccordionItem = memo(({ item, isOpen, onToggle, index }) => {
         id={regionId}
         role="region"
         aria-labelledby={buttonId}
+        aria-hidden={!isOpen}
         className={`grid transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}
       >
         <div className="overflow-hidden">
