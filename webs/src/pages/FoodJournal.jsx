@@ -25,15 +25,17 @@ const timeFormatter = new CachedDateTimeFormat('en-US', {
  * ⚡ SUBCOMPONENT: JournalEntryCard
  * Features 60fps direct-DOM 3D volumetric hover tilts, real-time coordinate telemetry,
  * static 4-degree keyboard focus tilts, and a 3-second self-canceling double-confirmation purge.
+ * ⚡ OPTIMIZATION: Zero-allocation interaction tracking via useRef flags (isHoveredRef, isFocusedRef)
+ * and direct DOM style property updates to eliminate React component re-renders during 60fps tilt tracking.
  */
 const JournalEntryCard = memo(({ entry, onDelete, index }) => {
   const cardRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
   const timerRef = useRef(null);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
 
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
   const [purgeState, setPurgeState] = useState(false);
   const [announcement, setAnnouncement] = useState('');
 
@@ -45,7 +47,7 @@ const JournalEntryCard = memo(({ entry, onDelete, index }) => {
     };
   }, [entry.date, entry.id]);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -54,34 +56,73 @@ const JournalEntryCard = memo(({ entry, onDelete, index }) => {
     const tiltY = ((x / rect.width) - 0.5) * 12;
     const tiltX = (0.5 - (y / rect.height)) * 12;
 
-    cardRef.current.style.setProperty('--mouse-x', `${x}px`);
-    cardRef.current.style.setProperty('--mouse-y', `${y}px`);
-    cardRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    cardRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    const style = cardRef.current.style;
+    style.setProperty('--mouse-x', `${x}px`);
+    style.setProperty('--mouse-y', `${y}px`);
+    style.setProperty('--tilt-x', `${tiltX}deg`);
+    style.setProperty('--tilt-y', `${tiltY}deg`);
+    style.setProperty('transform', 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)');
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
-  };
+  }, []);
 
-  const handleFocus = () => {
-    setIsFocused(true);
+  const handleMouseEnter = useCallback(() => {
+    isHoveredRef.current = true;
     if (cardRef.current) {
-      cardRef.current.style.setProperty('--tilt-x', '4deg');
-      cardRef.current.style.setProperty('--tilt-y', '-4deg');
+      cardRef.current.style.setProperty('transition', 'none');
+    }
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    isHoveredRef.current = false;
+    if (!cardRef.current) return;
+
+    const style = cardRef.current.style;
+    style.setProperty('transition', 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)');
+
+    if (isFocusedRef.current) {
+      style.setProperty('--tilt-x', '4deg');
+      style.setProperty('--tilt-y', '-4deg');
+      style.setProperty('transform', 'perspective(1200px) rotateX(var(--tilt-x, 4deg)) rotateY(var(--tilt-y, -4deg)) translateY(-4px)');
+      if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
+    } else {
+      style.setProperty('--tilt-x', '0deg');
+      style.setProperty('--tilt-y', '0deg');
+      style.setProperty('transform', 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)');
+      if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
+    }
+  }, []);
+
+  const handleFocus = useCallback(() => {
+    isFocusedRef.current = true;
+    if (cardRef.current) {
+      const style = cardRef.current.style;
+      style.setProperty('transition', 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)');
+      style.setProperty('--tilt-x', '4deg');
+      style.setProperty('--tilt-y', '-4deg');
+      style.setProperty('transform', 'perspective(1200px) rotateX(var(--tilt-x, 4deg)) rotateY(var(--tilt-y, -4deg)) translateY(-4px)');
       if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     }
     setAnnouncement(`Journal entry recorded on ${formattedDate} at ${formattedTime}. Note: ${entry.note}`);
-  };
+  }, [formattedDate, formattedTime, entry.note]);
 
-  const handleBlur = () => {
-    setIsFocused(false);
-    if (cardRef.current) {
-      cardRef.current.style.setProperty('--tilt-x', '0deg');
-      cardRef.current.style.setProperty('--tilt-y', '0deg');
+  const handleBlur = useCallback(() => {
+    isFocusedRef.current = false;
+    if (cardRef.current && !isHoveredRef.current) {
+      const style = cardRef.current.style;
+      style.setProperty('transition', 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)');
+      style.setProperty('--tilt-x', '0deg');
+      style.setProperty('--tilt-y', '0deg');
+      style.setProperty('transform', 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)');
+      if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
     }
     setAnnouncement('');
-  };
+  }, []);
 
   const handlePurgeTrigger = useCallback(() => {
     if (!purgeState) {
@@ -102,8 +143,6 @@ const JournalEntryCard = memo(({ entry, onDelete, index }) => {
     };
   }, []);
 
-  const isActive = isHovered || isFocused;
-
   return (
     <>
       {announcement && (
@@ -114,18 +153,16 @@ const JournalEntryCard = memo(({ entry, onDelete, index }) => {
       <div
         ref={cardRef}
         onMouseMove={handleMouseMove}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         onFocus={handleFocus}
         onBlur={handleBlur}
         tabIndex="0"
         role="article"
         aria-label={`Reflection Entry: ${formattedDate} ${formattedTime}`}
         style={{
-          transform: isActive
-            ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
-            : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-          transition: isHovered ? 'none' : 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+          transform: 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+          transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
           transformStyle: 'preserve-3d'
         }}
         className={`

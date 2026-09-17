@@ -44,17 +44,19 @@ const dateFormatter = new Intl.DateTimeFormat('en-US', {
  * ⚡ SUBCOMPONENT: KineticMealSlotCard
  * Memoized card component with 60fps direct-DOM 3D volumetric hover tilts,
  * holographic telemetry coordinates, sub-pixel node hashes, and W3C APG focus tilts.
+ * ⚡ OPTIMIZATION: Zero-allocation interaction tracking via useRef flags (isHoveredRef, isFocusedRef)
+ * and direct DOM style property updates to eliminate React component re-renders during 60fps tilt tracking.
  */
 const KineticMealSlotCard = memo(({ slot, sIdx, slotMeal, totalKcal, onOpenSearch, onRemoveFood }) => {
   const cardRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
 
   const nodeId = useMemo(() => `0xMEAL_SLOT_0${sIdx + 1}`, [sIdx]);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -63,51 +65,88 @@ const KineticMealSlotCard = memo(({ slot, sIdx, slotMeal, totalKcal, onOpenSearc
     const tiltY = ((x / rect.width) - 0.5) * 10;
     const tiltX = (0.5 - (y / rect.height)) * 10;
 
-    cardRef.current.style.setProperty('--mouse-x', `${x}px`);
-    cardRef.current.style.setProperty('--mouse-y', `${y}px`);
-    cardRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    cardRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    const style = cardRef.current.style;
+    style.setProperty('--mouse-x', `${x}px`);
+    style.setProperty('--mouse-y', `${y}px`);
+    style.setProperty('--tilt-x', `${tiltX}deg`);
+    style.setProperty('--tilt-y', `${tiltY}deg`);
+    style.setProperty('transform', 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)');
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
-  };
+  }, []);
 
-  const handleFocus = () => {
-    setIsFocused(true);
+  const handleMouseEnter = useCallback(() => {
+    isHoveredRef.current = true;
     if (cardRef.current) {
-      cardRef.current.style.setProperty('--tilt-x', '4deg');
-      cardRef.current.style.setProperty('--tilt-y', '-4deg');
+      cardRef.current.style.setProperty('transition', 'none');
+    }
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    isHoveredRef.current = false;
+    if (!cardRef.current) return;
+
+    const style = cardRef.current.style;
+    style.setProperty('transition', 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)');
+
+    if (isFocusedRef.current) {
+      style.setProperty('--tilt-x', '4deg');
+      style.setProperty('--tilt-y', '-4deg');
+      style.setProperty('transform', 'perspective(1200px) rotateX(var(--tilt-x, 4deg)) rotateY(var(--tilt-y, -4deg)) translateY(-4px)');
       if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
+    } else {
+      style.setProperty('--tilt-x', '0deg');
+      style.setProperty('--tilt-y', '0deg');
+      style.setProperty('transform', 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)');
+      if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
     }
-  };
+  }, []);
 
-  const handleBlur = () => {
-    setIsFocused(false);
-    if (cardRef.current) {
-      cardRef.current.style.setProperty('--tilt-x', '0deg');
-      cardRef.current.style.setProperty('--tilt-y', '0deg');
+  const handleFocus = useCallback(() => {
+    isFocusedRef.current = true;
+    if (!cardRef.current) return;
+
+    const style = cardRef.current.style;
+    style.setProperty('transition', 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)');
+    style.setProperty('--tilt-x', '4deg');
+    style.setProperty('--tilt-y', '-4deg');
+    style.setProperty('transform', 'perspective(1200px) rotateX(var(--tilt-x, 4deg)) rotateY(var(--tilt-y, -4deg)) translateY(-4px)');
+    if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
+    if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    isFocusedRef.current = false;
+    if (!cardRef.current) return;
+
+    if (!isHoveredRef.current) {
+      const style = cardRef.current.style;
+      style.setProperty('transition', 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)');
+      style.setProperty('--tilt-x', '0deg');
+      style.setProperty('--tilt-y', '0deg');
+      style.setProperty('transform', 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)');
+      if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
     }
-  };
-
-  const isActive = isHovered || isFocused;
+  }, []);
 
   return (
     <div
       ref={cardRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
       tabIndex="0"
       role="region"
       aria-label={`Meal Slot: ${slot}, Total Energy: ${totalKcal} kcal`}
       style={{
-        transform: isActive
-          ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
-          : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: isHovered ? 'none' : 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+        transform: 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
       }}
       className="group/slot relative p-0 rounded-[2.5rem] bg-[#0A0C14] border border-white/5 hover:border-voro-primary/30 transition-all duration-500 overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-voro-primary/80 shadow-2xl"
@@ -198,12 +237,14 @@ KineticMealSlotCard.displayName = 'KineticMealSlotCard';
 /**
  * ⚡ SUBCOMPONENT: KineticMacroCard
  * 3D volumetric card displaying macro targets and progress.
+ * ⚡ OPTIMIZATION: Zero-allocation interaction tracking via useRef flags (isHoveredRef)
+ * and direct DOM style property updates to eliminate React component re-renders during 60fps tilt tracking.
  */
 const KineticMacroCard = memo(({ label, value, goal, color, unit }) => {
   const cardRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
+  const isHoveredRef = useRef(false);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -212,11 +253,31 @@ const KineticMacroCard = memo(({ label, value, goal, color, unit }) => {
     const tiltY = ((x / rect.width) - 0.5) * 8;
     const tiltX = (0.5 - (y / rect.height)) * 8;
 
-    cardRef.current.style.setProperty('--mouse-x', `${x}px`);
-    cardRef.current.style.setProperty('--mouse-y', `${y}px`);
-    cardRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    cardRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
-  };
+    const style = cardRef.current.style;
+    style.setProperty('--mouse-x', `${x}px`);
+    style.setProperty('--mouse-y', `${y}px`);
+    style.setProperty('--tilt-x', `${tiltX}deg`);
+    style.setProperty('--tilt-y', `${tiltY}deg`);
+    style.setProperty('transform', 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)');
+  }, []);
+
+  const handleMouseEnter = useCallback(() => {
+    isHoveredRef.current = true;
+    if (cardRef.current) {
+      cardRef.current.style.setProperty('transition', 'none');
+    }
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    isHoveredRef.current = false;
+    if (!cardRef.current) return;
+
+    const style = cardRef.current.style;
+    style.setProperty('transition', 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)');
+    style.setProperty('--tilt-x', '0deg');
+    style.setProperty('--tilt-y', '0deg');
+    style.setProperty('transform', 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)');
+  }, []);
 
   const pct = Math.min((value / (goal || 1)) * 100, 100);
 
@@ -224,13 +285,11 @@ const KineticMacroCard = memo(({ label, value, goal, color, unit }) => {
     <div
       ref={cardRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       style={{
-        transform: isHovered
-          ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)'
-          : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: isHovered ? 'none' : 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+        transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
       }}
       className="p-6 rounded-3xl bg-[#0A0C14] border border-white/5 hover:border-white/10 transition-all duration-500 relative overflow-hidden"
