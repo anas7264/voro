@@ -2316,13 +2316,28 @@ export const validateAIResponse = (c, n = null) => {
   const cDecoded = decodeEscapeSequences(decodeHTMLEntities(c));
   const cUnwrapped = decodeUnwrapText(c);
 
+  // Normalize backslash-obfuscated URL schemes and path separators (\ -> /)
+  const normalizeSlashes = (str) => {
+    if (!str || typeof str !== 'string') return str;
+    let s = _call.call(_replace, str, /https?:[\/\\]+/gi, m => _call.call(_startsWith, _call.call(_toLowerCase, m), 'https') ? 'https://' : 'http://');
+    s = _call.call(_replace, s, /(?<!:)[\/\\]{2,}/g, '//');
+    return _call.call(_replace, s, /\\/g, '/');
+  };
+
+  const cSlashNormalized = normalizeSlashes(c);
+  const cDecodedSlashNormalized = normalizeSlashes(cDecoded);
+  const cUnwrappedSlashNormalized = normalizeSlashes(cUnwrapped);
+
   // Check markdown links/images and raw URLs for exfiltration patterns
   // Expanded to catch protocol-relative URLs, javascript: URIs, data: URIs, and blob: URIs
   const urlRegex = /(?:https?:\/\/|www\.|(?<!:)\/\/|javascript:|data:|blob:)[^\s)\]]+/gi;
   const rawUrls = _call.call(_match, c, urlRegex) || [];
+  const slashNormalizedUrls = _call.call(_match, cSlashNormalized, urlRegex) || [];
   const decodedUrls = _call.call(_match, cDecoded, urlRegex) || [];
+  const decodedSlashNormalizedUrls = _call.call(_match, cDecodedSlashNormalized, urlRegex) || [];
   const unwrappedUrls = _call.call(_match, cUnwrapped, urlRegex) || [];
-  const urls = [...rawUrls, ...decodedUrls, ...unwrappedUrls];
+  const unwrappedSlashNormalizedUrls = _call.call(_match, cUnwrappedSlashNormalized, urlRegex) || [];
+  const urls = [...rawUrls, ...slashNormalizedUrls, ...decodedUrls, ...decodedSlashNormalizedUrls, ...unwrappedUrls, ...unwrappedSlashNormalizedUrls];
 
   // High-signal keywords that trigger on any match within the URL
   const highSignalKeywords = ['cookie', 'session', 'localstorage', 'voro_', 'token', 'secret', 'credential', 'password'];
@@ -2335,8 +2350,8 @@ export const validateAIResponse = (c, n = null) => {
     try {
       if (!_URL) throw new Error("URL constructor not available");
 
-      // Prepare URL: Prepend https: to protocol-relative links starting with //
-      let preparedUrl = url;
+      // Prepare URL: Prepend https: to protocol-relative links starting with // and normalize backslashes
+      let preparedUrl = normalizeSlashes(url);
       if (_call.call(_startsWith, preparedUrl, '//')) {
         preparedUrl = 'https:' + preparedUrl;
       } else if (_call.call(_startsWith, preparedUrl, 'www.')) {
@@ -2400,7 +2415,7 @@ export const validateAIResponse = (c, n = null) => {
 
       // High-entropy token check (detects exfiltration even without known keywords)
       // Check segments of the decoded URL, including the hash fragment
-      const segments = _call.call(_split, decodedUrl, /[\/\?&%=:._\-#]/);
+      const segments = _call.call(_split, normalizeSlashes(decodedUrl), /[\/\?&%=:._\-#]/);
       for (const segment of segments) {
         if (segment.length >= 24 && calculateEntropy(segment) > 4.2) {
           if (_console.warn) _call.call(_console.warn, console, "Security Sentinel: AI exfiltration attempt blocked (High-entropy token in URL).");
