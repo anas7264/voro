@@ -1328,10 +1328,55 @@ export const isPromptInjection = (query, isNested = false) => {
       if (tapDecoded) {
         return true;
       }
+
+      // Security: Handle Rail Fence Cipher (2 to 5 rails) and evaluate recursively
+      const railFenceDecoded = safeDecodeRailFence(targetStr);
+      if (railFenceDecoded) {
+        return true;
+      }
     }
   }
 
   return false;
+};
+
+// Helper to safely decode Rail Fence Cipher (2 to 5 rails)
+const safeDecodeRailFence = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+
+  for (let rails = 2; rails <= 5; rails++) {
+    if (targetStr.length < rails) continue;
+    const len = targetStr.length;
+    const cycle = 2 * (rails - 1);
+    const railCounts = new Array(rails).fill(0);
+    const railIndices = new Array(len);
+
+    for (let i = 0; i < len; i++) {
+      const m = i % cycle;
+      const r = m < rails ? m : cycle - m;
+      railIndices[i] = r;
+      railCounts[r]++;
+    }
+
+    const railStart = new Array(rails).fill(0);
+    for (let r = 1; r < rails; r++) {
+      railStart[r] = railStart[r - 1] + railCounts[r - 1];
+    }
+
+    const currentPos = [...railStart];
+    const decodedArr = new Array(len);
+    for (let i = 0; i < len; i++) {
+      const r = railIndices[i];
+      decodedArr[i] = targetStr[currentPos[r]++];
+    }
+
+    const decoded = decodedArr.join('');
+    if (decoded !== targetStr && isPromptInjection(decoded, true)) {
+      return decoded;
+    }
+  }
+
+  return null;
 };
 
 // Helper to safely decode A1Z26 cipher (A=1..Z=26 or A=01..Z=26) encoded payloads (tokenized or 2-digit concatenated)

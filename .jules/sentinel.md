@@ -402,3 +402,14 @@ Neutralizing A1Z26 substitution cipher obfuscation requires scanning input candi
 
 **Prevention:**
 Always include A1Z26 substitution cipher decoders in prompt injection validation pipelines to ensure numeric letter-position encodings cannot be used to bypass system prompt boundaries.
+
+## 2026-09-15 - Rail Fence Cipher Prompt Injection Shield
+
+**Vulnerability:**
+Prompt injection detectors analyzing substitution or base-encodings failed to detect prompt override instructions (such as "ignore previous") obfuscated using Rail Fence transposition ciphers across 2 to 5 rails (e.g., "inr rvosgoepeiu" or "irrogoepeiun vs"). Large language models autonomously reconstruct transposition ciphers during query execution, allowing Rail Fence-encoded payloads to bypass text-based blocklists and boundary validations.
+
+**Learning:**
+Neutralizing Rail Fence transposition cipher obfuscation requires calculating the wave rail matrix trajectory for candidate strings across rail depths R in [2..5], reconstructing the plaintext by placing characters back into wave order i = 0..N-1, and recursively evaluating the decoded strings against `isPromptInjection`.
+
+**Prevention:**
+Always include transposition cipher decoders (such as Rail Fence) in prompt injection validation pipelines before forwarding user text to language models.
