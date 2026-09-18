@@ -1316,6 +1316,18 @@ export const isPromptInjection = (query, isNested = false) => {
       if (a1z26Decoded) {
         return true;
       }
+
+      // Security: Handle Affine Cipher (E(x) = (a*x + b) mod 26 across 312 key pairs) and evaluate recursively
+      const affineDecoded = safeDecodeAffine(targetStr);
+      if (affineDecoded) {
+        return true;
+      }
+
+      // Security: Handle Tap Code Cipher (5x5 grid dots or coordinates) and evaluate recursively
+      const tapDecoded = safeDecodeTapCode(targetStr);
+      if (tapDecoded) {
+        return true;
+      }
     }
   }
 
@@ -1354,6 +1366,114 @@ const safeDecodeA1Z26 = (targetStr) => {
     }
     if (isValid && decoded.length >= 4 && isPromptInjection(decoded, true)) {
       return decoded;
+    }
+  }
+
+  return null;
+};
+
+// Pre-computed coprimes and modular multiplicative inverses modulo 26 for Affine Cipher (E(x) = (a*x + b) mod 26)
+const AFFINE_COPRIMES = [
+  { a: 1, inv: 1 },
+  { a: 3, inv: 9 },
+  { a: 5, inv: 21 },
+  { a: 7, inv: 15 },
+  { a: 9, inv: 3 },
+  { a: 11, inv: 19 },
+  { a: 15, inv: 7 },
+  { a: 17, inv: 23 },
+  { a: 19, inv: 11 },
+  { a: 21, inv: 5 },
+  { a: 23, inv: 17 },
+  { a: 25, inv: 25 }
+];
+
+// Helper to safely decode Affine cipher-encoded payloads (E(x) = (a*x + b) mod 26) across all 312 key pairs (a, b)
+const safeDecodeAffine = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8) return null;
+
+  for (const { a, inv } of AFFINE_COPRIMES) {
+    for (let b = 0; b < 26; b++) {
+      if (a === 1) continue; // Skip identity and Caesar cipher shifts (handled by safeDecodeCaesar)
+
+      let decoded = '';
+      for (let i = 0; i < targetStr.length; i++) {
+        const code = targetStr.charCodeAt(i);
+        if (code >= 65 && code <= 90) { // 'A'-'Z'
+          let x = (inv * (code - 65 - b)) % 26;
+          if (x < 0) x += 26;
+          decoded += String.fromCharCode(x + 65);
+        } else if (code >= 97 && code <= 122) { // 'a'-'z'
+          let x = (inv * (code - 97 - b)) % 26;
+          if (x < 0) x += 26;
+          decoded += String.fromCharCode(x + 97);
+        } else {
+          decoded += targetStr[i];
+        }
+      }
+
+      if (decoded !== targetStr && isPromptInjection(decoded, true)) {
+        return decoded;
+      }
+    }
+  }
+
+  return null;
+};
+
+const TAP_GRID = [
+  ['a', 'b', 'c', 'd', 'e'],
+  ['f', 'g', 'h', 'i', 'j'],
+  ['l', 'm', 'n', 'o', 'p'],
+  ['q', 'r', 's', 't', 'u'],
+  ['v', 'w', 'x', 'y', 'z']
+];
+
+// Helper to safely decode Tap Code cipher-encoded payloads (dot patterns or 5x5 grid coordinates)
+const safeDecodeTapCode = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8) return null;
+
+  // 1. Dot-based Tap Code (e.g. ". .. ... ...." or ". ../... ..../...")
+  const cleanDots = targetStr.trim().replace(/[•]/g, '.');
+  if (/[.\s\/|\-]+/.test(cleanDots) && cleanDots.includes('.')) {
+    const tokens = cleanDots.split(/[\s\/|\-]+/).filter(Boolean);
+    if (tokens.length >= 8 && tokens.every(t => /^\.+$/.test(t))) {
+      let decoded = '';
+      for (let i = 0; i + 1 < tokens.length; i += 2) {
+        const r = tokens[i].length - 1;
+        const c = tokens[i + 1].length - 1;
+        if (r >= 0 && r < 5 && c >= 0 && c < 5) {
+          decoded += TAP_GRID[r][c];
+        } else {
+          decoded = '';
+          break;
+        }
+      }
+      if (decoded.length >= 4) {
+        const cand1 = decoded;
+        const cand2 = decoded.replace(/c/g, 'k');
+        if (isPromptInjection(cand1, true) || isPromptInjection(cand2, true)) {
+          return cand1;
+        }
+      }
+    }
+  }
+
+  // 2. Digit-based Tap Code (e.g. "12 34 23" or "1.2 3.4")
+  const digitTokens = targetStr.trim().split(/[\s,.\-_\/:;+=]+/);
+  if (digitTokens.length >= 4 && digitTokens.every(t => /^[1-5]{2}$/.test(t))) {
+    let decoded = '';
+    for (const t of digitTokens) {
+      const r = parseInt(t[0], 10) - 1;
+      const c = parseInt(t[1], 10) - 1;
+      decoded += TAP_GRID[r][c];
+    }
+    if (decoded.length >= 4) {
+      const cand1 = decoded;
+      const cand2 = decoded.replace(/c/g, 'k');
+      if (isPromptInjection(cand1, true) || isPromptInjection(cand2, true)) {
+        return cand1;
+      }
     }
   }
 
