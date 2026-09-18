@@ -637,8 +637,22 @@ const Statistics = () => {
         <footer className="mt-32 pt-16 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8">
            <p className="text-[0.65rem] font-mono font-black text-gray-600 uppercase tracking-[0.4em]">VORO Evolutionary Analytics Engine v1.4</p>
            <div className="flex gap-8">
-              <button className="text-[0.65rem] font-mono font-black text-gray-500 hover:text-white uppercase tracking-[0.25em] transition-colors">Export CSV</button>
-              <button className="text-[0.65rem] font-mono font-black text-gray-500 hover:text-white uppercase tracking-[0.25em] transition-colors">Generate PDF</button>
+              <button
+                type="button"
+                aria-label="Export trajectory analytics as CSV"
+                title="Export trajectory analytics as CSV"
+                className="text-[0.65rem] font-mono font-black text-gray-500 hover:text-white uppercase tracking-[0.25em] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408] cursor-pointer rounded-lg px-2 py-1"
+              >
+                Export CSV
+              </button>
+              <button
+                type="button"
+                aria-label="Generate trajectory analytics PDF report"
+                title="Generate trajectory analytics PDF report"
+                className="text-[0.65rem] font-mono font-black text-gray-500 hover:text-white uppercase tracking-[0.25em] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408] cursor-pointer rounded-lg px-2 py-1"
+              >
+                Generate PDF
+              </button>
            </div>
         </footer>
       </div>
