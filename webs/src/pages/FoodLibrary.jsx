@@ -62,10 +62,22 @@ const FoodArtifactCard = memo(({ food, idx, isFavorite, onToggleFavorite, onInsp
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
 
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
 
   const nodeId = `FOOD_NODE_0${idx}`;
+
+  const updateTransform = () => {
+    if (!containerRef.current) return;
+    const active = isHoveredRef.current || isFocusedRef.current;
+    if (active) {
+      containerRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-8px)';
+      containerRef.current.style.transition = isHoveredRef.current ? 'none' : 'transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)';
+    } else {
+      containerRef.current.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      containerRef.current.style.transition = 'transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)';
+    }
+  };
 
   const handleMouseMove = (e) => {
     if (!containerRef.current) return;
@@ -85,10 +97,25 @@ const FoodArtifactCard = memo(({ food, idx, isFavorite, onToggleFavorite, onInsp
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+    updateTransform();
+  };
+
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
+    updateTransform();
+  };
+
+  const handleMouseLeave = () => {
+    isHoveredRef.current = false;
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('--tilt-x', '0deg');
+      containerRef.current.style.setProperty('--tilt-y', '0deg');
+    }
+    updateTransform();
   };
 
   const handleFocus = () => {
-    setIsFocused(true);
+    isFocusedRef.current = true;
     if (containerRef.current) {
       // Static 4-degree tilt on focus for keyboard accessibility compliance
       containerRef.current.style.setProperty('--tilt-x', '4deg');
@@ -96,17 +123,17 @@ const FoodArtifactCard = memo(({ food, idx, isFavorite, onToggleFavorite, onInsp
       if (tiltXRef.current) tiltXRef.current.innerText = '4.0';
       if (tiltYRef.current) tiltYRef.current.innerText = '-4.0';
     }
+    updateTransform();
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
+    isFocusedRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
+    updateTransform();
   };
-
-  const interactionActive = isHovered || isFocused;
 
   const { proteinPct, carbsPct, fatPct } = useMemo(() => {
     if (!food.calories || food.calories <= 0) {
@@ -123,24 +150,16 @@ const FoodArtifactCard = memo(({ food, idx, isFavorite, onToggleFavorite, onInsp
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        if (containerRef.current) {
-          containerRef.current.style.setProperty('--tilt-x', '0deg');
-          containerRef.current.style.setProperty('--tilt-y', '0deg');
-        }
-      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
       tabIndex={0}
       role="article"
       aria-label={`${food.name}. ${food.calories} kcal, ${food.protein}g protein per 100g. ${isFavorite ? 'Archived in favorites' : 'Not favorited'}.`}
       style={{
-        transform: interactionActive
-          ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-8px)'
-          : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: isHovered ? 'none' : 'transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)',
+        transform: 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: 'transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d',
       }}
       className="group relative bg-[#0A0C14]/60 backdrop-blur-xl border border-white/5 p-10 rounded-[3rem] hover:border-white/10 flex flex-col shadow-2xl overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-voro-primary/80 focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408] animate-slide-up"
