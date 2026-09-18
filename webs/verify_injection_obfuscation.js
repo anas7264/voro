@@ -869,6 +869,18 @@ const runTests = async () => {
     throw new Error("❌ Failure: Tap Code Cipher prompt injection bypass attempt allowed!");
   }
 
+  // --- TEST 79: Rail Fence Cipher Prompt Injection Shield ---
+  console.log("🛡️ Test 79: Verifying Rail Fence Cipher prompt injection attempts (across 2 to 5 rails) are blocked...");
+  const railFence2Payload = "inr rvosgoepeiu"; // "ignore previous" 2 rails
+  const railFence3Payload = "irrogoepeiun vs"; // "ignore previous" 3 rails
+  const railFence4Payload = "i ogepiunrrvsoe"; // "ignore previous" 4 rails
+
+  if (isPromptInjection(railFence2Payload) && isPromptInjection(railFence3Payload) && isPromptInjection(railFence4Payload)) {
+    console.log("✅ Success: Rail Fence Cipher prompt injection attempts successfully blocked!");
+  } else {
+    throw new Error("❌ Failure: Rail Fence Cipher prompt injection bypass attempt allowed!");
+  }
+
   console.log("\n🎉 ALL INJECTION OBFUSCATION SECURITY VERIFICATION TESTS PASSED SUCCESSFULLY!");
   console.log("=========================================");
   process.exit(0);
