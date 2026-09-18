@@ -1,4 +1,4 @@
-import React, { memo, useRef, useState, useId, useMemo } from "react";
+import React, { memo, useRef, useId, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 
@@ -17,15 +17,15 @@ const EMPTY_ITEMS = Object.freeze([]);
  * DESIGN PHILOSOPHY:
  * 1. Authority: Playfair Display italic serif headings for active terminal nodes.
  * 2. Precision: JetBrains Mono for navigation path segments and technical telemetry.
- * 3. Motion: Direct-DOM 60fps volumetric tilt and kinetic laser indicators.
+ * 3. Motion: Direct-DOM 60fps volumetric tilt bypassing React component re-renders.
  * 4. Spatial: Mathematical alignment of technical metadata nodes with luxury gallery aesthetics.
  */
 export const Breadcrumb = memo(({ items = EMPTY_ITEMS, className = "" }) => {
   const containerRef = useRef(null);
   const txRef = useRef(null);
   const tyRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
 
   const generatedId = useId();
 
@@ -51,58 +51,78 @@ export const Breadcrumb = memo(({ items = EMPTY_ITEMS, className = "" }) => {
     const tiltY = ((x / rect.width) - 0.5) * 16;
     const tiltX = (0.5 - (y / rect.height)) * 16;
 
-    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
-    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
-    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    const style = containerRef.current.style;
+    style.setProperty('--mouse-x', `${x.toFixed(1)}px`);
+    style.setProperty('--mouse-y', `${y.toFixed(1)}px`);
+    style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
+    style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
+    style.setProperty('transform', `perspective(1000px) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg) translateY(-2px)`);
+    style.setProperty('transition', 'none');
 
     if (txRef.current) txRef.current.innerText = tiltX.toFixed(1);
     if (tyRef.current) tyRef.current.innerText = tiltY.toFixed(1);
   };
 
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
+  };
+
   const handleMouseLeave = () => {
-    setIsHovered(false);
+    isHoveredRef.current = false;
     if (!containerRef.current) return;
 
-    if (isFocused) {
-      containerRef.current.style.setProperty('--tilt-x', '4deg');
-      containerRef.current.style.setProperty('--tilt-y', '-4deg');
+    const style = containerRef.current.style;
+    if (isFocusedRef.current) {
+      style.setProperty('--tilt-x', '4deg');
+      style.setProperty('--tilt-y', '-4deg');
+      style.setProperty('transform', 'perspective(1000px) rotateX(4deg) rotateY(-4deg) translateY(-2px)');
+      style.setProperty('transition', 'transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)');
       if (txRef.current) txRef.current.innerText = "4.0";
       if (tyRef.current) tyRef.current.innerText = "-4.0";
     } else {
-      containerRef.current.style.setProperty('--tilt-x', '0deg');
-      containerRef.current.style.setProperty('--tilt-y', '0deg');
+      style.setProperty('--tilt-x', '0deg');
+      style.setProperty('--tilt-y', '0deg');
+      style.setProperty('transform', 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)');
+      style.setProperty('transition', 'transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)');
+      if (txRef.current) txRef.current.innerText = "0.0";
+      if (tyRef.current) tyRef.current.innerText = "0.0";
     }
   };
 
   const handleFocus = () => {
-    setIsFocused(true);
+    isFocusedRef.current = true;
     if (!containerRef.current) return;
 
-    containerRef.current.style.setProperty('--tilt-x', '4deg');
-    containerRef.current.style.setProperty('--tilt-y', '-4deg');
+    const style = containerRef.current.style;
+    style.setProperty('--tilt-x', '4deg');
+    style.setProperty('--tilt-y', '-4deg');
+    style.setProperty('transform', 'perspective(1000px) rotateX(4deg) rotateY(-4deg) translateY(-2px)');
+    style.setProperty('transition', 'transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)');
     if (txRef.current) txRef.current.innerText = "4.0";
     if (tyRef.current) tyRef.current.innerText = "-4.0";
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
+    isFocusedRef.current = false;
     if (!containerRef.current) return;
 
-    if (!isHovered) {
-      containerRef.current.style.setProperty('--tilt-x', '0deg');
-      containerRef.current.style.setProperty('--tilt-y', '0deg');
+    if (!isHoveredRef.current) {
+      const style = containerRef.current.style;
+      style.setProperty('--tilt-x', '0deg');
+      style.setProperty('--tilt-y', '0deg');
+      style.setProperty('transform', 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)');
+      style.setProperty('transition', 'transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)');
+      if (txRef.current) txRef.current.innerText = "0.0";
+      if (tyRef.current) tyRef.current.innerText = "0.0";
     }
   };
-
-  const interactionActive = isHovered || isFocused;
 
   return (
     <nav
       aria-label="Breadcrumb"
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
@@ -116,15 +136,13 @@ export const Breadcrumb = memo(({ items = EMPTY_ITEMS, className = "" }) => {
         ${className}
       `}
       style={{
-        transform: interactionActive
-          ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)'
-          : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transformStyle: 'preserve-3d',
-        transition: isHovered ? 'none' : 'transform 0.7s cubic-bezier(0.16,1,0.3,1)'
+        transform: 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg))',
+        transformStyle: 'preserve-3d'
       }}
     >
       {/* Dynamic Liquid Border Perimeter Illumination */}
       <div
+        aria-hidden="true"
         className="absolute inset-0 rounded-[1.75rem] opacity-0 group-hover/breadcrumb:opacity-100 group-focus-within/breadcrumb:opacity-100 transition-opacity duration-700 pointer-events-none"
         style={{
           padding: '1px',
@@ -136,16 +154,15 @@ export const Breadcrumb = memo(({ items = EMPTY_ITEMS, className = "" }) => {
       />
 
       {/* Grid & Grain Background */}
-      <div className="absolute inset-0 bg-grid-white opacity-0 group-hover/breadcrumb:opacity-[0.03] group-focus-within/breadcrumb:opacity-[0.03] transition-opacity duration-1000 pointer-events-none" />
-      <div className="absolute inset-0 bg-boutique-grain opacity-[0.02] pointer-events-none" />
+      <div aria-hidden="true" className="absolute inset-0 bg-grid-white opacity-0 group-hover/breadcrumb:opacity-[0.03] group-focus-within/breadcrumb:opacity-[0.03] transition-opacity duration-1000 pointer-events-none" />
+      <div aria-hidden="true" className="absolute inset-0 bg-boutique-grain opacity-[0.02] pointer-events-none" />
 
       {/* Dynamic Liquid Light Spot Follower */}
       <div
+        aria-hidden="true"
         className="absolute inset-0 opacity-0 group-hover/breadcrumb:opacity-100 group-focus-within/breadcrumb:opacity-100 transition-opacity duration-500 pointer-events-none"
         style={{
-          background: isHovered
-            ? `radial-gradient(250px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(124,58,237,0.12), transparent 70%)`
-            : `radial-gradient(250px circle at 50% 50%, rgba(124,58,237,0.12), transparent 70%)`
+          background: `radial-gradient(250px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(124,58,237,0.12), transparent 70%)`
         }}
       />
 
