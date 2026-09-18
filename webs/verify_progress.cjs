@@ -13,7 +13,8 @@ const progressContent = fs.readFileSync(progressPath, 'utf8');
 
 // Verification checks
 const checks = [
-  { name: 'Import React hooks (memo, useRef, useState, useMemo, useId)', test: progressContent.includes('useId') && progressContent.includes('useMemo') && progressContent.includes('memo') },
+  { name: 'Import React hooks (memo, useRef, useMemo, useId)', test: progressContent.includes('useId') && progressContent.includes('useMemo') && progressContent.includes('memo') },
+  { name: 'Zero-allocation ref tracking (isHoveredRef, isFocusedRef)', test: progressContent.includes('isHoveredRef') && progressContent.includes('isFocusedRef') && !progressContent.includes('useState') },
   { name: 'No Math.random() in component logic', test: !progressContent.includes('Math.random()') },
   { name: 'Frozen static CONDUIT_COLORS mapping', test: progressContent.includes('const CONDUIT_COLORS = Object.freeze({') },
   { name: 'Frozen static GLOW_COLORS mapping', test: progressContent.includes('const GLOW_COLORS = Object.freeze({') },

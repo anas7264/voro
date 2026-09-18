@@ -1,4 +1,4 @@
-import React, { memo, useRef, useState, useMemo, useId } from "react";
+import React, { memo, useRef, useMemo, useId } from "react";
 
 /**
  * ⚡ REFINEMENT: Luxury Neural Progress Conduit ('Volumetric Progress Lens').
@@ -28,8 +28,8 @@ export const Progress = memo(({
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
 
   // Generate stable system node ID & attestation hash for telemetry attestation
   const reactId = useId();
@@ -56,49 +56,75 @@ export const Progress = memo(({
     const tiltY = ((x / rect.width) - 0.5) * 20;
     const tiltX = (0.5 - (y / rect.height)) * 20;
 
-    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
-    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
-    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    const style = containerRef.current.style;
+    style.setProperty('--mouse-x', `${x}px`);
+    style.setProperty('--mouse-y', `${y}px`);
+    style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
+    style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
+    style.setProperty('transform', `perspective(1000px) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg) translateY(-4px)`);
+    style.setProperty('transition', 'none');
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
   };
 
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('transform', 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)');
+      containerRef.current.style.setProperty('transition', 'none');
+    }
+  };
+
   const handleMouseLeave = () => {
-    setIsHovered(false);
+    isHoveredRef.current = false;
     if (!containerRef.current) return;
 
-    if (isFocused) {
+    const style = containerRef.current.style;
+    style.setProperty('transition', 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)');
+
+    if (isFocusedRef.current) {
       // Revert to static 4-degree tilt on keyboard focus
-      containerRef.current.style.setProperty('--tilt-x', '4deg');
-      containerRef.current.style.setProperty('--tilt-y', '-4deg');
+      style.setProperty('--tilt-x', '4deg');
+      style.setProperty('--tilt-y', '-4deg');
+      style.setProperty('transform', 'perspective(1000px) rotateX(4deg) rotateY(-4deg) translateY(-4px)');
       if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     } else {
-      containerRef.current.style.setProperty('--tilt-x', '0deg');
-      containerRef.current.style.setProperty('--tilt-y', '0deg');
+      style.setProperty('--tilt-x', '0deg');
+      style.setProperty('--tilt-y', '0deg');
+      style.setProperty('transform', 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)');
+      if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
     }
   };
 
   const handleFocus = () => {
-    setIsFocused(true);
+    isFocusedRef.current = true;
     if (!containerRef.current) return;
 
+    const style = containerRef.current.style;
+    style.setProperty('transition', 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)');
     // Static 4-degree tilt for keyboard feedback
-    containerRef.current.style.setProperty('--tilt-x', '4deg');
-    containerRef.current.style.setProperty('--tilt-y', '-4deg');
+    style.setProperty('--tilt-x', '4.00deg');
+    style.setProperty('--tilt-y', '-4.00deg');
+    style.setProperty('transform', 'perspective(1000px) rotateX(4deg) rotateY(-4deg) translateY(-4px)');
     if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
     if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
-    if (!containerRef.current && !isHovered) return;
+    isFocusedRef.current = false;
+    if (!containerRef.current) return;
 
-    if (!isHovered && containerRef.current) {
-      containerRef.current.style.setProperty('--tilt-x', '0deg');
-      containerRef.current.style.setProperty('--tilt-y', '0deg');
+    if (!isHoveredRef.current) {
+      const style = containerRef.current.style;
+      style.setProperty('transition', 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)');
+      style.setProperty('--tilt-x', '0deg');
+      style.setProperty('--tilt-y', '0deg');
+      style.setProperty('transform', 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)');
+      if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
     }
   };
 
@@ -106,13 +132,12 @@ export const Progress = memo(({
   const activeGlow = GLOW_COLORS[color] || GLOW_COLORS.primary;
   const activeBorderGlow = BORDER_GLOW_COLORS[color] || BORDER_GLOW_COLORS.primary;
   const activeSize = SIZES[size] || SIZES.md;
-  const interactionActive = isHovered || isFocused;
 
   return (
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
@@ -123,10 +148,8 @@ export const Progress = memo(({
       aria-valuemax={max}
       aria-label={ariaLabel || label || `Progress conduit: ${Math.round(percentage)}%`}
       style={{
-        transform: interactionActive
-          ? `perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)`
-          : `perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)`,
-        transition: isHovered ? 'none' : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+        transform: 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(0px)',
+        transition: 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
       }}
       className={`
@@ -146,9 +169,7 @@ export const Progress = memo(({
         <div
           className="absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-700"
           style={{
-            background: isHovered
-              ? `radial-gradient(400px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), ${activeGlow}, transparent 70%)`
-              : `radial-gradient(400px circle at 50% 50%, ${activeGlow}, transparent 70%)`,
+            background: `radial-gradient(400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ${activeGlow}, transparent 70%)`,
           }}
         />
       </div>
