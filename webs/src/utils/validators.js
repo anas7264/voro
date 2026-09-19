@@ -1906,9 +1906,9 @@ export const validateNutritionEntry = (nutrition) => {
     errors.food = "Food name must be less than 100 characters";
   }
   if (!isValidCalories(nutrition.calories)) errors.calories = "Calories must be between 500-10000";
-  if (!isNonNegativeNumber(nutrition.protein)) errors.protein = "Protein must be non-negative";
-  if (!isNonNegativeNumber(nutrition.carbs)) errors.carbs = "Carbs must be non-negative";
-  if (!isNonNegativeNumber(nutrition.fat)) errors.fat = "Fat must be non-negative";
+  if (!isValidMacro(nutrition.protein)) errors.protein = "Protein must be between 0 and 500 grams";
+  if (!isValidMacro(nutrition.carbs)) errors.carbs = "Carbs must be between 0 and 500 grams";
+  if (!isValidMacro(nutrition.fat)) errors.fat = "Fat must be between 0 and 500 grams";
   if (!isValidMealType(nutrition.mealType)) errors.mealType = "Invalid meal type";
   if (!isValidDate(nutrition.date)) errors.date = "Date is invalid";
 
