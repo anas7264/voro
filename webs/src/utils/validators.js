@@ -1334,10 +1334,165 @@ export const isPromptInjection = (query, isNested = false) => {
       if (railFenceDecoded) {
         return true;
       }
+
+      // Security: Handle Vigenère Cipher (2-letter keys and short keyword dictionary) and evaluate recursively
+      const vigenereDecoded = safeDecodeVigenere(targetStr);
+      if (vigenereDecoded) {
+        return true;
+      }
+
+      // Security: Handle Beaufort Cipher (2-letter keys and short keyword dictionary) and evaluate recursively
+      const beaufortDecoded = safeDecodeBeaufort(targetStr);
+      if (beaufortDecoded) {
+        return true;
+      }
+
+      // Security: Handle Gronsfeld Cipher (1-3 digit keys and common numeric keys) and evaluate recursively
+      const gronsfeldDecoded = safeDecodeGronsfeld(targetStr);
+      if (gronsfeldDecoded) {
+        return true;
+      }
     }
   }
 
   return false;
+};
+
+// Pre-computed common short keywords for Vigenère and Beaufort ciphers
+const CIPHER_KEYWORDS = [
+  'ai', 'key', 'voro', 'pass', 'code', 'safe', 'sec', 'secret', 'admin', 'prompt',
+  'system', 'hack', 'bypass', 'test', 'demo', 'lock', 'guard', 'shield', 'auth',
+  'user', 'bot', 'gpt', 'llm', 'zero', 'vigenere', 'beaufort', 'cipher'
+];
+
+// Helper to safely decode Vigenère cipher-encoded payloads (P_i = (C_i - K_{i mod L}) mod 26)
+const safeDecodeVigenere = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+
+  const candidateKeys = [];
+  for (let c1 = 0; c1 < 26; c1++) {
+    for (let c2 = 0; c2 < 26; c2++) {
+      candidateKeys.push(String.fromCharCode(97 + c1, 97 + c2));
+    }
+  }
+  candidateKeys.push(...CIPHER_KEYWORDS);
+
+  for (const key of candidateKeys) {
+    const L = key.length;
+    let decoded = '';
+    let keyIdx = 0;
+
+    for (let i = 0; i < targetStr.length; i++) {
+      const code = targetStr.charCodeAt(i);
+      const kShift = key.charCodeAt(keyIdx % L) - 97;
+
+      if (code >= 65 && code <= 90) {
+        let x = (code - 65 - kShift) % 26;
+        if (x < 0) x += 26;
+        decoded += String.fromCharCode(x + 65);
+        keyIdx++;
+      } else if (code >= 97 && code <= 122) {
+        let x = (code - 97 - kShift) % 26;
+        if (x < 0) x += 26;
+        decoded += String.fromCharCode(x + 97);
+        keyIdx++;
+      } else {
+        decoded += targetStr[i];
+      }
+    }
+
+    if (decoded !== targetStr && isPromptInjection(decoded, true)) {
+      return decoded;
+    }
+  }
+
+  return null;
+};
+
+// Helper to safely decode Beaufort cipher-encoded payloads (P_i = (K_{i mod L} - C_i) mod 26)
+const safeDecodeBeaufort = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+
+  const candidateKeys = [];
+  for (let c1 = 0; c1 < 26; c1++) {
+    for (let c2 = 0; c2 < 26; c2++) {
+      candidateKeys.push(String.fromCharCode(97 + c1, 97 + c2));
+    }
+  }
+  candidateKeys.push(...CIPHER_KEYWORDS);
+
+  for (const key of candidateKeys) {
+    const L = key.length;
+    let decoded = '';
+    let keyIdx = 0;
+
+    for (let i = 0; i < targetStr.length; i++) {
+      const code = targetStr.charCodeAt(i);
+      const kVal = key.charCodeAt(keyIdx % L) - 97;
+
+      if (code >= 65 && code <= 90) {
+        let x = (kVal - (code - 65)) % 26;
+        if (x < 0) x += 26;
+        decoded += String.fromCharCode(x + 65);
+        keyIdx++;
+      } else if (code >= 97 && code <= 122) {
+        let x = (kVal - (code - 97)) % 26;
+        if (x < 0) x += 26;
+        decoded += String.fromCharCode(x + 97);
+        keyIdx++;
+      } else {
+        decoded += targetStr[i];
+      }
+    }
+
+    if (decoded !== targetStr && isPromptInjection(decoded, true)) {
+      return decoded;
+    }
+  }
+
+  return null;
+};
+
+// Helper to safely decode Gronsfeld cipher-encoded payloads (Vigenère with numeric digit keys)
+const safeDecodeGronsfeld = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+
+  const candidateKeys = [];
+  for (let n = 0; n < 10; n++) candidateKeys.push(String(n));
+  for (let n = 0; n < 100; n++) candidateKeys.push(String(n).padStart(2, '0'));
+  for (let n = 0; n < 1000; n++) candidateKeys.push(String(n).padStart(3, '0'));
+  candidateKeys.push('1234', '12345', '123456', '314159', '2024', '2025', '9876', '987654');
+
+  for (const key of candidateKeys) {
+    const L = key.length;
+    let decoded = '';
+    let keyIdx = 0;
+
+    for (let i = 0; i < targetStr.length; i++) {
+      const code = targetStr.charCodeAt(i);
+      const dShift = key.charCodeAt(keyIdx % L) - 48;
+
+      if (code >= 65 && code <= 90) {
+        let x = (code - 65 - dShift) % 26;
+        if (x < 0) x += 26;
+        decoded += String.fromCharCode(x + 65);
+        keyIdx++;
+      } else if (code >= 97 && code <= 122) {
+        let x = (code - 97 - dShift) % 26;
+        if (x < 0) x += 26;
+        decoded += String.fromCharCode(x + 97);
+        keyIdx++;
+      } else {
+        decoded += targetStr[i];
+      }
+    }
+
+    if (decoded !== targetStr && isPromptInjection(decoded, true)) {
+      return decoded;
+    }
+  }
+
+  return null;
 };
 
 // Helper to safely decode Rail Fence Cipher (2 to 5 rails)
