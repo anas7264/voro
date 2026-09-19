@@ -107,8 +107,8 @@ const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
   const reactId = useId();
 
   const nodeId = useMemo(() => `CHRONO_NODE_${reactId.replace(/:/g, '').slice(0, 4)}`, [reactId]);
@@ -120,6 +120,17 @@ const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive
     if (progress < 75) return METABOLIC_PHASES.autophagy;
     return METABOLIC_PHASES.ketosis;
   }, [progress]);
+
+  const updateTransform = () => {
+    if (!containerRef.current) return;
+    const active = isHoveredRef.current || isFocusedRef.current;
+    containerRef.current.style.transform = active
+      ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
+      : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+    containerRef.current.style.transition = isHoveredRef.current
+      ? 'none'
+      : 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)';
+  };
 
   const handleMouseMove = (e) => {
     if (!containerRef.current) return;
@@ -138,10 +149,28 @@ const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+
+    if (isHoveredRef.current) {
+      updateTransform();
+    }
+  };
+
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
+    updateTransform();
+  };
+
+  const handleMouseLeave = () => {
+    isHoveredRef.current = false;
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('--tilt-x', '0deg');
+      containerRef.current.style.setProperty('--tilt-y', '0deg');
+    }
+    updateTransform();
   };
 
   const handleFocus = () => {
-    setIsFocused(true);
+    isFocusedRef.current = true;
     if (containerRef.current) {
       // Provide a subtle static tilt for keyboard focus feedback
       containerRef.current.style.setProperty('--tilt-x', '4deg');
@@ -149,31 +178,32 @@ const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive
       if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     }
+    updateTransform();
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
+    isFocusedRef.current = false;
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('--tilt-x', '0deg');
+      containerRef.current.style.setProperty('--tilt-y', '0deg');
+    }
+    updateTransform();
   };
-
-
-  const interactionActive = isHovered || isFocused;
 
   return (
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
       tabIndex="0"
       role="article"
       aria-label={`Metabolic Chronometer. Phase: ${metabolicState.name}. Phase progress: ${Math.round(progress)}%. Time: ${hours} hours, ${minutes} minutes, ${seconds} seconds.`}
       style={{
-        transform: interactionActive
-          ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
-          : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: isHovered ? 'none' : 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)',
+        transform: 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
       }}
       className={`
@@ -227,9 +257,7 @@ const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive
         <div
           className="absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-700"
           style={{
-            background: isHovered
-              ? `radial-gradient(150px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), ${metabolicState.glowColor}, transparent 80%)`
-              : `radial-gradient(150px circle at 50% 50%, ${metabolicState.glowColor}, transparent 80%)`,
+            background: `radial-gradient(150px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ${metabolicState.glowColor}, transparent 80%)`,
             transform: 'translateZ(20px)'
           }}
         />
@@ -340,8 +368,19 @@ MetabolicChronometer.displayName = 'MetabolicChronometer';
  */
 const WindowCard = memo(({ option, isSelected, onClick }) => {
   const cardRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
+
+  const updateTransform = () => {
+    if (!cardRef.current) return;
+    const active = isHoveredRef.current || isFocusedRef.current;
+    cardRef.current.style.transform = active
+      ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-3px)'
+      : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+    cardRef.current.style.transition = isHoveredRef.current
+      ? 'none'
+      : 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+  };
 
   const handleMouseMove = (e) => {
     if (!cardRef.current) return;
@@ -357,42 +396,58 @@ const WindowCard = memo(({ option, isSelected, onClick }) => {
     cardRef.current.style.setProperty('--mouse-y', `${y}px`);
     cardRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
     cardRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+
+    if (isHoveredRef.current) {
+      updateTransform();
+    }
+  };
+
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
+    updateTransform();
+  };
+
+  const handleMouseLeave = () => {
+    isHoveredRef.current = false;
+    if (cardRef.current) {
+      cardRef.current.style.setProperty('--tilt-x', '0deg');
+      cardRef.current.style.setProperty('--tilt-y', '0deg');
+    }
+    updateTransform();
   };
 
   const handleFocus = () => {
-    setIsFocused(true);
+    isFocusedRef.current = true;
     if (cardRef.current) {
       // 4-degree static tilt on focus
       cardRef.current.style.setProperty('--tilt-x', '4deg');
       cardRef.current.style.setProperty('--tilt-y', '-4deg');
     }
+    updateTransform();
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
+    isFocusedRef.current = false;
     if (cardRef.current) {
       cardRef.current.style.setProperty('--tilt-x', '0deg');
       cardRef.current.style.setProperty('--tilt-y', '0deg');
     }
+    updateTransform();
   };
-
-  const interactionActive = isHovered || isFocused;
 
   return (
     <button
       ref={cardRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
       onClick={onClick}
       aria-pressed={isSelected}
       style={{
-        transform: interactionActive
-          ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-3px)'
-          : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: isHovered ? 'none' : 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+        transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
       }}
       className={`
@@ -447,8 +502,19 @@ WindowCard.displayName = 'WindowCard';
  */
 const DiagnosticCell = memo(({ title, value, unit, progress, description, icon: Icon, color, glow }) => {
   const cellRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
+
+  const updateTransform = () => {
+    if (!cellRef.current) return;
+    const active = isHoveredRef.current || isFocusedRef.current;
+    cellRef.current.style.transform = active
+      ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
+      : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+    cellRef.current.style.transition = isHoveredRef.current
+      ? 'none'
+      : 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+  };
 
   const handleMouseMove = (e) => {
     if (!cellRef.current) return;
@@ -463,40 +529,56 @@ const DiagnosticCell = memo(({ title, value, unit, progress, description, icon: 
     cellRef.current.style.setProperty('--mouse-y', `${y}px`);
     cellRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
     cellRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
-  };
 
-  const handleFocus = () => {
-    setIsFocused(true);
-    if (cellRef.current) {
-      cellRef.current.style.setProperty('--tilt-x', '4deg');
-      cellRef.current.style.setProperty('--tilt-y', '-4deg');
+    if (isHoveredRef.current) {
+      updateTransform();
     }
   };
 
-  const handleBlur = () => {
-    setIsFocused(false);
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
+    updateTransform();
+  };
+
+  const handleMouseLeave = () => {
+    isHoveredRef.current = false;
     if (cellRef.current) {
       cellRef.current.style.setProperty('--tilt-x', '0deg');
       cellRef.current.style.setProperty('--tilt-y', '0deg');
     }
+    updateTransform();
   };
 
-  const interactionActive = isHovered || isFocused;
+  const handleFocus = () => {
+    isFocusedRef.current = true;
+    if (cellRef.current) {
+      cellRef.current.style.setProperty('--tilt-x', '4deg');
+      cellRef.current.style.setProperty('--tilt-y', '-4deg');
+    }
+    updateTransform();
+  };
+
+  const handleBlur = () => {
+    isFocusedRef.current = false;
+    if (cellRef.current) {
+      cellRef.current.style.setProperty('--tilt-x', '0deg');
+      cellRef.current.style.setProperty('--tilt-y', '0deg');
+    }
+    updateTransform();
+  };
 
   return (
     <div
       ref={cellRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
       tabIndex="0"
       style={{
-        transform: interactionActive
-          ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
-          : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: isHovered ? 'none' : 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+        transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
       }}
       className="relative p-6 rounded-[2rem] bg-[#0A0C14] border border-white/5 overflow-hidden group outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408]"

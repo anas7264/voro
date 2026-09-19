@@ -27,8 +27,19 @@ const BiometricStatCard = memo(({ label, value, unit, icon: Icon, color, nodeId 
   const txRef = useRef(null);
   const tyRef = useRef(null);
 
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
+
+  const updateTransform = () => {
+    if (!containerRef.current) return;
+    const active = isHoveredRef.current || isFocusedRef.current;
+    containerRef.current.style.transform = active
+      ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
+      : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+    containerRef.current.style.transition = isHoveredRef.current
+      ? 'none'
+      : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+  };
 
   const handleMouseMove = (e) => {
     if (!containerRef.current) return;
@@ -46,50 +57,60 @@ const BiometricStatCard = memo(({ label, value, unit, icon: Icon, color, nodeId 
 
     if (txRef.current) txRef.current.innerText = tiltX.toFixed(1);
     if (tyRef.current) tyRef.current.innerText = tiltY.toFixed(1);
+
+    if (isHoveredRef.current) {
+      updateTransform();
+    }
+  };
+
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
+    updateTransform();
+  };
+
+  const handleMouseLeave = () => {
+    isHoveredRef.current = false;
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('--tilt-x', '0deg');
+      containerRef.current.style.setProperty('--tilt-y', '0deg');
+    }
+    updateTransform();
   };
 
   const handleFocus = () => {
-    setIsFocused(true);
+    isFocusedRef.current = true;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '4deg');
       containerRef.current.style.setProperty('--tilt-y', '-4deg');
       if (txRef.current) txRef.current.innerText = "4.0";
       if (tyRef.current) tyRef.current.innerText = "-4.0";
     }
+    updateTransform();
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
+    isFocusedRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
+    updateTransform();
   };
-
-  const interactionActive = isHovered || isFocused;
 
   return (
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        if (containerRef.current) {
-          containerRef.current.style.setProperty('--tilt-x', '0deg');
-          containerRef.current.style.setProperty('--tilt-y', '0deg');
-        }
-      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
       tabIndex={0}
       role="article"
       aria-label={`${label}: ${value} ${unit}`}
       style={{
-        transform: interactionActive
-          ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
-          : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: isHovered ? 'none' : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+        transform: 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
       }}
       className="group/biocard relative p-10 rounded-[2.5rem] bg-[#0A0C14]/80 border border-white/5 backdrop-blur-3xl shadow-[0_30px_70px_rgba(0,0,0,0.6)] hover:border-voro-primary/30 transition-all duration-700 outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408] overflow-hidden"
@@ -164,7 +185,6 @@ BiometricStatCard.displayName = 'BiometricStatCard';
  */
 const ObjectiveMatrixCard = memo(({ primaryGoal, targetWeight, calorieGoal, tdee }) => {
   const containerRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
 
   const handleMouseMove = (e) => {
     if (!containerRef.current) return;
@@ -187,8 +207,6 @@ const ObjectiveMatrixCard = memo(({ primaryGoal, targetWeight, calorieGoal, tdee
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       className="group/objcard relative p-12 rounded-[2.5rem] bg-[#0A0C14]/80 border border-white/5 backdrop-blur-3xl shadow-[0_30px_70px_rgba(0,0,0,0.6)] space-y-12 overflow-hidden hover:border-voro-primary/30 transition-all duration-700"
     >
       {/* Backglow Spotlight */}
@@ -240,7 +258,6 @@ ObjectiveMatrixCard.displayName = 'ObjectiveMatrixCard';
  */
 const IdentitySignaturesCard = memo(({ name, age, gender, createdAt }) => {
   const containerRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
 
   const handleMouseMove = (e) => {
     if (!containerRef.current) return;
@@ -268,8 +285,6 @@ const IdentitySignaturesCard = memo(({ name, age, gender, createdAt }) => {
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       className="group/sigcard relative p-12 rounded-[2.5rem] bg-[#0A0C14]/80 border border-white/5 backdrop-blur-3xl shadow-[0_30px_70px_rgba(0,0,0,0.6)] space-y-12 overflow-hidden hover:border-voro-secondary/30 transition-all duration-700"
     >
       {/* Backglow Spotlight */}
