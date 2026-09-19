@@ -104,17 +104,34 @@ export const getMacroWarnings = (protein, carbs, fat, calories) => {
 };
 
 // Calculate glycemic load of a meal
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Zero-allocation imperative loop.
+ * Bypasses Array.prototype.forEach callback closures to eliminate temporary function allocations
+ * and GC overhead in hot calculation paths.
+ */
 export const calculateGlycemicLoad = (foodItems) => {
-  // Simplified GL calculation: (Glycemic Index × Carbs) / 100
-  // foodItems should have { glycemicIndex, carbs }
+  if (!Array.isArray(foodItems) || foodItems.length === 0) {
+    return {
+      glycemicLoad: 0,
+      classification: "Low",
+      carbs: 0,
+      recommendation: "Good for stable energy"
+    };
+  }
+
   let totalGL = 0;
   let totalCarbs = 0;
+  const len = foodItems.length;
 
-  foodItems.forEach(item => {
-    const gl = (item.glycemicIndex * item.carbs) / 100;
+  for (let i = 0; i < len; i++) {
+    const item = foodItems[i];
+    if (!item) continue;
+    const carbs = item.carbs || 0;
+    const gi = item.glycemicIndex || 0;
+    const gl = (gi * carbs) / 100;
     totalGL += gl;
-    totalCarbs += item.carbs;
-  });
+    totalCarbs += carbs;
+  }
 
   let classification = "Low";
   if (totalGL >= 10 && totalGL < 20) classification = "Moderate";
@@ -129,21 +146,42 @@ export const calculateGlycemicLoad = (foodItems) => {
 };
 
 // Assess meal inflammatory potential (simplified inflammatory score)
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Zero-allocation imperative loop.
+ * Bypasses Array.prototype.forEach callback closures to eliminate temporary function allocations
+ * during meal logging and nutrition evaluation.
+ */
 export const assessInflammatoryPotential = (foodItems) => {
-  // Inflammatory foods increase risk, anti-inflammatory foods decrease
+  if (!Array.isArray(foodItems) || foodItems.length === 0) {
+    return {
+      inflammatoryScore: 0,
+      classification: "Low",
+      recommendation: "Good meal composition"
+    };
+  }
+
   let score = 0;
+  const len = foodItems.length;
 
-  foodItems.forEach(item => {
-    // Simplified scoring
-    if (item.category?.includes("processed")) score += 2;
-    if (item.category?.includes("fried")) score += 2;
-    if (item.category?.includes("sugary")) score += 2;
-    if (item.tags?.includes("high-omega6")) score += 1;
+  for (let i = 0; i < len; i++) {
+    const item = foodItems[i];
+    if (!item) continue;
 
-    if (item.tags?.includes("antioxidant")) score -= 2;
-    if (item.tags?.includes("high-omega3")) score -= 2;
-    if (item.tags?.includes("polyphenol-rich")) score -= 1;
-  });
+    const cat = item.category;
+    if (cat) {
+      if (cat.includes("processed")) score += 2;
+      if (cat.includes("fried")) score += 2;
+      if (cat.includes("sugary")) score += 2;
+    }
+
+    const tags = item.tags;
+    if (tags) {
+      if (tags.includes("high-omega6")) score += 1;
+      if (tags.includes("antioxidant")) score -= 2;
+      if (tags.includes("high-omega3")) score -= 2;
+      if (tags.includes("polyphenol-rich")) score -= 1;
+    }
+  }
 
   let classification = "Low";
   if (score > 2) classification = "Moderate";
