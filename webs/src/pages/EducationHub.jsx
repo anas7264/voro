@@ -479,8 +479,10 @@ const EducationArticleCard = memo(({ article, idx, isBookmarked, onToggleBookmar
           </div>
           <div className="flex gap-3">
             <button
+              type="button"
               onClick={() => onToggleBookmark(article.id, article.title)}
               aria-label={`${isBookmarked ? 'Remove bookmark' : 'Bookmark'}: ${article.title}`}
+              title={isBookmarked ? 'Remove bookmark' : 'Bookmark article'}
               className="text-gray-500 hover:text-white focus-visible:text-white transition-colors outline-none focus-visible:ring-1 focus-visible:ring-voro-primary rounded-md p-2 bg-white/[0.02] hover:bg-white/[0.05]"
             >
               {isBookmarked ? (
@@ -490,8 +492,10 @@ const EducationArticleCard = memo(({ article, idx, isBookmarked, onToggleBookmar
               )}
             </button>
             <button
+              type="button"
               onClick={() => onShare(article.title)}
               aria-label={`Copy share link for: ${article.title}`}
+              title="Copy share link"
               className="text-gray-500 hover:text-white focus-visible:text-white transition-colors outline-none focus-visible:ring-1 focus-visible:ring-voro-primary rounded-md p-2 bg-white/[0.02] hover:bg-white/[0.05]"
             >
               <Share2 size={14} />
@@ -510,7 +514,10 @@ const EducationArticleCard = memo(({ article, idx, isBookmarked, onToggleBookmar
         <div className="pt-6 border-t border-white/5 flex items-center justify-between">
           <span className="text-[0.55rem] font-black text-gray-500 uppercase tracking-widest font-mono">{article.author}</span>
           <button
+            type="button"
             onClick={() => onReadDossier(article.title)}
+            aria-label={`Read dossier for ${article.title}`}
+            title={`Read dossier for ${article.title}`}
             className="group/rd text-voro-primary flex items-center gap-2 text-[0.55rem] font-black uppercase tracking-[0.2em] outline-none focus-visible:ring-1 focus-visible:ring-voro-primary rounded-md px-3 py-1.5 bg-white/[0.02] hover:bg-white/[0.05] transition-all"
           >
             Read Dossier
@@ -718,19 +725,28 @@ const EducationHub = () => {
              </div>
              <div className="flex gap-12">
                 <button
+                  type="button"
                   onClick={() => handleFooterClick('Publication Ethics')}
+                  aria-label="Access Publication Ethics channel"
+                  title="Access Publication Ethics channel"
                   className="text-[0.6rem] font-mono font-black text-gray-600 hover:text-voro-primary focus-visible:text-white uppercase tracking-[0.3em] transition-colors outline-none focus-visible:ring-1 focus-visible:ring-voro-primary rounded px-1.5 py-0.5"
                 >
                   Publication Ethics
                 </button>
                 <button
+                  type="button"
                   onClick={() => handleFooterClick('Archive Access')}
+                  aria-label="Access Archive Access channel"
+                  title="Access Archive Access channel"
                   className="text-[0.6rem] font-mono font-black text-gray-600 hover:text-voro-primary focus-visible:text-white uppercase tracking-[0.3em] transition-colors outline-none focus-visible:ring-1 focus-visible:ring-voro-primary rounded px-1.5 py-0.5"
                 >
                   Archive Access
                 </button>
                 <button
+                  type="button"
                   onClick={() => handleFooterClick('Neural Sync')}
+                  aria-label="Access Neural Sync channel"
+                  title="Access Neural Sync channel"
                   className="text-[0.6rem] font-mono font-black text-gray-600 hover:text-voro-primary focus-visible:text-white uppercase tracking-[0.3em] transition-colors outline-none focus-visible:ring-1 focus-visible:ring-voro-primary rounded px-1.5 py-0.5"
                 >
                   Neural Sync
