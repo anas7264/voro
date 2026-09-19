@@ -13,6 +13,9 @@ const Card = memo(({
   variant = "glass",
   nodeId = "CARD_01",
   tabIndex,
+  role,
+  onClick,
+  onKeyDown,
   onMouseEnter,
   onMouseLeave,
   onMouseMove,
@@ -33,7 +36,7 @@ const Card = memo(({
     return `0xCRD_${cleanId.slice(0, 4).toUpperCase().padStart(4, '0')}`;
   }, [generatedId]);
 
-  const isInteractive = hover || variant === "premium" || variant === "interactive";
+  const isInteractive = hover || variant === "premium" || variant === "interactive" || Boolean(onClick);
 
   const handleMouseMove = (e) => {
     if (onMouseMove) onMouseMove(e);
@@ -128,6 +131,14 @@ const Card = memo(({
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (onKeyDown) onKeyDown(e);
+    if (onClick && (e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      onClick(e);
+    }
+  };
+
   const resolvedVariantClass = VARIANTS[variant] || VARIANTS.glass;
 
   const baseClasses = [
@@ -140,6 +151,9 @@ const Card = memo(({
   return (
     <div
       ref={containerRef}
+      role={role || (onClick ? "button" : undefined)}
+      onClick={onClick}
+      onKeyDown={handleKeyDown}
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
