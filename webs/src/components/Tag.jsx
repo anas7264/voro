@@ -28,6 +28,8 @@ export const Tag = memo(({
   onMouseMove,
   onFocus,
   onBlur,
+  onKeyDown,
+  role,
   tabIndex,
   ...props
 }) => {
@@ -101,6 +103,14 @@ export const Tag = memo(({
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (onKeyDown) onKeyDown(e);
+    if (onClick && (e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      onClick(e);
+    }
+  };
+
   const handleFocus = (e) => {
     if (onFocus) onFocus(e);
     isFocusedRef.current = true;
@@ -153,6 +163,8 @@ export const Tag = memo(({
       onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      role={role || (onClick ? "button" : undefined)}
       tabIndex={tabIndex ?? (isInteractive ? 0 : undefined)}
       className={baseClasses}
       style={{
@@ -233,6 +245,7 @@ export const Tag = memo(({
           `}
           style={{ transform: 'translateZ(35px)' }}
           aria-label={typeof children === 'string' ? `Remove ${children}` : "Remove tag"}
+          title={typeof children === 'string' ? `Remove ${children}` : "Remove tag"}
         >
           <X size={10} strokeWidth={3} />
         </button>
