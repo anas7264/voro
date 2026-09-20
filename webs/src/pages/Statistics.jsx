@@ -3,6 +3,7 @@ import { BarChart3, TrendingUp, Calendar, Zap, Activity, Target, Weight } from '
 import { Card, Button, Tabs, LineChartComponent, BarChartComponent, PieChartComponent, Stat } from '@/components';
 import { useStorageKeySelector } from '@/hooks/useStorage';
 import { useApp } from '@/hooks/useAppContext';
+import { useExport } from '@/hooks/useExport';
 import { getFastDateStr } from '@/utils/formatters';
 
 /**
@@ -294,6 +295,7 @@ MacroSynthesisMatrixEnclave.displayName = "MacroSynthesisMatrixEnclave";
 
 const Statistics = () => {
   const { user } = useApp();
+  const { exportNutritionLogCSV, exportMonthlyReportPDF } = useExport();
   const [period, setPeriod] = useState('30D');
 
   // Unified testing bypass selector check
@@ -639,6 +641,7 @@ const Statistics = () => {
            <div className="flex gap-8">
               <button
                 type="button"
+                onClick={exportNutritionLogCSV}
                 aria-label="Export trajectory analytics as CSV"
                 title="Export trajectory analytics as CSV"
                 className="text-[0.65rem] font-mono font-black text-gray-500 hover:text-white uppercase tracking-[0.25em] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408] cursor-pointer rounded-lg px-2 py-1"
@@ -647,6 +650,7 @@ const Statistics = () => {
               </button>
               <button
                 type="button"
+                onClick={() => exportMonthlyReportPDF(user || {}, [], [], { weightChange: 0, bodyFatChange: 0 })}
                 aria-label="Generate trajectory analytics PDF report"
                 title="Generate trajectory analytics PDF report"
                 className="text-[0.65rem] font-mono font-black text-gray-500 hover:text-white uppercase tracking-[0.25em] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408] cursor-pointer rounded-lg px-2 py-1"

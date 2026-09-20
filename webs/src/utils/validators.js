@@ -266,6 +266,31 @@ export const isValidName = (name) => {
   return typeof name === 'string' && name.trim().length > 0 && name.length <= 50;
 };
 
+/**
+ * CSV Formula Injection Shield (CFIS) / Formula Neutralization Engine (FNE)
+ * Sanitizes input fields intended for CSV/Spreadsheet exports to neutralize
+ * Formula Injection (OWASP CSV Injection), DDE command execution, and delimiter hijacking.
+ */
+export const sanitizeCSVField = (field) => {
+  if (field === null || field === undefined) return '""';
+  let str = String(field);
+
+  // 1. Strip null bytes and dangerous control characters except standard line breaks
+  // eslint-disable-next-line no-control-regex
+  str = str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+
+  // 2. Neutralize formula trigger characters (=, +, -, @, \t, \r, %, |)
+  // Prepend single quote (') if string starts with a formula trigger (or after leading whitespace)
+  const trimmed = str.trim();
+  if (/^[=+\-@\t\r%|]/.test(trimmed) || /^[=+\-@\t\r%|]/.test(str)) {
+    str = "'" + str;
+  }
+
+  // 3. Escape double quotes by doubling them (" -> "") and wrap in double quotes
+  const escaped = str.replace(/"/g, '""');
+  return `"${escaped}"`;
+};
+
 // ⚡ PERFORMANCE OPTIMIZATION: Hoisted homoglyph map and pre-compiled regex patterns.
 // Prevents dynamic allocations on every keystroke and executes single-pass native DFA-based searches.
 const HOMOGLYPHS_MAP = {
@@ -2032,5 +2057,6 @@ export default {
   isValidJournalNote,
   isValidChatQuery,
   isValidName,
-  isPromptInjection
+  isPromptInjection,
+  sanitizeCSVField
 };

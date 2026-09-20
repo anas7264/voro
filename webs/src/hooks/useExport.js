@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useStorageMethods } from "./useStorage";
 import * as pdfExport from "../utils/pdfExport";
-import { executeSecurely } from "../utils/security";
+import { executeSecurely, sanitizeCSVField } from "../utils/security";
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity for Action Hook.
@@ -135,7 +135,7 @@ export const useExport = () => {
       let csv = "Date,Meal Type,Food,Calories,Protein(g),Carbs(g),Fat(g),Notes\n";
 
       nutritionLog.forEach(entry => {
-        csv += `"${entry.date}","${entry.mealType}","${entry.food}",${entry.calories},${entry.protein},${entry.carbs},${entry.fat},"${entry.notes || ""}"\n`;
+        csv += `${sanitizeCSVField(entry.date)},${sanitizeCSVField(entry.mealType)},${sanitizeCSVField(entry.food)},${sanitizeCSVField(entry.calories)},${sanitizeCSVField(entry.protein)},${sanitizeCSVField(entry.carbs)},${sanitizeCSVField(entry.fat)},${sanitizeCSVField(entry.notes || "")}\n`;
       });
 
       setExportProgress(80);
@@ -183,7 +183,7 @@ export const useExport = () => {
       let csv = "Date,Exercise,Category,Sets,Reps,Weight(kg),Duration(min),Notes\n";
 
       workoutLog.forEach(entry => {
-        csv += `"${entry.date}","${entry.exercise}","${entry.category}",${entry.sets},${entry.reps},${entry.weight},${entry.duration},"${entry.notes || ""}"\n`;
+        csv += `${sanitizeCSVField(entry.date)},${sanitizeCSVField(entry.exercise)},${sanitizeCSVField(entry.category)},${sanitizeCSVField(entry.sets)},${sanitizeCSVField(entry.reps)},${sanitizeCSVField(entry.weight)},${sanitizeCSVField(entry.duration)},${sanitizeCSVField(entry.notes || "")}\n`;
       });
 
       setExportProgress(80);
@@ -291,7 +291,7 @@ export const useExport = () => {
       let csv = "Date,Weight(kg),Chest(cm),Waist(cm),Hips(cm),Arm(cm),Thigh(cm),Body Fat(%),Notes\n";
 
       bodyMetrics.forEach(entry => {
-        csv += `"${entry.date}",${entry.weight},${entry.chest || ""},${entry.waist || ""},${entry.hips || ""},${entry.arm || ""},${entry.thigh || ""},${entry.bodyFat || ""},"${entry.notes || ""}"\n`;
+        csv += `${sanitizeCSVField(entry.date)},${sanitizeCSVField(entry.weight)},${sanitizeCSVField(entry.chest || "")},${sanitizeCSVField(entry.waist || "")},${sanitizeCSVField(entry.hips || "")},${sanitizeCSVField(entry.arm || "")},${sanitizeCSVField(entry.thigh || "")},${sanitizeCSVField(entry.bodyFat || "")},${sanitizeCSVField(entry.notes || "")}\n`;
       });
 
       setExportProgress(80);
