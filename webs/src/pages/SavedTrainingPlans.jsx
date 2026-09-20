@@ -41,8 +41,8 @@ const KineticBlueprintCard = memo(({ plan, index, onDelete, onAnalyze, onExport 
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
   const [purgeState, setPurgeState] = useState(false);
   const purgeTimerRef = useRef(null);
 
@@ -60,27 +60,53 @@ const KineticBlueprintCard = memo(({ plan, index, onDelete, onAnalyze, onExport 
     containerRef.current.style.setProperty('--mouse-y', `${y}px`);
     containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
     containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    containerRef.current.style.transition = 'none';
+    containerRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-6px)';
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
   };
 
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
+    if (containerRef.current) {
+      containerRef.current.style.transition = 'none';
+      containerRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-6px)';
+    }
+  };
+
+  const handleMouseLeave = () => {
+    isHoveredRef.current = false;
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('--tilt-x', '0deg');
+      containerRef.current.style.setProperty('--tilt-y', '0deg');
+      if (!isFocusedRef.current) {
+        containerRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+        containerRef.current.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      }
+    }
+  };
+
   const handleFocus = () => {
-    setIsFocused(true);
+    isFocusedRef.current = true;
     if (containerRef.current) {
       // Accessible static 4-degree tilt on keyboard focus
       containerRef.current.style.setProperty('--tilt-x', '4deg');
       containerRef.current.style.setProperty('--tilt-y', '-4deg');
+      containerRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+      containerRef.current.style.transform = 'perspective(1200px) rotateX(4deg) rotateY(-4deg) translateY(-6px)';
       if (tiltXRef.current) tiltXRef.current.innerText = '4.0';
       if (tiltYRef.current) tiltYRef.current.innerText = '-4.0';
     }
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
+    isFocusedRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
+      containerRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+      containerRef.current.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
     }
   };
 
@@ -104,24 +130,20 @@ const KineticBlueprintCard = memo(({ plan, index, onDelete, onAnalyze, onExport 
     };
   }, []);
 
-  const interactionActive = isHovered || isFocused;
-
   return (
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
       tabIndex="0"
       role="article"
       aria-label={`Kinetic Blueprint: ${plan.name}. Schedule: ${plan.days || 3} days per week. Level: ${plan.level || 'Advanced'}. Node ID: ${plan._nodeId}. ${purgeState ? 'Pending deletion confirmation.' : ''}`}
       style={{
-        transform: interactionActive
-          ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-6px)'
-          : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: isHovered ? 'none' : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+        transform: 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
       }}
       className={`

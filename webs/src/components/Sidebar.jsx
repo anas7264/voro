@@ -1,4 +1,4 @@
-import React, { useRef, memo, useState } from 'react';
+import React, { useRef, memo } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Utensils, Dumbbell, Activity, BarChart3,
@@ -83,8 +83,8 @@ const NavItem = memo(({ item, isActive, collapsed, isMobile, onClick }) => {
   const nodeRef = useRef(null);
   const txRef = useRef(null);
   const tyRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
   const Icon = item.icon;
 
   const handleMouseMove = (e) => {
@@ -102,42 +102,54 @@ const NavItem = memo(({ item, isActive, collapsed, isMobile, onClick }) => {
     nodeRef.current.style.setProperty('--mouse-y', `${y}px`);
     nodeRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
     nodeRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    nodeRef.current.style.transition = 'none';
+    nodeRef.current.style.transform = 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)';
 
     if (txRef.current) txRef.current.innerText = tiltX.toFixed(1);
     if (tyRef.current) tyRef.current.innerText = tiltY.toFixed(1);
   };
 
   const handleMouseEnter = () => {
-    setIsHovered(true);
+    isHoveredRef.current = true;
+    if (nodeRef.current && (!collapsed || isMobile)) {
+      nodeRef.current.style.transition = 'none';
+      nodeRef.current.style.transform = 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)';
+    }
   };
 
   const handleMouseLeave = () => {
-    setIsHovered(false);
+    isHoveredRef.current = false;
     if (nodeRef.current) {
       nodeRef.current.style.setProperty('--tilt-x', '0deg');
       nodeRef.current.style.setProperty('--tilt-y', '0deg');
+      if (!isFocusedRef.current) {
+        nodeRef.current.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+        nodeRef.current.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      }
     }
   };
 
   const handleFocus = () => {
-    setIsFocused(true);
+    isFocusedRef.current = true;
     if (nodeRef.current && (!collapsed || isMobile)) {
       nodeRef.current.style.setProperty('--tilt-x', '4deg');
       nodeRef.current.style.setProperty('--tilt-y', '-4deg');
+      nodeRef.current.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+      nodeRef.current.style.transform = 'perspective(1000px) rotateX(4deg) rotateY(-4deg) translateY(-2px)';
       if (txRef.current) txRef.current.innerText = '4.0';
       if (tyRef.current) tyRef.current.innerText = '-4.0';
     }
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
+    isFocusedRef.current = false;
     if (nodeRef.current) {
       nodeRef.current.style.setProperty('--tilt-x', '0deg');
       nodeRef.current.style.setProperty('--tilt-y', '0deg');
+      nodeRef.current.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+      nodeRef.current.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
     }
   };
-
-  const interactionActive = isHovered || isFocused;
 
   return (
     <NavLink
@@ -151,10 +163,8 @@ const NavItem = memo(({ item, isActive, collapsed, isMobile, onClick }) => {
       onBlur={handleBlur}
       aria-label={item.label}
       style={{
-        transform: interactionActive && (!collapsed || isMobile)
-          ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)'
-          : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: isHovered ? 'none' : 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+        transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
       }}
       className={`
@@ -168,9 +178,7 @@ const NavItem = memo(({ item, isActive, collapsed, isMobile, onClick }) => {
       <div
         className="absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-500 pointer-events-none"
         style={{
-          background: isHovered
-            ? 'radial-gradient(150px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(124, 58, 237, 0.12), transparent 70%)'
-            : 'radial-gradient(150px circle at 50% 50%, rgba(124, 58, 237, 0.12), transparent 70%)'
+          background: 'radial-gradient(150px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(124, 58, 237, 0.12), transparent 70%)'
         }}
       />
 
