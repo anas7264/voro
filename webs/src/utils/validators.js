@@ -1985,8 +1985,11 @@ export const validateRecipe = (recipe) => {
         errors[`ingredient_${idx}`] = "Invalid ingredient format";
         return;
       }
+      if (typeof ing.name !== 'string' || !ing.name.trim() || ing.name.length > 100) {
+        errors[`ingredient_${idx}_name`] = `Ingredient ${idx + 1} name must be between 1 and 100 characters`;
+      }
       const portion = parseFloat(ing.portion);
-      if (isNaN(portion) || portion < 1 || portion > 5000) {
+      if (!Number.isFinite(portion) || portion < 1 || portion > 5000) {
         errors[`ingredient_${idx}_portion`] = `Portion for ${ing.name || 'ingredient'} must be between 1 and 5000 grams`;
       }
     });
