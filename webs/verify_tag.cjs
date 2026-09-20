@@ -22,7 +22,8 @@ const checks = [
   { name: 'Direct-DOM 60fps tilt tracking', test: tagContent.includes('--tilt-x') && tagContent.includes('--tilt-y') && tagContent.includes('containerRef.current.style') },
   { name: 'W3C APG compliant static 4-degree focus tilt', test: tagContent.includes('4.00deg') && tagContent.includes('-4.00deg') },
   { name: 'Dynamic liquid border illumination mask', test: tagContent.includes('radial-gradient') && tagContent.includes('WebkitMaskComposite') },
-  { name: 'Interactive remove button support with ARIA label', test: tagContent.includes('onRemove') && tagContent.includes('aria-label') },
+  { name: 'Interactive remove button support with ARIA label and title', test: tagContent.includes('onRemove') && tagContent.includes('aria-label') && tagContent.includes('title=') },
+  { name: 'W3C APG keyboard interaction (onKeyDown & role="button")', test: tagContent.includes('onKeyDown=') && tagContent.includes('role=') && tagContent.includes('e.key === "Enter"') },
   { name: 'DisplayName set', test: tagContent.includes('Tag.displayName = "Tag"') }
 ];
 

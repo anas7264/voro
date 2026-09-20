@@ -22,6 +22,8 @@ export const Badge = memo(({
   onMouseMove,
   onFocus,
   onBlur,
+  onKeyDown,
+  role,
   ...props
 }) => {
   const containerRef = useRef(null);
@@ -94,6 +96,14 @@ export const Badge = memo(({
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (onKeyDown) onKeyDown(e);
+    if (onClick && (e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      onClick(e);
+    }
+  };
+
   const handleFocus = (e) => {
     if (onFocus) onFocus(e);
     isFocusedRef.current = true;
@@ -146,6 +156,8 @@ export const Badge = memo(({
       onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      role={role || (onClick ? "button" : undefined)}
       tabIndex={tabIndex ?? (isInteractive ? 0 : undefined)}
       className={baseClasses}
       style={{

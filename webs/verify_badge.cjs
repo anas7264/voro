@@ -22,6 +22,7 @@ const checks = [
   { name: 'Direct-DOM 60fps tilt tracking', test: badgeContent.includes('--tilt-x') && badgeContent.includes('--tilt-y') && badgeContent.includes('containerRef.current.style') },
   { name: 'W3C APG compliant static 4-degree focus tilt', test: badgeContent.includes('4.00deg') && badgeContent.includes('-4.00deg') },
   { name: 'Dynamic liquid border illumination mask', test: badgeContent.includes('radial-gradient') && badgeContent.includes('WebkitMaskComposite') },
+  { name: 'W3C APG keyboard interaction (onKeyDown & role="button")', test: badgeContent.includes('onKeyDown=') && badgeContent.includes('role=') && badgeContent.includes('e.key === "Enter"') },
   { name: 'DisplayName set', test: badgeContent.includes('Badge.displayName = "Badge"') }
 ];
 
