@@ -18,24 +18,25 @@ const EMPTY_TABS = Object.freeze([]);
 export const Tabs = memo(({ tabs = EMPTY_TABS, activeTab, onTabChange, className = "" }) => {
   const activeTabRef = useRef(null);
   const tabListRef = useRef(null);
+  const indicatorRef = useRef(null);
   const telemetryRef = useRef(null);
   const baseId = useId();
-  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
 
   // Generate a stable, pre-sanitized identifier for the matrix node
   const cleanMatrixId = useMemo(() => baseId.replace(/:/g, ''), [baseId]);
 
   const safeTabs = Array.isArray(tabs) ? tabs : EMPTY_TABS;
 
-  // Recalculate volumetric glass indicator dimensions
+  // Recalculate volumetric glass indicator dimensions via synchronous DOM measurement
   const updateIndicator = useCallback(() => {
-    if (activeTabRef.current) {
+    if (activeTabRef.current && indicatorRef.current) {
       const { offsetLeft, offsetWidth } = activeTabRef.current;
-      setIndicatorStyle({ left: offsetLeft, width: offsetWidth });
+      indicatorRef.current.style.left = `${offsetLeft}px`;
+      indicatorRef.current.style.width = `${offsetWidth}px`;
     }
   }, []);
 
-  useEffect(() => {
+  React.useLayoutEffect(() => {
     updateIndicator();
     window.addEventListener("resize", updateIndicator);
     return () => window.removeEventListener("resize", updateIndicator);
@@ -192,11 +193,8 @@ export const Tabs = memo(({ tabs = EMPTY_TABS, activeTab, onTabChange, className
 
         {/* Volumetric Glass Indicator: Premium sliding artifact */}
         <div
+          ref={indicatorRef}
           className="absolute inset-y-2 bg-voro-primary rounded-xl transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] shadow-[0_0_35px_rgba(124,58,237,0.45)] overflow-hidden"
-          style={{
-            left: indicatorStyle.left,
-            width: indicatorStyle.width,
-          }}
           aria-hidden="true"
         >
           {/* Internal Shimmer Pulse */}
