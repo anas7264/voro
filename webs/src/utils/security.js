@@ -722,6 +722,31 @@ export const sanitizeInput = (input) => {
 };
 
 /**
+ * CSV Formula Injection Shield (CFIS) / Formula Neutralization Engine (FNE)
+ * Sanitizes input fields intended for CSV/Spreadsheet exports to neutralize
+ * Formula Injection (OWASP CSV Injection), DDE command execution, and delimiter hijacking.
+ */
+export const sanitizeCSVField = (field) => {
+  if (field === null || field === undefined) return '""';
+  let str = String(field);
+
+  // 1. Strip null bytes and dangerous control characters except standard line breaks
+  // eslint-disable-next-line no-control-regex
+  str = _call.call(_replace, str, /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+
+  // 2. Neutralize formula trigger characters (=, +, -, @, \t, \r, %, |)
+  // Prepend single quote (') if string starts with a formula trigger (or after leading whitespace)
+  const trimmed = _call.call(_trim, str);
+  if (_call.call(_test, /^[=+\-@\t\r%|]/, trimmed) || _call.call(_test, /^[=+\-@\t\r%|]/, str)) {
+    str = "'" + str;
+  }
+
+  // 3. Escape double quotes by doubling them (" -> "") and wrap in double quotes
+  const escaped = _call.call(_replace, str, /"/g, '""');
+  return `"${escaped}"`;
+};
+
+/**
  * Generates a cryptographically secure ephemeral nonce for request isolation.
  */
 export function generateSecurityNonce() {
@@ -2892,6 +2917,7 @@ export const safeJSONParse = (text, reviver = null) => {
  */
 const sentinelExports = {
   sanitizeInput,
+  sanitizeCSVField,
   safeJSONParse,
   deepSanitizeObject,
   sanitizeObject,
