@@ -1,4 +1,4 @@
-import React, { memo, useRef, useState, useId, useMemo, useCallback } from "react";
+import React, { memo, useRef, useId, useMemo, useCallback } from "react";
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted and frozen static default fallbacks.
@@ -11,13 +11,15 @@ const EMPTY_ROWS = Object.freeze([]);
  * ⚡ REFINEMENT: Precision Data Matrix Node (Table).
  * Re-engineered to Voro's 'Forge' luxury architecture with 3D spatial transforms,
  * 60fps direct-DOM magnetic mouse & row tracking, holographic coordinate telemetry,
- * dynamic liquid perimeter illumination, and high-contrast editorial typography.
+ * dynamic liquid perimeter illumination, high-contrast editorial typography,
+ * and zero-allocation interaction reactivity.
  *
  * DESIGN PHILOSOPHY:
  * 1. Authority: Playfair Display italic serif table headers for editorial prestige and weight.
  * 2. Precision: JetBrains Mono tabular figures for alignment with sub-pixel hash badging.
  * 3. Motion: Direct-DOM 3D volumetric tilt tracking with liquid light perimeter glow and 60fps magnetic row vector tracking.
  * 4. Spatial Architecture: Mathematical padding with golden-ratio whitespace spacing.
+ * 5. Performance: Zero-allocation direct-DOM state manipulation bypassing React component re-renders.
  */
 export const Table = memo(({
   headers = EMPTY_HEADERS,
@@ -32,8 +34,8 @@ export const Table = memo(({
   const tbodyRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
   const reactId = useId();
 
   // Generate a stable system node identification and attestation markers
@@ -57,10 +59,13 @@ export const Table = memo(({
     const tiltY = ((x / rect.width) - 0.5) * 12;
     const tiltX = (0.5 - (y / rect.height)) * 12;
 
-    containerRef.current.style.setProperty("--mouse-x", `${x}px`);
-    containerRef.current.style.setProperty("--mouse-y", `${y}px`);
-    containerRef.current.style.setProperty("--tilt-x", `${tiltX.toFixed(2)}deg`);
-    containerRef.current.style.setProperty("--tilt-y", `${tiltY.toFixed(2)}deg`);
+    const style = containerRef.current.style;
+    style.setProperty("--mouse-x", `${x.toFixed(1)}px`);
+    style.setProperty("--mouse-y", `${y.toFixed(1)}px`);
+    style.setProperty("--tilt-x", `${tiltX.toFixed(2)}deg`);
+    style.setProperty("--tilt-y", `${tiltY.toFixed(2)}deg`);
+    style.setProperty('transform', `perspective(1200px) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg) translateY(-4px)`);
+    style.setProperty('transition', 'none');
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
@@ -94,15 +99,30 @@ export const Table = memo(({
   }, [hoverable]);
 
   const handleMouseEnter = useCallback(() => {
-    setIsHovered(true);
+    isHoveredRef.current = true;
   }, []);
 
   const handleMouseLeave = useCallback(() => {
-    setIsHovered(false);
-    if (containerRef.current && !isFocused) {
-      containerRef.current.style.setProperty('--tilt-x', '0deg');
-      containerRef.current.style.setProperty('--tilt-y', '0deg');
+    isHoveredRef.current = false;
+    if (!containerRef.current) return;
+    const style = containerRef.current.style;
+
+    if (isFocusedRef.current) {
+      style.setProperty('--tilt-x', '3.00deg');
+      style.setProperty('--tilt-y', '-3.00deg');
+      style.setProperty('transform', 'perspective(1200px) rotateX(3deg) rotateY(-3deg) translateY(-4px)');
+      style.setProperty('transition', 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)');
+      if (tiltXRef.current) tiltXRef.current.innerText = "3.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "-3.0";
+    } else {
+      style.setProperty('--tilt-x', '0deg');
+      style.setProperty('--tilt-y', '0deg');
+      style.setProperty('transform', 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)');
+      style.setProperty('transition', 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)');
+      if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
     }
+
     if (tbodyRef.current) {
       const rowNodes = tbodyRef.current.querySelectorAll('tr[data-table-row="true"]');
       rowNodes.forEach((rowNode) => {
@@ -110,49 +130,49 @@ export const Table = memo(({
         rowNode.style.transform = 'translate3d(0, 0, 0) scale(1)';
       });
     }
-  }, [isFocused]);
+  }, []);
 
   const handleFocus = useCallback(() => {
-    setIsFocused(true);
-    if (containerRef.current) {
-      containerRef.current.style.setProperty('--tilt-x', '3deg');
-      containerRef.current.style.setProperty('--tilt-y', '-3deg');
-      if (tiltXRef.current) tiltXRef.current.innerText = "3.0";
-      if (tiltYRef.current) tiltYRef.current.innerText = "-3.0";
-    }
+    isFocusedRef.current = true;
+    if (!containerRef.current) return;
+    const style = containerRef.current.style;
+    style.setProperty('--tilt-x', '3.00deg');
+    style.setProperty('--tilt-y', '-3.00deg');
+    style.setProperty('transform', 'perspective(1200px) rotateX(3deg) rotateY(-3deg) translateY(-4px)');
+    style.setProperty('transition', 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)');
+    if (tiltXRef.current) tiltXRef.current.innerText = "3.0";
+    if (tiltYRef.current) tiltYRef.current.innerText = "-3.0";
   }, []);
 
   const handleBlur = useCallback(() => {
-    setIsFocused(false);
-    if (containerRef.current && !isHovered) {
-      containerRef.current.style.setProperty('--tilt-x', '0deg');
-      containerRef.current.style.setProperty('--tilt-y', '0deg');
+    isFocusedRef.current = false;
+    if (!containerRef.current) return;
+    if (!isHoveredRef.current) {
+      const style = containerRef.current.style;
+      style.setProperty('--tilt-x', '0deg');
+      style.setProperty('--tilt-y', '0deg');
+      style.setProperty('transform', 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)');
+      style.setProperty('transition', 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)');
+      if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
     }
-  }, [isHovered]);
+  }, []);
 
-  const interactionActive = isHovered || isFocused;
+  const safeHeaders = Array.isArray(headers) ? headers : EMPTY_HEADERS;
+  const safeRows = Array.isArray(rows) ? rows : EMPTY_ROWS;
 
   return (
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        if (containerRef.current && !isFocused) {
-          containerRef.current.style.setProperty('--tilt-x', '0deg');
-          containerRef.current.style.setProperty('--tilt-y', '0deg');
-        }
-      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
       tabIndex="0"
       aria-label="Precision Data Matrix Table"
       style={{
-        transform: interactionActive
-          ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
-          : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: isHovered ? 'none' : 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)',
+        perspective: '1200px',
         transformStyle: 'preserve-3d'
       }}
       className={`
@@ -166,7 +186,7 @@ export const Table = memo(({
     >
       {/* Dynamic Liquid Border Perimeter Illumination */}
       <div
-        className="absolute inset-0 rounded-[2.5rem] opacity-0 group-hover/table:opacity-100 transition-opacity duration-700 pointer-events-none"
+        className="absolute inset-0 rounded-[2.5rem] opacity-0 group-hover/table:opacity-100 group-focus-visible/table:opacity-100 transition-opacity duration-700 pointer-events-none"
         style={{
           padding: '1px',
           background: `radial-gradient(600px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(124, 58, 237, 0.35), transparent 80%)`,
@@ -176,17 +196,15 @@ export const Table = memo(({
         }}
       />
 
-      {/* Precision Grid Background - Emerges on Hover */}
-      <div className="absolute inset-0 bg-grid-white opacity-0 group-hover/table:opacity-100 pointer-events-none transition-opacity duration-1000" />
+      {/* Precision Grid Background - Emerges on Hover/Focus */}
+      <div className="absolute inset-0 bg-grid-white opacity-0 group-hover/table:opacity-100 group-focus-visible/table:opacity-100 pointer-events-none transition-opacity duration-1000" />
       <div className="absolute inset-0 bg-boutique-grain opacity-[0.02] pointer-events-none" />
 
       {/* Dynamic Light Lens (Mouse Tracking Spotlight) */}
       <div
         className="absolute inset-0 opacity-0 group-hover/table:opacity-100 group-focus-visible/table:opacity-100 pointer-events-none transition-opacity duration-700"
         style={{
-          background: isHovered
-            ? `radial-gradient(700px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(124, 58, 237, 0.08), transparent 45%)`
-            : `radial-gradient(700px circle at 50% 50%, rgba(124, 58, 237, 0.08), transparent 45%)`,
+          background: `radial-gradient(700px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(124, 58, 237, 0.08), transparent 45%)`,
           transform: 'translateZ(20px)'
         }}
       />
@@ -208,7 +226,7 @@ export const Table = memo(({
         <table className="w-full border-collapse">
           <thead>
             <tr className="border-b border-white/5 bg-white/[0.01]">
-              {headers.map((header, index) => (
+              {safeHeaders.map((header, index) => (
                 <th
                   key={index}
                   scope="col"
@@ -228,10 +246,10 @@ export const Table = memo(({
             </tr>
           </thead>
           <tbody ref={tbodyRef}>
-            {rows.length === 0 ? (
+            {safeRows.length === 0 ? (
               <tr>
                 <td
-                  colSpan={headers.length || 1}
+                  colSpan={safeHeaders.length || 1}
                   className="px-10 py-16 text-center text-xs font-mono text-gray-500 uppercase tracking-widest"
                 >
                   <div className="flex flex-col items-center justify-center gap-3">
@@ -247,7 +265,7 @@ export const Table = memo(({
                 </td>
               </tr>
             ) : (
-              rows.map((row, rowIndex) => (
+              safeRows.map((row, rowIndex) => (
                 <tr
                   key={rowIndex}
                   data-table-row="true"
@@ -298,7 +316,7 @@ export const Table = memo(({
             <div className="w-1.5 h-1.5 rounded-full bg-voro-primary/20" />
           </div>
           <span className="text-[0.55rem] font-mono font-bold text-gray-500 uppercase tracking-[0.2em]">
-            {rows.length} {rows.length === 1 ? 'RECORD' : 'RECORDS'} MATRIX
+            {safeRows.length} {safeRows.length === 1 ? 'RECORD' : 'RECORDS'} MATRIX
           </span>
         </div>
         <span className="text-[0.45rem] font-mono text-white/20 tracking-[0.6em] uppercase group-hover/table:text-voro-primary/60 transition-colors duration-1000">
