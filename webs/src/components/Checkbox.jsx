@@ -1,4 +1,4 @@
-import React, { useId, memo, useRef, useState } from "react";
+import React, { useId, memo, useRef } from "react";
 import { Check } from "lucide-react";
 
 /**
@@ -55,8 +55,8 @@ export const Checkbox = memo(({
   const errorId = `${inputId}-error`;
 
   const containerRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
 
   const handleMouseMove = (e) => {
     if (!containerRef.current || disabled) return;
@@ -73,42 +73,56 @@ export const Checkbox = memo(({
     containerRef.current.style.setProperty('--mouse-y', `${y}px`);
     containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
     containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    containerRef.current.style.transform = 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)';
+    containerRef.current.style.transition = 'none';
   };
 
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-    if (!containerRef.current) return;
-
-    if (isFocused) {
-      // Revert to APG static 3-degree focus tilt
-      containerRef.current.style.setProperty('--tilt-x', '3deg');
-      containerRef.current.style.setProperty('--tilt-y', '-3deg');
-    } else {
-      containerRef.current.style.setProperty('--tilt-x', '0deg');
-      containerRef.current.style.setProperty('--tilt-y', '0deg');
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
+    if (containerRef.current) {
+      containerRef.current.style.transform = 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)';
     }
   };
 
+  const handleMouseLeave = () => {
+    isHoveredRef.current = false;
+    if (!containerRef.current) return;
+
+    if (isFocusedRef.current) {
+      // Revert to APG static 3-degree focus tilt
+      containerRef.current.style.setProperty('--tilt-x', '3deg');
+      containerRef.current.style.setProperty('--tilt-y', '-3deg');
+      containerRef.current.style.transform = 'perspective(1000px) rotateX(3deg) rotateY(-3deg) translateY(-2px)';
+    } else {
+      containerRef.current.style.setProperty('--tilt-x', '0deg');
+      containerRef.current.style.setProperty('--tilt-y', '0deg');
+      containerRef.current.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+    }
+    containerRef.current.style.transition = 'transform 0.7s cubic-bezier(0.16,1,0.3,1)';
+  };
+
   const handleInputFocus = (e) => {
-    setIsFocused(true);
+    isFocusedRef.current = true;
     if (containerRef.current) {
       // W3C APG compliant static 3-degree focus tilt
       containerRef.current.style.setProperty('--tilt-x', '3deg');
       containerRef.current.style.setProperty('--tilt-y', '-3deg');
+      containerRef.current.style.transform = 'perspective(1000px) rotateX(3deg) rotateY(-3deg) translateY(-2px)';
     }
     if (onFocus) onFocus(e);
   };
 
   const handleInputBlur = (e) => {
-    setIsFocused(false);
-    if (containerRef.current && !isHovered) {
+    isFocusedRef.current = false;
+    if (containerRef.current && !isHoveredRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
+      containerRef.current.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      containerRef.current.style.transition = 'transform 0.7s cubic-bezier(0.16,1,0.3,1)';
     }
     if (onBlur) onBlur(e);
   };
 
-  const interactionActive = isHovered || isFocused;
   const boxSizeClass = CHECKBOX_SIZES[size] || CHECKBOX_SIZES.md;
   const checkIconSize = ICON_SIZES[size] || ICON_SIZES.md;
   const computedTitle = disabled ? (title || "This option is disabled") : title;
@@ -119,15 +133,13 @@ export const Checkbox = memo(({
       <div
         ref={containerRef}
         onMouseMove={handleMouseMove}
-        onMouseEnter={() => setIsHovered(true)}
+        onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         className="relative transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] rounded-2xl"
         style={{
-          transform: interactionActive
-            ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)'
-            : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+          transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
           transformStyle: 'preserve-3d',
-          transition: isHovered ? 'none' : 'transform 0.7s cubic-bezier(0.16,1,0.3,1)'
+          transition: 'transform 0.7s cubic-bezier(0.16,1,0.3,1)'
         }}
       >
         {/* Full Interactive Semantic Label Container */}
@@ -151,9 +163,7 @@ export const Checkbox = memo(({
           <div
             className="absolute inset-0 opacity-0 group-hover/checkbox-container:opacity-100 group-focus-within/checkbox-container:opacity-100 transition-opacity duration-500 pointer-events-none"
             style={{
-              background: isHovered
-                ? `radial-gradient(180px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ${error ? GLOW_COLORS.error : GLOW_COLORS.default}, transparent 70%)`
-                : `radial-gradient(180px circle at 50% 50%, ${error ? GLOW_COLORS.error : GLOW_COLORS.default}, transparent 70%)`
+              background: `radial-gradient(180px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ${error ? GLOW_COLORS.error : GLOW_COLORS.default}, transparent 70%)`
             }}
           />
 
