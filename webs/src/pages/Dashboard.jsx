@@ -88,8 +88,8 @@ const VolumetricTelemetryNode = memo(({ children, className = '', nodeId = "NODE
   const nodeRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
 
   const handleMouseMove = (e) => {
     if (!nodeRef.current) return;
@@ -105,52 +105,68 @@ const VolumetricTelemetryNode = memo(({ children, className = '', nodeId = "NODE
     nodeRef.current.style.setProperty('--mouse-y', `${y}px`);
     nodeRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
     nodeRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    nodeRef.current.style.transition = 'none';
+    nodeRef.current.style.transform = 'perspective(1500px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
   };
 
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
+    if (nodeRef.current) {
+      nodeRef.current.style.transition = 'none';
+      nodeRef.current.style.transform = 'perspective(1500px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
+    }
+  };
+
+  const handleMouseLeave = () => {
+    isHoveredRef.current = false;
+    if (nodeRef.current) {
+      nodeRef.current.style.setProperty('--tilt-x', '0deg');
+      nodeRef.current.style.setProperty('--tilt-y', '0deg');
+      if (!isFocusedRef.current) {
+        nodeRef.current.style.transition = 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
+        nodeRef.current.style.transform = 'perspective(1500px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      }
+    }
+  };
+
   const handleFocus = () => {
-    setIsFocused(true);
+    isFocusedRef.current = true;
     if (nodeRef.current) {
       // Accessible static 4-degree tilt on focus
       nodeRef.current.style.setProperty('--tilt-x', '4deg');
       nodeRef.current.style.setProperty('--tilt-y', '-4deg');
+      nodeRef.current.style.transition = 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
+      nodeRef.current.style.transform = 'perspective(1500px) rotateX(4deg) rotateY(-4deg) translateY(-4px)';
       if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     }
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
+    isFocusedRef.current = false;
     if (nodeRef.current) {
       nodeRef.current.style.setProperty('--tilt-x', '0deg');
       nodeRef.current.style.setProperty('--tilt-y', '0deg');
+      nodeRef.current.style.transition = 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
+      nodeRef.current.style.transform = 'perspective(1500px) rotateX(0deg) rotateY(0deg) translateY(0px)';
     }
   };
-
-  const interactionActive = isHovered || isFocused;
 
   return (
     <div
       ref={nodeRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        if (nodeRef.current) {
-          nodeRef.current.style.setProperty('--tilt-x', '0deg');
-          nodeRef.current.style.setProperty('--tilt-y', '0deg');
-        }
-      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
       tabIndex={0}
       style={{
-        transform: interactionActive
-          ? 'perspective(1500px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
-          : 'perspective(1500px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: isHovered ? 'none' : 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)',
+        transform: 'perspective(1500px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
       }}
       className={`relative bg-[#0A0C14] border border-white/5 rounded-[3rem] p-10 overflow-hidden group/vnode outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408] transition-all duration-700 hover:border-white/10 hover:shadow-[0_80px_160px_rgba(0,0,0,0.9)] ${className}`}
@@ -289,8 +305,8 @@ const Dashboard = () => {
   const metabolicCardRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
-  const [heroHovered, setHeroHovered] = useState(false);
-  const [heroFocused, setHeroFocused] = useState(false);
+  const heroHoveredRef = useRef(false);
+  const heroFocusedRef = useRef(false);
 
   const handleHeroMouseMove = useCallback((e) => {
     if (!metabolicCardRef.current) return;
@@ -306,26 +322,52 @@ const Dashboard = () => {
     metabolicCardRef.current.style.setProperty('--mouse-y', `${y}px`);
     metabolicCardRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
     metabolicCardRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    metabolicCardRef.current.style.transition = 'none';
+    metabolicCardRef.current.style.transform = 'perspective(2000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
   }, []);
 
+  const handleHeroMouseEnter = useCallback(() => {
+    heroHoveredRef.current = true;
+    if (metabolicCardRef.current) {
+      metabolicCardRef.current.style.transition = 'none';
+      metabolicCardRef.current.style.transform = 'perspective(2000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
+    }
+  }, []);
+
+  const handleHeroMouseLeave = useCallback(() => {
+    heroHoveredRef.current = false;
+    if (metabolicCardRef.current) {
+      metabolicCardRef.current.style.setProperty('--tilt-x', '0deg');
+      metabolicCardRef.current.style.setProperty('--tilt-y', '0deg');
+      if (!heroFocusedRef.current) {
+        metabolicCardRef.current.style.transition = 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
+        metabolicCardRef.current.style.transform = 'perspective(2000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      }
+    }
+  }, []);
+
   const handleHeroFocus = useCallback(() => {
-    setHeroFocused(true);
+    heroFocusedRef.current = true;
     if (metabolicCardRef.current) {
       metabolicCardRef.current.style.setProperty('--tilt-x', '4deg');
       metabolicCardRef.current.style.setProperty('--tilt-y', '-4deg');
+      metabolicCardRef.current.style.transition = 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
+      metabolicCardRef.current.style.transform = 'perspective(2000px) rotateX(4deg) rotateY(-4deg) translateY(-4px)';
       if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     }
   }, []);
 
   const handleHeroBlur = useCallback(() => {
-    setHeroFocused(false);
+    heroFocusedRef.current = false;
     if (metabolicCardRef.current) {
       metabolicCardRef.current.style.setProperty('--tilt-x', '0deg');
       metabolicCardRef.current.style.setProperty('--tilt-y', '0deg');
+      metabolicCardRef.current.style.transition = 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
+      metabolicCardRef.current.style.transform = 'perspective(2000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
     }
   }, []);
 
@@ -457,8 +499,6 @@ const Dashboard = () => {
     );
   }
 
-  const isHeroActive = heroHovered || heroFocused;
-
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30 relative overflow-hidden pb-24">
       {/* Interactive Ambient Backglows */}
@@ -553,25 +593,17 @@ const Dashboard = () => {
             <section
               ref={metabolicCardRef}
               onMouseMove={handleHeroMouseMove}
-              onMouseEnter={() => setHeroHovered(true)}
-              onMouseLeave={() => {
-                setHeroHovered(false);
-                if (metabolicCardRef.current) {
-                  metabolicCardRef.current.style.setProperty('--tilt-x', '0deg');
-                  metabolicCardRef.current.style.setProperty('--tilt-y', '0deg');
-                }
-              }}
+              onMouseEnter={handleHeroMouseEnter}
+              onMouseLeave={handleHeroMouseLeave}
               onFocus={handleHeroFocus}
               onBlur={handleHeroBlur}
               tabIndex={0}
               role="region"
               aria-label={`Metabolic Velocity Energy Balance. Consumed: ${nutritionToday?.totals?.calories || 0} kilocalories out of ${user.calorieGoal} kilocalories.`}
               style={{
-                transform: isHeroActive
-                  ? 'perspective(2000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
-                  : 'perspective(2000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+                transform: 'perspective(2000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
                 transformStyle: 'preserve-3d',
-                transition: heroHovered ? 'none' : 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                transition: 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)'
               }}
               className="relative overflow-hidden rounded-[4rem] bg-[#0A0C14] border border-white/5 p-16 md:p-20 shadow-[0_80px_160px_-40px_rgba(0,0,0,0.9),inset_0_1px_1px_0_rgba(255,255,255,0.05)] hover:border-white/10 group/card bg-boutique-grain outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408]"
             >

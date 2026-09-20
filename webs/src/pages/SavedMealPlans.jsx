@@ -36,8 +36,8 @@ const SavedMealPlanCard = React.memo(({
   const cardRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
 
   const handleMouseMove = (e) => {
     if (!cardRef.current) return;
@@ -52,47 +52,69 @@ const SavedMealPlanCard = React.memo(({
     cardRef.current.style.setProperty('--mouse-y', `${y}px`);
     cardRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
     cardRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    cardRef.current.style.transition = 'none';
+    cardRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
   };
 
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
+    if (cardRef.current) {
+      cardRef.current.style.transition = 'none';
+      cardRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
+    }
+  };
+
+  const handleMouseLeave = () => {
+    isHoveredRef.current = false;
+    if (cardRef.current) {
+      cardRef.current.style.setProperty('--tilt-x', '0deg');
+      cardRef.current.style.setProperty('--tilt-y', '0deg');
+      if (!isFocusedRef.current) {
+        cardRef.current.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+        cardRef.current.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      }
+    }
+  };
+
   const handleFocus = () => {
-    setIsFocused(true);
+    isFocusedRef.current = true;
     if (cardRef.current) {
       cardRef.current.style.setProperty('--tilt-x', '4deg');
       cardRef.current.style.setProperty('--tilt-y', '-4deg');
+      cardRef.current.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+      cardRef.current.style.transform = 'perspective(1200px) rotateX(4deg) rotateY(-4deg) translateY(-4px)';
       if (tiltXRef.current) tiltXRef.current.innerText = '4.0';
       if (tiltYRef.current) tiltYRef.current.innerText = '-4.0';
     }
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
+    isFocusedRef.current = false;
     if (cardRef.current) {
       cardRef.current.style.setProperty('--tilt-x', '0deg');
       cardRef.current.style.setProperty('--tilt-y', '0deg');
+      cardRef.current.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+      cardRef.current.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
     }
   };
-
-  const interactionActive = isHovered || isFocused;
 
   return (
     <div
       ref={cardRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
       tabIndex={0}
       role="article"
       aria-label={`Trophic Blueprint: ${plan.name}. Days: ${plan.days?.length || 0}. Average Calories: ${plan._avgCalories} kcal.`}
       style={{
-        transform: interactionActive
-          ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
-          : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: isHovered ? 'none' : 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+        transform: 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d',
         animationDelay: `${idx * 100}ms`
       }}
