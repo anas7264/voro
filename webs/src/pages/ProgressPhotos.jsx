@@ -191,10 +191,19 @@ const KineticPhotoNode = React.memo(({ photo, isSelected, onClick, onDelete, isS
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
   const [showPurgeConfirm, setShowPurgeConfirm] = useState(false);
   const timeoutRef = useRef(null);
+
+  const updateTransform = () => {
+    if (!containerRef.current) return;
+    const active = isHoveredRef.current || isFocusedRef.current;
+    containerRef.current.style.transform = active
+      ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-6px)'
+      : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+    containerRef.current.style.transition = isHoveredRef.current ? 'none' : 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s';
+  };
 
   const handleMouseMove = (e) => {
     if (!containerRef.current) return;
@@ -211,24 +220,44 @@ const KineticPhotoNode = React.memo(({ photo, isSelected, onClick, onDelete, isS
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+
+    if (isHoveredRef.current || isFocusedRef.current) {
+      updateTransform();
+    }
+  };
+
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
+    updateTransform();
+  };
+
+  const handleMouseLeave = () => {
+    isHoveredRef.current = false;
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('--tilt-x', '0deg');
+      containerRef.current.style.setProperty('--tilt-y', '0deg');
+    }
+    updateTransform();
   };
 
   const handleFocus = () => {
-    setIsFocused(true);
+    isFocusedRef.current = true;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '4deg');
       containerRef.current.style.setProperty('--tilt-y', '-4deg');
       if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     }
+    updateTransform();
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
+    isFocusedRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
+    updateTransform();
   };
 
   const handleKeyDown = (e) => {
@@ -259,20 +288,12 @@ const KineticPhotoNode = React.memo(({ photo, isSelected, onClick, onDelete, isS
 
   const nodeId = useMemo(() => `BIOMETRIC_NODE_0x${photo.id.slice(-4).toUpperCase()}`, [photo.id]);
 
-  const interactionActive = isHovered || isFocused;
-
   return (
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        if (containerRef.current) {
-          containerRef.current.style.setProperty('--tilt-x', '0deg');
-          containerRef.current.style.setProperty('--tilt-y', '0deg');
-        }
-      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
@@ -281,10 +302,6 @@ const KineticPhotoNode = React.memo(({ photo, isSelected, onClick, onDelete, isS
       role="button"
       aria-label={`Visual Biometric Node logged on ${progressDateFormatter.format(photo.date)}. ${isStart ? 'First logged baseline.' : ''} ${isLatest ? 'Latest logged state.' : ''} Click to view detail.`}
       style={{
-        transform: interactionActive
-          ? `perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-6px)`
-          : `perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)`,
-        transition: isHovered ? 'none' : 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s',
         transformStyle: 'preserve-3d'
       }}
       className={`
