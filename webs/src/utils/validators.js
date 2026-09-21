@@ -1377,18 +1377,174 @@ export const isPromptInjection = (query, isNested = false) => {
       if (gronsfeldDecoded) {
         return true;
       }
+
+      // Security: Handle Playfair Cipher (5x5 grid with I/J merge across common keywords) and evaluate recursively
+      const playfairDecoded = safeDecodePlayfair(targetStr);
+      if (playfairDecoded) {
+        return true;
+      }
+
+      // Security: Handle Bifid Cipher (5x5 grid fractionated coordinates) and evaluate recursively
+      const bifidDecoded = safeDecodeBifid(targetStr);
+      if (bifidDecoded) {
+        return true;
+      }
     }
   }
 
   return false;
 };
 
-// Pre-computed common short keywords for Vigenère and Beaufort ciphers
+// Pre-computed common short keywords for Vigenère, Beaufort, Playfair, and Bifid ciphers
 const CIPHER_KEYWORDS = [
   'ai', 'key', 'voro', 'pass', 'code', 'safe', 'sec', 'secret', 'admin', 'prompt',
   'system', 'hack', 'bypass', 'test', 'demo', 'lock', 'guard', 'shield', 'auth',
-  'user', 'bot', 'gpt', 'llm', 'zero', 'vigenere', 'beaufort', 'cipher'
+  'user', 'bot', 'gpt', 'llm', 'zero', 'vigenere', 'beaufort', 'cipher', 'playfair',
+  'bifid', 'monarchy', 'keyword'
 ];
+
+// Helper to construct a 5x5 alphabet grid for Playfair, Bifid, and Polybius ciphers
+const construct5x5Grid = (key = '') => {
+  const cleanKey = key.toLowerCase().replace(/j/g, 'i').replace(/[^a-z]/g, '');
+  const seen = new Set();
+  const grid = [];
+  const posMap = {};
+
+  for (let i = 0; i < cleanKey.length; i++) {
+    const ch = cleanKey[i];
+    if (!seen.has(ch)) {
+      seen.add(ch);
+      grid.push(ch);
+    }
+  }
+
+  const alphabet = 'abcdefghiklmnopqrstuvwxyz'; // 'j' omitted/merged into 'i'
+  for (let i = 0; i < alphabet.length; i++) {
+    const ch = alphabet[i];
+    if (!seen.has(ch)) {
+      seen.add(ch);
+      grid.push(ch);
+    }
+  }
+
+  const matrix = [];
+  for (let r = 0; r < 5; r++) {
+    matrix[r] = [];
+    for (let c = 0; c < 5; c++) {
+      const char = grid[r * 5 + c];
+      matrix[r][c] = char;
+      posMap[char] = { row: r, col: c };
+    }
+  }
+
+  return { grid, matrix, posMap };
+};
+
+// Helper to safely decode Playfair Cipher-encoded payloads across common candidate keys
+const safeDecodePlayfair = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+
+  const lettersOnly = targetStr.toLowerCase().replace(/j/g, 'i').replace(/[^a-z]/g, '');
+  if (lettersOnly.length < 8 || lettersOnly.length % 2 !== 0) return null;
+
+  const candidateKeys = ['', ...CIPHER_KEYWORDS];
+
+  for (const key of candidateKeys) {
+    const { matrix, posMap } = construct5x5Grid(key);
+    let decoded = '';
+    let isValid = true;
+
+    for (let i = 0; i < lettersOnly.length; i += 2) {
+      const c1 = lettersOnly[i];
+      const c2 = lettersOnly[i + 1];
+      const p1 = posMap[c1];
+      const p2 = posMap[c2];
+
+      if (!p1 || !p2) {
+        isValid = false;
+        break;
+      }
+
+      if (p1.row === p2.row) {
+        decoded += matrix[p1.row][(p1.col + 4) % 5];
+        decoded += matrix[p2.row][(p2.col + 4) % 5];
+      } else if (p1.col === p2.col) {
+        decoded += matrix[(p1.row + 4) % 5][p1.col];
+        decoded += matrix[(p2.row + 4) % 5][p2.col];
+      } else {
+        decoded += matrix[p1.row][p2.col];
+        decoded += matrix[p2.row][p1.col];
+      }
+    }
+
+    if (isValid && decoded.length >= 4) {
+      const candidates = [
+        decoded,
+        decoded.replace(/x/g, ''),
+        decoded.replace(/i/g, 'j'),
+        decoded.replace(/x/g, '').replace(/i/g, 'j')
+      ];
+      for (const cand of candidates) {
+        if (cand !== targetStr && isPromptInjection(cand, true)) {
+          return cand;
+        }
+      }
+    }
+  }
+
+  return null;
+};
+
+// Helper to safely decode Bifid Cipher-encoded payloads across common candidate keys
+const safeDecodeBifid = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+
+  const lettersOnly = targetStr.toLowerCase().replace(/j/g, 'i').replace(/[^a-z]/g, '');
+  const N = lettersOnly.length;
+  if (N < 8) return null;
+
+  const candidateKeys = ['', ...CIPHER_KEYWORDS];
+
+  for (const key of candidateKeys) {
+    const { matrix, posMap } = construct5x5Grid(key);
+
+    // Bifid decryption over block size N (full string length)
+    const T = [];
+    let isValid = true;
+    for (let i = 0; i < N; i++) {
+      const pos = posMap[lettersOnly[i]];
+      if (!pos) {
+        isValid = false;
+        break;
+      }
+      T.push(pos.row, pos.col);
+    }
+
+    if (!isValid || T.length !== 2 * N) continue;
+
+    const rowSeq = T.slice(0, N);
+    const colSeq = T.slice(N, 2 * N);
+
+    let decoded = '';
+    for (let i = 0; i < N; i++) {
+      decoded += matrix[rowSeq[i]][colSeq[i]];
+    }
+
+    if (decoded.length >= 4) {
+      const candidates = [
+        decoded,
+        decoded.replace(/i/g, 'j')
+      ];
+      for (const cand of candidates) {
+        if (cand !== targetStr && isPromptInjection(cand, true)) {
+          return cand;
+        }
+      }
+    }
+  }
+
+  return null;
+};
 
 // Helper to safely decode Vigenère cipher-encoded payloads (P_i = (C_i - K_{i mod L}) mod 26)
 const safeDecodeVigenere = (targetStr) => {
