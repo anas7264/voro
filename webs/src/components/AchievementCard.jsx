@@ -1,4 +1,4 @@
-import React, { memo, useRef, useState, useId, useMemo } from "react";
+import React, { memo, useRef, useId, useMemo } from "react";
 import {
   Zap,
   Apple,
@@ -94,18 +94,19 @@ const RARITY_STYLES = Object.freeze({
 });
 
 /**
- * ⚡ REFINEMENT: AchievementCard re-engineered as a "Luxury Neural Artifact".
+ * ⚡ REFINEMENT: AchievementCard re-engineered as a "Luxury Neural Artifact Matrix Node".
  * Architected to Voro's 'Forge' luxury system standard with 3D spatial transforms,
  * 60fps direct-DOM mouse tracking, liquid perimeter border lighting, sub-pixel
- * attestation hash badging, and W3C APG compliant keyboard focus states.
+ * attestation hash badging, zero React state re-renders on hover/focus, and
+ * W3C APG compliant keyboard focus states.
  */
 export const AchievementCard = memo(({ achievement, unlocked, onClick, className = "" }) => {
   const Icon = ICON_MAP[achievement?.icon] || Trophy;
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
   const reactId = useId();
 
   // Stable system node ID and attestation hash
@@ -126,20 +127,36 @@ export const AchievementCard = memo(({ achievement, unlocked, onClick, className
 
     containerRef.current.style.setProperty('--mouse-x', `${x}px`);
     containerRef.current.style.setProperty('--mouse-y', `${y}px`);
-    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    containerRef.current.style.transform = `perspective(1000px) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg) translateY(-8px)`;
+    containerRef.current.style.transition = 'none';
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
   };
 
+  const handleMouseEnter = () => {
+    if (!unlocked) return;
+    isHoveredRef.current = true;
+  };
+
+  const handleMouseLeave = () => {
+    isHoveredRef.current = false;
+    if (!containerRef.current || !unlocked) return;
+    if (!isFocusedRef.current) {
+      containerRef.current.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      containerRef.current.style.transition = 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)';
+      if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
+    }
+  };
+
   const handleFocus = () => {
     if (!unlocked) return;
-    setIsFocused(true);
+    isFocusedRef.current = true;
     if (containerRef.current) {
       // Provide a subtle static tilt for keyboard focus feedback
-      containerRef.current.style.setProperty('--tilt-x', '4deg');
-      containerRef.current.style.setProperty('--tilt-y', '-4deg');
+      containerRef.current.style.transform = 'perspective(1000px) rotateX(4deg) rotateY(-4deg) translateY(-8px)';
+      containerRef.current.style.transition = 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
 
       if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
@@ -147,10 +164,12 @@ export const AchievementCard = memo(({ achievement, unlocked, onClick, className
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
-    if (containerRef.current && !isHovered) {
-      containerRef.current.style.setProperty('--tilt-x', '0deg');
-      containerRef.current.style.setProperty('--tilt-y', '0deg');
+    isFocusedRef.current = false;
+    if (containerRef.current && unlocked && !isHoveredRef.current) {
+      containerRef.current.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      containerRef.current.style.transition = 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)';
+      if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
     }
   };
 
@@ -168,21 +187,14 @@ export const AchievementCard = memo(({ achievement, unlocked, onClick, className
   };
 
   const style = RARITY_STYLES[achievement?.rarity] || RARITY_STYLES.Common;
-  const interactionActive = (isHovered || isFocused) && unlocked;
   const cardLabel = `Achievement: ${achievement?.name || 'Artifact'}. ${achievement?.description || ''}. Rarity: ${achievement?.rarity || 'Common'}. Status: ${unlocked ? 'Unlocked' : 'Locked'}`;
 
   return (
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        if (containerRef.current && !isFocused) {
-          containerRef.current.style.setProperty('--tilt-x', '0deg');
-          containerRef.current.style.setProperty('--tilt-y', '0deg');
-        }
-      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
       onClick={handleClick}
@@ -191,10 +203,8 @@ export const AchievementCard = memo(({ achievement, unlocked, onClick, className
       role={onClick ? "button" : "article"}
       aria-label={cardLabel}
       style={{
-        transform: interactionActive
-          ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-8px)'
-          : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: isHovered ? 'none' : 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)',
+        transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
       }}
       className={`
@@ -231,9 +241,7 @@ export const AchievementCard = memo(({ achievement, unlocked, onClick, className
           <div
             className="absolute inset-0 opacity-0 group-hover/ach:opacity-100 group-focus-visible/ach:opacity-100 transition-opacity duration-700"
             style={{
-              background: isHovered
-                ? `radial-gradient(400px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), color-mix(in srgb, ${style.glow}, transparent 90%), transparent 50%)`
-                : `radial-gradient(400px circle at 50% 50%, color-mix(in srgb, ${style.glow}, transparent 90%), transparent 50%)`,
+              background: `radial-gradient(400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), color-mix(in srgb, ${style.glow}, transparent 90%), transparent 50%)`,
               transform: 'translateZ(20px)'
             }}
           />
