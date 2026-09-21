@@ -57,8 +57,8 @@ const MessageItem = memo(({ msg }) => {
   const nodeRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
   const reactId = useId();
 
   const nodeId = useMemo(() => `MSG_${reactId.replace(/:/g, '').slice(0, 4).toUpperCase()}`, [reactId]);
@@ -70,6 +70,15 @@ const MessageItem = memo(({ msg }) => {
       return msg.timestamp;
     }
   }, [msg.timestamp]);
+
+  const updateTransform = () => {
+    if (!nodeRef.current || !isAssistant) return;
+    const active = isHoveredRef.current || isFocusedRef.current;
+    nodeRef.current.style.transform = active
+      ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)'
+      : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+    nodeRef.current.style.transition = isHoveredRef.current ? 'none' : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+  };
 
   const handleMouseMove = (e) => {
     if (!nodeRef.current || !isAssistant) return;
@@ -87,29 +96,49 @@ const MessageItem = memo(({ msg }) => {
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+
+    if (isHoveredRef.current || isFocusedRef.current) {
+      updateTransform();
+    }
+  };
+
+  const handleMouseEnter = () => {
+    if (!isAssistant) return;
+    isHoveredRef.current = true;
+    updateTransform();
+  };
+
+  const handleMouseLeave = () => {
+    if (!isAssistant) return;
+    isHoveredRef.current = false;
+    if (nodeRef.current) {
+      nodeRef.current.style.setProperty('--tilt-x', '0deg');
+      nodeRef.current.style.setProperty('--tilt-y', '0deg');
+    }
+    updateTransform();
   };
 
   const handleFocus = () => {
     if (!isAssistant) return;
-    setIsFocused(true);
+    isFocusedRef.current = true;
     if (nodeRef.current) {
       nodeRef.current.style.setProperty('--tilt-x', '3deg');
       nodeRef.current.style.setProperty('--tilt-y', '-3deg');
       if (tiltXRef.current) tiltXRef.current.innerText = "3.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-3.0";
     }
+    updateTransform();
   };
 
   const handleBlur = () => {
     if (!isAssistant) return;
-    setIsFocused(false);
+    isFocusedRef.current = false;
     if (nodeRef.current) {
       nodeRef.current.style.setProperty('--tilt-x', '0deg');
       nodeRef.current.style.setProperty('--tilt-y', '0deg');
     }
+    updateTransform();
   };
-
-  const interactionActive = isHovered || isFocused;
 
   return (
     <div className={`flex ${isAssistant ? 'justify-start' : 'justify-end'} group/msg animate-fade-in relative z-10 w-full`}>
@@ -117,8 +146,8 @@ const MessageItem = memo(({ msg }) => {
         ref={nodeRef}
         tabIndex={isAssistant ? 0 : undefined}
         onMouseMove={handleMouseMove}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         onFocus={handleFocus}
         onBlur={handleBlur}
         className={`
@@ -129,10 +158,6 @@ const MessageItem = memo(({ msg }) => {
           }
         `}
         style={isAssistant ? {
-          transform: interactionActive
-            ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)'
-            : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-          transition: isHovered ? 'none' : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
           transformStyle: 'preserve-3d',
         } : {}}
       >
@@ -211,11 +236,20 @@ const QuickPromptCard = memo(({ prompt, onClick }) => {
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
   const reactId = useId();
 
   const nodeId = useMemo(() => `PRMPT_${reactId.replace(/:/g, '').slice(0, 4).toUpperCase()}`, [reactId]);
+
+  const updateTransform = () => {
+    if (!containerRef.current) return;
+    const active = isHoveredRef.current || isFocusedRef.current;
+    containerRef.current.style.transform = active
+      ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
+      : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+    containerRef.current.style.transition = isHoveredRef.current ? 'none' : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+  };
 
   const handleMouseMove = (e) => {
     if (!containerRef.current) return;
@@ -233,42 +267,56 @@ const QuickPromptCard = memo(({ prompt, onClick }) => {
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+
+    if (isHoveredRef.current || isFocusedRef.current) {
+      updateTransform();
+    }
+  };
+
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
+    updateTransform();
+  };
+
+  const handleMouseLeave = () => {
+    isHoveredRef.current = false;
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('--tilt-x', '0deg');
+      containerRef.current.style.setProperty('--tilt-y', '0deg');
+    }
+    updateTransform();
   };
 
   const handleFocus = () => {
-    setIsFocused(true);
+    isFocusedRef.current = true;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '4deg');
       containerRef.current.style.setProperty('--tilt-y', '-4deg');
       if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     }
+    updateTransform();
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
+    isFocusedRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
+    updateTransform();
   };
-
-  const interactionActive = isHovered || isFocused;
 
   return (
     <button
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
       onClick={onClick}
       style={{
-        transform: interactionActive
-          ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
-          : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: isHovered ? 'none' : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
       }}
       className="group relative p-8 rounded-[2rem] bg-white/[0.02] border border-white/5 hover:border-voro-primary/30 transition-all duration-700 text-left overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408] h-full flex flex-col justify-between"
