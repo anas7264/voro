@@ -17,6 +17,8 @@ import Button from '@/components/Button';
 import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { CachedDateTimeFormat } from '@/utils/formatters';
+import { executeSecurely } from '@/utils/security';
+import { sanitizeFilename } from '@/utils/pdfExport';
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted static constants & cached formatters.
@@ -377,19 +379,27 @@ const SavedTrainingPlans = () => {
     navigate('/workout/plan', { state: { selectedPlan: plan } });
   }, [navigate]);
 
-  const handleExportJSON = useCallback((plan) => {
+  const handleExportJSON = useCallback(async (plan) => {
     if (!plan) return;
     try {
       const jsonStr = JSON.stringify(plan, null, 2);
       const blob = new Blob([jsonStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `voro-kinetic-blueprint-${plan.id}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      const url = await executeSecurely("Export Kinetic Blueprint", () => {
+        return URL.createObjectURL(blob);
+      }, ["sink:URL.createObjectURL"]);
+
+      try {
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = sanitizeFilename(`voro-kinetic-blueprint-${plan.id}.json`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } finally {
+        await executeSecurely("Cleanup Blueprint URL", () => {
+          URL.revokeObjectURL(url);
+        }, ["sink:URL.revokeObjectURL"]);
+      }
       addNotification('Raw kinetic blueprint exported securely.', 'success');
     } catch (err) {
       addNotification('Secure export failed.', 'error');

@@ -6,6 +6,8 @@ import { useNotifications } from '@/hooks/useNotifications';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import { CachedDateTimeFormat } from '@/utils/formatters';
+import { executeSecurely } from '@/utils/security';
+import { sanitizeFilename } from '@/utils/pdfExport';
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted static constants & cached formatters.
@@ -291,19 +293,27 @@ const SavedMealPlans = () => {
     }
   }, [confirmingDeleteId, plansData, setItem, addNotification]);
 
-  const handleExportJSON = useCallback((plan) => {
+  const handleExportJSON = useCallback(async (plan) => {
     if (!plan) return;
     try {
       const jsonStr = JSON.stringify(plan, null, 2);
       const blob = new Blob([jsonStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `voro-trophic-manifest-${plan.id}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      const url = await executeSecurely("Export Trophic Manifest", () => {
+        return URL.createObjectURL(blob);
+      }, ["sink:URL.createObjectURL"]);
+
+      try {
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = sanitizeFilename(`voro-trophic-manifest-${plan.id}.json`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } finally {
+        await executeSecurely("Cleanup Trophic Manifest URL", () => {
+          URL.revokeObjectURL(url);
+        }, ["sink:URL.revokeObjectURL"]);
+      }
       addNotification('Secure raw JSON export completed.', 'success');
     } catch (err) {
       addNotification('Secure export failed.', 'error');
