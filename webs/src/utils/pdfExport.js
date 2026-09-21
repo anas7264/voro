@@ -465,5 +465,6 @@ export default {
   exportMealPlan,
   exportTrainingPlan,
   savePDF,
-  downloadPDF
+  downloadPDF,
+  sanitizeFilename
 };

@@ -9,6 +9,7 @@ import { useAppContext as useApp } from '@/hooks/useAppContext';
 import { executeSecurely, safeJSONParse } from '@/utils/security';
 import { useNotifications } from '@/hooks/useNotifications';
 import { isValidPassword } from '@/utils/validators';
+import { sanitizeFilename } from '@/utils/pdfExport';
 
 const EMPTY_SETTINGS = Object.freeze({});
 const selectSettings = (s) => s || EMPTY_SETTINGS;
@@ -100,14 +101,18 @@ const Settings = () => {
       return URL.createObjectURL(blob);
     }, ["sink:URL.createObjectURL"]);
 
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `voro-evolution-backup-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-
-    await executeSecurely("Cleanup Settings Backup URL", () => {
-      URL.revokeObjectURL(url);
-    }, ["sink:URL.revokeObjectURL"]);
+    try {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = sanitizeFilename(`voro-evolution-backup-${new Date().toISOString().split('T')[0]}.json`);
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } finally {
+      await executeSecurely("Cleanup Settings Backup URL", () => {
+        URL.revokeObjectURL(url);
+      }, ["sink:URL.revokeObjectURL"]);
+    }
 
     addNotification('Data matrix exported successfully', 'success');
   };

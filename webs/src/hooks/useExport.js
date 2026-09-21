@@ -145,17 +145,19 @@ export const useExport = () => {
         return window.URL.createObjectURL(blob);
       }, ["sink:URL.createObjectURL"]);
 
-      const link = document.createElement("a");
-      link.href = url;
-      const filename = `VORO-Nutrition-Log-${new Date().toISOString().split("T")[0]}.csv`;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      await executeSecurely("Cleanup Nutrition Log URL", () => {
-        window.URL.revokeObjectURL(url);
-      }, ["sink:URL.revokeObjectURL"]);
+      const filename = pdfExport.sanitizeFilename(`VORO-Nutrition-Log-${new Date().toISOString().split("T")[0]}.csv`);
+      try {
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } finally {
+        await executeSecurely("Cleanup Nutrition Log URL", () => {
+          window.URL.revokeObjectURL(url);
+        }, ["sink:URL.revokeObjectURL"]);
+      }
 
       setExportProgress(100);
       setExporting(false);
@@ -193,17 +195,19 @@ export const useExport = () => {
         return window.URL.createObjectURL(blob);
       }, ["sink:URL.createObjectURL"]);
 
-      const link = document.createElement("a");
-      link.href = url;
-      const filename = `VORO-Workout-Log-${new Date().toISOString().split("T")[0]}.csv`;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      await executeSecurely("Cleanup Workout Log URL", () => {
-        window.URL.revokeObjectURL(url);
-      }, ["sink:URL.revokeObjectURL"]);
+      const filename = pdfExport.sanitizeFilename(`VORO-Workout-Log-${new Date().toISOString().split("T")[0]}.csv`);
+      try {
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } finally {
+        await executeSecurely("Cleanup Workout Log URL", () => {
+          window.URL.revokeObjectURL(url);
+        }, ["sink:URL.revokeObjectURL"]);
+      }
 
       setExportProgress(100);
       setExporting(false);
@@ -253,17 +257,19 @@ export const useExport = () => {
         return window.URL.createObjectURL(blob);
       }, ["sink:URL.createObjectURL"]);
 
-      const link = document.createElement("a");
-      link.href = url;
-      const filename = `VORO-Backup-${new Date().toISOString().split("T")[0]}.json`;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      await executeSecurely("Cleanup Backup URL", () => {
-        window.URL.revokeObjectURL(url);
-      }, ["sink:URL.revokeObjectURL"]);
+      const filename = pdfExport.sanitizeFilename(`VORO-Backup-${new Date().toISOString().split("T")[0]}.json`);
+      try {
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } finally {
+        await executeSecurely("Cleanup Backup URL", () => {
+          window.URL.revokeObjectURL(url);
+        }, ["sink:URL.revokeObjectURL"]);
+      }
 
       setExportProgress(100);
       setExporting(false);
@@ -301,17 +307,19 @@ export const useExport = () => {
         return window.URL.createObjectURL(blob);
       }, ["sink:URL.createObjectURL"]);
 
-      const link = document.createElement("a");
-      link.href = url;
-      const filename = `VORO-Measurements-${new Date().toISOString().split("T")[0]}.csv`;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      await executeSecurely("Cleanup Measurements URL", () => {
-        window.URL.revokeObjectURL(url);
-      }, ["sink:URL.revokeObjectURL"]);
+      const filename = pdfExport.sanitizeFilename(`VORO-Measurements-${new Date().toISOString().split("T")[0]}.csv`);
+      try {
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } finally {
+        await executeSecurely("Cleanup Measurements URL", () => {
+          window.URL.revokeObjectURL(url);
+        }, ["sink:URL.revokeObjectURL"]);
+      }
 
       setExportProgress(100);
       setExporting(false);

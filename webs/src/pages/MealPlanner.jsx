@@ -16,6 +16,8 @@ import Textarea from '@/components/Textarea';
 import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useNotifications } from '@/hooks/useNotifications';
+import { executeSecurely } from '@/utils/security';
+import { sanitizeFilename } from '@/utils/pdfExport';
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted static mock datasets and generators.
@@ -402,19 +404,27 @@ const MealPlanner = () => {
     addNotification('Trophic blueprint archived in secure local repository.', 'success');
   }, [savedMealPlans, mealPlan, updateItem, addNotification]);
 
-  const handleExportJSON = useCallback(() => {
+  const handleExportJSON = useCallback(async () => {
     if (!mealPlan) return;
     try {
       const jsonStr = JSON.stringify(mealPlan, null, 2);
       const blob = new Blob([jsonStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `voro-trophic-manifest-${mealPlan.id}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      const url = await executeSecurely("Export Trophic Manifest", () => {
+        return URL.createObjectURL(blob);
+      }, ["sink:URL.createObjectURL"]);
+
+      try {
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = sanitizeFilename(`voro-trophic-manifest-${mealPlan.id}.json`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } finally {
+        await executeSecurely("Cleanup Trophic Manifest URL", () => {
+          URL.revokeObjectURL(url);
+        }, ["sink:URL.revokeObjectURL"]);
+      }
       addNotification('Secure raw JSON export completed.', 'success');
     } catch (err) {
       addNotification('Secure export failed.', 'error');
