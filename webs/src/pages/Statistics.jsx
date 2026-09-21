@@ -26,14 +26,15 @@ const STORAGE_KEYS = ['nutrition_log', 'workout_log'];
  * Custom re-engineered 3D Card for charts implementing the Accessible 3D Interaction Pattern:
  * - Dynamic mouse tracking for real-time 3D tilt at 60fps.
  * - Static 4-degree volumetric tilt on focus for keyboard accessibility.
- * - Holographic real-time coordinate telemetry updating in the DOM to bypass React re-renders.
+ * - Zero-allocation interaction tracking via useRef flags (isHoveredRef, isFocusedRef)
+ *   and direct-DOM style manipulation to eliminate 100% of React component re-renders.
  */
 const InteractiveChartCard = memo(({ children, title, subtitle, badge, icon: Icon, color = "voro-primary", nodeId = "NODE_01" }) => {
   const cardRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
 
   const handleMouseMove = (e) => {
     if (!cardRef.current) return;
@@ -45,48 +46,86 @@ const InteractiveChartCard = memo(({ children, title, subtitle, badge, icon: Ico
     const tiltY = ((x / rect.width) - 0.5) * 20;
     const tiltX = (0.5 - (y / rect.height)) * 20;
 
-    cardRef.current.style.setProperty('--mouse-x', `${x}px`);
-    cardRef.current.style.setProperty('--mouse-y', `${y}px`);
-    cardRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    cardRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    const style = cardRef.current.style;
+    style.setProperty('--mouse-x', `${x}px`);
+    style.setProperty('--mouse-y', `${y}px`);
+    style.setProperty('--tilt-x', `${tiltX}deg`);
+    style.setProperty('--tilt-y', `${tiltY}deg`);
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
   };
 
-  const handleFocus = () => {
-    setIsFocused(true);
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
     if (cardRef.current) {
+      cardRef.current.style.transition = 'none';
+      cardRef.current.style.transform = 'perspective(2000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-8px)';
+    }
+  };
+
+  const handleMouseLeave = () => {
+    isHoveredRef.current = false;
+    if (!cardRef.current) return;
+
+    cardRef.current.style.transition = 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
+    if (isFocusedRef.current) {
+      cardRef.current.style.transform = 'perspective(2000px) rotateX(4deg) rotateY(-4deg) translateY(-8px)';
       cardRef.current.style.setProperty('--tilt-x', '4deg');
       cardRef.current.style.setProperty('--tilt-y', '-4deg');
       if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
+    } else {
+      cardRef.current.style.transform = 'perspective(2000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      cardRef.current.style.setProperty('--tilt-x', '0deg');
+      cardRef.current.style.setProperty('--tilt-y', '0deg');
+      if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
     }
   };
 
+  const handleFocus = () => {
+    isFocusedRef.current = true;
+    if (!cardRef.current) return;
+
+    cardRef.current.style.transition = 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
+    cardRef.current.style.transform = 'perspective(2000px) rotateX(4deg) rotateY(-4deg) translateY(-8px)';
+    cardRef.current.style.setProperty('--tilt-x', '4deg');
+    cardRef.current.style.setProperty('--tilt-y', '-4deg');
+    if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
+    if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
+  };
+
   const handleBlur = () => {
-    setIsFocused(false);
+    isFocusedRef.current = false;
+    if (!cardRef.current) return;
+
+    if (!isHoveredRef.current) {
+      cardRef.current.style.transition = 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
+      cardRef.current.style.transform = 'perspective(2000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      cardRef.current.style.setProperty('--tilt-x', '0deg');
+      cardRef.current.style.setProperty('--tilt-y', '0deg');
+      if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
+    }
   };
 
   const activeColor = color === "voro-primary" ? "var(--voro-primary)" : "var(--voro-secondary)";
-  const interactionActive = isHovered || isFocused;
 
   return (
     <div
       ref={cardRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
       tabIndex="0"
       role="region"
       aria-label={`${title} chart container`}
       style={{
-        transform: interactionActive
-          ? 'perspective(2000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-8px)'
-          : 'perspective(2000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: isHovered ? 'none' : 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)',
+        transform: 'perspective(2000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
       }}
       className="p-10 bg-[#0A0C14]/90 border border-white/5 rounded-[2.5rem] shadow-[0_50px_100px_rgba(0,0,0,0.8)] relative overflow-hidden group outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408] cursor-pointer"
@@ -153,13 +192,15 @@ InteractiveChartCard.displayName = "InteractiveChartCard";
  * ⚡ LUXURY MOVEMENT: MacroSynthesisMatrixEnclave.
  * Specialized 3D card layout for pie chart distribution statistics.
  * Incorporates custom scanline meshes, glow plates, and precise typography.
+ * Zero-allocation interaction tracking via useRef flags (isHoveredRef, isFocusedRef)
+ * and direct-DOM style manipulation to eliminate 100% of React component re-renders.
  */
 const MacroSynthesisMatrixEnclave = memo(({ children, title, subtitle, description, macroDistribution }) => {
   const cardRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
 
   const handleMouseMove = (e) => {
     if (!cardRef.current) return;
@@ -170,47 +211,84 @@ const MacroSynthesisMatrixEnclave = memo(({ children, title, subtitle, descripti
     const tiltY = ((x / rect.width) - 0.5) * 12;
     const tiltX = (0.5 - (y / rect.height)) * 12;
 
-    cardRef.current.style.setProperty('--mouse-x', `${x}px`);
-    cardRef.current.style.setProperty('--mouse-y', `${y}px`);
-    cardRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    cardRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    const style = cardRef.current.style;
+    style.setProperty('--mouse-x', `${x}px`);
+    style.setProperty('--mouse-y', `${y}px`);
+    style.setProperty('--tilt-x', `${tiltX}deg`);
+    style.setProperty('--tilt-y', `${tiltY}deg`);
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
   };
 
-  const handleFocus = () => {
-    setIsFocused(true);
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
     if (cardRef.current) {
+      cardRef.current.style.transition = 'none';
+      cardRef.current.style.transform = 'perspective(2000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-8px)';
+    }
+  };
+
+  const handleMouseLeave = () => {
+    isHoveredRef.current = false;
+    if (!cardRef.current) return;
+
+    cardRef.current.style.transition = 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
+    if (isFocusedRef.current) {
+      cardRef.current.style.transform = 'perspective(2000px) rotateX(4deg) rotateY(-4deg) translateY(-8px)';
       cardRef.current.style.setProperty('--tilt-x', '4deg');
       cardRef.current.style.setProperty('--tilt-y', '-4deg');
       if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
+    } else {
+      cardRef.current.style.transform = 'perspective(2000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      cardRef.current.style.setProperty('--tilt-x', '0deg');
+      cardRef.current.style.setProperty('--tilt-y', '0deg');
+      if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
     }
   };
 
-  const handleBlur = () => {
-    setIsFocused(false);
+  const handleFocus = () => {
+    isFocusedRef.current = true;
+    if (!cardRef.current) return;
+
+    cardRef.current.style.transition = 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
+    cardRef.current.style.transform = 'perspective(2000px) rotateX(4deg) rotateY(-4deg) translateY(-8px)';
+    cardRef.current.style.setProperty('--tilt-x', '4deg');
+    cardRef.current.style.setProperty('--tilt-y', '-4deg');
+    if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
+    if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
   };
 
-  const interactionActive = isHovered || isFocused;
+  const handleBlur = () => {
+    isFocusedRef.current = false;
+    if (!cardRef.current) return;
+
+    if (!isHoveredRef.current) {
+      cardRef.current.style.transition = 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
+      cardRef.current.style.transform = 'perspective(2000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      cardRef.current.style.setProperty('--tilt-x', '0deg');
+      cardRef.current.style.setProperty('--tilt-y', '0deg');
+      if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
+    }
+  };
 
   return (
     <div
       ref={cardRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
       tabIndex="0"
       role="region"
       aria-label="Macronutrient allocation analysis"
       style={{
-        transform: interactionActive
-          ? 'perspective(2000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-8px)'
-          : 'perspective(2000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: isHovered ? 'none' : 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)',
+        transform: 'perspective(2000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
       }}
       className="p-12 md:p-16 bg-[#0A0C14] border border-white/5 rounded-[3rem] shadow-[0_60px_120px_rgba(0,0,0,0.9)] relative overflow-hidden group/macro outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408] cursor-pointer"
