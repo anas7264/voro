@@ -116,6 +116,13 @@ export const ExerciseCard = memo(({
     onSelect?.(exercise);
   }, [onSelect, exercise]);
 
+  const handleKeyDown = useCallback((e) => {
+    if (onSelect && (e.key === "Enter" || e.key === " ") && e.target === containerRef.current) {
+      e.preventDefault();
+      onSelect(exercise);
+    }
+  }, [onSelect, exercise]);
+
   const handleEdit = useCallback((e) => {
     e.stopPropagation();
     onEdit?.(exercise);
@@ -134,6 +141,7 @@ export const ExerciseCard = memo(({
       onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
       tabIndex={0}
       role="article"
       aria-label={`Movement pattern: ${exercise.name}. Category: ${exercise.category}. Difficulty: ${exercise.difficulty}.`}
@@ -228,18 +236,22 @@ export const ExerciseCard = memo(({
         )}
         {onEdit && (
           <button
+            type="button"
             onClick={handleEdit}
             className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-gray-600 hover:text-white hover:bg-white/5 hover:border-white/10 transition-all outline-none focus-visible:ring-2 focus-visible:ring-voro-primary"
             aria-label={exercise?.name ? `Edit ${exercise.name} pattern` : "Edit pattern"}
+            title={exercise?.name ? `Edit ${exercise.name} pattern` : "Edit pattern"}
           >
             <Edit3 size={18} />
           </button>
         )}
         {onDelete && (
           <button
+            type="button"
             onClick={handleDelete}
             className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-gray-600 hover:text-red-400 hover:bg-red-400/5 hover:border-red-400/10 transition-all outline-none focus-visible:ring-2 focus-visible:ring-red-500"
             aria-label={exercise?.name ? `Delete ${exercise.name} pattern` : "Delete pattern"}
+            title={exercise?.name ? `Delete ${exercise.name} pattern` : "Delete pattern"}
           >
             <Trash2 size={18} />
           </button>
