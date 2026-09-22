@@ -1,4 +1,4 @@
-import React, { useId, useMemo, useRef, useState, memo } from "react";
+import React, { useId, useMemo, useRef, memo } from "react";
 import { Calendar } from "lucide-react";
 
 /**
@@ -31,16 +31,27 @@ export const DatePicker = memo(({
   const errorId = `${inputId}-error`;
 
   const containerRef = useRef(null);
+  const spotlightRef = useRef(null);
   const txRef = useRef(null);
   const tyRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
 
   // Generate a stable system ID for the date node
   const nodeId = useMemo(() => {
     const cleanId = generatedId.replace(/:/g, '');
     return `DT_${cleanId.slice(0, 3).toUpperCase()}`;
   }, [generatedId]);
+
+  const updateTransformStyle = () => {
+    if (!containerRef.current) return;
+    const active = isHoveredRef.current || isFocusedRef.current;
+    containerRef.current.style.transform = active
+      ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)'
+      : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+    containerRef.current.style.transition = isHoveredRef.current ? 'none' : 'transform 0.7s cubic-bezier(0.16,1,0.3,1)';
+  };
 
   const handleMouseMove = (e) => {
     if (!containerRef.current || disabled) return;
@@ -58,15 +69,27 @@ export const DatePicker = memo(({
     containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
     containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
 
+    if (spotlightRef.current) {
+      spotlightRef.current.style.background = `radial-gradient(180px circle at ${x}px ${y}px, rgba(124,58,237,0.12), transparent 70%)`;
+    }
+
     if (txRef.current) txRef.current.innerText = tiltX.toFixed(1);
     if (tyRef.current) tyRef.current.innerText = tiltY.toFixed(1);
+
+    updateTransformStyle();
+  };
+
+  const handleMouseEnter = () => {
+    if (disabled) return;
+    isHoveredRef.current = true;
+    updateTransformStyle();
   };
 
   const handleMouseLeave = () => {
-    setIsHovered(false);
+    isHoveredRef.current = false;
     if (!containerRef.current) return;
 
-    if (isFocused) {
+    if (isFocusedRef.current) {
       // Revert to APG static 4-degree focus tilt
       containerRef.current.style.setProperty('--tilt-x', '4deg');
       containerRef.current.style.setProperty('--tilt-y', '-4deg');
@@ -76,10 +99,16 @@ export const DatePicker = memo(({
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
+
+    if (spotlightRef.current) {
+      spotlightRef.current.style.background = `radial-gradient(180px circle at 50% 50%, rgba(124,58,237,0.12), transparent 70%)`;
+    }
+
+    updateTransformStyle();
   };
 
   const handleInputFocus = (e) => {
-    setIsFocused(true);
+    isFocusedRef.current = true;
     if (containerRef.current) {
       // W3C APG compliant static 4-degree focus tilt
       containerRef.current.style.setProperty('--tilt-x', '4deg');
@@ -87,19 +116,19 @@ export const DatePicker = memo(({
       if (txRef.current) txRef.current.innerText = "4.0";
       if (tyRef.current) tyRef.current.innerText = "-4.0";
     }
+    updateTransformStyle();
     if (onFocus) onFocus(e);
   };
 
   const handleInputBlur = (e) => {
-    setIsFocused(false);
-    if (containerRef.current && !isHovered) {
+    isFocusedRef.current = false;
+    if (containerRef.current && !isHoveredRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
+    updateTransformStyle();
     if (onBlur) onBlur(e);
   };
-
-  const interactionActive = isHovered || isFocused;
 
   return (
     <div className={`w-full group/date-container ${className}`}>
@@ -128,15 +157,13 @@ export const DatePicker = memo(({
       <div
         ref={containerRef}
         onMouseMove={handleMouseMove}
-        onMouseEnter={() => setIsHovered(true)}
+        onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         className="relative transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
         style={{
-          transform: interactionActive
-            ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)'
-            : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+          transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
           transformStyle: 'preserve-3d',
-          transition: isHovered ? 'none' : 'transform 0.7s cubic-bezier(0.16,1,0.3,1)'
+          transition: 'transform 0.7s cubic-bezier(0.16,1,0.3,1)'
         }}
       >
         {/* Architectural Framing: High-end charcoal box */}
@@ -154,11 +181,10 @@ export const DatePicker = memo(({
 
           {/* Liquid Radial Light Spot (Direct DOM Follower) */}
           <div
+            ref={spotlightRef}
             className="absolute inset-0 opacity-0 group-hover/date-container:opacity-100 group-focus-within/date-container:opacity-100 transition-opacity duration-500 pointer-events-none"
             style={{
-              background: isHovered
-                ? `radial-gradient(180px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(124,58,237,0.12), transparent 70%)`
-                : `radial-gradient(180px circle at 50% 50%, rgba(124,58,237,0.12), transparent 70%)`
+              background: `radial-gradient(180px circle at 50% 50%, rgba(124,58,237,0.12), transparent 70%)`
             }}
           />
 
