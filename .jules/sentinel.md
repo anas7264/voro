@@ -413,3 +413,14 @@ Neutralizing Rail Fence transposition cipher obfuscation requires calculating th
 
 **Prevention:**
 Always include transposition cipher decoders (such as Rail Fence) in prompt injection validation pipelines before forwarding user text to language models.
+
+## 2026-09-16 - Two-Square Cipher Prompt Injection Shield
+
+**Vulnerability:**
+Prompt injection detectors analyzing standard text or single-grid ciphers failed to detect prompt override instructions (such as "ignore previous") obfuscated using the Wheatstone Two-Square digram cipher across candidate key pairs (e.g. "ldtioyqqdwmlyp"). Large language models easily decipher two-grid digram ciphers back into natural language instructions, bypassing text-based blocklists and boundary validations during query processing.
+
+**Learning:**
+Neutralizing Two-Square cipher obfuscation requires generating 5x5 alphabet matrices for candidate key pairs in `CIPHER_KEYWORDS`, mapping horizontal rectangle coordinates between grid 1 `(r1, c1)` and grid 2 `(r2, c2)` to extract plaintext digrams `(q1[r1][c2], q2[r2][c1])`, and recursively evaluating candidate strings against `isPromptInjection`.
+
+**Prevention:**
+Always include multi-grid digram cipher decoders (such as Two-Square and Four-Square) in prompt injection validation pipelines before transmitting user input to language models.
