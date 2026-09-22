@@ -165,10 +165,10 @@ const KineticExerciseCard = memo(({ exercise, exerciseIdx, onUpdateSet, onAddSet
   const txRef = useRef(null);
   const tyRef = useRef(null);
   const purgeTimerRef = useRef(null);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
   const reactId = useId();
 
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
   const [isPurging, setIsPurging] = useState(false);
 
   const nodeId = `EX_${reactId.replace(/:/g, '').slice(0, 4).toUpperCase()}`;
@@ -195,23 +195,60 @@ const KineticExerciseCard = memo(({ exercise, exerciseIdx, onUpdateSet, onAddSet
 
     if (txRef.current) txRef.current.innerText = tiltX.toFixed(1);
     if (tyRef.current) tyRef.current.innerText = tiltY.toFixed(1);
+
+    if (isHoveredRef.current || isFocusedRef.current) {
+      cardRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
+      cardRef.current.style.transition = 'none';
+    }
+  };
+
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
+    if (cardRef.current) {
+      cardRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
+      cardRef.current.style.transition = 'none';
+    }
+  };
+
+  const handleMouseLeave = () => {
+    isHoveredRef.current = false;
+    if (cardRef.current) {
+      cardRef.current.style.setProperty('--tilt-x', '0deg');
+      cardRef.current.style.setProperty('--tilt-y', '0deg');
+      if (!isFocusedRef.current) {
+        cardRef.current.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      }
+      cardRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+    }
+    if (txRef.current) txRef.current.innerText = '0.0';
+    if (tyRef.current) tyRef.current.innerText = '0.0';
   };
 
   const handleFocus = () => {
-    setIsFocused(true);
+    isFocusedRef.current = true;
     if (cardRef.current) {
       cardRef.current.style.setProperty('--tilt-x', '4deg');
       cardRef.current.style.setProperty('--tilt-y', '-4deg');
-      if (txRef.current) txRef.current.innerText = "4.0";
-      if (tyRef.current) tyRef.current.innerText = "-4.0";
+      cardRef.current.style.transform = 'perspective(1200px) rotateX(4deg) rotateY(-4deg) translateY(-4px)';
+      cardRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+      if (txRef.current) txRef.current.innerText = '4.0';
+      if (tyRef.current) tyRef.current.innerText = '-4.0';
     }
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
+    isFocusedRef.current = false;
     if (cardRef.current) {
-      cardRef.current.style.setProperty('--tilt-x', '0deg');
-      cardRef.current.style.setProperty('--tilt-y', '0deg');
+      if (!isHoveredRef.current) {
+        cardRef.current.style.setProperty('--tilt-x', '0deg');
+        cardRef.current.style.setProperty('--tilt-y', '0deg');
+        cardRef.current.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      }
+      cardRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+    }
+    if (isPurging) {
+      setIsPurging(false);
+      if (purgeTimerRef.current) clearTimeout(purgeTimerRef.current);
     }
   };
 
@@ -228,24 +265,20 @@ const KineticExerciseCard = memo(({ exercise, exerciseIdx, onUpdateSet, onAddSet
     }
   };
 
-  const interactionActive = isHovered || isFocused;
-
   return (
     <div
       ref={cardRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
       tabIndex="0"
       role="region"
       aria-label={`Kinetic Exercise Node for ${exercise.name}`}
       style={{
-        transform: interactionActive
-          ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
-          : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: isHovered ? 'none' : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+        transform: 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d',
       }}
       className="group relative rounded-[2.5rem] bg-[#0A0C14] border border-white/5 transition-all duration-700 overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-voro-primary shadow-2xl hover:border-white/10"
