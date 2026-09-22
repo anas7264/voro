@@ -1389,6 +1389,12 @@ export const isPromptInjection = (query, isNested = false) => {
       if (bifidDecoded) {
         return true;
       }
+
+      // Security: Handle Four-Square Cipher (four 5x5 grids across common key pairs) and evaluate recursively
+      const fourSquareDecoded = safeDecodeFourSquare(targetStr);
+      if (fourSquareDecoded) {
+        return true;
+      }
     }
   }
 
@@ -1487,6 +1493,68 @@ const safeDecodePlayfair = (targetStr) => {
       for (const cand of candidates) {
         if (cand !== targetStr && isPromptInjection(cand, true)) {
           return cand;
+        }
+      }
+    }
+  }
+
+  return null;
+};
+
+// Helper to safely decode Four-Square Cipher-encoded payloads across common candidate key pairs
+const safeDecodeFourSquare = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+
+  const lettersOnly = targetStr.toLowerCase().replace(/j/g, 'i').replace(/[^a-z]/g, '');
+  if (lettersOnly.length < 8 || lettersOnly.length % 2 !== 0) return null;
+
+  const candidateKeys = ['', ...CIPHER_KEYWORDS];
+  const q1Mat = construct5x5Grid('').matrix; // Top-Left (Plaintext Grid 1)
+  const q4Mat = construct5x5Grid('').matrix; // Bottom-Right (Plaintext Grid 2)
+
+  // Precompute position maps for all candidate keys to eliminate O(N^2) grid constructions
+  const candidatePosMaps = candidateKeys.map(k => construct5x5Grid(k).posMap);
+
+  for (let idx1 = 0; idx1 < candidatePosMaps.length; idx1++) {
+    const q2Pos = candidatePosMaps[idx1]; // Top-Right (Ciphertext Grid 1)
+    for (let idx2 = 0; idx2 < candidatePosMaps.length; idx2++) {
+      const q3Pos = candidatePosMaps[idx2]; // Bottom-Left (Ciphertext Grid 2)
+
+      let decoded = '';
+      let isValid = true;
+
+      for (let i = 0; i < lettersOnly.length; i += 2) {
+        const c1 = lettersOnly[i];
+        const c2 = lettersOnly[i + 1];
+
+        const pos1 = q2Pos[c1]; // (r1, c2_col)
+        const pos2 = q3Pos[c2]; // (r2, c1_col)
+
+        if (!pos1 || !pos2) {
+          isValid = false;
+          break;
+        }
+
+        const r1 = pos1.row;
+        const c2Col = pos1.col;
+        const r2 = pos2.row;
+        const c1Col = pos2.col;
+
+        const p1 = q1Mat[r1][c1Col];
+        const p2 = q4Mat[r2][c2Col];
+
+        decoded += p1 + p2;
+      }
+
+      if (isValid && decoded.length >= 4) {
+        const candidates = [
+          decoded,
+          decoded.replace(/i/g, 'j')
+        ];
+        for (const cand of candidates) {
+          if (cand !== targetStr && isPromptInjection(cand, true)) {
+            return cand;
+          }
         }
       }
     }
