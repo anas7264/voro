@@ -91,7 +91,7 @@ const RecipeArtifactCard = memo(({ recipe, index, onLog, onDelete }) => {
     return `REC_${cleanId.slice(-4).toUpperCase()}`;
   }, [recipe.id, reactId]);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -113,17 +113,17 @@ const RecipeArtifactCard = memo(({ recipe, index, onLog, onDelete }) => {
       containerRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-6px)';
       containerRef.current.style.transition = 'none';
     }
-  };
+  }, []);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     isHoveredRef.current = true;
     if (containerRef.current) {
       containerRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-6px)';
       containerRef.current.style.transition = 'none';
     }
-  };
+  }, []);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
@@ -135,9 +135,9 @@ const RecipeArtifactCard = memo(({ recipe, index, onLog, onDelete }) => {
     }
     if (tiltXRef.current) tiltXRef.current.innerText = '0.0';
     if (tiltYRef.current) tiltYRef.current.innerText = '0.0';
-  };
+  }, []);
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     isFocusedRef.current = true;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '4deg');
@@ -147,9 +147,9 @@ const RecipeArtifactCard = memo(({ recipe, index, onLog, onDelete }) => {
       if (tiltXRef.current) tiltXRef.current.innerText = '4.0';
       if (tiltYRef.current) tiltYRef.current.innerText = '-4.0';
     }
-  };
+  }, []);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
     if (containerRef.current) {
       if (!isHoveredRef.current) {
@@ -163,9 +163,9 @@ const RecipeArtifactCard = memo(({ recipe, index, onLog, onDelete }) => {
       setIsPurging(false);
       if (purgeTimerRef.current) clearTimeout(purgeTimerRef.current);
     }
-  };
+  }, [isPurging]);
 
-  const handlePurgeClick = (e) => {
+  const handlePurgeClick = useCallback((e) => {
     e.stopPropagation();
     if (isPurging) {
       if (purgeTimerRef.current) clearTimeout(purgeTimerRef.current);
@@ -177,7 +177,7 @@ const RecipeArtifactCard = memo(({ recipe, index, onLog, onDelete }) => {
         setIsPurging(false);
       }, 3000);
     }
-  };
+  }, [isPurging, onDelete, recipe.id, recipe.name]);
 
   useEffect(() => {
     return () => {
@@ -394,29 +394,44 @@ const RecipeLibrary = () => {
     };
   }, []);
 
+  const [optimisticDeletedIds, setOptimisticDeletedIds] = useState(new Set());
+
   /**
-   * ⚡ OPTIMIZATION: Pure derived recipes list with fallback demo formulas.
+   * ⚡ OPTIMIZATION: Pure derived recipes list with fallback demo formulas and Optimistic UI deletions.
    */
   const recipes = useMemo(() => {
-    if (Array.isArray(storedRecipes) && storedRecipes.length > 0) {
-      return storedRecipes;
-    }
-    return MOCK_DEMO_RECIPES;
-  }, [storedRecipes]);
+    const raw = Array.isArray(storedRecipes) && storedRecipes.length > 0 ? storedRecipes : MOCK_DEMO_RECIPES;
+    if (optimisticDeletedIds.size === 0) return raw;
+    return raw.filter(r => !optimisticDeletedIds.has(r.id));
+  }, [storedRecipes, optimisticDeletedIds]);
 
   /**
-   * ⚡ PERFORMANCE OPTIMIZATION: Filtered recipes calculation using deferred query.
+   * ⚡ PERFORMANCE OPTIMIZATION: Pre-index recipes by category for O(1) lookup.
+   */
+  const recipesByCategory = useMemo(() => {
+    const map = new Map();
+    map.set('All', recipes);
+    for (let i = 0; i < recipes.length; i++) {
+      const r = recipes[i];
+      const cat = r.category || 'Balanced';
+      if (!map.has(cat)) map.set(cat, []);
+      map.get(cat).push(r);
+    }
+    return map;
+  }, [recipes]);
+
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: O(1) Category pre-indexed slice followed by deferred query filter.
    */
   const filteredRecipes = useMemo(() => {
+    const categoryList = recipesByCategory.get(selectedCategory) || recipesByCategory.get('All') || EMPTY_ARRAY;
     const q = deferredSearchQuery.trim().toLowerCase();
-    return recipes.filter(recipe => {
-      const nameMatch = !q || (recipe.name || '').toLowerCase().includes(q);
-      const catMatch = selectedCategory === 'All' || (recipe.category || '') === selectedCategory;
-      return nameMatch && catMatch;
-    });
-  }, [recipes, deferredSearchQuery, selectedCategory]);
+    if (!q) return categoryList;
+    return categoryList.filter(recipe => (recipe.name || '').toLowerCase().includes(q));
+  }, [recipesByCategory, selectedCategory, deferredSearchQuery]);
 
   const handleDelete = useCallback(async (id, name) => {
+    setOptimisticDeletedIds(prev => new Set(prev).add(id));
     const updated = recipes.filter(r => r.id !== id);
     await setItem('recipes', updated);
     addNotification(`Formula "${name}" decommissioned from codex.`, 'info');

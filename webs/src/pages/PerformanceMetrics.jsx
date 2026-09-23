@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState, memo } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback, memo } from 'react';
 import { Zap, TrendingUp, Activity, Scale, Dumbbell, ShieldCheck, Cpu, Target as TargetIcon } from 'lucide-react';
 import { Button, LineChartComponent, RadarChartComponent, Stat } from '@/components';
 import { useStorageKeySelector } from '@/hooks/useStorage';
@@ -29,7 +29,7 @@ const KineticCapabilityNode = memo(({ title, subtitle, icon: Icon, badge, childr
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -51,17 +51,17 @@ const KineticCapabilityNode = memo(({ title, subtitle, icon: Icon, badge, childr
       cardRef.current.style.transform = 'perspective(1600px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-6px)';
       cardRef.current.style.transition = 'none';
     }
-  };
+  }, []);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     isHoveredRef.current = true;
     if (cardRef.current) {
       cardRef.current.style.transform = 'perspective(1600px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-6px)';
       cardRef.current.style.transition = 'none';
     }
-  };
+  }, []);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
     if (cardRef.current) {
       cardRef.current.style.setProperty('--tilt-x', '0deg');
@@ -73,9 +73,9 @@ const KineticCapabilityNode = memo(({ title, subtitle, icon: Icon, badge, childr
     }
     if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
     if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
-  };
+  }, []);
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     isFocusedRef.current = true;
     if (cardRef.current) {
       cardRef.current.style.setProperty('--tilt-x', '4deg');
@@ -85,9 +85,9 @@ const KineticCapabilityNode = memo(({ title, subtitle, icon: Icon, badge, childr
       if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     }
-  };
+  }, []);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
     if (cardRef.current) {
       if (!isHoveredRef.current) {
@@ -97,7 +97,7 @@ const KineticCapabilityNode = memo(({ title, subtitle, icon: Icon, badge, childr
       }
       cardRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
     }
-  };
+  }, []);
 
   return (
     <div
@@ -188,7 +188,7 @@ const KineticInteractiveCard = memo(({ children, nodeId = 'NODE_CARD' }) => {
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -209,17 +209,17 @@ const KineticInteractiveCard = memo(({ children, nodeId = 'NODE_CARD' }) => {
       cardRef.current.style.transform = 'perspective(1600px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-6px)';
       cardRef.current.style.transition = 'none';
     }
-  };
+  }, []);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     isHoveredRef.current = true;
     if (cardRef.current) {
       cardRef.current.style.transform = 'perspective(1600px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-6px)';
       cardRef.current.style.transition = 'none';
     }
-  };
+  }, []);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
     if (cardRef.current) {
       cardRef.current.style.setProperty('--tilt-x', '0deg');
@@ -231,9 +231,9 @@ const KineticInteractiveCard = memo(({ children, nodeId = 'NODE_CARD' }) => {
     }
     if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
     if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
-  };
+  }, []);
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     isFocusedRef.current = true;
     if (cardRef.current) {
       cardRef.current.style.setProperty('--tilt-x', '4deg');
@@ -243,9 +243,9 @@ const KineticInteractiveCard = memo(({ children, nodeId = 'NODE_CARD' }) => {
       if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     }
-  };
+  }, []);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
     if (cardRef.current) {
       if (!isHoveredRef.current) {
@@ -255,7 +255,7 @@ const KineticInteractiveCard = memo(({ children, nodeId = 'NODE_CARD' }) => {
       }
       cardRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
     }
-  };
+  }, []);
 
   return (
     <div

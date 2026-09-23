@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Trophy } from 'lucide-react';
 import { AchievementCard } from '@/components/AchievementCard';
 import { achievements } from '@/data/achievements';
@@ -58,7 +58,7 @@ const Achievements = () => {
     };
   }, [level, xp]);
 
-  const handleHeroMouseMove = (e) => {
+  const handleHeroMouseMove = useCallback((e) => {
     if (!heroRef.current) return;
     const rect = heroRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -80,17 +80,17 @@ const Achievements = () => {
       heroRef.current.style.transform = 'perspective(2000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
       heroRef.current.style.transition = 'none';
     }
-  };
+  }, []);
 
-  const handleHeroMouseEnter = () => {
+  const handleHeroMouseEnter = useCallback(() => {
     isHeroHoveredRef.current = true;
     if (heroRef.current) {
       heroRef.current.style.transform = 'perspective(2000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
       heroRef.current.style.transition = 'none';
     }
-  };
+  }, []);
 
-  const handleHeroMouseLeave = () => {
+  const handleHeroMouseLeave = useCallback(() => {
     isHeroHoveredRef.current = false;
     if (heroRef.current) {
       heroRef.current.style.setProperty('--tilt-x', '0deg');
@@ -102,9 +102,9 @@ const Achievements = () => {
     }
     if (heroTiltXRef.current) heroTiltXRef.current.innerText = "0.0";
     if (heroTiltYRef.current) heroTiltYRef.current.innerText = "0.0";
-  };
+  }, []);
 
-  const handleHeroFocus = () => {
+  const handleHeroFocus = useCallback(() => {
     isHeroFocusedRef.current = true;
     if (heroRef.current) {
       heroRef.current.style.setProperty('--tilt-x', '4deg');
@@ -114,9 +114,9 @@ const Achievements = () => {
       if (heroTiltXRef.current) heroTiltXRef.current.innerText = "4.0";
       if (heroTiltYRef.current) heroTiltYRef.current.innerText = "-4.0";
     }
-  };
+  }, []);
 
-  const handleHeroBlur = () => {
+  const handleHeroBlur = useCallback(() => {
     isHeroFocusedRef.current = false;
     if (heroRef.current) {
       if (!isHeroHoveredRef.current) {
@@ -126,7 +126,7 @@ const Achievements = () => {
       }
       heroRef.current.style.transition = 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)';
     }
-  };
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#080B14] text-[#F0F4FF] selection:bg-voro-primary/30 pb-24">

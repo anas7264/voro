@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef, memo, useId } from 'react';
+import React, { useEffect, useMemo, useState, useRef, useCallback, memo, useId } from 'react';
 import { TrendingUp, TrendingDown, Scale, Activity, Zap, Target, Heart, Info, ShieldAlert, CircleDot, RefreshCw, Sparkles, Layers } from 'lucide-react';
 import Card from '@/components/Card';
 import Stat from '@/components/Stat';
@@ -16,12 +16,8 @@ import { getFastShortDate } from '@/utils/formatters';
  * Prevents redundant object/array allocations and GC pressure across render cycles.
  */
 const EMPTY_ARRAY = Object.freeze([]);
-const EMPTY_METRICS = Object.freeze({
-  weights: EMPTY_ARRAY,
-  bodyFat: EMPTY_ARRAY
-});
-
-const selectBodyMetrics = (state) => state || EMPTY_METRICS;
+const selectWeights = (state) => state?.weights || EMPTY_ARRAY;
+const selectBodyFatRecords = (state) => state?.bodyFat || EMPTY_ARRAY;
 
 const LOADING_MESSAGES = Object.freeze([
   "ESTABLISHING SOMATOTYPE PROTOCOL...",
@@ -64,7 +60,7 @@ const SomaticSpecimenCell = memo(({ label, value, unit, change, icon: Icon, colo
 
   const nodeId = useMemo(() => explicitNodeId || `SPEC_${reactId.replace(/:/g, '').slice(0, 4).toUpperCase()}`, [explicitNodeId, reactId]);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -86,17 +82,17 @@ const SomaticSpecimenCell = memo(({ label, value, unit, change, icon: Icon, colo
       containerRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-6px)';
       containerRef.current.style.transition = 'none';
     }
-  };
+  }, []);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     isHoveredRef.current = true;
     if (containerRef.current) {
       containerRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-6px)';
       containerRef.current.style.transition = 'none';
     }
-  };
+  }, []);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
@@ -108,9 +104,9 @@ const SomaticSpecimenCell = memo(({ label, value, unit, change, icon: Icon, colo
     }
     if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
     if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
-  };
+  }, []);
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     isFocusedRef.current = true;
     if (containerRef.current) {
       // 4-degree static tilt on focus for keyboard accessibility compliance
@@ -121,9 +117,9 @@ const SomaticSpecimenCell = memo(({ label, value, unit, change, icon: Icon, colo
       if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     }
-  };
+  }, []);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
     if (containerRef.current) {
       if (!isHoveredRef.current) {
@@ -133,7 +129,7 @@ const SomaticSpecimenCell = memo(({ label, value, unit, change, icon: Icon, colo
       }
       containerRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
     }
-  };
+  }, []);
 
   const isPositive = change !== undefined && parseFloat(change) >= 0;
   const activeColor = COLOR_TOKEN_MAP[color] || COLOR_TOKEN_MAP['voro-primary'];
@@ -238,7 +234,7 @@ const SomaticSegmentalLens = memo(({ leanMass, fatMass, bodyFat }) => {
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -259,17 +255,17 @@ const SomaticSegmentalLens = memo(({ leanMass, fatMass, bodyFat }) => {
       containerRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
       containerRef.current.style.transition = 'none';
     }
-  };
+  }, []);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     isHoveredRef.current = true;
     if (containerRef.current) {
       containerRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
       containerRef.current.style.transition = 'none';
     }
-  };
+  }, []);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
@@ -281,9 +277,9 @@ const SomaticSegmentalLens = memo(({ leanMass, fatMass, bodyFat }) => {
     }
     if (txRef.current) txRef.current.innerText = "0.0";
     if (tyRef.current) tyRef.current.innerText = "0.0";
-  };
+  }, []);
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     isFocusedRef.current = true;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '4deg');
@@ -293,9 +289,9 @@ const SomaticSegmentalLens = memo(({ leanMass, fatMass, bodyFat }) => {
       if (txRef.current) txRef.current.innerText = "4.0";
       if (tyRef.current) tyRef.current.innerText = "-4.0";
     }
-  };
+  }, []);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
     if (containerRef.current) {
       if (!isHoveredRef.current) {
@@ -305,7 +301,7 @@ const SomaticSegmentalLens = memo(({ leanMass, fatMass, bodyFat }) => {
       }
       containerRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
     }
-  };
+  }, []);
 
   const leanPct = useMemo(() => {
     const total = leanMass + fatMass;
@@ -426,8 +422,9 @@ const SomaticSegmentalLens = memo(({ leanMass, fatMass, bodyFat }) => {
 SomaticSegmentalLens.displayName = "SomaticSegmentalLens";
 
 const BodyComposition = () => {
-  // ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity via selector
-  const metrics = useStorageKeySelector('body_metrics', selectBodyMetrics);
+  // ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity via granular selectors
+  const weights = useStorageKeySelector('body_metrics', selectWeights);
+  const bodyFatRecords = useStorageKeySelector('body_metrics', selectBodyFatRecords);
   const { user } = useApp();
 
   // Simulated Masterclass Loading Alignment State
@@ -466,53 +463,54 @@ const BodyComposition = () => {
   }, []);
 
   const compositionHistory = useMemo(() => {
-    if (!metrics.weights?.length || !metrics.bodyFat?.length) return EMPTY_ARRAY;
+    if (!weights.length || !bodyFatRecords.length) return EMPTY_ARRAY;
 
     /**
      * ⚡ OPTIMIZATION: Zero-Allocation Sort & Single-pass O(N+M) alignment for merging biometric time-series.
-     * Pre-calculates timestamps before sorting to eliminate redundant Date instantiation in sort comparators.
+     * Direct Date.parse timestamp sorting and pre-allocated output array eliminate garbage collection thrashing.
      */
-    const weights = metrics.weights
-      .map(w => ({ ...w, ts: w.date ? new Date(w.date).getTime() : 0 }))
-      .sort((a, b) => a.ts - b.ts)
+    const sortedWeights = weights
+      .slice()
+      .sort((a, b) => (a.date ? Date.parse(a.date) : 0) - (b.date ? Date.parse(b.date) : 0))
       .slice(-30);
 
-    const bodyFat = metrics.bodyFat
-      .map(b => ({ ...b, ts: b.date ? new Date(b.date).getTime() : 0 }))
-      .sort((a, b) => a.ts - b.ts);
+    const sortedBodyFat = bodyFatRecords
+      .slice()
+      .sort((a, b) => (a.date ? Date.parse(a.date) : 0) - (b.date ? Date.parse(b.date) : 0));
 
     let bfIdx = 0;
-    const result = [];
+    const result = new Array(sortedWeights.length);
 
-    for (const w of weights) {
-      const wTs = w.ts;
+    for (let i = 0; i < sortedWeights.length; i++) {
+      const w = sortedWeights[i];
+      const wTs = w.date ? Date.parse(w.date) : 0;
 
-      while (bfIdx < bodyFat.length - 1) {
-        const currentDiff = Math.abs(bodyFat[bfIdx].ts - wTs);
-        const nextDiff = Math.abs(bodyFat[bfIdx + 1].ts - wTs);
-        if (nextDiff <= currentDiff) {
+      while (bfIdx < sortedBodyFat.length - 1) {
+        const currentTs = sortedBodyFat[bfIdx].date ? Date.parse(sortedBodyFat[bfIdx].date) : 0;
+        const nextTs = sortedBodyFat[bfIdx + 1].date ? Date.parse(sortedBodyFat[bfIdx + 1].date) : 0;
+        if (Math.abs(nextTs - wTs) <= Math.abs(currentTs - wTs)) {
           bfIdx++;
         } else {
           break;
         }
       }
 
-      const bfPct = bodyFat[bfIdx].value;
-      const weight = w.value;
-      const fatMass = (weight * bfPct / 100);
-      const leanMass = (weight - fatMass);
+      const bfPct = sortedBodyFat[bfIdx].value;
+      const weightVal = w.value;
+      const fatMass = (weightVal * bfPct) / 100;
+      const leanMass = weightVal - fatMass;
 
-      result.push({
+      result[i] = {
         date: getFastShortDate(w.date),
         leanMass: Number(leanMass.toFixed(2)),
         fatMass: Number(fatMass.toFixed(2)),
         bodyFat: Number(bfPct.toFixed(2)),
-        weight: Number(weight.toFixed(2)),
-      });
+        weight: Number(weightVal.toFixed(2)),
+      };
     }
 
     return result;
-  }, [metrics]);
+  }, [weights, bodyFatRecords]);
 
   const latest = useMemo(() =>
     compositionHistory.length > 0 ? compositionHistory[compositionHistory.length - 1] : null
