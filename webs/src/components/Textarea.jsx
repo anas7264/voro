@@ -21,16 +21,25 @@ export const Textarea = memo(({
   error = false,
   required = false,
   label,
+  helperText,
   maxLength,
   rows = 4,
   className = "",
   onFocus,
   onBlur,
+  title,
   ...props
 }) => {
   const generatedId = useId();
   const textareaId = id || generatedId;
   const errorId = `${textareaId}-error`;
+  const helperId = `${textareaId}-helper`;
+
+  const describedBy = [
+    error ? errorId : null,
+    helperText && !error ? helperId : null,
+    props['aria-describedby']
+  ].filter(Boolean).join(" ") || undefined;
 
   const containerRef = useRef(null);
   const txRef = useRef(null);
@@ -201,6 +210,7 @@ export const Textarea = memo(({
           `} />
 
           <textarea
+            {...props}
             id={textareaId}
             value={value}
             onChange={onChange}
@@ -211,7 +221,7 @@ export const Textarea = memo(({
             required={required}
             maxLength={maxLength}
             rows={rows}
-            title={disabled ? (props.title || "This field is disabled") : props.title}
+            title={disabled ? (title || props.title || "This field is disabled") : (title || props.title)}
             className={`
               w-full bg-transparent px-6 py-5 text-white font-mono text-sm tracking-wide
               placeholder:font-serif placeholder:italic placeholder:text-gray-700
@@ -219,8 +229,7 @@ export const Textarea = memo(({
               ${disabled ? "cursor-not-allowed" : ""}
             `}
             aria-invalid={!!error}
-            aria-describedby={error ? errorId : undefined}
-            {...props}
+            aria-describedby={describedBy}
           />
 
           {/* Sub-pixel Hash Badge (Industrial Detail) */}
@@ -231,7 +240,13 @@ export const Textarea = memo(({
           </div>
         </div>
 
-        {/* Error Manifestation */}
+        {/* Error & Helper Text Manifestation */}
+        {helperText && !error && (
+          <p id={helperId} className="text-[0.6rem] font-mono text-gray-400 mt-2 px-1 tracking-wide">
+            {helperText}
+          </p>
+        )}
+
         <div
           role="alert"
           aria-live="polite"

@@ -22,14 +22,23 @@ export const Select = memo(({
   error = false,
   required = false,
   label,
+  helperText,
   className = "",
   onFocus,
   onBlur,
+  title,
   ...props
 }) => {
   const generatedId = useId();
   const selectId = id || generatedId;
   const errorId = `${selectId}-error`;
+  const helperId = `${selectId}-helper`;
+
+  const describedBy = [
+    error ? errorId : null,
+    helperText && !error ? helperId : null,
+    props['aria-describedby']
+  ].filter(Boolean).join(" ") || undefined;
 
   const containerRef = useRef(null);
   const txRef = useRef(null);
@@ -192,6 +201,7 @@ export const Select = memo(({
           `} />
 
           <select
+            {...props}
             id={selectId}
             value={value}
             onChange={onChange}
@@ -199,15 +209,14 @@ export const Select = memo(({
             onBlur={handleBlur}
             disabled={disabled}
             required={required}
-            title={disabled ? (props.title || "This option is disabled") : props.title}
+            title={disabled ? (title || props.title || "This option is disabled") : (title || props.title)}
             className={`
               w-full bg-transparent px-6 py-5 text-white font-mono text-sm tracking-widest
               focus:outline-none transition-all duration-500 appearance-none cursor-pointer
               ${disabled ? "cursor-not-allowed" : ""}
             `}
             aria-invalid={!!error}
-            aria-describedby={error ? errorId : undefined}
-            {...props}
+            aria-describedby={describedBy}
           >
             {options.map(opt => (
               <option key={opt.value} value={opt.value} className="bg-[#0A0C14] text-white">
@@ -229,7 +238,13 @@ export const Select = memo(({
           </div>
         </div>
 
-        {/* Error Manifestation */}
+        {/* Error & Helper Text Manifestation */}
+        {helperText && !error && (
+          <p id={helperId} className="text-[0.6rem] font-mono text-gray-400 mt-2 px-1 tracking-wide">
+            {helperText}
+          </p>
+        )}
+
         <div
           role="alert"
           aria-live="polite"

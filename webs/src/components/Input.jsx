@@ -22,15 +22,24 @@ export const Input = memo(({
   error = false,
   required = false,
   label,
+  helperText,
   maxLength,
   className = "",
   onFocus,
   onBlur,
+  title,
   ...props
 }) => {
   const generatedId = useId();
   const inputId = id || generatedId;
   const errorId = `${inputId}-error`;
+  const helperId = `${inputId}-helper`;
+
+  const describedBy = [
+    error ? errorId : null,
+    helperText && !error ? helperId : null,
+    props['aria-describedby']
+  ].filter(Boolean).join(" ") || undefined;
 
   const containerRef = useRef(null);
   const txRef = useRef(null);
@@ -201,6 +210,7 @@ export const Input = memo(({
           `} />
 
           <input
+            {...props}
             id={inputId}
             type={type}
             value={value}
@@ -210,7 +220,7 @@ export const Input = memo(({
             placeholder={placeholder}
             disabled={disabled}
             maxLength={maxLength}
-            title={disabled ? (props.title || "This field is disabled") : props.title}
+            title={disabled ? (title || props.title || "This field is disabled") : (title || props.title)}
             className={`
               w-full bg-transparent px-6 py-5 text-white font-mono text-sm tracking-wide
               placeholder:font-serif placeholder:italic placeholder:text-gray-700
@@ -219,8 +229,7 @@ export const Input = memo(({
             `}
             required={required}
             aria-invalid={!!error}
-            aria-describedby={error ? errorId : undefined}
-            {...props}
+            aria-describedby={describedBy}
           />
 
           {/* Sub-pixel Hash Badge (Industrial Detail) */}
@@ -231,7 +240,13 @@ export const Input = memo(({
           </div>
         </div>
 
-        {/* Error Manifestation */}
+        {/* Error & Helper Text Manifestation */}
+        {helperText && !error && (
+          <p id={helperId} className="text-[0.6rem] font-mono text-gray-400 mt-2 px-1 tracking-wide">
+            {helperText}
+          </p>
+        )}
+
         <div
           role="alert"
           aria-live="polite"
