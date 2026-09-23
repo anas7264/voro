@@ -53,6 +53,13 @@ export const Checkbox = memo(({
   const generatedId = useId();
   const inputId = id || generatedId;
   const errorId = `${inputId}-error`;
+  const descId = `${inputId}-desc`;
+
+  const describedBy = [
+    error ? errorId : null,
+    description ? descId : null,
+    props['aria-describedby']
+  ].filter(Boolean).join(" ") || undefined;
 
   const containerRef = useRef(null);
   const isHoveredRef = useRef(false);
@@ -193,7 +200,7 @@ export const Checkbox = memo(({
               role="checkbox"
               aria-checked={checked}
               aria-invalid={!!error}
-              aria-describedby={error ? errorId : undefined}
+              aria-describedby={describedBy}
             />
 
             {/* Architectural Box: High-end charcoal optical switch */}
@@ -252,7 +259,7 @@ export const Checkbox = memo(({
               )}
 
               {description && (
-                <span className="font-mono text-xs text-gray-400 mt-0.5 tracking-normal">
+                <span id={descId} className="font-mono text-xs text-gray-400 mt-0.5 tracking-normal">
                   {description}
                 </span>
               )}

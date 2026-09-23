@@ -6,7 +6,7 @@ import { Textarea } from "./Textarea";
  * Prevents unnecessary re-renders when parent form state updates (e.g., during
  * high-frequency typing in sibling form fields), eliminating virtual DOM churn.
  */
-export const FormTextarea = memo(({ name, label, error, required, id, ...props }) => {
+export const FormTextarea = memo(({ name, label, error, helperText, required, id, ...props }) => {
   const textareaId = id || name;
   return (
     <div className="mb-4">
@@ -14,6 +14,7 @@ export const FormTextarea = memo(({ name, label, error, required, id, ...props }
         id={textareaId}
         name={name}
         label={label}
+        helperText={helperText}
         required={required}
         error={error}
         {...props}

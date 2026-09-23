@@ -9,3 +9,7 @@
 ## 2025-05-20 - Explicit Accessibility Hiding for CSS Grid Transition Accordions
 **Learning:** Accordion components utilizing CSS grid transitions (`grid-rows-[0fr]`) and opacity changes to animate expansion keep collapsed panel content present in the DOM without hiding it from screen readers (unlike `display: none` or `visibility: hidden`). Adding `aria-hidden={!isOpen}` to the accordion panel region ensures screen reader virtual cursors ignore collapsed panel content.
 **Action:** When implementing smooth CSS grid or scale/opacity transitions for expandable panels, explicitly apply `aria-hidden={!isOpen}` to the collapsible region so screen reader users do not encounter collapsed hidden content.
+
+## 2025-05-21 - Synchronized DOM Presence for `aria-describedby` Helper Elements
+**Learning:** Linking helper text or description elements to input controls via `aria-describedby` requires strict synchronization between the computed `aria-describedby` value and actual DOM element existence. If `helperText` is hidden when an `error` is present (`{helperText && !error && ...}`), including `helperId` in `aria-describedby` creates a broken ARIA reference to a non-existent DOM node. Always guard `aria-describedby` entries (`helperText && !error ? helperId : null`) so screen readers never receive dangling element references.
+**Action:** When computing multi-source `aria-describedby` strings (combining error, helper text, and custom descriptions), verify that every ID included in the string is conditionally rendered in the DOM under the exact same conditions.
