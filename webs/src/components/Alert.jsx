@@ -1,4 +1,4 @@
-import React, { memo, useRef, useState, useId, useMemo } from "react";
+import React, { memo, useRef, useId, useMemo, useCallback } from "react";
 import { AlertCircle, CheckCircle, Info, AlertTriangle, X } from "lucide-react";
 
 /**
@@ -63,8 +63,8 @@ export const Alert = memo(({ type = "info", title, message, onClose, className =
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
 
   // SSR-safe deterministic subpixel attestation hash
   const subpixelHash = useMemo(() => {
@@ -78,7 +78,7 @@ export const Alert = memo(({ type = "info", title, message, onClose, className =
   const currentPerimeter = PERIMETER_GLOW[type] || PERIMETER_GLOW.info;
   const currentIcon = ICONS[type] || ICONS.info;
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -88,64 +88,81 @@ export const Alert = memo(({ type = "info", title, message, onClose, className =
     const tiltY = ((x / rect.width) - 0.5) * 20;
     const tiltX = (0.5 - (y / rect.height)) * 20;
 
-    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
-    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
-    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    const style = containerRef.current.style;
+    style.setProperty('--mouse-x', `${x.toFixed(1)}px`);
+    style.setProperty('--mouse-y', `${y.toFixed(1)}px`);
+    style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
+    style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
+    style.setProperty('transform', `perspective(1000px) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg) translateY(-4px)`);
+    style.setProperty('transition', 'none');
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(2);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(2);
-  };
+  }, []);
 
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-  };
+  const handleMouseEnter = useCallback(() => {
+    isHoveredRef.current = true;
+  }, []);
 
-  const handleMouseLeave = () => {
-    setIsHovered(false);
+  const handleMouseLeave = useCallback(() => {
+    isHoveredRef.current = false;
     if (!containerRef.current) return;
 
-    if (isFocused) {
+    const style = containerRef.current.style;
+    if (isFocusedRef.current) {
       // Revert to static 4-degree focus tilt on keyboard focus
-      containerRef.current.style.setProperty('--tilt-x', '4.00deg');
-      containerRef.current.style.setProperty('--tilt-y', '-4.00deg');
+      style.setProperty('--tilt-x', '4.00deg');
+      style.setProperty('--tilt-y', '-4.00deg');
+      style.setProperty('transform', 'perspective(1000px) rotateX(4.00deg) rotateY(-4.00deg) translateY(-4px)');
+      style.setProperty('transition', 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)');
       if (tiltXRef.current) tiltXRef.current.innerText = "4.00";
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.00";
     } else {
-      containerRef.current.style.setProperty('--tilt-x', '0deg');
-      containerRef.current.style.setProperty('--tilt-y', '0deg');
+      style.setProperty('--tilt-x', '0deg');
+      style.setProperty('--tilt-y', '0deg');
+      style.setProperty('transform', 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)');
+      style.setProperty('transition', 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)');
+      if (tiltXRef.current) tiltXRef.current.innerText = "0.00";
+      if (tiltYRef.current) tiltYRef.current.innerText = "0.00";
     }
-  };
+  }, []);
 
-  const handleFocus = () => {
-    setIsFocused(true);
+  const handleFocus = useCallback(() => {
+    isFocusedRef.current = true;
     if (!containerRef.current) return;
 
     // Static 4-degree tilt physics for W3C APG keyboard accessibility
-    containerRef.current.style.setProperty('--tilt-x', '4.00deg');
-    containerRef.current.style.setProperty('--tilt-y', '-4.00deg');
+    const style = containerRef.current.style;
+    style.setProperty('--tilt-x', '4.00deg');
+    style.setProperty('--tilt-y', '-4.00deg');
+    style.setProperty('transform', 'perspective(1000px) rotateX(4.00deg) rotateY(-4.00deg) translateY(-4px)');
+    style.setProperty('transition', 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)');
     if (tiltXRef.current) tiltXRef.current.innerText = "4.00";
     if (tiltYRef.current) tiltYRef.current.innerText = "-4.00";
-  };
+  }, []);
 
-  const handleBlur = () => {
-    setIsFocused(false);
-    if (!containerRef.current && !isHovered) return;
+  const handleBlur = useCallback(() => {
+    isFocusedRef.current = false;
+    if (!containerRef.current) return;
 
-    if (!isHovered && containerRef.current) {
-      containerRef.current.style.setProperty('--tilt-x', '0deg');
-      containerRef.current.style.setProperty('--tilt-y', '0deg');
+    if (!isHoveredRef.current) {
+      const style = containerRef.current.style;
+      style.setProperty('--tilt-x', '0deg');
+      style.setProperty('--tilt-y', '0deg');
+      style.setProperty('transform', 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)');
+      style.setProperty('transition', 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)');
+      if (tiltXRef.current) tiltXRef.current.innerText = "0.00";
+      if (tiltYRef.current) tiltYRef.current.innerText = "0.00";
     }
-  };
+  }, []);
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = useCallback((e) => {
     if (e.key === "Escape" && onClose) {
       e.stopPropagation();
       onClose();
     }
-  };
+  }, [onClose]);
 
-  const interactionActive = isHovered || isFocused;
   const messageId = message ? `${generatedId}-msg` : undefined;
 
   return (
@@ -162,11 +179,9 @@ export const Alert = memo(({ type = "info", title, message, onClose, className =
       aria-atomic="true"
       aria-describedby={messageId}
       style={{
-        transform: interactionActive
-          ? `perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)`
-          : `perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)`,
-        transition: isHovered ? 'none' : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
-        transformStyle: 'preserve-3d'
+        transformStyle: 'preserve-3d',
+        transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)'
       }}
       className={`
         group relative overflow-hidden rounded-3xl p-6 md:p-7
@@ -186,9 +201,7 @@ export const Alert = memo(({ type = "info", title, message, onClose, className =
         <div
           className="absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-700"
           style={{
-            background: isHovered
-              ? `radial-gradient(400px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), ${currentAtmosphere}, transparent 70%)`
-              : `radial-gradient(400px circle at 50% 50%, ${currentAtmosphere}, transparent 70%)`,
+            background: `radial-gradient(400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ${currentAtmosphere}, transparent 70%)`,
           }}
         />
       </div>
@@ -198,7 +211,7 @@ export const Alert = memo(({ type = "info", title, message, onClose, className =
         className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-700 pointer-events-none"
         style={{
           padding: '1px',
-          background: `radial-gradient(350px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), ${currentPerimeter}, transparent 80%)`,
+          background: `radial-gradient(350px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ${currentPerimeter}, transparent 80%)`,
           WebkitMask: 'linear-gradient(#fff, #fff) content-box, linear-gradient(#fff, #fff)',
           WebkitMaskComposite: 'xor',
           maskComposite: 'exclude',
@@ -241,6 +254,7 @@ export const Alert = memo(({ type = "info", title, message, onClose, className =
 
               {onClose && (
                 <button
+                  type="button"
                   onClick={onClose}
                   className="p-1.5 rounded-xl bg-white/[0.03] border border-white/5 text-gray-400 hover:text-white hover:border-white/20 transition-all duration-300 outline-none focus-visible:ring-1 focus-visible:ring-current group/btn"
                   aria-label={
