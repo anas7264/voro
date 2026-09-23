@@ -201,16 +201,25 @@ export const calculatePeriodizationCycle = (totalWeeks, cycles = 4) => {
   const weeksPerCycle = Math.floor(totalWeeks / cycles);
   const remainder = totalWeeks % cycles;
 
+  // ⚡ PERFORMANCE OPTIMIZATION: Single-pass pre-allocated array instantiation.
+  // Replaces multi-pass `Array(cycles).fill().map()` construct, completely eliminating
+  // temporary intermediate array allocations and callback closure allocations.
+  const deload = Math.ceil((weeksPerCycle + remainder) / 4);
+  const cycleBreakdown = new Array(cycles);
+  for (let i = 0; i < cycles; i++) {
+    cycleBreakdown[i] = {
+      cycle: i + 1,
+      weeks: i === cycles - 1 ? weeksPerCycle + remainder : weeksPerCycle,
+      deload
+    };
+  }
+
   return {
     totalWeeks,
     cycles,
     weeksPerCycle,
     remainderWeeks: remainder,
-    cycleBreakdown: Array(cycles).fill(weeksPerCycle).map((w, i) => ({
-      cycle: i + 1,
-      weeks: i === cycles - 1 ? w + remainder : w,
-      deload: Math.ceil((w + remainder) / 4) // Deload week approximately every 3-4 weeks
-    }))
+    cycleBreakdown
   };
 };
 
