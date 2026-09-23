@@ -1157,6 +1157,177 @@ const stripInvisibleCharacters = (str) => {
   return str.replace(INVISIBLE_CHARS_RE, '');
 };
 
+// Helper to safely decode Columnar Transposition Cipher-encoded payloads across column widths K in 2..6 and candidate keyword column orderings
+const safeDecodeColumnarTransposition = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+
+  const clean = targetStr.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const N = clean.length;
+  if (N < 8) return null;
+
+  const candidateKeywords = ['', ...CIPHER_KEYWORDS];
+
+  for (const keyWord of candidateKeywords) {
+    let order = [];
+    let K = 0;
+
+    if (!keyWord) {
+      for (let width = 2; width <= 6; width++) {
+        if (width >= N) continue;
+        order = Array.from({ length: width }, (_, i) => i);
+        K = width;
+
+        const R = Math.floor(N / K);
+        const Rem = N % K;
+
+        const colLens = new Array(K);
+        for (let c = 0; c < K; c++) {
+          colLens[c] = R + (c < Rem ? 1 : 0);
+        }
+
+        const cols = new Array(K);
+        let curr = 0;
+        for (let i = 0; i < K; i++) {
+          const colIdx = order[i];
+          const len = colLens[colIdx];
+          cols[colIdx] = clean.slice(curr, curr + len);
+          curr += len;
+        }
+
+        let decoded = '';
+        const maxRows = Math.ceil(N / K);
+        for (let r = 0; r < maxRows; r++) {
+          for (let c = 0; c < K; c++) {
+            if (r < cols[c].length) {
+              decoded += cols[c][r];
+            }
+          }
+        }
+
+        if (decoded !== clean && isPromptInjection(decoded, true)) {
+          return decoded;
+        }
+      }
+    } else {
+      K = keyWord.length;
+      if (K < 2 || K > 8 || K >= N) continue;
+
+      const keyChars = keyWord.toLowerCase().split('').map((ch, idx) => ({ ch, idx }));
+      keyChars.sort((a, b) => a.ch.localeCompare(b.ch));
+      order = keyChars.map(item => item.idx);
+
+      const R = Math.floor(N / K);
+      const Rem = N % K;
+
+      const colLens = new Array(K);
+      for (let c = 0; c < K; c++) {
+        colLens[c] = R + (c < Rem ? 1 : 0);
+      }
+
+      const cols = new Array(K);
+      let curr = 0;
+      for (let i = 0; i < K; i++) {
+        const colIdx = order[i];
+        const len = colLens[colIdx];
+        cols[colIdx] = clean.slice(curr, curr + len);
+        curr += len;
+      }
+
+      let decoded = '';
+      const maxRows = Math.ceil(N / K);
+      for (let r = 0; r < maxRows; r++) {
+        for (let c = 0; c < K; c++) {
+          if (r < cols[c].length) {
+            decoded += cols[c][r];
+          }
+        }
+      }
+
+      if (decoded !== clean && isPromptInjection(decoded, true)) {
+        return decoded;
+      }
+    }
+  }
+
+  return null;
+};
+
+// Helper to safely decode Nihilist Cipher (Polybius square + keyword addition) encoded payloads
+const safeDecodeNihilist = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8) return null;
+
+  let numbers = [];
+  const tokens = targetStr.trim().split(/[\s,.\-_\/:;+=]+/);
+  if (tokens.length >= 4 && tokens.every(t => /^\d{2,3}$/.test(t))) {
+    numbers = tokens.map(t => parseInt(t, 10));
+  } else {
+    const clean = targetStr.replace(/[^0-9]/g, '');
+    if (clean.length >= 8) {
+      const chunks2 = [];
+      let valid2 = true;
+      for (let i = 0; i + 1 < clean.length; i += 2) {
+        const val = parseInt(clean.slice(i, i + 2), 10);
+        if (val < 22 || val > 99) { valid2 = false; break; }
+        chunks2.push(val);
+      }
+      if (valid2 && chunks2.length >= 4) {
+        numbers = chunks2;
+      }
+    }
+  }
+
+  if (numbers.length < 4) return null;
+
+  const candidateGridKeys = ['', ...CIPHER_KEYWORDS];
+  const candidateKeywordKeys = ['voro', 'key', 'ai', 'pass', 'sec', 'secret', 'admin', 'code', 'prompt'];
+
+  for (const gridKey of candidateGridKeys) {
+    const { matrix, posMap } = construct5x5Grid(gridKey);
+
+    for (const keyWord of candidateKeywordKeys) {
+      const keyClean = keyWord.toLowerCase().replace(/j/g, 'i').replace(/[^a-z]/g, '');
+      if (!keyClean) continue;
+
+      const keyCoords = [];
+      let validKey = true;
+      for (let i = 0; i < keyClean.length; i++) {
+        const pos = posMap[keyClean[i]];
+        if (!pos) { validKey = false; break; }
+        keyCoords.push((pos.row + 1) * 10 + (pos.col + 1));
+      }
+      if (!validKey || keyCoords.length === 0) continue;
+
+      const L = keyCoords.length;
+      let decoded = '';
+      let isValid = true;
+
+      for (let i = 0; i < numbers.length; i++) {
+        const P = numbers[i] - keyCoords[i % L];
+        const r = Math.floor(P / 10) - 1;
+        const c = (P % 10) - 1;
+
+        if (r >= 0 && r < 5 && c >= 0 && c < 5) {
+          decoded += matrix[r][c];
+        } else {
+          isValid = false;
+          break;
+        }
+      }
+
+      if (isValid && decoded.length >= 4) {
+        const candidates = [decoded, decoded.replace(/i/g, 'j')];
+        for (const cand of candidates) {
+          if (cand !== targetStr && isPromptInjection(cand, true)) {
+            return cand;
+          }
+        }
+      }
+    }
+  }
+
+  return null;
+};
+
 // Prompt injection / jailbreak / delimiter hijacking detection
 export const isPromptInjection = (query, isNested = false) => {
   if (!query || typeof query !== 'string') return false;
@@ -1399,6 +1570,18 @@ export const isPromptInjection = (query, isNested = false) => {
       // Security: Handle Two-Square Cipher (Wheatstone 5x5 grids across common key pairs) and evaluate recursively
       const twoSquareDecoded = safeDecodeTwoSquare(targetStr);
       if (twoSquareDecoded) {
+        return true;
+      }
+
+      // Security: Handle Columnar Transposition Cipher (across column widths 2..6 and keywords) and evaluate recursively
+      const columnarDecoded = safeDecodeColumnarTransposition(targetStr);
+      if (columnarDecoded) {
+        return true;
+      }
+
+      // Security: Handle Nihilist Cipher (Polybius square + keyword addition) and evaluate recursively
+      const nihilistDecoded = safeDecodeNihilist(targetStr);
+      if (nihilistDecoded) {
         return true;
       }
     }
