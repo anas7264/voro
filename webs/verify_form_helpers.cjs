@@ -43,6 +43,7 @@ console.log('✅ Checkbox.jsx description & aria-describedby verified.');
 const formInputCode = fs.readFileSync(path.join(componentsDir, 'FormInput.jsx'), 'utf8');
 const formSelectCode = fs.readFileSync(path.join(componentsDir, 'FormSelect.jsx'), 'utf8');
 const formTextareaCode = fs.readFileSync(path.join(componentsDir, 'FormTextarea.jsx'), 'utf8');
+const formCheckboxCode = fs.readFileSync(path.join(componentsDir, 'FormCheckbox.jsx'), 'utf8');
 
 if (!formInputCode.includes('helperText={helperText}')) {
   console.error('❌ FormInput.jsx missing helperText forwarding!');
@@ -56,7 +57,11 @@ if (!formTextareaCode.includes('helperText={helperText}')) {
   console.error('❌ FormTextarea.jsx missing helperText forwarding!');
   process.exit(1);
 }
-console.log('✅ FormInput, FormSelect, FormTextarea helperText forwarding verified.');
+if (!formCheckboxCode.includes('description={resolvedDescription}') || !formCheckboxCode.includes('helperText')) {
+  console.error('❌ FormCheckbox.jsx missing helperText / description forwarding!');
+  process.exit(1);
+}
+console.log('✅ FormInput, FormSelect, FormTextarea, FormCheckbox helperText & description forwarding verified.');
 
 console.log('\n🎉 ALL FORM PRIMITIVE HELPER & A11Y VERIFICATION TESTS PASSED SUCCESSFULLY!');
 console.log('=========================================');
