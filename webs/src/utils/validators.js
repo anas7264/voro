@@ -2284,7 +2284,7 @@ export const validateFoodDiaryEntry = (entry) => {
   const errors = {};
 
   const portion = parseFloat(entry.portion);
-  if (isNaN(portion) || portion < 1 || portion > 5000) {
+  if (!Number.isFinite(portion) || portion < 1 || portion > 5000) {
     errors.portion = "Portion must be between 1 and 5000 grams";
   }
 
@@ -2419,11 +2419,11 @@ export const validateHabit = (habit) => {
     errors.name = "Habit name must be less than 50 characters";
   }
 
-  if (habit.icon && habit.icon.length > 10) {
-    errors.icon = "Icon is too long";
+  if (habit.icon != null && (typeof habit.icon !== 'string' || habit.icon.length > 10)) {
+    errors.icon = "Icon must be a string up to 10 characters";
   }
 
-  if (habit.color && !VALID_HABIT_COLORS.has(habit.color)) {
+  if (habit.color != null && (typeof habit.color !== 'string' || !VALID_HABIT_COLORS.has(habit.color))) {
     errors.color = "Invalid color selection";
   }
 
