@@ -1630,6 +1630,12 @@ export const isPromptInjection = (query, isNested = false) => {
       if (nihilistDecoded) {
         return true;
       }
+
+      // Security: Handle Autokey Cipher (polyalphabetic substitution with plaintext keystream) and evaluate recursively
+      const autokeyDecoded = safeDecodeAutokey(targetStr);
+      if (autokeyDecoded) {
+        return true;
+      }
     }
   }
 
@@ -1933,6 +1939,55 @@ const safeDecodeVigenere = (targetStr) => {
         if (x < 0) x += 26;
         decoded += String.fromCharCode(x + 97);
         keyIdx++;
+      } else {
+        decoded += targetStr[i];
+      }
+    }
+
+    if (decoded !== targetStr && isPromptInjection(decoded, true)) {
+      return decoded;
+    }
+  }
+
+  return null;
+};
+
+// Helper to safely decode Autokey cipher-encoded payloads (polyalphabetic substitution with plaintext keystream continuation)
+const safeDecodeAutokey = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+
+  const candidateKeys = [];
+  for (let c1 = 0; c1 < 26; c1++) {
+    candidateKeys.push(String.fromCharCode(97 + c1));
+    for (let c2 = 0; c2 < 26; c2++) {
+      candidateKeys.push(String.fromCharCode(97 + c1, 97 + c2));
+    }
+  }
+  candidateKeys.push(...CIPHER_KEYWORDS);
+
+  for (const initKey of candidateKeys) {
+    let decoded = '';
+    const plainChars = [];
+
+    for (let i = 0; i < targetStr.length; i++) {
+      const code = targetStr.charCodeAt(i);
+      let kVal = 0;
+      if (plainChars.length < initKey.length) {
+        kVal = initKey.charCodeAt(plainChars.length) - 97;
+      } else {
+        kVal = plainChars[plainChars.length - initKey.length];
+      }
+
+      if (code >= 65 && code <= 90) {
+        let x = (code - 65 - kVal) % 26;
+        if (x < 0) x += 26;
+        plainChars.push(x);
+        decoded += String.fromCharCode(x + 65);
+      } else if (code >= 97 && code <= 122) {
+        let x = (code - 97 - kVal) % 26;
+        if (x < 0) x += 26;
+        plainChars.push(x);
+        decoded += String.fromCharCode(x + 97);
       } else {
         decoded += targetStr[i];
       }
