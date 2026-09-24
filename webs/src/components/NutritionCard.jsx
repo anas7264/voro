@@ -152,6 +152,15 @@ export const NutritionCard = memo(({
     }
   }, [isConfirming, onDelete, meal]);
 
+  const handleKeyDown = useCallback((e) => {
+    if (e.target === containerRef.current && (e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      if (onEdit) {
+        onEdit(meal);
+      }
+    }
+  }, [onEdit, meal]);
+
   const mealName = meal?.name || "Metabolic Entry";
   const mealType = meal?.mealType || "Artifact";
   const calories = meal?.calories ?? 0;
@@ -164,6 +173,7 @@ export const NutritionCard = memo(({
       onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
       tabIndex={0}
       role="article"
       aria-label={`Metabolic artifact: ${mealName}. Type: ${mealType}. Energy: ${calories} kilocalories.`}
@@ -284,6 +294,7 @@ export const NutritionCard = memo(({
           <button
             type="button"
             onClick={handleEditClick}
+            title={`Modify ${mealName}`}
             className="flex-1 py-3.5 rounded-xl bg-white/[0.02] border border-white/5 text-gray-400 hover:text-white hover:bg-white/5 hover:border-white/10 transition-all duration-500 flex items-center justify-center gap-2 group/edit focus:outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14] active:scale-95"
             aria-label={`Modify ${mealName}`}
           >
@@ -295,6 +306,7 @@ export const NutritionCard = memo(({
           <button
             type="button"
             onClick={handleDeleteClick}
+            title={isConfirming ? `Confirm purging ${mealName}` : `Purge ${mealName}`}
             className={`
               flex-1 py-3.5 rounded-xl border transition-all duration-500 flex items-center justify-center gap-2 group/del
               focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14] active:scale-95
