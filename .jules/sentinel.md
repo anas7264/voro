@@ -424,3 +424,14 @@ Neutralizing Two-Square cipher obfuscation requires generating 5x5 alphabet matr
 
 **Prevention:**
 Always include multi-grid digram cipher decoders (such as Two-Square and Four-Square) in prompt injection validation pipelines before transmitting user input to language models.
+
+## 2026-09-17 - Autokey Cipher Prompt Injection Shield
+
+**Vulnerability:**
+Prompt injection detectors analyzing polyalphabetic ciphers with repeating keys (like Vigenère or Beaufort) can be bypassed if an attacker obfuscates prompt override instructions (such as "ignore previous") using an Autokey cipher. In an Autokey cipher, the key stream starts with a keyword or short initial key, but continues using characters of the plaintext itself. Large language models easily decipher Autokey payloads during query processing, allowing obfuscated prompt injection payloads to bypass keyword filters.
+
+**Learning:**
+Neutralizing Autokey cipher obfuscation requires initializing a candidate key (1-2 letter keys or common keywords from `CIPHER_KEYWORDS`), decrypting letters using the initial key for the first $L$ characters, and then using the previously decrypted plaintext character values $P[i-L]$ as the key shift for subsequent letters $i \ge L$. Recursively evaluating the resulting decoded string against `isPromptInjection` rejects Autokey-encoded payloads before they reach LLM contexts.
+
+**Prevention:**
+Always include Autokey polyalphabetic cipher decoders in prompt injection validation pipelines to ensure plaintext-keystream continuation encodings cannot be used to bypass system prompt boundaries.
