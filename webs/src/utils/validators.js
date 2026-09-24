@@ -1055,7 +1055,7 @@ const safeDecodeBacon = (str) => {
   return null;
 };
 
-// Helper to safely decode single-byte XOR cipher-encoded payloads (hex/decimal/octal/binary tokens or raw strings) across keys 1..255
+// Helper to safely decode single-byte and multi-byte repeating-key XOR cipher-encoded payloads (hex/decimal/octal/binary tokens or raw strings)
 const safeDecodeXOR = (targetStr) => {
   if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8) return null;
 
@@ -1097,6 +1097,7 @@ const safeDecodeXOR = (targetStr) => {
     if (isAllHex && hexBytes.length >= 4) candidateByteArrays.push(hexBytes);
 
     for (const bytes of candidateByteArrays) {
+      // 1a. Single-byte keys 1..255
       for (let k = 1; k < 256; k++) {
         let isValidASCII = true;
         let decoded = '';
@@ -1114,16 +1115,61 @@ const safeDecodeXOR = (targetStr) => {
           }
         }
       }
+
+      // 1b. Multi-byte repeating keys (from CIPHER_KEYWORDS)
+      for (const keyWord of CIPHER_KEYWORDS) {
+        if (!keyWord || keyWord.length < 2) continue;
+        const keyBytes = keyWord.split('').map(c => c.charCodeAt(0));
+        const L = keyBytes.length;
+        let isValidASCII = true;
+        let decoded = '';
+        for (let i = 0; i < bytes.length; i++) {
+          const code = bytes[i] ^ keyBytes[i % L];
+          if (code < 9 || (code > 13 && code < 32) || code > 126) {
+            isValidASCII = false;
+            break;
+          }
+          decoded += String.fromCharCode(code);
+        }
+        if (isValidASCII && decoded.length >= 8) {
+          if (isPromptInjection(decoded, true)) {
+            return decoded;
+          }
+        }
+      }
     }
   }
 
   // 2. Try raw character string XOR decoding
   if (targetStr.length <= 2000) {
+    // 2a. Single-byte keys 1..255
     for (let k = 1; k < 256; k++) {
       let isValidASCII = true;
       let decoded = '';
       for (let i = 0; i < targetStr.length; i++) {
         const code = targetStr.charCodeAt(i) ^ k;
+        if (code < 9 || (code > 13 && code < 32) || code > 126) {
+          isValidASCII = false;
+          break;
+        }
+        decoded += String.fromCharCode(code);
+      }
+      if (isValidASCII && decoded.length >= 8) {
+        if (isPromptInjection(decoded, true)) {
+          return decoded;
+        }
+      }
+    }
+
+    // 2b. Multi-byte repeating keys (from CIPHER_KEYWORDS) for raw character strings
+    for (const keyWord of CIPHER_KEYWORDS) {
+      if (!keyWord || keyWord.length < 2) continue;
+      const keyBytes = keyWord.split('').map(c => c.charCodeAt(0));
+      const L = keyBytes.length;
+      let isValidASCII = true;
+      let decoded = '';
+      for (let i = 0; i < targetStr.length; i++) {
+        const code = targetStr.charCodeAt(i) ^ keyBytes[i % L];
         if (code < 9 || (code > 13 && code < 32) || code > 126) {
           isValidASCII = false;
           break;
