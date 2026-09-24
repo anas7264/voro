@@ -75,22 +75,37 @@ const DIFFICULTY_STYLES = Object.freeze({
  * Re-engineered to Voro's 'Forge' luxury architecture and zero-allocation performance standards.
  * Features direct-DOM 60fps 3D volumetric rotational tilt, magnetic liquid border perimeter illumination,
  * live holographic spatial coordinate telemetry, SSR-safe deterministic sub-pixel attestation hash badging,
- * and W3C APG compliant keyboard focus physics.
+ * state-aware micro-UX tooltips, defensive null safety, and W3C APG compliant keyboard focus physics.
  *
  * DESIGN PHILOSOPHY:
  * 1. Authority: Charcoal box-model enclave (#0A0C14) reflecting high-value biometric objectives.
  * 2. Precision: Playfair Display italic serif headings paired with JetBrains Mono system telemetry.
  * 3. Motion: Direct-DOM 60fps 3D volumetric hover tilts bypassing React render passes.
  * 4. Spatial: Golden ratio padding and mathematical whitespace letting typography breathe.
+ * 5. Accessibility: APG keyboard activation via Enter/Space and focus physics.
  */
-export const ChallengeCard = memo(({ challenge, progress = 0, completed, onClaim }) => {
-  const Icon = IconMap[challenge.icon] || Target;
+export const ChallengeCard = memo(({ challenge, progress = 0, completed = false, onClaim }) => {
+  const safeChallenge = challenge || {};
+  const Icon = IconMap[safeChallenge.icon] || Target;
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
   const reactId = useId();
+
+  // Defensive property extraction
+  const name = safeChallenge.name || "Strategic Objective";
+  const description = safeChallenge.description || "Biological optimization objective target.";
+  const difficulty = safeChallenge.difficulty || "Beginner";
+  const category = safeChallenge.category || "General";
+  const xpReward = Number(safeChallenge.xpReward) || 0;
+
+  // Normalized difficulty lookup with fallback
+  const normalizedDiff = difficulty ? (difficulty.charAt(0).toUpperCase() + difficulty.slice(1).toLowerCase()) : "Beginner";
+  const style = DIFFICULTY_STYLES[difficulty] || DIFFICULTY_STYLES[normalizedDiff] || DIFFICULTY_STYLES.Beginner;
+
+  const percentage = Math.min(Math.max(0, Number(progress) || 0), 100);
 
   // Generate stable, deterministic system node identification and attestation markers
   const nodeId = useMemo(() => `OBJ_${reactId.replace(/[^a-zA-Z0-9]/g, '').slice(-4).toUpperCase().padStart(4, '0')}`, [reactId]);
@@ -100,8 +115,18 @@ export const ChallengeCard = memo(({ challenge, progress = 0, completed, onClaim
     return `0xCHL_${cleanId.slice(-4).padStart(4, '0')}`;
   }, [reactId]);
 
-  const style = DIFFICULTY_STYLES[challenge.difficulty] || DIFFICULTY_STYLES.Beginner;
-  const percentage = Math.min(progress, 100);
+  // Micro-UX state-aware tooltips
+  const cardTitle = completed
+    ? `${name} — Objective Manifested`
+    : percentage >= 100
+    ? `Press Enter or Space to claim rewards for ${name} (+${xpReward} XP)`
+    : `${name} — ${Math.round(percentage)}% completed (+${xpReward} XP reward)`;
+
+  const buttonTitle = completed
+    ? "Objective successfully manifested"
+    : percentage >= 100
+    ? `Claim ${xpReward} XP reward for completing ${name}`
+    : `Claim achievement progress for ${name}`;
 
   const handleMouseMove = (e) => {
     if (!containerRef.current) return;
@@ -179,6 +204,15 @@ export const ChallengeCard = memo(({ challenge, progress = 0, completed, onClaim
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      if (!completed && onClaim) {
+        e.preventDefault();
+        onClaim(safeChallenge);
+      }
+    }
+  };
+
   return (
     <div
       ref={containerRef}
@@ -187,9 +221,11 @@ export const ChallengeCard = memo(({ challenge, progress = 0, completed, onClaim
       onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
       tabIndex={0}
       role="article"
-      aria-label={`Strategic Objective: ${challenge.name}. ${challenge.description}. Difficulty: ${challenge.difficulty}. Progress: ${Math.round(percentage)}%`}
+      title={cardTitle}
+      aria-label={`Strategic Objective: ${name}. ${description}. Difficulty: ${difficulty}. Progress: ${Math.round(percentage)}%`}
       style={{
         transformStyle: 'preserve-3d',
         perspective: '1000px'
@@ -199,7 +235,7 @@ export const ChallengeCard = memo(({ challenge, progress = 0, completed, onClaim
         transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
         hover:border-white/20 hover:shadow-[0_40px_80px_rgba(0,0,0,0.8)]
         focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408] outline-none
-        group/chal flex flex-col h-full overflow-hidden
+        group/chal flex flex-col h-full overflow-hidden cursor-pointer
         ${completed ? "border-emerald-500/30 shadow-[0_20px_50px_rgba(16,185,129,0.1)]" : ""}
       `}
     >
@@ -277,15 +313,15 @@ export const ChallengeCard = memo(({ challenge, progress = 0, completed, onClaim
             <div className="space-y-1">
               <div className="flex items-center gap-3">
                 <span className={`text-[0.55rem] font-mono font-black uppercase tracking-[0.3em] ${style.text}`}>
-                  {challenge.difficulty}
+                  {difficulty}
                 </span>
                 <div className="w-1 h-1 rounded-full bg-gray-800" />
                 <span className="text-[0.55rem] font-mono font-bold text-gray-500 uppercase tracking-widest">
-                  {challenge.category}
+                  {category}
                 </span>
               </div>
               <h3 className="text-2xl md:text-3xl font-serif italic font-medium text-white tracking-tight group-hover/chal:text-voro-primary transition-colors duration-500 leading-tight">
-                {challenge.name}
+                {name}
               </h3>
             </div>
           </div>
@@ -294,7 +330,7 @@ export const ChallengeCard = memo(({ challenge, progress = 0, completed, onClaim
             <div className="flex items-center gap-2 px-4 py-1.5 bg-white/[0.02] border border-white/5 rounded-full backdrop-blur-md transition-all group-hover/chal:bg-white/5">
               <Zap size={12} className="text-voro-accent" />
               <span className="text-[0.65rem] font-mono font-black text-white uppercase tracking-widest">
-                +{challenge.xpReward} <span className="text-gray-500">XP</span>
+                +{xpReward} <span className="text-gray-500">XP</span>
               </span>
             </div>
             {completed && (
@@ -306,7 +342,7 @@ export const ChallengeCard = memo(({ challenge, progress = 0, completed, onClaim
         </div>
 
         <p className="text-gray-400 font-mono text-xs md:text-sm leading-relaxed mb-8 font-medium max-w-md opacity-80">
-          {challenge.description}
+          {description}
         </p>
 
         <div className="mt-auto space-y-6" style={{ transform: 'translateZ(20px)' }}>
@@ -343,15 +379,22 @@ export const ChallengeCard = memo(({ challenge, progress = 0, completed, onClaim
           <div className="flex gap-4">
             {!completed ? (
               <button
-                onClick={() => onClaim?.(challenge)}
-                aria-label={percentage >= 100 ? `Claim reward for ${challenge?.name || 'objective'}` : `Claim achievement for ${challenge?.name || 'objective'}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClaim?.(safeChallenge);
+                }}
+                title={buttonTitle}
+                aria-label={percentage >= 100 ? `Claim reward for ${name}` : `Claim achievement for ${name}`}
                 className="flex-1 py-4 bg-white text-black rounded-2xl text-[0.6rem] font-mono font-black uppercase tracking-[0.3em] transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_40px_rgba(255,255,255,0.1)] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14] outline-none shadow-xl shadow-white/5 group/claim relative overflow-hidden"
               >
                 <div className="absolute inset-0 bg-gradient-to-tr from-voro-primary/20 via-transparent to-transparent opacity-0 group-hover/claim:opacity-100 transition-opacity" />
                 <span className="relative z-10">{percentage >= 100 ? 'Claim Rewards' : 'Claim Achievement'}</span>
               </button>
             ) : (
-              <div className="flex-1 py-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-[0.6rem] font-mono font-black uppercase tracking-[0.3em] text-emerald-400 text-center backdrop-blur-md">
+              <div
+                title={buttonTitle}
+                className="flex-1 py-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-[0.6rem] font-mono font-black uppercase tracking-[0.3em] text-emerald-400 text-center backdrop-blur-md"
+              >
                 Protocol Success
               </div>
             )}
