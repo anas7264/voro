@@ -46,10 +46,10 @@ const HydroVessel = memo(({ percentage, biologicalState, nodeId = "VESSEL_NODE" 
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -66,45 +66,72 @@ const HydroVessel = memo(({ percentage, biologicalState, nodeId = "VESSEL_NODE" 
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
-  };
 
-  const handleFocus = () => {
-    setIsFocused(true);
+    if (isHoveredRef.current || isFocusedRef.current) {
+      containerRef.current.style.transform = 'perspective(1500px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) scale(1.02)';
+      containerRef.current.style.transition = 'none';
+    }
+  }, []);
+
+  const handleMouseEnter = useCallback(() => {
+    isHoveredRef.current = true;
+    if (containerRef.current) {
+      containerRef.current.style.transform = 'perspective(1500px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) scale(1.02)';
+      containerRef.current.style.transition = 'none';
+    }
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    isHoveredRef.current = false;
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('--tilt-x', '0deg');
+      containerRef.current.style.setProperty('--tilt-y', '0deg');
+      if (!isFocusedRef.current) {
+        containerRef.current.style.transform = 'perspective(1500px) rotateX(0deg) rotateY(0deg) scale(1)';
+      }
+      containerRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+    }
+    if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+    if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
+  }, []);
+
+  const handleFocus = useCallback(() => {
+    isFocusedRef.current = true;
     if (containerRef.current) {
       // Accessible static tilt (4 degrees) on focus
       containerRef.current.style.setProperty('--tilt-x', '4deg');
       containerRef.current.style.setProperty('--tilt-y', '-4deg');
+      containerRef.current.style.transform = 'perspective(1500px) rotateX(4deg) rotateY(-4deg) scale(1.02)';
+      containerRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
       if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     }
-  };
+  }, []);
 
-  const handleBlur = () => {
-    setIsFocused(false);
+  const handleBlur = useCallback(() => {
+    isFocusedRef.current = false;
     if (containerRef.current) {
-      containerRef.current.style.setProperty('--tilt-x', '0deg');
-      containerRef.current.style.setProperty('--tilt-y', '0deg');
+      if (!isHoveredRef.current) {
+        containerRef.current.style.setProperty('--tilt-x', '0deg');
+        containerRef.current.style.setProperty('--tilt-y', '0deg');
+        containerRef.current.style.transform = 'perspective(1500px) rotateX(0deg) rotateY(0deg) scale(1)';
+      }
+      containerRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
     }
-  };
-
-  const interactionActive = isHovered || isFocused;
+  }, []);
 
   return (
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
       tabIndex="0"
       role="region"
       aria-label={`Molecular Hydration Vessel. Current volume status: ${Math.round(percentage)}%. Status: ${biologicalState}`}
       style={{
-        transform: interactionActive
-          ? 'perspective(1500px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) scale(1.02)'
-          : 'perspective(1500px) rotateX(0deg) rotateY(0deg) scale(1)',
-        transition: isHovered ? 'none' : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
       }}
       className="relative w-64 h-[26rem] mx-auto group outline-none rounded-[3.5rem] cursor-pointer"
@@ -202,14 +229,14 @@ HydroVessel.displayName = "HydroVessel";
 const CatalystCard = memo(({ amount, onAdd }) => {
   const containerRef = useRef(null);
   const timerRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
   const [justAdded, setJustAdded] = useState(false);
 
   const formattedAmount = amount >= 1000 ? `${(amount / 1000).toFixed(1)} liters` : `${amount} milliliters`;
   const formattedShort = amount >= 1000 ? `${(amount / 1000).toFixed(1)}L` : `${amount}ml`;
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -222,32 +249,63 @@ const CatalystCard = memo(({ amount, onAdd }) => {
     containerRef.current.style.setProperty('--mouse-y', `${y}px`);
     containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
     containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
-  };
 
-  const handleFocus = () => {
-    setIsFocused(true);
-    if (containerRef.current) {
-      containerRef.current.style.setProperty('--tilt-x', '4deg');
-      containerRef.current.style.setProperty('--tilt-y', '-4deg');
+    if (isHoveredRef.current || isFocusedRef.current) {
+      containerRef.current.style.transform = 'perspective(800px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-3px)';
+      containerRef.current.style.transition = 'none';
     }
-  };
+  }, []);
 
-  const handleBlur = () => {
-    setIsFocused(false);
+  const handleMouseEnter = useCallback(() => {
+    isHoveredRef.current = true;
+    if (containerRef.current) {
+      containerRef.current.style.transform = 'perspective(800px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-3px)';
+      containerRef.current.style.transition = 'none';
+    }
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    isHoveredRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
+      if (!isFocusedRef.current) {
+        containerRef.current.style.transform = 'perspective(800px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      }
+      containerRef.current.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
     }
-  };
+  }, []);
 
-  const handleClick = () => {
+  const handleFocus = useCallback(() => {
+    isFocusedRef.current = true;
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('--tilt-x', '4deg');
+      containerRef.current.style.setProperty('--tilt-y', '-4deg');
+      containerRef.current.style.transform = 'perspective(800px) rotateX(4deg) rotateY(-4deg) translateY(-3px)';
+      containerRef.current.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+    }
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    isFocusedRef.current = false;
+    if (containerRef.current) {
+      if (!isHoveredRef.current) {
+        containerRef.current.style.setProperty('--tilt-x', '0deg');
+        containerRef.current.style.setProperty('--tilt-y', '0deg');
+        containerRef.current.style.transform = 'perspective(800px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      }
+      containerRef.current.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+    }
+  }, []);
+
+  const handleClick = useCallback(() => {
     onAdd(amount);
     setJustAdded(true);
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
       setJustAdded(false);
     }, 1200);
-  };
+  }, [onAdd, amount]);
 
   useEffect(() => {
     return () => {
@@ -255,24 +313,18 @@ const CatalystCard = memo(({ amount, onAdd }) => {
     };
   }, []);
 
-  const isActive = isHovered || isFocused;
-
   return (
     <button
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
       onClick={handleClick}
       aria-label={`Add ${formattedAmount} hydration`}
       title={`Add ${formattedShort} hydration`}
       style={{
-        transform: isActive
-          ? 'perspective(800px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-3px)'
-          : 'perspective(800px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: isHovered ? 'none' : 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
       }}
       className={`
