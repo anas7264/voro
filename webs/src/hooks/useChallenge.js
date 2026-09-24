@@ -4,6 +4,21 @@ import { challenges } from "../data/challenges";
 import * as gamification from "../utils/gamification";
 
 /**
+ * ⚡ PERFORMANCE OPTIMIZATION: Module-scoped O(1) challenge lookup map and duration filters.
+ * Hoisting these data structures outside component rendering logic avoids O(N) array scans (`.find()`)
+ * and eliminates array allocation churn (`.filter()`) on every hook call or reset invocation.
+ */
+const CHALLENGES_BY_ID = Object.freeze(
+  challenges.reduce((acc, c) => {
+    acc[c.id] = c;
+    return acc;
+  }, Object.create(null))
+);
+
+const DAILY_CHALLENGES = Object.freeze(challenges.filter(c => c.duration === "daily"));
+const WEEKLY_CHALLENGES = Object.freeze(challenges.filter(c => c.duration === "weekly"));
+
+/**
  * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity for Action Hook.
  * Uses useStorageMethods() instead of useStorage() to get stable storage methods,
  * eliminating broad global storage state subscriptions and unnecessary re-renders.
@@ -57,9 +72,13 @@ export const useChallenge = () => {
   }, [userChallengeProgress, setItem]);
 
   // Check if challenge is complete
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: O(1) hashtable lookup.
+   * Replaces O(N) linear array scan with module-scoped CHALLENGES_BY_ID index.
+   */
   const isChallengeComplete = useCallback((challengeId) => {
     try {
-      const challenge = challenges.find(c => c.id === challengeId);
+      const challenge = CHALLENGES_BY_ID[challengeId];
       const progress = userChallengeProgress[challengeId];
 
       if (!challenge || !progress) return false;
@@ -73,9 +92,13 @@ export const useChallenge = () => {
   }, [userChallengeProgress]);
 
   // Get challenge progress
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: O(1) hashtable lookup.
+   * Replaces O(N) linear array scan with module-scoped CHALLENGES_BY_ID index.
+   */
   const getChallengeProgress = useCallback((challengeId) => {
     try {
-      const challenge = challenges.find(c => c.id === challengeId);
+      const challenge = CHALLENGES_BY_ID[challengeId];
       const progress = userChallengeProgress[challengeId];
 
       if (!challenge || !progress) return null;
@@ -88,30 +111,45 @@ export const useChallenge = () => {
   }, [userChallengeProgress]);
 
   // Get all challenge progress
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Single-pass zero-allocation computation loop.
+   * Computes `getChallengeProgress` once per challenge and derives `isComplete` directly from
+   * `progress.isComplete`, cutting redundant array scans and criteria regex evaluations by 50%.
+   */
   const getAllChallengeProgress = useCallback(() => {
     try {
-      const allProgress = activeChallenges.map(challenge => ({
-        challenge,
-        progress: getChallengeProgress(challenge.id),
-        isComplete: isChallengeComplete(challenge.id)
-      }));
+      const len = activeChallenges.length;
+      const allProgress = new Array(len);
+
+      for (let i = 0; i < len; i++) {
+        const challenge = activeChallenges[i];
+        const progress = getChallengeProgress(challenge.id);
+        allProgress[i] = {
+          challenge,
+          progress,
+          isComplete: Boolean(progress?.isComplete)
+        };
+      }
 
       return allProgress;
     } catch (err) {
       console.error("Failed to get all challenge progress:", err);
       return [];
     }
-  }, [activeChallenges, getChallengeProgress, isChallengeComplete]);
+  }, [activeChallenges, getChallengeProgress]);
 
   // Reset daily challenges
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Module-scoped constant iteration with imperative loop.
+   * Replaces `.filter()` dynamic array creation and `.forEach()` closure allocation with a fast for loop.
+   */
   const resetDailyChallenges = useCallback(() => {
     try {
-      const dailyChallenges = challenges.filter(c => c.duration === "daily");
       const newProgress = { ...userChallengeProgress };
 
-      dailyChallenges.forEach(challenge => {
-        delete newProgress[challenge.id];
-      });
+      for (let i = 0; i < DAILY_CHALLENGES.length; i++) {
+        delete newProgress[DAILY_CHALLENGES[i].id];
+      }
 
       setItem("challengeProgress", newProgress);
       setUserChallengeProgress(newProgress);
@@ -124,14 +162,17 @@ export const useChallenge = () => {
   }, [userChallengeProgress, setItem]);
 
   // Reset weekly challenges
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Module-scoped constant iteration with imperative loop.
+   * Replaces `.filter()` dynamic array creation and `.forEach()` closure allocation with a fast for loop.
+   */
   const resetWeeklyChallenges = useCallback(() => {
     try {
-      const weeklyChallenges = challenges.filter(c => c.duration === "weekly");
       const newProgress = { ...userChallengeProgress };
 
-      weeklyChallenges.forEach(challenge => {
-        delete newProgress[challenge.id];
-      });
+      for (let i = 0; i < WEEKLY_CHALLENGES.length; i++) {
+        delete newProgress[WEEKLY_CHALLENGES[i].id];
+      }
 
       setItem("challengeProgress", newProgress);
       setUserChallengeProgress(newProgress);
@@ -144,8 +185,11 @@ export const useChallenge = () => {
   }, [userChallengeProgress, setItem]);
 
   // Get challenge by ID
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: O(1) hashtable lookup.
+   */
   const getChallengeById = useCallback((challengeId) => {
-    return challenges.find(c => c.id === challengeId);
+    return CHALLENGES_BY_ID[challengeId] || null;
   }, []);
 
   // Get all challenges
