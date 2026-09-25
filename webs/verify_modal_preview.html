@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VORO — Luxury Modal Interruption Chamber Verification</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'voro-primary': '#7C3AED',
+            'voro-secondary': '#10B981',
+            'voro-accent': '#F59E0B',
+            'voro-danger': '#EF4444',
+            'voro-info': '#3B82F6',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #020408;
+      color: #F0F4FF;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-12 bg-[#020408] text-[#F0F4FF] relative overflow-hidden">
+  <!-- Precision Background Depth -->
+  <div class="fixed inset-0 pointer-events-none">
+    <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#7C3AED]/10 rounded-full blur-[150px]"></div>
+    <div class="absolute bottom-[10%] right-[-5%] w-[40%] h-[40%] bg-[#10B981]/10 rounded-full blur-[130px]"></div>
+  </div>
+
+  <div class="relative z-10 max-w-2xl w-full">
+    <!-- Modal Container: Architectural Interruption Chamber -->
+    <div
+      id="modalChamber"
+      tabindex="-1"
+      class="group relative w-full rounded-[3rem] bg-[#0A0C14]/90 backdrop-blur-3xl border border-white/10 shadow-[0_80px_160px_-40px_rgba(0,0,0,0.9),inset_0_1px_1px_0_rgba(255,255,255,0.08)] flex flex-col overflow-hidden outline-none transition-all duration-700 cursor-pointer"
+      style="transform-style: preserve-3d; perspective: 1200px;"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+    >
+      <!-- Liquid Border Intelligence -->
+      <div
+        class="absolute inset-0 rounded-[3rem] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
+        style="padding: 1px; background: radial-gradient(500px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(124, 58, 237, 0.35), transparent 80%); -webkit-mask: linear-gradient(#fff, #fff) content-box, linear-gradient(#fff, #fff); -webkit-mask-composite: xor; mask-composite: exclude;"
+      ></div>
+
+      <!-- Micro-Grid Overlay -->
+      <div class="absolute inset-0 pointer-events-none">
+        <div class="absolute inset-0 bg-white/5 opacity-[0.03]"></div>
+      </div>
+
+      <!-- Telemetry Overlay -->
+      <div class="absolute top-4 right-16 pointer-events-none opacity-80 font-mono text-[0.45rem] font-bold text-white/40 tracking-widest flex items-center gap-2 select-none">
+        <span>TX_<span id="tiltX">0.0</span>°</span>
+        <span>TY_<span id="tiltY">0.0</span>°</span>
+        <span class="text-voro-primary/80">[MDL_001]</span>
+      </div>
+
+      <!-- Header -->
+      <div class="relative z-10 flex items-center justify-between p-8 sm:p-10 border-b border-white/5 bg-white/[0.01]">
+        <div class="space-y-3">
+          <div class="flex items-center gap-3">
+            <div class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#7C3AED] opacity-50"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-[#7C3AED] shadow-[0_0_12px_#7C3AED]"></span>
+            </div>
+            <span class="text-[0.55rem] font-mono font-black uppercase tracking-[0.45em] text-[#7C3AED]">
+              Interruption_Protocol // MDL_001
+            </span>
+          </div>
+
+          <div class="space-y-2">
+            <h2 id="modal-title" class="text-2xl sm:text-3xl font-serif italic font-medium text-white tracking-tight leading-none">
+              Express Manifestation Vault
+            </h2>
+            <div class="h-0.5 w-16 bg-gradient-to-r from-[#7C3AED] to-transparent rounded-full shadow-[0_0_15px_rgba(124,58,237,0.5)]"></div>
+          </div>
+        </div>
+
+        <button
+          aria-label="Close dialog (Esc)"
+          title="Close dialog (Esc)"
+          class="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5 text-gray-400 hover:text-white transition-all duration-500 active:scale-90"
+        >
+          ✕
+        </button>
+      </div>
+
+      <!-- Content -->
+      <div class="relative z-10 flex-1 p-8 sm:p-10 space-y-6">
+        <p class="text-sm font-sans text-gray-300 leading-relaxed">
+          Synthesize biometrics, log caloric metrics, or synchronize training protocols with zero-allocation 60fps interaction speed.
+        </p>
+
+        <div class="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-3">
+          <div class="flex justify-between items-center font-mono text-xs">
+            <span class="text-gray-400 uppercase tracking-widest">Protocol Status</span>
+            <span class="text-[#10B981] font-bold">ACTIVE_ENCLAVE</span>
+          </div>
+          <div class="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+            <div class="bg-gradient-to-r from-[#7C3AED] to-[#10B981] h-full w-[85%] rounded-full"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="relative z-10 p-5 px-8 sm:px-10 border-t border-white/[0.03] flex justify-between items-center bg-black/20">
+        <div class="flex gap-2">
+          <div class="w-1 h-1 rounded-full bg-[#7C3AED]"></div>
+          <div class="w-1 h-1 rounded-full bg-[#7C3AED]/60"></div>
+          <div class="w-1 h-1 rounded-full bg-[#7C3AED]/30"></div>
+        </div>
+        <span class="text-[0.45rem] font-mono text-white/30 tracking-[0.5em] uppercase font-bold">
+          0xMDL_F2A9 // MDL_001_ATTESTED_CHAMBER
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const chamber = document.getElementById('modalChamber');
+    const tiltXEl = document.getElementById('tiltX');
+    const tiltYEl = document.getElementById('tiltY');
+
+    chamber.addEventListener('mousemove', (e) => {
+      const rect = chamber.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const tiltY = ((x / rect.width) - 0.5) * 16;
+      const tiltX = (0.5 - (y / rect.height)) * 16;
+
+      chamber.style.setProperty('--mouse-x', `${x}px`);
+      chamber.style.setProperty('--mouse-y', `${y}px`);
+      chamber.style.transform = `perspective(1200px) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg) translateY(-2px)`;
+
+      tiltXEl.innerText = tiltX.toFixed(1);
+      tiltYEl.innerText = tiltY.toFixed(1);
+    });
+
+    chamber.addEventListener('mouseleave', () => {
+      chamber.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      tiltXEl.innerText = '0.0';
+      tiltYEl.innerText = '0.0';
+    });
+  </script>
+</body>
+</html>
