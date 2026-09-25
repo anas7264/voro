@@ -49,13 +49,27 @@ if (!accordionContent.includes('Accordion.displayName = "Accordion"') || !accord
 }
 console.log("✓ Test 6 Passed: Component displayNames set.");
 
-// Test 7: Production Build Verification
+// Test 7: Multi-open & Default Open Index Props Support
+if (!accordionContent.includes('allowMultiple') || !accordionContent.includes('defaultOpenIndex')) {
+  console.error("❌ Test 7 Failed: allowMultiple and defaultOpenIndex props missing.");
+  process.exit(1);
+}
+console.log("✓ Test 7 Passed: allowMultiple and defaultOpenIndex props present.");
+
+// Test 8: State-aware Micro-UX Title Tooltips & Item Tag Support
+if (!accordionContent.includes('Collapse ${item.title}') || !accordionContent.includes('Expand ${item.title}') || !accordionContent.includes('item.tag')) {
+  console.error("❌ Test 8 Failed: State-aware micro-UX title tooltips or item tag support missing.");
+  process.exit(1);
+}
+console.log("✓ Test 8 Passed: State-aware micro-UX title tooltips and item tag support verified.");
+
+// Test 9: Production Build Verification
 console.log("\nRunning Vite production build check...");
 try {
   execSync('npm run build', { cwd: __dirname, stdio: 'pipe' });
-  console.log("✓ Test 7 Passed: Vite production build succeeded cleanly.");
+  console.log("✓ Test 9 Passed: Vite production build succeeded cleanly.");
 } catch (err) {
-  console.error("❌ Test 7 Failed: Vite production build failed:", err.message);
+  console.error("❌ Test 9 Failed: Vite production build failed:", err.message);
   process.exit(1);
 }
 
