@@ -34,9 +34,9 @@ const ProcuredResourceCard = React.memo(({ item, index, onToggle, onDelete, node
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
   const purgeTimerRef = useRef(null);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
 
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
   const [isPurging, setIsPurging] = useState(false);
 
   // Clean up any active timers on unmount
@@ -63,27 +63,54 @@ const ProcuredResourceCard = React.memo(({ item, index, onToggle, onDelete, node
     containerRef.current.style.setProperty('--mouse-y', `${y}px`);
     containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
     containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    containerRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
   };
 
-  const handleFocus = () => {
-    setIsFocused(true);
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
     if (containerRef.current) {
+      containerRef.current.style.transition = 'none';
+      containerRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
+    }
+  };
+
+  const handleMouseLeave = () => {
+    isHoveredRef.current = false;
+    if (containerRef.current) {
+      containerRef.current.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+      if (isFocusedRef.current) {
+        containerRef.current.style.transform = 'perspective(1200px) rotateX(4deg) rotateY(-4deg) translateY(-4px)';
+      } else {
+        containerRef.current.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+        containerRef.current.style.setProperty('--tilt-x', '0deg');
+        containerRef.current.style.setProperty('--tilt-y', '0deg');
+      }
+    }
+  };
+
+  const handleFocus = () => {
+    isFocusedRef.current = true;
+    if (containerRef.current) {
+      containerRef.current.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
       // 4-degree static tilt on keyboard focus for accessibility compliance
       containerRef.current.style.setProperty('--tilt-x', '4deg');
       containerRef.current.style.setProperty('--tilt-y', '-4deg');
+      containerRef.current.style.transform = 'perspective(1200px) rotateX(4deg) rotateY(-4deg) translateY(-4px)';
       if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     }
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
-    if (containerRef.current) {
+    isFocusedRef.current = false;
+    if (containerRef.current && !isHoveredRef.current) {
+      containerRef.current.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
+      containerRef.current.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
     }
     // Cancel individual purge flow if user clicks away/tabs away
     if (isPurging) {
@@ -107,30 +134,20 @@ const ProcuredResourceCard = React.memo(({ item, index, onToggle, onDelete, node
     }
   };
 
-  const interactionActive = isHovered || isFocused;
-
   return (
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        if (containerRef.current) {
-          containerRef.current.style.setProperty('--tilt-x', '0deg');
-          containerRef.current.style.setProperty('--tilt-y', '0deg');
-        }
-      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
       tabIndex={0}
       role="listitem"
       aria-label={`${item.text}. Status: ${item.checked ? 'Secured' : 'Awaiting Procurement'}`}
       style={{
-        transform: interactionActive
-          ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
-          : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: isHovered ? 'none' : 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+        transform: 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d',
         animationDelay: `${index * 50}ms`
       }}
