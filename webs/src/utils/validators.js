@@ -745,6 +745,55 @@ const CANDIDATE_GRIDS = Object.freeze(CANDIDATE_GRID_KEYS.map(k => construct5x5G
 const FOURSQUARE_POS_MAPS = Object.freeze(CANDIDATE_GRIDS.map(g => g.posMap));
 const NIHILIST_KEYWORD_KEYS = Object.freeze(['voro', 'key', 'ai', 'pass', 'sec', 'secret', 'admin', 'code', 'prompt']);
 
+// Candidate 27th symbols used in Delastelle Trifid Cipher
+const TRIFID_SYMBOLS = Object.freeze(['#', '.', ' ', '+']);
+
+// Helper to construct a 27-symbol 3x3x3 grid for Trifid Cipher
+const construct27Grid = (key = '', sym = '#') => {
+  const cleanKey = key.toLowerCase().replace(/[^a-z]/g, '');
+  const seen = new Set();
+  const grid = [];
+  const posMap = {};
+
+  for (let i = 0; i < cleanKey.length; i++) {
+    const ch = cleanKey[i];
+    if (!seen.has(ch)) {
+      seen.add(ch);
+      grid.push(ch);
+    }
+  }
+
+  const alpha27 = 'abcdefghijklmnopqrstuvwxyz' + sym;
+  for (let i = 0; i < alpha27.length; i++) {
+    const ch = alpha27[i];
+    if (!seen.has(ch)) {
+      seen.add(ch);
+      grid.push(ch);
+    }
+  }
+
+  grid.forEach((ch, idx) => {
+    posMap[ch] = {
+      layer: Math.floor(idx / 9),
+      row: Math.floor((idx % 9) / 3),
+      col: idx % 3
+    };
+  });
+
+  return { grid, posMap, sym };
+};
+
+const TRIFID_CANDIDATE_GRIDS = Object.freeze((() => {
+  const grids = [];
+  const candidateKeys = ['', ...CIPHER_KEYWORDS];
+  for (const sym of TRIFID_SYMBOLS) {
+    for (const key of candidateKeys) {
+      grids.push(construct27Grid(key, sym));
+    }
+  }
+  return grids;
+})());
+
 
 // Helper to safely decode space/comma/byte-separated decimal, hex, or octal character codes into ASCII
 const safeDecodeDecimal = (str) => {
@@ -1723,10 +1772,71 @@ export const isPromptInjection = (query, isNested = false) => {
       if (autokeyDecoded) {
         return true;
       }
+
+      // Security: Handle Trifid Cipher (3D Delastelle fractionation across 27-symbol grids) and evaluate recursively
+      const trifidDecoded = safeDecodeTrifid(targetStr);
+      if (trifidDecoded) {
+        return true;
+      }
     }
   }
 
   return false;
+};
+
+// Helper to safely decode Trifid Cipher-encoded payloads across common candidate keys and 27th symbols
+const safeDecodeTrifid = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+
+  for (let idx = 0; idx < TRIFID_CANDIDATE_GRIDS.length; idx++) {
+    const { grid, posMap, sym } = TRIFID_CANDIDATE_GRIDS[idx];
+
+    let clean = '';
+    for (let i = 0; i < targetStr.length; i++) {
+      const ch = targetStr[i].toLowerCase();
+      if (posMap[ch]) {
+        clean += ch;
+      }
+    }
+
+    const N = clean.length;
+    if (N < 8) continue;
+
+    const flat = [];
+    let isValid = true;
+    for (let i = 0; i < N; i++) {
+      const pos = posMap[clean[i]];
+      if (!pos) {
+        isValid = false;
+        break;
+      }
+      flat.push(pos.layer, pos.row, pos.col);
+    }
+
+    if (!isValid || flat.length !== 3 * N) continue;
+
+    const L = flat.slice(0, N);
+    const R = flat.slice(N, 2 * N);
+    const C = flat.slice(2 * N, 3 * N);
+
+    let decoded = '';
+    for (let i = 0; i < N; i++) {
+      const gridIdx = L[i] * 9 + R[i] * 3 + C[i];
+      decoded += grid[gridIdx];
+    }
+
+    if (decoded.length >= 4) {
+      const cleanDecoded = decoded.replace(new RegExp(`[\\${sym}#.\\s+]`, 'g'), ' ');
+      const candidates = [decoded, cleanDecoded, decoded.replace(/#/g, ''), decoded.replace(/\./g, '')];
+      for (const cand of candidates) {
+        if (cand !== targetStr && isPromptInjection(cand, true)) {
+          return cand;
+        }
+      }
+    }
+  }
+
+  return null;
 };
 
 // Helper to safely decode Playfair Cipher-encoded payloads across common candidate keys
