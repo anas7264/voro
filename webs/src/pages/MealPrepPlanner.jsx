@@ -64,8 +64,8 @@ const PrepSessionCard = React.memo(({ session, index, onDelete, style }) => {
   const teleRefY = useRef(null);
   const rafRef = useRef(null);
   const purgeTimerRef = useRef(null);
+  const isFocusedRef = useRef(false);
 
-  const [isFocused, setIsFocused] = useState(false);
   const [isPurging, setIsPurging] = useState(false);
 
   useEffect(() => {
@@ -104,13 +104,17 @@ const PrepSessionCard = React.memo(({ session, index, onDelete, style }) => {
 
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
 
-    card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
-    if (teleRefX.current) teleRefX.current.innerText = '0.0';
-    if (teleRefY.current) teleRefY.current.innerText = '0.0';
+    if (isFocusedRef.current) {
+      card.style.transform = `perspective(1000px) rotateX(4deg) rotateY(-4deg) scale3d(1.02, 1.02, 1.02)`;
+    } else {
+      card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
+      if (teleRefX.current) teleRefX.current.innerText = '0.0';
+      if (teleRefY.current) teleRefY.current.innerText = '0.0';
+    }
   };
 
   const handleFocus = () => {
-    setIsFocused(true);
+    isFocusedRef.current = true;
     const card = cardRef.current;
     if (!card) return;
 
@@ -120,7 +124,7 @@ const PrepSessionCard = React.memo(({ session, index, onDelete, style }) => {
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
+    isFocusedRef.current = false;
     const card = cardRef.current;
     if (!card) return;
 

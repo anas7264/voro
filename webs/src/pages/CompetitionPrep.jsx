@@ -109,8 +109,8 @@ const ProtocolCard = memo(({ title, desc, icon: Icon, color, nodeId, index }) =>
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
   const [announcement, setAnnouncement] = useState('');
 
   const handleMouseMove = (e) => {
@@ -127,32 +127,57 @@ const ProtocolCard = memo(({ title, desc, icon: Icon, color, nodeId, index }) =>
     containerRef.current.style.setProperty('--mouse-y', `${y}px`);
     containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
     containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    containerRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
   };
 
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
+    if (containerRef.current) {
+      containerRef.current.style.transition = 'none';
+      containerRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
+    }
+  };
+
+  const handleMouseLeave = () => {
+    isHoveredRef.current = false;
+    if (containerRef.current) {
+      containerRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+      if (isFocusedRef.current) {
+        containerRef.current.style.transform = 'perspective(1200px) rotateX(4deg) rotateY(-4deg) translateY(-4px)';
+      } else {
+        containerRef.current.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+        containerRef.current.style.setProperty('--tilt-x', '0deg');
+        containerRef.current.style.setProperty('--tilt-y', '0deg');
+      }
+    }
+  };
+
   const handleFocus = () => {
-    setIsFocused(true);
+    isFocusedRef.current = true;
     setAnnouncement(`Protocol Card: ${title}. ${desc}. Currently focused.`);
     if (containerRef.current) {
+      containerRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
       containerRef.current.style.setProperty('--tilt-x', '4deg');
       containerRef.current.style.setProperty('--tilt-y', '-4deg');
+      containerRef.current.style.transform = 'perspective(1200px) rotateX(4deg) rotateY(-4deg) translateY(-4px)';
       if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     }
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
+    isFocusedRef.current = false;
     setAnnouncement('');
-    if (containerRef.current) {
+    if (containerRef.current && !isHoveredRef.current) {
+      containerRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
+      containerRef.current.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
     }
   };
-
-  const interactionActive = isHovered || isFocused;
 
   return (
     <>
@@ -164,18 +189,16 @@ const ProtocolCard = memo(({ title, desc, icon: Icon, color, nodeId, index }) =>
       <div
         ref={containerRef}
         onMouseMove={handleMouseMove}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         onFocus={handleFocus}
         onBlur={handleBlur}
         tabIndex="0"
         role="article"
         aria-label={`Protocol Card: ${title}. ${desc}`}
         style={{
-          transform: interactionActive
-            ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
-            : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-          transition: isHovered ? 'none' : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+          transform: 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+          transition: 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
           transformStyle: 'preserve-3d'
         }}
         className="relative bg-[#0A0C14] border border-white/5 rounded-[2.5rem] p-10 overflow-hidden group cursor-pointer transition-all duration-700 hover:border-voro-primary/30 hover:shadow-[0_40px_80px_rgba(0,0,0,0.8)] outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408]"
@@ -244,22 +267,40 @@ ProtocolCard.displayName = "ProtocolCard";
  * Glassmorphic interactive checkbox conforming to luxury tactile guidelines.
  */
 const ChronoChecklistButton = memo(({ item, isChecked, onToggle, index }) => {
-  const [isFocused, setIsFocused] = useState(false);
+  const btnRef = useRef(null);
+  const isFocusedRef = useRef(false);
+
+  const handleFocus = () => {
+    isFocusedRef.current = true;
+    if (btnRef.current) {
+      btnRef.current.style.transform = 'perspective(1200px) rotateX(2deg) rotateY(-2deg) translateY(-2px)';
+      btnRef.current.style.transition = 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
+    }
+  };
+
+  const handleBlur = () => {
+    isFocusedRef.current = false;
+    if (btnRef.current) {
+      btnRef.current.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      btnRef.current.style.transition = 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
+    }
+  };
 
   return (
     <button
+      ref={btnRef}
       onClick={() => onToggle(index)}
-      onFocus={() => setIsFocused(true)}
-      onBlur={() => setIsFocused(false)}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
       className={`w-full flex items-center justify-between group/item text-left p-6 rounded-2xl border transition-all duration-500 outline-none focus-visible:ring-2 focus-visible:ring-voro-primary/85 ${
         isChecked
           ? 'bg-voro-secondary/[0.01] border-voro-secondary/20'
           : 'bg-white/[0.01] border-white/5 hover:border-white/10'
       }`}
-      style={isFocused ? {
-        transform: 'perspective(1200px) rotateX(2deg) rotateY(-2deg) translateY(-2px)',
+      style={{
+        transform: 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
         transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
-      } : undefined}
+      }}
     >
       <div className="flex items-center gap-6">
         <div className={`
@@ -298,8 +339,8 @@ const ChronosNode = memo(({ daysUntilComp, targetDate, activePhase, onDeleteTrig
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
 
   const handleMouseMove = (e) => {
     if (!containerRef.current) return;
@@ -315,30 +356,55 @@ const ChronosNode = memo(({ daysUntilComp, targetDate, activePhase, onDeleteTrig
     containerRef.current.style.setProperty('--mouse-y', `${y}px`);
     containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
     containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    containerRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
   };
 
-  const handleFocus = () => {
-    setIsFocused(true);
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
     if (containerRef.current) {
+      containerRef.current.style.transition = 'none';
+      containerRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
+    }
+  };
+
+  const handleMouseLeave = () => {
+    isHoveredRef.current = false;
+    if (containerRef.current) {
+      containerRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+      if (isFocusedRef.current) {
+        containerRef.current.style.transform = 'perspective(1200px) rotateX(4deg) rotateY(-4deg) translateY(-4px)';
+      } else {
+        containerRef.current.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+        containerRef.current.style.setProperty('--tilt-x', '0deg');
+        containerRef.current.style.setProperty('--tilt-y', '0deg');
+      }
+    }
+  };
+
+  const handleFocus = () => {
+    isFocusedRef.current = true;
+    if (containerRef.current) {
+      containerRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
       containerRef.current.style.setProperty('--tilt-x', '4deg');
       containerRef.current.style.setProperty('--tilt-y', '-4deg');
+      containerRef.current.style.transform = 'perspective(1200px) rotateX(4deg) rotateY(-4deg) translateY(-4px)';
       if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     }
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
-    if (containerRef.current) {
+    isFocusedRef.current = false;
+    if (containerRef.current && !isHoveredRef.current) {
+      containerRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
+      containerRef.current.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
     }
   };
-
-  const interactionActive = isHovered || isFocused;
 
   const formattedTargetDate = useMemo(() => {
     if (!targetDate) return '';
@@ -353,18 +419,16 @@ const ChronosNode = memo(({ daysUntilComp, targetDate, activePhase, onDeleteTrig
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
       tabIndex="0"
       role="region"
       aria-label={`Chronos Countdown Control Board. T-Minus ${daysUntilComp} days until competition target on ${targetDate}`}
       style={{
-        transform: interactionActive
-          ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
-          : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: isHovered ? 'none' : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+        transform: 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
+        transition: 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
       }}
       className="relative bg-[#0A0C14] border border-white/5 rounded-[3rem] p-12 md:p-16 overflow-hidden shadow-2xl shadow-black/60 outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408] group"
