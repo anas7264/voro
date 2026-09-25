@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, memo, useId } from "react";
+import React, { useState, useRef, useMemo, memo, useId, useCallback } from "react";
 import { ChevronDown } from "lucide-react";
 
 /**
@@ -6,8 +6,8 @@ import { ChevronDown } from "lucide-react";
  * Re-engineered with Voro's Forge luxury design system architecture:
  * Features 60fps direct-DOM 3D volumetric hover tilt tracking, magnetic liquid border
  * illumination, holographic spatial coordinate telemetry, deterministic sub-pixel
- * attestation badging, W3C APG compliant keyboard focus states, and zero-allocation
- * performance standards.
+ * attestation badging, W3C APG compliant keyboard focus states, multi-open support,
+ * state-aware micro-UX tooltips, and zero-allocation performance standards.
  *
  * DESIGN PHILOSOPHY:
  * 1. Authority: Box-model architecture suggests a precision data expansion matrix.
@@ -18,9 +18,53 @@ import { ChevronDown } from "lucide-react";
 
 const EMPTY_ITEMS = Object.freeze([]);
 
-export const Accordion = memo(({ items = EMPTY_ITEMS, className = "" }) => {
-  const [openIndex, setOpenIndex] = useState(null);
+export const Accordion = memo(({
+  items = EMPTY_ITEMS,
+  allowMultiple = false,
+  defaultOpenIndex = null,
+  className = ""
+}) => {
+  // Initialize state based on allowMultiple and defaultOpenIndex
+  const [openState, setOpenState] = useState(() => {
+    if (allowMultiple) {
+      if (Array.isArray(defaultOpenIndex)) {
+        return new Set(defaultOpenIndex);
+      } else if (typeof defaultOpenIndex === "number") {
+        return new Set([defaultOpenIndex]);
+      }
+      return new Set();
+    } else {
+      if (Array.isArray(defaultOpenIndex)) {
+        return defaultOpenIndex[0] !== undefined ? defaultOpenIndex[0] : null;
+      }
+      return typeof defaultOpenIndex === "number" ? defaultOpenIndex : null;
+    }
+  });
+
   const accordionRef = useRef(null);
+
+  const handleToggle = useCallback((index) => {
+    setOpenState((prev) => {
+      if (allowMultiple) {
+        const next = new Set(prev);
+        if (next.has(index)) {
+          next.delete(index);
+        } else {
+          next.add(index);
+        }
+        return next;
+      } else {
+        return prev === index ? null : index;
+      }
+    });
+  }, [allowMultiple]);
+
+  const isItemOpen = useCallback((index) => {
+    if (allowMultiple) {
+      return openState instanceof Set && openState.has(index);
+    }
+    return openState === index;
+  }, [allowMultiple, openState]);
 
   const handleKeyDown = (e) => {
     const buttons = Array.from(accordionRef.current?.querySelectorAll('button') || []);
@@ -58,10 +102,10 @@ export const Accordion = memo(({ items = EMPTY_ITEMS, className = "" }) => {
     >
       {items.map((item, index) => (
         <AccordionItem
-          key={index}
+          key={item.id || index}
           item={item}
-          isOpen={openIndex === index}
-          onToggle={() => setOpenIndex(openIndex === index ? null : index)}
+          isOpen={isItemOpen(index)}
+          onToggle={() => handleToggle(index)}
           index={index}
         />
       ))}
@@ -232,6 +276,7 @@ const AccordionItem = memo(({ item, isOpen, onToggle, index }) => {
         onClick={onToggle}
         onFocus={handleFocus}
         onBlur={handleBlur}
+        title={isOpen ? `Collapse ${item.title}` : `Expand ${item.title}`}
         className="relative z-10 w-full px-10 py-8 flex items-center justify-between outline-none focus-visible:ring-2 focus-visible:ring-voro-primary/50 focus-visible:ring-offset-4 focus-visible:ring-offset-[#0A0C14] rounded-[2.5rem]"
         aria-expanded={isOpen}
         aria-controls={regionId}
@@ -241,6 +286,14 @@ const AccordionItem = memo(({ item, isOpen, onToggle, index }) => {
              <span className="text-[0.55rem] font-mono font-black text-voro-primary uppercase tracking-[0.4em]">
                {nodeId}
              </span>
+             {item.tag && (
+               <>
+                 <div className="h-px w-3 bg-voro-primary/30" />
+                 <span className="text-[0.55rem] font-mono font-bold text-gray-400 uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10">
+                   {item.tag}
+                 </span>
+               </>
+             )}
              <div className="h-px w-4 bg-voro-primary/30" />
           </div>
           <span className={`text-2xl md:text-3xl font-serif italic font-medium tracking-tight transition-colors duration-500 ${isOpen ? "text-white" : "text-gray-400 group-hover/accordion-item:text-white"}`}>
