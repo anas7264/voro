@@ -657,6 +657,95 @@ const MORSE_MAP = {
 const MORSE_MATCH_RE = /(?:[.\-•–—_]{1,7}(?:[\s\/]+|$)){3,}/g;
 const MORSE_FORMAT_RE = /^[.\-•–—_\s\/]{8,}$/;
 
+
+// Pre-computed common short keywords for Vigenère, Beaufort, Playfair, and Bifid ciphers
+const CIPHER_KEYWORDS = Object.freeze([
+  'ai', 'key', 'voro', 'pass', 'code', 'safe', 'sec', 'secret', 'admin', 'prompt',
+  'system', 'hack', 'bypass', 'test', 'demo', 'lock', 'guard', 'shield', 'auth',
+  'user', 'bot', 'gpt', 'llm', 'zero', 'vigenere', 'beaufort', 'cipher', 'playfair',
+  'bifid', 'monarchy', 'keyword'
+]);
+
+// Helper to construct a 5x5 alphabet grid for Playfair, Bifid, and Polybius ciphers
+const construct5x5Grid = (key = '') => {
+  const cleanKey = key.toLowerCase().replace(/j/g, 'i').replace(/[^a-z]/g, '');
+  const seen = new Set();
+  const grid = [];
+  const posMap = {};
+
+  for (let i = 0; i < cleanKey.length; i++) {
+    const ch = cleanKey[i];
+    if (!seen.has(ch)) {
+      seen.add(ch);
+      grid.push(ch);
+    }
+  }
+
+  const alphabet = 'abcdefghiklmnopqrstuvwxyz'; // 'j' omitted/merged into 'i'
+  for (let i = 0; i < alphabet.length; i++) {
+    const ch = alphabet[i];
+    if (!seen.has(ch)) {
+      seen.add(ch);
+      grid.push(ch);
+    }
+  }
+
+  const matrix = [];
+  for (let r = 0; r < 5; r++) {
+    matrix[r] = [];
+    for (let c = 0; c < 5; c++) {
+      const char = grid[r * 5 + c];
+      matrix[r][c] = char;
+      posMap[char] = { row: r, col: c };
+    }
+  }
+
+  return { grid, matrix, posMap };
+};
+
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted and frozen static candidate keys and 5x5 grid maps.
+ * Precomputed once on module load to eliminate thousands of string allocations and grid builds
+ * during high-frequency validation calls.
+ */
+const VIGENERE_BEAUFORT_KEYS = Object.freeze((() => {
+  const keys = [];
+  for (let c1 = 0; c1 < 26; c1++) {
+    for (let c2 = 0; c2 < 26; c2++) {
+      keys.push(String.fromCharCode(97 + c1, 97 + c2));
+    }
+  }
+  keys.push(...CIPHER_KEYWORDS);
+  return keys;
+})());
+
+const AUTOKEY_KEYS = Object.freeze((() => {
+  const keys = [];
+  for (let c1 = 0; c1 < 26; c1++) {
+    keys.push(String.fromCharCode(97 + c1));
+    for (let c2 = 0; c2 < 26; c2++) {
+      keys.push(String.fromCharCode(97 + c1, 97 + c2));
+    }
+  }
+  keys.push(...CIPHER_KEYWORDS);
+  return keys;
+})());
+
+const GRONSFELD_KEYS = Object.freeze((() => {
+  const keys = [];
+  for (let n = 0; n < 10; n++) keys.push(String(n));
+  for (let n = 0; n < 100; n++) keys.push(String(n).padStart(2, '0'));
+  for (let n = 0; n < 1000; n++) keys.push(String(n).padStart(3, '0'));
+  keys.push('1234', '12345', '123456', '314159', '2024', '2025', '9876', '987654');
+  return keys;
+})());
+
+const CANDIDATE_GRID_KEYS = Object.freeze(['', ...CIPHER_KEYWORDS]);
+const CANDIDATE_GRIDS = Object.freeze(CANDIDATE_GRID_KEYS.map(k => construct5x5Grid(k)));
+const FOURSQUARE_POS_MAPS = Object.freeze(CANDIDATE_GRIDS.map(g => g.posMap));
+const NIHILIST_KEYWORD_KEYS = Object.freeze(['voro', 'key', 'ai', 'pass', 'sec', 'secret', 'admin', 'code', 'prompt']);
+
+
 // Helper to safely decode space/comma/byte-separated decimal, hex, or octal character codes into ASCII
 const safeDecodeDecimal = (str) => {
   try {
@@ -1109,10 +1198,8 @@ const safeDecodeXOR = (targetStr) => {
           }
           decoded += String.fromCharCode(code);
         }
-        if (isValidASCII && decoded.length >= 8) {
-          if (isPromptInjection(decoded, true)) {
+        if (isValidASCII && decoded.length >= 8 && isPromptInjection(decoded, true)) {
             return decoded;
-          }
         }
       }
 
@@ -1324,13 +1411,10 @@ const safeDecodeNihilist = (targetStr) => {
 
   if (numbers.length < 4) return null;
 
-  const candidateGridKeys = ['', ...CIPHER_KEYWORDS];
-  const candidateKeywordKeys = ['voro', 'key', 'ai', 'pass', 'sec', 'secret', 'admin', 'code', 'prompt'];
+  for (let idx = 0; idx < CANDIDATE_GRIDS.length; idx++) {
+    const { matrix, posMap } = CANDIDATE_GRIDS[idx];
 
-  for (const gridKey of candidateGridKeys) {
-    const { matrix, posMap } = construct5x5Grid(gridKey);
-
-    for (const keyWord of candidateKeywordKeys) {
+    for (const keyWord of NIHILIST_KEYWORD_KEYS) {
       const keyClean = keyWord.toLowerCase().replace(/j/g, 'i').replace(/[^a-z]/g, '');
       if (!keyClean) continue;
 
@@ -1378,8 +1462,11 @@ const safeDecodeNihilist = (targetStr) => {
 export const isPromptInjection = (query, isNested = false) => {
   if (!query || typeof query !== 'string') return false;
 
-  // Security: Decode escape sequences, Enclosed Alphanumerics, Latin Small Caps, Latin Ligatures, Superscript/Subscripts, Regional Indicator Symbols, Unicode Tag characters (ASCII Smuggling), Braille patterns, URL percent-encoding, HTML entities, and Quoted-Printable first
-  const decodedQuery = decodeQuotedPrintable(decodeBraillePatterns(decodeEnclosedAlphanumerics(decodePercentEncoding(decodeHTMLEntities(decodeUnicodeTagCharacters(decodeRegionalIndicatorSymbols(decodeLatinSmallCaps(decodeLatinLigatures(decodeSuperAndSubscripts(decodeEnclosedAlphanumerics(decodeEscapeSequences(query))))))))))));
+  // Security: Fast-path bypass for plain ASCII strings without encoding markers (&, %, \, or non-ASCII)
+  const hasEncodingMarkers = /[&%\\]|[^-]/.test(query);
+  const decodedQuery = hasEncodingMarkers
+    ? decodeQuotedPrintable(decodeBraillePatterns(decodeEnclosedAlphanumerics(decodePercentEncoding(decodeHTMLEntities(decodeUnicodeTagCharacters(decodeRegionalIndicatorSymbols(decodeLatinSmallCaps(decodeLatinLigatures(decodeSuperAndSubscripts(decodeEnclosedAlphanumerics(decodeEscapeSequences(query))))))))))))
+    : query;
 
   let normalizedQuery = decodeLeetspeak(decodedQuery).normalize('NFKD').toLowerCase();
   // Strip combining diacritical marks across all standard Unicode diacritic blocks (including extended, supplement, symbols, and half-marks)
@@ -1642,51 +1729,6 @@ export const isPromptInjection = (query, isNested = false) => {
   return false;
 };
 
-// Pre-computed common short keywords for Vigenère, Beaufort, Playfair, and Bifid ciphers
-const CIPHER_KEYWORDS = [
-  'ai', 'key', 'voro', 'pass', 'code', 'safe', 'sec', 'secret', 'admin', 'prompt',
-  'system', 'hack', 'bypass', 'test', 'demo', 'lock', 'guard', 'shield', 'auth',
-  'user', 'bot', 'gpt', 'llm', 'zero', 'vigenere', 'beaufort', 'cipher', 'playfair',
-  'bifid', 'monarchy', 'keyword'
-];
-
-// Helper to construct a 5x5 alphabet grid for Playfair, Bifid, and Polybius ciphers
-const construct5x5Grid = (key = '') => {
-  const cleanKey = key.toLowerCase().replace(/j/g, 'i').replace(/[^a-z]/g, '');
-  const seen = new Set();
-  const grid = [];
-  const posMap = {};
-
-  for (let i = 0; i < cleanKey.length; i++) {
-    const ch = cleanKey[i];
-    if (!seen.has(ch)) {
-      seen.add(ch);
-      grid.push(ch);
-    }
-  }
-
-  const alphabet = 'abcdefghiklmnopqrstuvwxyz'; // 'j' omitted/merged into 'i'
-  for (let i = 0; i < alphabet.length; i++) {
-    const ch = alphabet[i];
-    if (!seen.has(ch)) {
-      seen.add(ch);
-      grid.push(ch);
-    }
-  }
-
-  const matrix = [];
-  for (let r = 0; r < 5; r++) {
-    matrix[r] = [];
-    for (let c = 0; c < 5; c++) {
-      const char = grid[r * 5 + c];
-      matrix[r][c] = char;
-      posMap[char] = { row: r, col: c };
-    }
-  }
-
-  return { grid, matrix, posMap };
-};
-
 // Helper to safely decode Playfair Cipher-encoded payloads across common candidate keys
 const safeDecodePlayfair = (targetStr) => {
   if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
@@ -1694,10 +1736,8 @@ const safeDecodePlayfair = (targetStr) => {
   const lettersOnly = targetStr.toLowerCase().replace(/j/g, 'i').replace(/[^a-z]/g, '');
   if (lettersOnly.length < 8 || lettersOnly.length % 2 !== 0) return null;
 
-  const candidateKeys = ['', ...CIPHER_KEYWORDS];
-
-  for (const key of candidateKeys) {
-    const { matrix, posMap } = construct5x5Grid(key);
+  for (let idx = 0; idx < CANDIDATE_GRIDS.length; idx++) {
+    const { matrix, posMap } = CANDIDATE_GRIDS[idx];
     let decoded = '';
     let isValid = true;
 
@@ -1749,13 +1789,10 @@ const safeDecodeTwoSquare = (targetStr) => {
   const lettersOnly = targetStr.toLowerCase().replace(/j/g, 'i').replace(/[^a-z]/g, '');
   if (lettersOnly.length < 8 || lettersOnly.length % 2 !== 0) return null;
 
-  const candidateKeys = ['', ...CIPHER_KEYWORDS];
-  const candidateGrids = candidateKeys.map(k => construct5x5Grid(k));
-
-  for (let idx1 = 0; idx1 < candidateGrids.length; idx1++) {
-    const q1 = candidateGrids[idx1]; // Grid 1
-    for (let idx2 = 0; idx2 < candidateGrids.length; idx2++) {
-      const q2 = candidateGrids[idx2]; // Grid 2
+  for (let idx1 = 0; idx1 < CANDIDATE_GRIDS.length; idx1++) {
+    const q1 = CANDIDATE_GRIDS[idx1]; // Grid 1
+    for (let idx2 = 0; idx2 < CANDIDATE_GRIDS.length; idx2++) {
+      const q2 = CANDIDATE_GRIDS[idx2]; // Grid 2
 
       let decoded = '';
       let isValid = true;
@@ -1802,17 +1839,13 @@ const safeDecodeFourSquare = (targetStr) => {
   const lettersOnly = targetStr.toLowerCase().replace(/j/g, 'i').replace(/[^a-z]/g, '');
   if (lettersOnly.length < 8 || lettersOnly.length % 2 !== 0) return null;
 
-  const candidateKeys = ['', ...CIPHER_KEYWORDS];
-  const q1Mat = construct5x5Grid('').matrix; // Top-Left (Plaintext Grid 1)
-  const q4Mat = construct5x5Grid('').matrix; // Bottom-Right (Plaintext Grid 2)
+  const q1Mat = CANDIDATE_GRIDS[0].matrix; // Top-Left (Plaintext Grid 1)
+  const q4Mat = CANDIDATE_GRIDS[0].matrix; // Bottom-Right (Plaintext Grid 2)
 
-  // Precompute position maps for all candidate keys to eliminate O(N^2) grid constructions
-  const candidatePosMaps = candidateKeys.map(k => construct5x5Grid(k).posMap);
-
-  for (let idx1 = 0; idx1 < candidatePosMaps.length; idx1++) {
-    const q2Pos = candidatePosMaps[idx1]; // Top-Right (Ciphertext Grid 1)
-    for (let idx2 = 0; idx2 < candidatePosMaps.length; idx2++) {
-      const q3Pos = candidatePosMaps[idx2]; // Bottom-Left (Ciphertext Grid 2)
+  for (let idx1 = 0; idx1 < FOURSQUARE_POS_MAPS.length; idx1++) {
+    const q2Pos = FOURSQUARE_POS_MAPS[idx1]; // Top-Right (Ciphertext Grid 1)
+    for (let idx2 = 0; idx2 < FOURSQUARE_POS_MAPS.length; idx2++) {
+      const q3Pos = FOURSQUARE_POS_MAPS[idx2]; // Bottom-Left (Ciphertext Grid 2)
 
       let decoded = '';
       let isValid = true;
@@ -1865,10 +1898,8 @@ const safeDecodeBifid = (targetStr) => {
   const N = lettersOnly.length;
   if (N < 8) return null;
 
-  const candidateKeys = ['', ...CIPHER_KEYWORDS];
-
-  for (const key of candidateKeys) {
-    const { matrix, posMap } = construct5x5Grid(key);
+  for (let idx = 0; idx < CANDIDATE_GRIDS.length; idx++) {
+    const { matrix, posMap } = CANDIDATE_GRIDS[idx];
 
     // Bifid decryption over block size N (full string length)
     const T = [];
@@ -1912,15 +1943,7 @@ const safeDecodeBifid = (targetStr) => {
 const safeDecodeVigenere = (targetStr) => {
   if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
 
-  const candidateKeys = [];
-  for (let c1 = 0; c1 < 26; c1++) {
-    for (let c2 = 0; c2 < 26; c2++) {
-      candidateKeys.push(String.fromCharCode(97 + c1, 97 + c2));
-    }
-  }
-  candidateKeys.push(...CIPHER_KEYWORDS);
-
-  for (const key of candidateKeys) {
+  for (const key of VIGENERE_BEAUFORT_KEYS) {
     const L = key.length;
     let decoded = '';
     let keyIdx = 0;
@@ -1956,16 +1979,7 @@ const safeDecodeVigenere = (targetStr) => {
 const safeDecodeAutokey = (targetStr) => {
   if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
 
-  const candidateKeys = [];
-  for (let c1 = 0; c1 < 26; c1++) {
-    candidateKeys.push(String.fromCharCode(97 + c1));
-    for (let c2 = 0; c2 < 26; c2++) {
-      candidateKeys.push(String.fromCharCode(97 + c1, 97 + c2));
-    }
-  }
-  candidateKeys.push(...CIPHER_KEYWORDS);
-
-  for (const initKey of candidateKeys) {
+  for (const initKey of AUTOKEY_KEYS) {
     let decoded = '';
     const plainChars = [];
 
@@ -2005,15 +2019,7 @@ const safeDecodeAutokey = (targetStr) => {
 const safeDecodeBeaufort = (targetStr) => {
   if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
 
-  const candidateKeys = [];
-  for (let c1 = 0; c1 < 26; c1++) {
-    for (let c2 = 0; c2 < 26; c2++) {
-      candidateKeys.push(String.fromCharCode(97 + c1, 97 + c2));
-    }
-  }
-  candidateKeys.push(...CIPHER_KEYWORDS);
-
-  for (const key of candidateKeys) {
+  for (const key of VIGENERE_BEAUFORT_KEYS) {
     const L = key.length;
     let decoded = '';
     let keyIdx = 0;
@@ -2049,13 +2055,7 @@ const safeDecodeBeaufort = (targetStr) => {
 const safeDecodeGronsfeld = (targetStr) => {
   if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
 
-  const candidateKeys = [];
-  for (let n = 0; n < 10; n++) candidateKeys.push(String(n));
-  for (let n = 0; n < 100; n++) candidateKeys.push(String(n).padStart(2, '0'));
-  for (let n = 0; n < 1000; n++) candidateKeys.push(String(n).padStart(3, '0'));
-  candidateKeys.push('1234', '12345', '123456', '314159', '2024', '2025', '9876', '987654');
-
-  for (const key of candidateKeys) {
+  for (const key of GRONSFELD_KEYS) {
     const L = key.length;
     let decoded = '';
     let keyIdx = 0;
