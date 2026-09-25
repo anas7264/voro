@@ -751,11 +751,15 @@ export const sanitizeCSVField = (field) => {
  */
 export function generateSecurityNonce() {
   const gCrypto = _getCrypto();
-  if (!gCrypto || !gCrypto.getRandomValues) {
+  if (!gCrypto || (!_CryptoGetRandomValues && !gCrypto.getRandomValues)) {
     return Math.random().toString(36).substring(2, 15);
   }
   const array = new Uint8Array(16);
-  _call.call(gCrypto.getRandomValues, gCrypto, array);
+  if (_CryptoGetRandomValues) {
+    _call.call(_CryptoGetRandomValues, gCrypto, array);
+  } else {
+    _call.call(gCrypto.getRandomValues, gCrypto, array);
+  }
   return _call.call(_join, _call.call(_map, _ArrayFrom(array), byte => _call.call(_padStart, _call.call(_NToString, byte, 16), 2, '0')), '');
 }
 
@@ -2648,7 +2652,9 @@ class PolymorphicKeyEnclave {
   _generateMask(len) {
     const mask = new _Uint8Array(len);
     const gCrypto = _getCrypto();
-    if (gCrypto && gCrypto.getRandomValues) {
+    if (_CryptoGetRandomValues) {
+      _call.call(_CryptoGetRandomValues, gCrypto, mask);
+    } else if (gCrypto && gCrypto.getRandomValues) {
       _call.call(gCrypto.getRandomValues, gCrypto, mask);
     } else {
       for (let i = 0; i < len; i++) mask[i] = Math.floor(Math.random() * 256);
