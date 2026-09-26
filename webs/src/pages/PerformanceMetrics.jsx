@@ -28,29 +28,40 @@ const KineticCapabilityNode = memo(({ title, subtitle, icon: Icon, badge, childr
   const tiltYRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
+  const rafIdRef = useRef(null);
 
   const handleMouseMove = useCallback((e) => {
     if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
 
-    // Volumetric tilt calculation (max 12 degrees)
-    const tiltY = ((x / rect.width) - 0.5) * 24;
-    const tiltX = (0.5 - (y / rect.height)) * 24;
+    if (rafIdRef.current !== null) return;
 
-    cardRef.current.style.setProperty('--mouse-x', `${x}px`);
-    cardRef.current.style.setProperty('--mouse-y', `${y}px`);
-    cardRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    cardRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    rafIdRef.current = requestAnimationFrame(() => {
+      rafIdRef.current = null;
+      if (!cardRef.current) return;
 
-    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
-    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+      const rect = cardRef.current.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
 
-    if (isHoveredRef.current || isFocusedRef.current) {
-      cardRef.current.style.transform = 'perspective(1600px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-6px)';
-      cardRef.current.style.transition = 'none';
-    }
+      // Volumetric tilt calculation (max 12 degrees)
+      const tiltY = ((x / rect.width) - 0.5) * 24;
+      const tiltX = (0.5 - (y / rect.height)) * 24;
+
+      cardRef.current.style.setProperty('--mouse-x', `${x}px`);
+      cardRef.current.style.setProperty('--mouse-y', `${y}px`);
+      cardRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+      cardRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+
+      if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+      if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+
+      if (isHoveredRef.current || isFocusedRef.current) {
+        cardRef.current.style.transform = 'perspective(1600px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-6px)';
+        cardRef.current.style.transition = 'none';
+      }
+    });
   }, []);
 
   const handleMouseEnter = useCallback(() => {
@@ -63,6 +74,10 @@ const KineticCapabilityNode = memo(({ title, subtitle, icon: Icon, badge, childr
 
   const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
     if (cardRef.current) {
       cardRef.current.style.setProperty('--tilt-x', '0deg');
       cardRef.current.style.setProperty('--tilt-y', '0deg');
@@ -187,28 +202,39 @@ const KineticInteractiveCard = memo(({ children, nodeId = 'NODE_CARD' }) => {
   const tiltYRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
+  const rafIdRef = useRef(null);
 
   const handleMouseMove = useCallback((e) => {
     if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
 
-    const tiltY = ((x / rect.width) - 0.5) * 20;
-    const tiltX = (0.5 - (y / rect.height)) * 20;
+    if (rafIdRef.current !== null) return;
 
-    cardRef.current.style.setProperty('--mouse-x', `${x}px`);
-    cardRef.current.style.setProperty('--mouse-y', `${y}px`);
-    cardRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    cardRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    rafIdRef.current = requestAnimationFrame(() => {
+      rafIdRef.current = null;
+      if (!cardRef.current) return;
 
-    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
-    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+      const rect = cardRef.current.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
 
-    if (isHoveredRef.current || isFocusedRef.current) {
-      cardRef.current.style.transform = 'perspective(1600px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-6px)';
-      cardRef.current.style.transition = 'none';
-    }
+      const tiltY = ((x / rect.width) - 0.5) * 20;
+      const tiltX = (0.5 - (y / rect.height)) * 20;
+
+      cardRef.current.style.setProperty('--mouse-x', `${x}px`);
+      cardRef.current.style.setProperty('--mouse-y', `${y}px`);
+      cardRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+      cardRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+
+      if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+      if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+
+      if (isHoveredRef.current || isFocusedRef.current) {
+        cardRef.current.style.transform = 'perspective(1600px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-6px)';
+        cardRef.current.style.transition = 'none';
+      }
+    });
   }, []);
 
   const handleMouseEnter = useCallback(() => {
@@ -221,6 +247,10 @@ const KineticInteractiveCard = memo(({ children, nodeId = 'NODE_CARD' }) => {
 
   const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
     if (cardRef.current) {
       cardRef.current.style.setProperty('--tilt-x', '0deg');
       cardRef.current.style.setProperty('--tilt-y', '0deg');
