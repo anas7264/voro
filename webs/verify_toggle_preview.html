@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VORO — Toggle Component Verification</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'voro-primary': '#7C3AED',
+            'voro-secondary': '#10B981',
+            'voro-accent': '#F59E0B',
+            'voro-danger': '#EF4444',
+            'voro-info': '#3B82F6',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #020408;
+      color: #F0F4FF;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-12 bg-[#020408] text-[#F0F4FF] relative overflow-hidden">
+  <!-- Background Glow -->
+  <div class="fixed inset-0 pointer-events-none">
+    <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#7C3AED]/10 rounded-full blur-[150px]"></div>
+    <div class="absolute bottom-[10%] right-[-5%] w-[40%] h-[40%] bg-[#10B981]/10 rounded-full blur-[130px]"></div>
+  </div>
+
+  <div class="relative z-10 max-w-4xl w-full space-y-8 bg-[#0A0C14] border border-white/10 rounded-[2.5rem] p-12 shadow-2xl">
+    <div class="space-y-4">
+      <div class="flex items-center gap-3 text-[#7C3AED]">
+        <div class="w-2.5 h-2.5 rounded-full bg-[#7C3AED] shadow-[0_0_12px_#7C3AED] animate-pulse"></div>
+        <span class="font-mono text-xs font-black uppercase tracking-[0.4em] text-gray-400">Forge Component Showcase // 0xTGL_SPECIMEN</span>
+      </div>
+      <h1 class="text-4xl font-serif italic font-medium text-white tracking-tight">Luxury Neural Toggle Matrix</h1>
+      <p class="text-gray-400 text-sm font-mono uppercase tracking-widest">Re-engineered with state-aware title tooltips, helper text fallback, dynamic liquid border illumination, and 60fps Direct-DOM 3D tilt tracking.</p>
+    </div>
+
+    <!-- Toggle Array Showcase -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Enabled Toggle -->
+      <div class="group relative p-5 rounded-3xl bg-[#0A0C14] border border-white/5 hover:border-white/15 transition-all" title="Disable Meal Reminders">
+        <div class="flex items-center justify-between gap-6">
+          <div class="flex flex-col">
+            <span class="text-sm font-serif italic font-medium text-white">Meal Reminders</span>
+            <span class="text-[0.65rem] font-mono text-gray-500 tracking-wider mt-0.5">Receive automated timing alerts for macro windows</span>
+            <div class="flex items-center gap-2 mt-1.5 text-[0.45rem] font-mono font-bold text-white/20 tracking-[0.25em] uppercase">
+              <span class="w-1 h-1 rounded-full bg-[#7C3AED]"></span>
+              <span>0xTGL_8F21 // STATE_ACTIVE</span>
+            </div>
+          </div>
+          <button type="button" role="switch" aria-checked="true" title="Disable Meal Reminders" class="relative w-14 h-8 rounded-full bg-[#7C3AED]/20 border border-[#7C3AED]/40 shadow-[0_0_25px_rgba(124,58,237,0.3)]">
+            <div class="absolute top-1/2 -translate-y-1/2 w-6 h-6 rounded-full translate-x-[28px] bg-white shadow-lg flex items-center justify-center">
+              <div class="w-1.5 h-1.5 rounded-full bg-[#7C3AED]"></div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Disabled Toggle -->
+      <div class="group relative p-5 rounded-3xl bg-[#0A0C14] border border-white/5 opacity-50 cursor-not-allowed" title="This option is disabled">
+        <div class="flex items-center justify-between gap-6">
+          <div class="flex flex-col">
+            <span class="text-sm font-serif italic font-medium text-gray-600 cursor-not-allowed">Biometric Lockdown</span>
+            <span class="text-[0.65rem] font-mono text-gray-500 tracking-wider mt-0.5">Enforce hardware key authentication for biometric exports</span>
+            <div class="flex items-center gap-2 mt-1.5 text-[0.45rem] font-mono font-bold text-white/20 tracking-[0.25em] uppercase">
+              <span class="w-1 h-1 rounded-full bg-gray-700"></span>
+              <span>0xTGL_10C9 // STATE_IDLE</span>
+            </div>
+          </div>
+          <button type="button" role="switch" aria-checked="false" disabled title="This option is disabled" class="relative w-14 h-8 rounded-full bg-[#05070D] border border-white/10 opacity-40 cursor-not-allowed">
+            <div class="absolute top-1/2 -translate-y-1/2 w-6 h-6 rounded-full translate-x-[4px] bg-gray-700 flex items-center justify-center">
+              <div class="w-1.5 h-1.5 rounded-full bg-black/50"></div>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

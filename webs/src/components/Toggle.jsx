@@ -78,6 +78,8 @@ export const Toggle = memo(({
   onChange,
   label,
   description,
+  helperText,
+  title,
   error = false,
   size = "md",
   color = "primary",
@@ -94,6 +96,11 @@ export const Toggle = memo(({
   const labelId = `${toggleId}-label`;
   const errorId = `${toggleId}-error`;
   const descId = `${toggleId}-desc`;
+
+  const resolvedDescription = description || helperText;
+  const computedTitle = disabled
+    ? (title || "This option is disabled")
+    : (title || (enabled ? `Disable ${label || "option"}` : `Enable ${label || "option"}`));
 
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
@@ -180,7 +187,7 @@ export const Toggle = memo(({
   // Build ARIA describedby string
   const calculatedDescribedBy = [
     ariaDescribedby,
-    description ? descId : undefined,
+    resolvedDescription ? descId : undefined,
     error && typeof error === "string" ? errorId : undefined,
   ].filter(Boolean).join(" ") || undefined;
 
@@ -197,6 +204,7 @@ export const Toggle = memo(({
   return (
     <div
       ref={containerRef}
+      title={computedTitle}
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -270,12 +278,12 @@ export const Toggle = memo(({
             </span>
           )}
 
-          {description && (
+          {resolvedDescription && (
             <span
               id={descId}
               className="text-[0.65rem] font-mono font-medium text-gray-500 tracking-wider mt-0.5"
             >
-              {description}
+              {resolvedDescription}
             </span>
           )}
 
@@ -294,6 +302,7 @@ export const Toggle = memo(({
           id={toggleId}
           type="button"
           role="switch"
+          title={computedTitle}
           aria-checked={enabled}
           aria-disabled={disabled}
           aria-invalid={!!error}
