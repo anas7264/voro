@@ -1,4 +1,4 @@
-import React, { memo, useId } from "react";
+import React, { memo, useId, useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from "recharts";
 
 /**
@@ -71,9 +71,10 @@ export const LineChartComponent = memo(({
   ...props
 }) => {
   const filterId = useId().replace(/:/g, '');
-  const series = dataKeys
-    ? dataKeys
-    : [{ key: dataKey, name: name || dataKey, color: stroke || color }];
+  const series = useMemo(() => {
+    if (dataKeys) return dataKeys;
+    return [{ key: dataKey, name: name || dataKey, color: stroke || color }];
+  }, [dataKeys, dataKey, name, stroke, color]);
 
   return (
     <ResponsiveContainer width="100%" height={height}>

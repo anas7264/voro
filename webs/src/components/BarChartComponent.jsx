@@ -1,4 +1,4 @@
-import React, { memo, useId } from "react";
+import React, { memo, useId, useMemo } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from "recharts";
 
 /**
@@ -74,9 +74,10 @@ export const BarChartComponent = memo(({
   ...props
 }) => {
   const filterId = useId().replace(/:/g, '');
-  const series = dataKeys
-    ? dataKeys
-    : [{ key: dataKey, name: name || dataKey, color: fill || color }];
+  const series = useMemo(() => {
+    if (dataKeys) return dataKeys;
+    return [{ key: dataKey, name: name || dataKey, color: fill || color }];
+  }, [dataKeys, dataKey, name, fill, color]);
 
   return (
     <ResponsiveContainer width="100%" height={height}>

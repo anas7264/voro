@@ -1,4 +1,4 @@
-import React, { memo, useId } from "react";
+import React, { memo, useId, useMemo } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 /**
@@ -70,9 +70,10 @@ export const AreaChartComponent = memo(({
   ...props
 }) => {
   const filterId = useId().replace(/:/g, '');
-  const series = dataKeys
-    ? dataKeys
-    : [{ key: dataKey, name: name || dataKey, color: color || fill }];
+  const series = useMemo(() => {
+    if (dataKeys) return dataKeys;
+    return [{ key: dataKey, name: name || dataKey, color: color || fill }];
+  }, [dataKeys, dataKey, name, color, fill]);
 
   return (
     <ResponsiveContainer width="100%" height={height}>

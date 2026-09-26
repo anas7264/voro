@@ -97,32 +97,37 @@ export const analyzeTrainingVolume = (workouts) => {
   // workouts: array of { date, exercise, sets, reps, weight }
 
   let totalVolume = 0;
-  let volumeByExercise = {};
-  let volumeByDay = {};
+  const volumeByExercise = Object.create(null);
+  const volumeByDay = Object.create(null);
 
-  workouts.forEach(workout => {
+  const len = workouts ? workouts.length : 0;
+  for (let i = 0; i < len; i++) {
+    const workout = workouts[i];
     const volume = calculateTrainingVolume(workout.sets, workout.reps, workout.weight);
     totalVolume += volume;
 
     // Group by exercise
-    if (!volumeByExercise[workout.exercise]) {
-      volumeByExercise[workout.exercise] = 0;
-    }
-    volumeByExercise[workout.exercise] += volume;
+    const exercise = workout.exercise;
+    volumeByExercise[exercise] = (volumeByExercise[exercise] || 0) + volume;
 
     // Group by day
-    // ⚡ PERFORMANCE OPTIMIZATION: Avoid heavy dynamic Date parsing, timezone calculations,
-    // and .toISOString() serialization in hot loops when workout.date is already in standard ISO format.
-    const day = (typeof workout.date === "string" && workout.date.length >= 10 && workout.date[4] === "-" && workout.date[7] === "-")
-      ? workout.date.slice(0, 10)
-      : new Date(workout.date).toISOString().split("T")[0];
-    if (!volumeByDay[day]) {
-      volumeByDay[day] = 0;
+    // ⚡ PERFORMANCE OPTIMIZATION: Fast-path string slicing and Date instance checking to avoid
+    // heavy dynamic Date parsing, timezone calculations, and .toISOString() serialization in hot loops.
+    let day;
+    const dateVal = workout.date;
+    if (typeof dateVal === "string" && dateVal.length >= 10 && dateVal[4] === "-" && dateVal[7] === "-") {
+      day = dateVal.slice(0, 10);
+    } else if (dateVal instanceof Date) {
+      day = dateVal.toISOString().slice(0, 10);
+    } else if (dateVal) {
+      day = new Date(dateVal).toISOString().slice(0, 10);
+    } else {
+      day = "UNKNOWN";
     }
-    volumeByDay[day] += volume;
-  });
+    volumeByDay[day] = (volumeByDay[day] || 0) + volume;
+  }
 
-  const averageVolumePerWorkout = workouts.length ? totalVolume / workouts.length : 0;
+  const averageVolumePerWorkout = len ? totalVolume / len : 0;
 
   // ⚡ PERFORMANCE OPTIMIZATION: Store sorted exercise entries once.
   // Reusing sortedExercises for both byExercise and topExercises avoids redundant Object.entries()
@@ -180,14 +185,16 @@ export const calculateRelativeIntensity = (weight, oneRepMax, reps) => {
 
 // Analyze exercise frequency per muscle group
 export const analyzeFrequencyPerMuscleGroup = (workouts) => {
-  const frequency = {};
+  const frequency = Object.create(null);
 
-  // ⚡ PERFORMANCE OPTIMIZATION: Utilizes module-scoped EXERCISE_MUSCLE_DATABASE
-  // to avoid allocating a new object on every function call.
-  workouts.forEach(workout => {
+  // ⚡ PERFORMANCE OPTIMIZATION: Zero-allocation imperative for loop using module-scoped
+  // EXERCISE_MUSCLE_DATABASE to eliminate callback closure allocations per workout item.
+  const len = workouts ? workouts.length : 0;
+  for (let i = 0; i < len; i++) {
+    const workout = workouts[i];
     const muscleGroup = EXERCISE_MUSCLE_DATABASE[workout.exercise] || "Other";
     frequency[muscleGroup] = (frequency[muscleGroup] || 0) + 1;
-  });
+  }
 
   return frequency;
 };
@@ -239,18 +246,20 @@ export const getRestPeriodRecommendation = (exercise, goal = "hypertrophy", prev
 // Form quality assessment (based on notes/tags)
 export const assessFormQuality = (workoutNotes, exerciseDifficulty) => {
   let formScore = 100;
-  let issues = [];
+  const issues = [];
 
-  // ⚡ PERFORMANCE OPTIMIZATION: Avoid repeatedly executing .toLowerCase() (8 times) inside the loop.
-  // Converting workoutNotes to lowercase once outside the loop completely eliminates redundant allocations.
+  // ⚡ PERFORMANCE OPTIMIZATION: Avoid repeatedly executing .toLowerCase() inside loop and
+  // use imperative for loop over module-scoped RED_FLAGS array.
   const notesLower = workoutNotes?.toLowerCase() || "";
 
-  RED_FLAGS.forEach(flag => {
+  const flagsLen = RED_FLAGS.length;
+  for (let i = 0; i < flagsLen; i++) {
+    const flag = RED_FLAGS[i];
     if (notesLower.includes(flag)) {
       formScore -= 15;
       issues.push(flag);
     }
-  });
+  }
 
   formScore = Math.max(0, formScore);
 
