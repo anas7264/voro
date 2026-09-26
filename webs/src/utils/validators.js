@@ -743,6 +743,7 @@ const GRONSFELD_KEYS = Object.freeze((() => {
 const CANDIDATE_GRID_KEYS = Object.freeze(['', ...CIPHER_KEYWORDS]);
 const CANDIDATE_GRIDS = Object.freeze(CANDIDATE_GRID_KEYS.map(k => construct5x5Grid(k)));
 const FOURSQUARE_POS_MAPS = Object.freeze(CANDIDATE_GRIDS.map(g => g.posMap));
+const ADFGX_MAP = Object.freeze({ a: 0, d: 1, f: 2, g: 3, x: 4 });
 const NIHILIST_KEYWORD_KEYS = Object.freeze(['voro', 'key', 'ai', 'pass', 'sec', 'secret', 'admin', 'code', 'prompt']);
 
 // Candidate 27th symbols used in Delastelle Trifid Cipher
@@ -1778,10 +1779,39 @@ export const isPromptInjection = (query, isNested = false) => {
       if (trifidDecoded) {
         return true;
       }
+
+      // Security: Handle ADFGX Cipher (5x5 Polybius coordinate fractionated cipher) and evaluate recursively
+      const adfgxDecoded = safeDecodeADFGX(targetStr);
+      if (adfgxDecoded) {
+        return true;
+      }
     }
   }
 
   return false;
+};
+
+// Helper to safely decode ADFGX Cipher-encoded payloads across candidate 5x5 Polybius grids
+const safeDecodeADFGX = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+
+  const clean = targetStr.toLowerCase().replace(/[^adfgx]/g, '');
+  if (clean.length < 8 || clean.length % 2 !== 0) return null;
+
+  for (let idx = 0; idx < CANDIDATE_GRIDS.length; idx++) {
+    const { matrix } = CANDIDATE_GRIDS[idx];
+    let decoded = '';
+    for (let i = 0; i < clean.length; i += 2) {
+      const r = ADFGX_MAP[clean[i]];
+      const c = ADFGX_MAP[clean[i + 1]];
+      decoded += matrix[r][c];
+    }
+    if (decoded && decoded !== targetStr && isPromptInjection(decoded, true)) {
+      return decoded;
+    }
+  }
+
+  return null;
 };
 
 // Helper to safely decode Trifid Cipher-encoded payloads across common candidate keys and 27th symbols
