@@ -756,7 +756,13 @@ export function generateSecurityNonce() {
   }
   const array = new Uint8Array(16);
   if (_CryptoGetRandomValues) {
-    _call.call(_CryptoGetRandomValues, gCrypto, array);
+    try {
+      _call.call(_CryptoGetRandomValues, gCrypto, array);
+    } catch (e) {
+      if (gCrypto && gCrypto.getRandomValues) {
+        _call.call(gCrypto.getRandomValues, gCrypto, array);
+      }
+    }
   } else {
     _call.call(gCrypto.getRandomValues, gCrypto, array);
   }
@@ -2653,7 +2659,11 @@ class PolymorphicKeyEnclave {
     const mask = new _Uint8Array(len);
     const gCrypto = _getCrypto();
     if (_CryptoGetRandomValues) {
-      _call.call(_CryptoGetRandomValues, gCrypto, mask);
+      try {
+        _call.call(_CryptoGetRandomValues, gCrypto, mask);
+      } catch (e) {
+        if (gCrypto && gCrypto.getRandomValues) _call.call(gCrypto.getRandomValues, gCrypto, mask);
+      }
     } else if (gCrypto && gCrypto.getRandomValues) {
       _call.call(gCrypto.getRandomValues, gCrypto, mask);
     } else {

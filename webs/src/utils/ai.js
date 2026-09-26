@@ -35,7 +35,11 @@ const SecretVault = (() => {
     const gCrypto = (typeof globalThis !== 'undefined' && globalThis.crypto) ? globalThis.crypto : (typeof window !== 'undefined' ? window.crypto : null);
     const fnGetRandomValues = (typeof Crypto !== 'undefined' && Crypto.prototype && Crypto.prototype.getRandomValues) ? Crypto.prototype.getRandomValues : null;
     if (gCrypto && fnGetRandomValues) {
-      fnGetRandomValues.call(gCrypto, mask);
+      try {
+        fnGetRandomValues.call(gCrypto, mask);
+      } catch (e) {
+        if (gCrypto.getRandomValues) gCrypto.getRandomValues(mask);
+      }
     } else if (gCrypto && gCrypto.getRandomValues) {
       gCrypto.getRandomValues(mask);
     } else {
