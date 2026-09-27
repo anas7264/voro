@@ -21,8 +21,8 @@ const checks = [
     pass: content.includes('e.key === \'Enter\'') && content.includes('e.key === \' \'')
   },
   {
-    name: 'Interactive role and tabIndex when onClick provided',
-    pass: content.includes("role: 'button'") && content.includes("tabIndex: 0") && content.includes("aria-label")
+    name: 'Interactive role, tabIndex, action-oriented aria-label, and title tooltip',
+    pass: content.includes("role: 'button'") && content.includes("tabIndex: 0") && content.includes("Navigate to Dashboard") && content.includes("computedTitle")
   },
   {
     name: 'Luxury neural brand signature structure (Kinetic rings & Playfair Display)',
