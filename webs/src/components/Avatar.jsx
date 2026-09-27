@@ -5,7 +5,8 @@ import React, { memo, useRef, useMemo, useId, useCallback } from "react";
  * Re-engineered conforming to Voro's 'Forge' luxury architecture and zero-allocation performance standards.
  * Features ultra-high-fidelity glassmorphism, 60fps direct-DOM 3D volumetric tilt tracking,
  * magnetic liquid border intelligence, holographic coordinate telemetry overlays,
- * SSR-safe deterministic sub-pixel attestation badging (`0xAVT_...`), and W3C APG compliant keyboard accessibility.
+ * SSR-safe deterministic sub-pixel attestation badging (`0xAVT_...`), dynamic fallback initials,
+ * state-aware micro-UX title tooltips, and W3C APG compliant keyboard accessibility.
  *
  * DESIGN PHILOSOPHY:
  * 1. Authority: Architectural framing suggests a protected biological asset specimen.
@@ -16,10 +17,13 @@ import React, { memo, useRef, useMemo, useId, useCallback } from "react";
 export const Avatar = memo(({
   src,
   alt = "Subject Specimen",
+  name,
+  initials,
   size = "md",
   status = "online",
   nodeId = "AVT_01",
   interactive = false,
+  title,
   className = "",
   id,
   tabIndex,
@@ -42,6 +46,29 @@ export const Avatar = memo(({
 
   // Determine whether the component responds to interactive gestures
   const isInteractive = interactive || Boolean(onClick);
+
+  // Derive intelligent initials when image src is absent
+  const displayInitials = useMemo(() => {
+    if (initials) return initials.toUpperCase().slice(0, 2);
+    const sourceText = name || (alt !== "Subject Specimen" ? alt : null);
+    if (sourceText) {
+      const parts = sourceText.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      }
+      if (parts.length === 1 && parts[0].length > 0) {
+        return parts[0].slice(0, 2).toUpperCase();
+      }
+    }
+    return "V";
+  }, [initials, name, alt]);
+
+  // Compute state-aware micro-UX title tooltip
+  const computedTitle = useMemo(() => {
+    if (title) return title;
+    const subject = name || alt;
+    return isInteractive ? `Specimen Node: ${subject} (${status})` : `${subject} (${status})`;
+  }, [title, name, alt, isInteractive, status]);
 
   // Generate an SSR-safe deterministic sub-pixel attestation hash
   const subpixelHash = useMemo(() => {
@@ -163,6 +190,8 @@ export const Avatar = memo(({
   return (
     <div
       ref={containerRef}
+      id={id}
+      title={computedTitle}
       onClick={onClick}
       onKeyDown={handleKeyDown}
       onMouseMove={handleMouseMove}
@@ -223,8 +252,8 @@ export const Avatar = memo(({
               aria-label={alt}
               className="w-full h-full bg-gradient-to-br from-white/5 to-white/[0.01] flex items-center justify-center"
             >
-              <span className={`font-serif italic text-white/20 group-hover/avatar:text-voro-primary/50 transition-colors duration-700 ${isLarge ? 'text-4xl' : 'text-lg'}`}>
-                V
+              <span className={`font-serif italic text-white/40 group-hover/avatar:text-voro-primary transition-colors duration-700 ${isLarge ? 'text-3xl sm:text-4xl' : 'text-sm sm:text-base'}`}>
+                {displayInitials}
               </span>
             </div>
           )}
