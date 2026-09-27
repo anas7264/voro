@@ -2640,6 +2640,36 @@ export const validateVitals = (vitals) => {
     errors.energy = "Energy must be between 1-10";
   }
 
+  // Security: Enforce strict type, finite numeric bounds, and character length limits on optional vitals metrics
+  // to prevent client-side DoS, memory bloat, non-finite numeric injection, and health state corruption.
+  if (vitals.glucose !== undefined && vitals.glucose !== null && vitals.glucose !== '') {
+    const g = parseFloat(vitals.glucose);
+    if (!Number.isFinite(g) || g < 20 || g > 1000) errors.glucose = "Glucose must be between 20-1000 mg/dL";
+  }
+
+  if (vitals.weight !== undefined && vitals.weight !== null && vitals.weight !== '') {
+    if (!isValidWeight(vitals.weight)) errors.weight = "Weight must be between 30-500 kg";
+  }
+
+  if (vitals.bodyFat !== undefined && vitals.bodyFat !== null && vitals.bodyFat !== '') {
+    if (!isValidBodyFat(vitals.bodyFat)) errors.bodyFat = "Body fat must be between 0-100%";
+  }
+
+  if (vitals.temperature !== undefined && vitals.temperature !== null && vitals.temperature !== '') {
+    if (!isValidTemperature(vitals.temperature)) errors.temperature = "Temperature must be between -50 and 50 °C";
+  }
+
+  if (vitals.oxygen !== undefined && vitals.oxygen !== null && vitals.oxygen !== '') {
+    const o = parseFloat(vitals.oxygen);
+    if (!Number.isFinite(o) || o < 50 || o > 100) errors.oxygen = "Oxygen saturation must be between 50-100%";
+  }
+
+  if (vitals.notes !== undefined && vitals.notes !== null && vitals.notes !== '') {
+    if (typeof vitals.notes !== 'string' || vitals.notes.length > 2048) {
+      errors.notes = "Notes must be 2048 characters or less";
+    }
+  }
+
   return { valid: Object.keys(errors).length === 0, errors };
 };
 
