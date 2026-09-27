@@ -31,10 +31,12 @@ const Confetti = forwardRef(({
   palette = 'voro',
   announceMessage = "Milestone achieved! Celebration particles emitted.",
   autoFire = true,
+  showBanner = true,
   onComplete,
   className = ""
 }, ref) => {
   const generatedId = useId();
+  const bannerRef = useRef(null);
   const animFrameIdRef = useRef(null);
   const timeoutIdRef = useRef(null);
   const intervalIdRef = useRef(null);
@@ -53,6 +55,22 @@ const Confetti = forwardRef(({
     return `0xCNF_${cleanId.slice(-4).padStart(4, '0')}`;
   }, [generatedId]);
 
+  const showBannerUI = () => {
+    if (bannerRef.current) {
+      bannerRef.current.style.opacity = '1';
+      bannerRef.current.style.transform = 'translate3d(-50%, 0, 0) scale(1)';
+      bannerRef.current.style.pointerEvents = 'auto';
+    }
+  };
+
+  const hideBannerUI = () => {
+    if (bannerRef.current) {
+      bannerRef.current.style.opacity = '0';
+      bannerRef.current.style.transform = 'translate3d(-50%, -12px, 0) scale(0.96)';
+      bannerRef.current.style.pointerEvents = 'none';
+    }
+  };
+
   const stopActiveTimers = () => {
     if (animFrameIdRef.current) {
       cancelAnimationFrame(animFrameIdRef.current);
@@ -66,6 +84,7 @@ const Confetti = forwardRef(({
       clearInterval(intervalIdRef.current);
       intervalIdRef.current = null;
     }
+    hideBannerUI();
   };
 
   /**
@@ -75,6 +94,7 @@ const Confetti = forwardRef(({
   const fire = (customOptions = {}) => {
     // Cancel any existing animation frame loop or timer before spawning a new one
     stopActiveTimers();
+    showBannerUI();
 
     const endTime = Date.now() + duration;
 
@@ -88,6 +108,7 @@ const Confetti = forwardRef(({
       });
 
       timeoutIdRef.current = setTimeout(() => {
+        hideBannerUI();
         onCompleteRef.current?.();
       }, duration);
 
@@ -102,6 +123,7 @@ const Confetti = forwardRef(({
             clearInterval(intervalIdRef.current);
             intervalIdRef.current = null;
           }
+          hideBannerUI();
           onCompleteRef.current?.();
           return;
         }
@@ -144,6 +166,7 @@ const Confetti = forwardRef(({
         animFrameIdRef.current = requestAnimationFrame(frame);
       } else {
         animFrameIdRef.current = null;
+        hideBannerUI();
         onCompleteRef.current?.();
       }
     };
@@ -171,14 +194,60 @@ const Confetti = forwardRef(({
   }, [autoFire, duration, variant, colors]);
 
   return (
-    <div
-      aria-live="polite"
-      aria-atomic="true"
-      className={`sr-only pointer-events-none ${className}`}
-      data-attestation={subpixelHash}
-    >
-      <span>{announceMessage}</span>
-    </div>
+    <>
+      {/* Off-screen ARIA announcement live region for accessibility */}
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className={`sr-only pointer-events-none ${className}`}
+        data-attestation={subpixelHash}
+      >
+        <span>{announceMessage}</span>
+      </div>
+
+      {/* 🛰️ Direct-DOM Zero-Allocation Floating Luxury Telemetry Banner */}
+      {showBanner && (
+        <div
+          ref={bannerRef}
+          role="status"
+          aria-live="polite"
+          aria-label="Quantum Particle Celebration Milestone"
+          style={{
+            opacity: 0,
+            transform: 'translate3d(-50%, -12px, 0) scale(0.96)',
+            transition: 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
+          }}
+          className="fixed top-8 left-1/2 z-[150] pointer-events-none -translate-x-1/2 select-none"
+        >
+          <div className="relative flex items-center gap-4 px-6 py-3 rounded-full bg-[#0A0C14]/90 border border-voro-primary/30 backdrop-blur-2xl shadow-[0_20px_50px_rgba(124,58,237,0.35),inset_0_1px_1px_rgba(255,255,255,0.1)] overflow-hidden group">
+            {/* Ambient Pulse Aura */}
+            <div aria-hidden="true" className="absolute -inset-2 bg-gradient-to-r from-voro-primary/20 via-voro-secondary/20 to-voro-accent/20 blur-md opacity-40 animate-pulse pointer-events-none" />
+
+            {/* Kinetic Signal Dot */}
+            <div className="relative flex h-2.5 w-2.5 shrink-0 z-10">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-voro-primary opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-voro-primary shadow-[0_0_12px_#7C3AED]" />
+            </div>
+
+            {/* Hero Text Stack */}
+            <div className="relative z-10 flex items-center gap-3">
+              <span className="text-sm sm:text-base font-serif italic font-medium text-white tracking-tight">
+                Milestone <span className="text-voro-primary font-serif not-italic">Achieved</span>
+              </span>
+              <div className="h-3 w-px bg-white/10" />
+              <span className="text-[0.55rem] font-mono font-bold text-gray-400 uppercase tracking-[0.25em]">
+                {announceMessage}
+              </span>
+            </div>
+
+            {/* Sub-pixel Attestation Badge */}
+            <div className="relative z-10 font-mono text-[0.45rem] font-bold text-voro-primary/80 bg-voro-primary/10 px-2 py-0.5 rounded-full border border-voro-primary/20 tracking-widest hidden sm:inline-block">
+              {subpixelHash}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 });
 
