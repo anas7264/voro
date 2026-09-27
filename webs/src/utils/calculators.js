@@ -47,6 +47,7 @@ const GOAL_CALORIC_ADJUSTMENTS = Object.freeze({
 
 // BMI Calculation: weight(kg) / height(m)²
 export const calculateBMI = (weightKg, heightCm) => {
+  if (!weightKg || !heightCm || heightCm <= 0 || !Number.isFinite(weightKg) || !Number.isFinite(heightCm)) return "0.0";
   const heightM = heightCm / 100;
   return (weightKg / (heightM * heightM)).toFixed(1);
 };
@@ -162,17 +163,22 @@ export const estimateVO2Max = (age, gender, resting_heart_rate) => {
 // Pace converter (convert between min/km and km/h)
 export const convertPace = (pace, unit = "kmh_to_pace") => {
   if (unit === "kmh_to_pace") {
-    // Convert km/h to min:sec per km
-    const seconds = (3600 / pace);
+    const p = typeof pace === 'number' ? pace : parseFloat(pace);
+    if (!p || p <= 0 || !Number.isFinite(p)) return "0:00";
+    const seconds = (3600 / p);
     const minutes = Math.floor(seconds / 60);
     const secs = Math.round(seconds % 60);
     return `${minutes}:${secs.toString().padStart(2, "0")}`;
   } else if (unit === "pace_to_kmh") {
-    // Convert min:sec per km to km/h
-    const [min, sec] = pace.split(":").map(Number);
+    if (typeof pace !== "string" || !pace.includes(":")) return "0.00";
+    const parts = pace.split(":");
+    const min = parseFloat(parts[0]) || 0;
+    const sec = parseFloat(parts[1]) || 0;
     const totalSeconds = min * 60 + sec;
+    if (totalSeconds <= 0) return "0.00";
     return (3600 / totalSeconds).toFixed(2);
   }
+  return "0.00";
 };
 
 // Caloric burn estimates by activity
@@ -183,10 +189,14 @@ export const estimateCaloriesBurned = (weightKg, durationMinutes, activity) => {
 
 // Macro ratio calculator
 export const calculateMacroRatios = (calories, goalProteinG, goalCarbG, goalFatG) => {
+  const cals = calories && calories > 0 ? calories : 0;
+  const pG = goalProteinG || 0;
+  const cG = goalCarbG || 0;
+  const fG = goalFatG || 0;
   return {
-    protein: { grams: goalProteinG, calories: goalProteinG * 4, percentage: ((goalProteinG * 4) / calories * 100).toFixed(1) },
-    carbs: { grams: goalCarbG, calories: goalCarbG * 4, percentage: ((goalCarbG * 4) / calories * 100).toFixed(1) },
-    fat: { grams: goalFatG, calories: goalFatG * 9, percentage: ((goalFatG * 9) / calories * 100).toFixed(1) }
+    protein: { grams: pG, calories: pG * 4, percentage: cals > 0 ? ((pG * 4) / cals * 100).toFixed(1) : "0.0" },
+    carbs: { grams: cG, calories: cG * 4, percentage: cals > 0 ? ((cG * 4) / cals * 100).toFixed(1) : "0.0" },
+    fat: { grams: fG, calories: fG * 9, percentage: cals > 0 ? ((fG * 9) / cals * 100).toFixed(1) : "0.0" }
   };
 };
 
