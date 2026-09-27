@@ -30,11 +30,11 @@ const MICRONUTRIENT_TIMING_RECOMMENDATIONS = Object.freeze({
 
 // Calculate nutrition score (0-100) based on macronutrient distribution
 export const calculateNutritionScore = (protein, carbs, fat, calories) => {
-  if (calories === 0) return 0;
+  if (!calories || calories <= 0) return 0;
 
-  const proteinCals = protein * 4;
-  const carbsCals = carbs * 4;
-  const fatCals = fat * 9;
+  const proteinCals = (protein || 0) * 4;
+  const carbsCals = (carbs || 0) * 4;
+  const fatCals = (fat || 0) * 9;
 
   const proteinPct = (proteinCals / calories) * 100;
   const carbsPct = (carbsCals / calories) * 100;
@@ -50,30 +50,37 @@ export const calculateNutritionScore = (protein, carbs, fat, calories) => {
 
 // Analyze daily macros against targets
 export const analyzeMacros = (consumedProtein, consumedCarbs, consumedFat, targetProtein, targetCarbs, targetFat) => {
-  const proteinDiff = consumedProtein - targetProtein;
-  const carbsDiff = consumedCarbs - targetCarbs;
-  const fatDiff = consumedFat - targetFat;
+  const cProtein = consumedProtein || 0;
+  const cCarbs = consumedCarbs || 0;
+  const cFat = consumedFat || 0;
+  const tProtein = targetProtein || 0;
+  const tCarbs = targetCarbs || 0;
+  const tFat = targetFat || 0;
+
+  const proteinDiff = cProtein - tProtein;
+  const carbsDiff = cCarbs - tCarbs;
+  const fatDiff = cFat - tFat;
 
   return {
     protein: {
-      consumed: consumedProtein,
-      target: targetProtein,
+      consumed: cProtein,
+      target: tProtein,
       difference: proteinDiff,
-      percentOfTarget: ((consumedProtein / targetProtein) * 100).toFixed(1),
+      percentOfTarget: tProtein > 0 ? ((cProtein / tProtein) * 100).toFixed(1) : "0.0",
       status: proteinDiff >= -5 && proteinDiff <= 5 ? "On Target" : (proteinDiff > 5 ? "Over" : "Under")
     },
     carbs: {
-      consumed: consumedCarbs,
-      target: targetCarbs,
+      consumed: cCarbs,
+      target: tCarbs,
       difference: carbsDiff,
-      percentOfTarget: ((consumedCarbs / targetCarbs) * 100).toFixed(1),
+      percentOfTarget: tCarbs > 0 ? ((cCarbs / tCarbs) * 100).toFixed(1) : "0.0",
       status: carbsDiff >= -10 && carbsDiff <= 10 ? "On Target" : (carbsDiff > 10 ? "Over" : "Under")
     },
     fat: {
-      consumed: consumedFat,
-      target: targetFat,
+      consumed: cFat,
+      target: tFat,
       difference: fatDiff,
-      percentOfTarget: ((consumedFat / targetFat) * 100).toFixed(1),
+      percentOfTarget: tFat > 0 ? ((cFat / tFat) * 100).toFixed(1) : "0.0",
       status: fatDiff >= -3 && fatDiff <= 3 ? "On Target" : (fatDiff > 3 ? "Over" : "Under")
     }
   };
@@ -321,22 +328,30 @@ export const assessHydrationStatus = (urineDensity, urine_color, thirstLevel) =>
 
 // Nutrient deficit detector
 export const detectNutrientDeficits = (dailyIntake, targets) => {
-  const deficits = {};
+  if (!targets || typeof targets !== 'object') return {};
+  const intake = dailyIntake && typeof dailyIntake === 'object' ? dailyIntake : {};
 
-  Object.keys(targets).forEach(nutrient => {
-    const intake = dailyIntake[nutrient] || 0;
-    const target = targets[nutrient];
-    const percentage = (intake / target) * 100;
+  const deficits = {};
+  const keys = Object.keys(targets);
+  const len = keys.length;
+
+  for (let i = 0; i < len; i++) {
+    const nutrient = keys[i];
+    const targetVal = targets[nutrient] || 0;
+    if (targetVal <= 0) continue;
+
+    const intakeVal = intake[nutrient] || 0;
+    const percentage = (intakeVal / targetVal) * 100;
 
     if (percentage < 80) {
       deficits[nutrient] = {
-        intake,
-        target,
+        intake: intakeVal,
+        target: targetVal,
         percentage: percentage.toFixed(1),
-        deficit: (target - intake).toFixed(1)
+        deficit: (targetVal - intakeVal).toFixed(1)
       };
     }
-  });
+  }
 
   return deficits;
 };

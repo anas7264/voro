@@ -84,11 +84,13 @@ export class CachedDateTimeFormat {
  */
 const serializeOptions = (options) => {
   if (!options) return '';
+  const keys = Object.keys(options);
+  const len = keys.length;
+  if (len === 0) return '';
   let str = '';
-  for (const k in options) {
-    if (Object.prototype.hasOwnProperty.call(options, k)) {
-      str += `:${k}_${options[k]}`;
-    }
+  for (let i = 0; i < len; i++) {
+    const k = keys[i];
+    str += `:${k}_${options[k]}`;
   }
   return str;
 };
@@ -220,8 +222,12 @@ export const formatHeight = (value, from = "cm", to = "cm") => {
   if (from === "cm" && to === "inches") {
     return formatNumber(value / 2.54, 1);
   } else if (from === "cm" && to === "feet") {
-    const feet = Math.floor(value / 30.48);
-    const inches = Math.round((value % 30.48) / 2.54);
+    let feet = Math.floor(value / 30.48);
+    let inches = Math.round((value % 30.48) / 2.54);
+    if (inches >= 12) {
+      feet += Math.floor(inches / 12);
+      inches %= 12;
+    }
     return `${feet}'${inches}"`;
   } else if (from === "inches" && to === "cm") {
     return formatNumber(value * 2.54, 1);
@@ -382,6 +388,7 @@ export const formatStreak = (days) => {
 
 // Format phone number
 export const formatPhoneNumber = (phone) => {
+  if (!phone || typeof phone !== "string") return phone ? String(phone) : "";
   const cleaned = phone.replace(/\D/g, "");
   if (cleaned.length === 10) {
     return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
