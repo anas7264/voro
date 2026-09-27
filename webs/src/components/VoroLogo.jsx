@@ -123,11 +123,15 @@ const VoroLogo = memo(({
     }
   }, [onClick]);
 
+  const computedAriaLabel = props['aria-label'] || (isInteractive ? 'Navigate to Dashboard' : 'Voro Brand Signature Node');
+  const computedTitle = props.title || (isInteractive ? 'Navigate to Dashboard' : undefined);
+
   const interactiveAttrs = isInteractive
     ? {
         role: 'button',
         tabIndex: 0,
-        'aria-label': 'Voro Brand Signature Node',
+        'aria-label': computedAriaLabel,
+        title: computedTitle,
         onClick,
         onKeyDown: handleKeyDown,
       }
