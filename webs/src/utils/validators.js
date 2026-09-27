@@ -703,6 +703,43 @@ const construct5x5Grid = (key = '') => {
   return { grid, matrix, posMap };
 };
 
+// Helper to construct a 36-character 6x6 grid for ADFGVX Cipher (a-z, 0-9)
+const construct6x6Grid = (key = '') => {
+  const cleanKey = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const seen = new Set();
+  const grid = [];
+  const posMap = {};
+
+  for (let i = 0; i < cleanKey.length; i++) {
+    const ch = cleanKey[i];
+    if (!seen.has(ch)) {
+      seen.add(ch);
+      grid.push(ch);
+    }
+  }
+
+  const alphaNum36 = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  for (let i = 0; i < alphaNum36.length; i++) {
+    const ch = alphaNum36[i];
+    if (!seen.has(ch)) {
+      seen.add(ch);
+      grid.push(ch);
+    }
+  }
+
+  const matrix = [];
+  for (let r = 0; r < 6; r++) {
+    matrix[r] = [];
+    for (let c = 0; c < 6; c++) {
+      const char = grid[r * 6 + c];
+      matrix[r][c] = char;
+      posMap[char] = { row: r, col: c };
+    }
+  }
+
+  return { grid, matrix, posMap };
+};
+
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted and frozen static candidate keys and 5x5 grid maps.
  * Precomputed once on module load to eliminate thousands of string allocations and grid builds
@@ -742,8 +779,10 @@ const GRONSFELD_KEYS = Object.freeze((() => {
 
 const CANDIDATE_GRID_KEYS = Object.freeze(['', ...CIPHER_KEYWORDS]);
 const CANDIDATE_GRIDS = Object.freeze(CANDIDATE_GRID_KEYS.map(k => construct5x5Grid(k)));
+const CANDIDATE_6X6_GRIDS = Object.freeze(CANDIDATE_GRID_KEYS.map(k => construct6x6Grid(k)));
 const FOURSQUARE_POS_MAPS = Object.freeze(CANDIDATE_GRIDS.map(g => g.posMap));
 const ADFGX_MAP = Object.freeze({ a: 0, d: 1, f: 2, g: 3, x: 4 });
+const ADFGVX_MAP = Object.freeze({ a: 0, d: 1, f: 2, g: 3, v: 4, x: 5 });
 const NIHILIST_KEYWORD_KEYS = Object.freeze(['voro', 'key', 'ai', 'pass', 'sec', 'secret', 'admin', 'code', 'prompt']);
 
 // Candidate 27th symbols used in Delastelle Trifid Cipher
@@ -1785,10 +1824,40 @@ export const isPromptInjection = (query, isNested = false) => {
       if (adfgxDecoded) {
         return true;
       }
+
+      // Security: Handle ADFGVX Cipher (6x6 Polybius coordinate fractionated cipher) and evaluate recursively
+      const adfgvxDecoded = safeDecodeADFGVX(targetStr);
+      if (adfgvxDecoded) {
+        return true;
+      }
     }
   }
 
   return false;
+};
+
+// Helper to safely decode ADFGVX Cipher-encoded payloads across candidate 6x6 Polybius grids
+const safeDecodeADFGVX = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+
+  const clean = targetStr.toLowerCase().replace(/[^adfgvx]/g, '');
+  if (clean.length < 8 || clean.length % 2 !== 0) return null;
+
+  for (let idx = 0; idx < CANDIDATE_6X6_GRIDS.length; idx++) {
+    const { matrix } = CANDIDATE_6X6_GRIDS[idx];
+    let decoded = '';
+    for (let i = 0; i < clean.length; i += 2) {
+      const r = ADFGVX_MAP[clean[i]];
+      const c = ADFGVX_MAP[clean[i + 1]];
+      if (r === undefined || c === undefined) break;
+      decoded += matrix[r][c];
+    }
+    if (decoded && decoded !== targetStr && isPromptInjection(decoded, true)) {
+      return decoded;
+    }
+  }
+
+  return null;
 };
 
 // Helper to safely decode ADFGX Cipher-encoded payloads across candidate 5x5 Polybius grids
