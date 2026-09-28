@@ -19,15 +19,26 @@ const TICK_ANGLES = Object.freeze(
 );
 
 /**
- * ⚡ PERFORMANCE OPTIMIZATION: Hoisted corner vector calculations template builder.
- * Pre-calculates polar angle vectors for exploded complication connectors.
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted corner vector calculations.
+ * Pre-calculates polar angle vectors for default size (180) at module load
+ * to eliminate object allocations and Object.freeze overhead during component mounts.
  */
-const getCornerVectors = (size) => Object.freeze([
+const DEFAULT_CORNERS_180 = Object.freeze([
   Object.freeze({ name: 'TL', angle: Math.PI * 1.25, x: 0, y: 0 }),
-  Object.freeze({ name: 'TR', angle: Math.PI * 1.75, x: size, y: 0 }),
-  Object.freeze({ name: 'BL', angle: Math.PI * 0.75, x: 0, y: size }),
-  Object.freeze({ name: 'BR', angle: Math.PI * 0.25, x: size, y: size })
+  Object.freeze({ name: 'TR', angle: Math.PI * 1.75, x: 180, y: 0 }),
+  Object.freeze({ name: 'BL', angle: Math.PI * 0.75, x: 0, y: 180 }),
+  Object.freeze({ name: 'BR', angle: Math.PI * 0.25, x: 180, y: 180 })
 ]);
+
+const getCornerVectors = (size) => {
+  if (size === 180) return DEFAULT_CORNERS_180;
+  return Object.freeze([
+    Object.freeze({ name: 'TL', angle: Math.PI * 1.25, x: 0, y: 0 }),
+    Object.freeze({ name: 'TR', angle: Math.PI * 1.75, x: size, y: 0 }),
+    Object.freeze({ name: 'BL', angle: Math.PI * 0.75, x: 0, y: size }),
+    Object.freeze({ name: 'BR', angle: Math.PI * 0.25, x: size, y: size })
+  ]);
+};
 
 /**
  * ⚡ LUXURY MASTERCLASS REFINEMENT: Kinetic Biometric Chronograph & Radial Lens Node.
@@ -59,14 +70,14 @@ const Ring = memo(({ value, max, size = 180, unit = 'kcal', color = '#7C3AED', l
   const nodeY = size / 2 + radius * Math.sin(angle);
 
   const reactId = useId();
-  const nodeId = useMemo(() => {
+  // ⚡ PERFORMANCE OPTIMIZATION: Consolidated ID derivation in a single useMemo
+  // avoids redundant .replace(/:/g, '') regex operations and reduces hook tracking overhead.
+  const { nodeId, attestedId } = useMemo(() => {
     const cleanId = reactId.replace(/:/g, '');
-    return `RNG_${cleanId.slice(0, 4).toUpperCase()}`;
-  }, [reactId]);
-
-  const attestedId = useMemo(() => {
-    const cleanId = reactId.replace(/:/g, '');
-    return `0x${cleanId.padEnd(6, 'F').slice(0, 6).toUpperCase()}`;
+    return {
+      nodeId: `RNG_${cleanId.slice(0, 4).toUpperCase()}`,
+      attestedId: `0x${cleanId.padEnd(6, 'F').slice(0, 6).toUpperCase()}`
+    };
   }, [reactId]);
 
   const center = size / 2;
