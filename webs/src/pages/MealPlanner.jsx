@@ -80,7 +80,7 @@ const MealDayCard = React.memo(({ day, index }) => {
   const teleRefY = useRef(null);
   const rafRef = useRef(null);
 
-  const [isFocused, setIsFocused] = useState(false);
+  const isFocusedRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -123,7 +123,7 @@ const MealDayCard = React.memo(({ day, index }) => {
   };
 
   const handleFocus = () => {
-    setIsFocused(true);
+    isFocusedRef.current = true;
     const card = cardRef.current;
     if (!card) return;
 
@@ -133,7 +133,7 @@ const MealDayCard = React.memo(({ day, index }) => {
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
+    isFocusedRef.current = false;
     const card = cardRef.current;
     if (!card) return;
 

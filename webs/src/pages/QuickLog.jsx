@@ -187,8 +187,17 @@ const KineticExpressCard = memo(({
   const cardRef = useRef(null);
   const txRef = useRef(null);
   const tyRef = useRef(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
+
+  const updateTransform = () => {
+    if (!cardRef.current) return;
+    const active = isHoveredRef.current || isFocusedRef.current;
+    cardRef.current.style.transform = active
+      ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
+      : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+    cardRef.current.style.transition = isHoveredRef.current ? 'none' : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+  };
 
   const handleMouseMove = (e) => {
     if (!cardRef.current) return;
@@ -209,27 +218,42 @@ const KineticExpressCard = memo(({
     if (tyRef.current) tyRef.current.innerText = tiltY.toFixed(1);
   };
 
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
+    updateTransform();
+  };
+
+  const handleMouseLeave = () => {
+    isHoveredRef.current = false;
+    if (cardRef.current && !isFocusedRef.current) {
+      cardRef.current.style.setProperty('--tilt-x', '0deg');
+      cardRef.current.style.setProperty('--tilt-y', '0deg');
+    }
+    updateTransform();
+  };
+
   const handleFocus = () => {
-    setIsFocused(true);
+    isFocusedRef.current = true;
     if (cardRef.current) {
       cardRef.current.style.setProperty('--tilt-x', '4deg');
       cardRef.current.style.setProperty('--tilt-y', '-4deg');
       if (txRef.current) txRef.current.innerText = "4.0";
       if (tyRef.current) tyRef.current.innerText = "-4.0";
     }
+    updateTransform();
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
-    if (cardRef.current && !isHovered) {
+    isFocusedRef.current = false;
+    if (cardRef.current && !isHoveredRef.current) {
       cardRef.current.style.setProperty('--tilt-x', '0deg');
       cardRef.current.style.setProperty('--tilt-y', '0deg');
       if (txRef.current) txRef.current.innerText = "0.0";
       if (tyRef.current) tyRef.current.innerText = "0.0";
     }
+    updateTransform();
   };
 
-  const interactionActive = isHovered || isFocused;
   const isSecondary = accentColor === 'secondary';
 
   return (
@@ -237,21 +261,11 @@ const KineticExpressCard = memo(({
       ref={cardRef}
       onClick={onClick}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        if (cardRef.current && !isFocused) {
-          cardRef.current.style.setProperty('--tilt-x', '0deg');
-          cardRef.current.style.setProperty('--tilt-y', '0deg');
-        }
-      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
       style={{
-        transform: interactionActive
-          ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
-          : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: isHovered ? 'none' : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
       }}
       className={`
