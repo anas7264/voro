@@ -40,8 +40,8 @@ const HabitItem = memo(({ habit, isDone, onToggle, onRemove }) => {
   const tiltYRef = useRef(null);
   const deleteTimeoutRef = useRef(null);
 
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const reactId = useId();
 
@@ -54,6 +54,15 @@ const HabitItem = memo(({ habit, isDone, onToggle, onRemove }) => {
   const colorHex = useMemo(() => {
     return COLOR_HEX_MAP[habit.color] || (habit.color && habit.color.startsWith('#') ? habit.color : '#7C3AED');
   }, [habit.color]);
+
+  const updateTransform = () => {
+    if (!containerRef.current) return;
+    const active = isHoveredRef.current || isFocusedRef.current;
+    containerRef.current.style.transform = active
+      ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
+      : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+    containerRef.current.style.transition = isHoveredRef.current ? 'none' : 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
+  };
 
   const handleMouseMove = (e) => {
     if (!containerRef.current) return;
@@ -80,8 +89,13 @@ const HabitItem = memo(({ habit, isDone, onToggle, onRemove }) => {
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
   };
 
+  const handleMouseEnter = () => {
+    isHoveredRef.current = true;
+    updateTransform();
+  };
+
   const handleMouseLeave = () => {
-    setIsHovered(false);
+    isHoveredRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
@@ -90,10 +104,11 @@ const HabitItem = memo(({ habit, isDone, onToggle, onRemove }) => {
     }
     if (tiltXRef.current) tiltXRef.current.innerText = '0.0';
     if (tiltYRef.current) tiltYRef.current.innerText = '0.0';
+    updateTransform();
   };
 
   const handleFocus = () => {
-    setIsFocused(true);
+    isFocusedRef.current = true;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '4deg');
       containerRef.current.style.setProperty('--tilt-y', '-4deg');
@@ -102,10 +117,11 @@ const HabitItem = memo(({ habit, isDone, onToggle, onRemove }) => {
     }
     if (tiltXRef.current) tiltXRef.current.innerText = '4.0';
     if (tiltYRef.current) tiltYRef.current.innerText = '-4.0';
+    updateTransform();
   };
 
   const handleBlur = () => {
-    setIsFocused(false);
+    isFocusedRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
@@ -114,6 +130,7 @@ const HabitItem = memo(({ habit, isDone, onToggle, onRemove }) => {
     }
     if (tiltXRef.current) tiltXRef.current.innerText = '0.0';
     if (tiltYRef.current) tiltYRef.current.innerText = '0.0';
+    updateTransform();
   };
 
   const handleDeleteClick = (e) => {
@@ -136,13 +153,11 @@ const HabitItem = memo(({ habit, isDone, onToggle, onRemove }) => {
     };
   }, []);
 
-  const interactionActive = isHovered || isFocused;
-
   return (
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
@@ -150,10 +165,6 @@ const HabitItem = memo(({ habit, isDone, onToggle, onRemove }) => {
       role="article"
       aria-label={`Neural habit pattern: ${habit.name}. Status: ${isDone ? 'Synchronization Active' : 'Awaiting Engagement'}. ${isDeleting ? 'Pending permanent pattern purge.' : ''}`}
       style={{
-        transform: interactionActive
-          ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
-          : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: isHovered ? 'none' : 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
       }}
       className={`
@@ -174,9 +185,7 @@ const HabitItem = memo(({ habit, isDone, onToggle, onRemove }) => {
         <div
           className="absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-700"
           style={{
-            background: isHovered
-              ? `radial-gradient(300px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), color-mix(in srgb, ${colorHex} 12%, transparent), transparent 60%)`
-              : `radial-gradient(300px circle at 50% 50%, color-mix(in srgb, ${colorHex} 12%, transparent), transparent 60%)`,
+            background: `radial-gradient(300px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), color-mix(in srgb, ${colorHex} 12%, transparent), transparent 60%)`,
             transform: 'translateZ(20px)'
           }}
         />
@@ -311,12 +320,21 @@ const HabitTracker = () => {
 
   // Celebration state trackers for interactive 3D standard compliance
   const celebrationRef = useRef(null);
-  const [isCelebrationHovered, setIsCelebrationHovered] = useState(false);
-  const [isCelebrationFocused, setIsCelebrationFocused] = useState(false);
+  const isCelebrationHoveredRef = useRef(false);
+  const isCelebrationFocusedRef = useRef(false);
 
   useEffect(() => {
     document.title = 'VORO | Habit Tracker';
   }, []);
+
+  const updateCelebrationTransform = () => {
+    if (!celebrationRef.current) return;
+    const active = isCelebrationHoveredRef.current || isCelebrationFocusedRef.current;
+    celebrationRef.current.style.transform = active
+      ? 'perspective(1200px) rotateX(var(--cel-tilt-x, 0deg)) rotateY(var(--cel-tilt-y, 0deg)) translateY(-4px)'
+      : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+    celebrationRef.current.style.transition = isCelebrationHoveredRef.current ? 'none' : 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
+  };
 
   const addHabit = useCallback(async () => {
     const { valid, errors } = validateHabit(newHabit);
@@ -395,28 +413,36 @@ const HabitTracker = () => {
     celebrationRef.current.style.setProperty('--cel-tilt-y', `${tiltY}deg`);
   };
 
+  const handleCelebrationMouseEnter = () => {
+    isCelebrationHoveredRef.current = true;
+    updateCelebrationTransform();
+  };
+
   const handleCelebrationMouseLeave = () => {
-    setIsCelebrationHovered(false);
+    isCelebrationHoveredRef.current = false;
     if (celebrationRef.current) {
       celebrationRef.current.style.setProperty('--cel-tilt-x', '0deg');
       celebrationRef.current.style.setProperty('--cel-tilt-y', '0deg');
     }
+    updateCelebrationTransform();
   };
 
   const handleCelebrationFocus = () => {
-    setIsCelebrationFocused(true);
+    isCelebrationFocusedRef.current = true;
     if (celebrationRef.current) {
       celebrationRef.current.style.setProperty('--cel-tilt-x', '4deg');
       celebrationRef.current.style.setProperty('--cel-tilt-y', '-4deg');
     }
+    updateCelebrationTransform();
   };
 
   const handleCelebrationBlur = () => {
-    setIsCelebrationFocused(false);
+    isCelebrationFocusedRef.current = false;
     if (celebrationRef.current) {
       celebrationRef.current.style.setProperty('--cel-tilt-x', '0deg');
       celebrationRef.current.style.setProperty('--cel-tilt-y', '0deg');
     }
+    updateCelebrationTransform();
   };
 
   return (
@@ -516,7 +542,7 @@ const HabitTracker = () => {
           <div
             ref={celebrationRef}
             onMouseMove={handleCelebrationMouseMove}
-            onMouseEnter={() => setIsCelebrationHovered(true)}
+            onMouseEnter={handleCelebrationMouseEnter}
             onMouseLeave={handleCelebrationMouseLeave}
             onFocus={handleCelebrationFocus}
             onBlur={handleCelebrationBlur}
@@ -524,10 +550,6 @@ const HabitTracker = () => {
             role="article"
             aria-label="Milestone reached: Maximum Synchronicity. All daily neural synapse patterns established."
             style={{
-              transform: (isCelebrationHovered || isCelebrationFocused)
-                ? 'perspective(1200px) rotateX(var(--cel-tilt-x, 0deg)) rotateY(var(--cel-tilt-y, 0deg)) translateY(-4px)'
-                : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-              transition: isCelebrationHovered ? 'none' : 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)',
               transformStyle: 'preserve-3d'
             }}
             className="mt-16 p-12 rounded-[3rem] bg-gradient-to-b from-voro-primary/10 to-[#0A0C14] border border-voro-primary/20 text-center relative overflow-hidden group/cel shadow-[0_50px_100px_-20px_rgba(124,58,237,0.15)] outline-none focus-visible:ring-2 focus-visible:ring-voro-accent focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408]"
