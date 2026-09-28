@@ -785,6 +785,62 @@ const ADFGX_MAP = Object.freeze({ a: 0, d: 1, f: 2, g: 3, x: 4 });
 const ADFGVX_MAP = Object.freeze({ a: 0, d: 1, f: 2, g: 3, v: 4, x: 5 });
 const NIHILIST_KEYWORD_KEYS = Object.freeze(['voro', 'key', 'ai', 'pass', 'sec', 'secret', 'admin', 'code', 'prompt']);
 
+// Precomputed 2x2 Hill Cipher inverse decryption matrices modulo 26
+const HILL_INVERSE_MATRICES = Object.freeze((() => {
+  const matrices = [];
+  const addedSet = new Set();
+
+  const addInverse = (k0, k1, k2, k3) => {
+    const det = ((k0 * k3 - k1 * k2) % 26 + 26) % 26;
+    let D = null;
+    for (let x = 1; x < 26; x++) {
+      if ((det * x) % 26 === 1) { D = x; break; }
+    }
+    if (D === null) return;
+
+    const m00 = (D * k3) % 26;
+    const m01 = (D * ((-k1 % 26) + 26)) % 26;
+    const m10 = (D * ((-k2 % 26) + 26)) % 26;
+    const m11 = (D * k0) % 26;
+
+    const sig = `${m00},${m01},${m10},${m11}`;
+    if (!addedSet.has(sig)) {
+      addedSet.add(sig);
+      matrices.push({ m00, m01, m10, m11 });
+    }
+  };
+
+  // Standard Hill 2x2 key matrices
+  const standardKeys = [
+    [3, 3, 2, 5], [5, 8, 17, 3], [7, 8, 11, 11], [9, 4, 5, 7],
+    [2, 3, 5, 7], [3, 5, 1, 2], [11, 8, 3, 7], [5, 3, 2, 1]
+  ];
+  for (const [k0, k1, k2, k3] of standardKeys) {
+    addInverse(k0, k1, k2, k3);
+  }
+
+  // Generate 2x2 matrices from CIPHER_KEYWORDS (4-char windows)
+  for (const kw of CIPHER_KEYWORDS) {
+    const clean = kw.toLowerCase().replace(/[^a-z]/g, '');
+    if (clean.length >= 4) {
+      for (let i = 0; i <= clean.length - 4; i++) {
+        const k0 = clean.charCodeAt(i) - 97;
+        const k1 = clean.charCodeAt(i + 1) - 97;
+        const k2 = clean.charCodeAt(i + 2) - 97;
+        const k3 = clean.charCodeAt(i + 3) - 97;
+        addInverse(k0, k1, k2, k3);
+      }
+    } else if (clean.length === 2) {
+      const k0 = clean.charCodeAt(0) - 97;
+      const k1 = clean.charCodeAt(1) - 97;
+      addInverse(k0, k1, k0, k1);
+      addInverse(k0, k1, k1, k0);
+    }
+  }
+
+  return matrices;
+})());
+
 // Candidate 27th symbols used in Delastelle Trifid Cipher
 const TRIFID_SYMBOLS = Object.freeze(['#', '.', ' ', '+']);
 
@@ -1830,10 +1886,49 @@ export const isPromptInjection = (query, isNested = false) => {
       if (adfgvxDecoded) {
         return true;
       }
+
+      // Security: Handle Hill Cipher (2x2 matrix linear algebra modulo 26) and evaluate recursively
+      const hillDecoded = safeDecodeHill(targetStr);
+      if (hillDecoded) {
+        return true;
+      }
     }
   }
 
   return false;
+};
+
+// Helper to safely decode 2x2 Hill Cipher-encoded payloads across candidate 2x2 inverse matrices
+const safeDecodeHill = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+
+  const clean = targetStr.toLowerCase().replace(/[^a-z]/g, '');
+  if (clean.length < 8) return null;
+
+  const evenClean = clean.length % 2 === 0 ? clean : clean.slice(0, -1);
+  const N = evenClean.length;
+  if (N < 8) return null;
+
+  for (let idx = 0; idx < HILL_INVERSE_MATRICES.length; idx++) {
+    const { m00, m01, m10, m11 } = HILL_INVERSE_MATRICES[idx];
+    let decoded = '';
+
+    for (let i = 0; i < N; i += 2) {
+      const c0 = evenClean.charCodeAt(i) - 97;
+      const c1 = evenClean.charCodeAt(i + 1) - 97;
+
+      const p0 = (m00 * c0 + m01 * c1) % 26;
+      const p1 = (m10 * c0 + m11 * c1) % 26;
+
+      decoded += String.fromCharCode(p0 + 97, p1 + 97);
+    }
+
+    if (decoded && decoded !== targetStr && isPromptInjection(decoded, true)) {
+      return decoded;
+    }
+  }
+
+  return null;
 };
 
 // Helper to safely decode ADFGVX Cipher-encoded payloads across candidate 6x6 Polybius grids
