@@ -435,3 +435,14 @@ Neutralizing Autokey cipher obfuscation requires initializing a candidate key (1
 
 **Prevention:**
 Always include Autokey polyalphabetic cipher decoders in prompt injection validation pipelines to ensure plaintext-keystream continuation encodings cannot be used to bypass system prompt boundaries.
+
+## 2026-09-18 - Porta Cipher Prompt Injection Shield
+
+**Vulnerability:**
+Prompt injection detectors analyzing standard text or repeating-key ciphers (such as Vigenère or Beaufort) can be bypassed if an attacker obfuscates prompt override instructions (such as "ignore previous") using a reciprocal Porta polyalphabetic cipher across candidate key words. Large language models autonomously decipher Porta payloads during query processing, allowing obfuscated prompt injection payloads to bypass keyword filters and boundary checks.
+
+**Learning:**
+The Porta cipher uses self-reciprocal tableaux based on pairs of key letters (A/B=0, C/D=1, ..., Y/Z=12). Decryption maps 'a'-'m' to 'n'-'z' via `((c + k) % 13) + 13` and 'n'-'z' to 'a'-'m' via `((c - 13 - k + 260) % 13)`. Evaluating candidate strings across key words in `VIGENERE_BEAUFORT_KEYS` / `CIPHER_KEYWORDS` and recursively checking the decoded string against `isPromptInjection` blocks Porta cipher-encoded injection payloads before they reach LLM contexts.
+
+**Prevention:**
+Always include reciprocal polyalphabetic cipher decoders (such as Porta) in prompt injection validation pipelines before forwarding user text to language models.

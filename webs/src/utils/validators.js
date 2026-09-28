@@ -1892,10 +1892,42 @@ export const isPromptInjection = (query, isNested = false) => {
       if (hillDecoded) {
         return true;
       }
+
+      // Security: Handle Porta Cipher (reciprocal polyalphabetic cipher across candidate keywords) and evaluate recursively
+      const portaDecoded = safeDecodePorta(targetStr);
+      if (portaDecoded) {
+        return true;
+      }
     }
   }
 
   return false;
+};
+
+// Helper to safely decode Porta Cipher-encoded payloads across candidate keys
+const safeDecodePorta = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+  const clean = targetStr.toLowerCase().replace(/[^a-z]/g, '');
+  if (clean.length < 8) return null;
+
+  const candidateKeys = VIGENERE_BEAUFORT_KEYS || ['voro', 'key', 'sec', 'secret', 'ai', 'prompt', 'admin', 'code', 'pass', 'voroai'];
+  for (const key of candidateKeys) {
+    if (!key) continue;
+    let decoded = '';
+    for (let i = 0; i < clean.length; i++) {
+      const c = clean.charCodeAt(i) - 97;
+      const k = Math.floor((key.charCodeAt(i % key.length) - 97) / 2);
+      if (c < 13) {
+        decoded += String.fromCharCode(((c + k) % 13) + 13 + 97);
+      } else {
+        decoded += String.fromCharCode(((c - 13 - k + 260) % 13) + 97);
+      }
+    }
+    if (isPromptInjection(decoded, true)) {
+      return decoded;
+    }
+  }
+  return null;
 };
 
 // Helper to safely decode 2x2 Hill Cipher-encoded payloads across candidate 2x2 inverse matrices
