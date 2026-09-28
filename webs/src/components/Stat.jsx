@@ -36,7 +36,10 @@ export const Stat = memo(({
   icon: Icon,
   color = "voro-primary",
   className = "",
-  nodeId = "STAT_NODE_01"
+  nodeId = "STAT_NODE_01",
+  title,
+  ariaLabel,
+  'aria-label': customAriaLabel
 }) => {
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
@@ -148,6 +151,11 @@ export const Stat = memo(({
   const isPositive = change !== undefined && parseFloat(change) >= 0;
   const activeColor = TOKEN_MAP[color] || 'var(--voro-primary)';
 
+  const changeText = change !== undefined ? `, ${isPositive ? 'up' : 'down'} ${Math.abs(parseFloat(change))}%` : '';
+  const progressText = progress !== undefined ? `, ${Math.round(progress)}% of target` : '';
+  const computedAriaLabel = customAriaLabel || ariaLabel || `${label}: ${value}${unit ? ` ${unit}` : ''}${changeText}${progressText}`;
+  const computedTitle = title || computedAriaLabel;
+
   return (
     <div
       ref={containerRef}
@@ -158,7 +166,8 @@ export const Stat = memo(({
       onBlur={handleBlur}
       tabIndex="0"
       role="group"
-      aria-label={`${label}: ${value}${unit ? ` ${unit}` : ''}`}
+      aria-label={computedAriaLabel}
+      title={computedTitle}
       style={{
         transformStyle: 'preserve-3d',
         perspective: '1500px'
