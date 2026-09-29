@@ -15,6 +15,9 @@ export const Badge = memo(({
   nodeId = "BDG_01",
   interactive = false,
   tabIndex,
+  title,
+  "aria-label": ariaLabel,
+  ariaLabel: camelAriaLabel,
   className = "",
   onClick,
   onMouseEnter,
@@ -36,6 +39,10 @@ export const Badge = memo(({
 
   // Determine whether the component responds to interactive gestures
   const isInteractive = interactive || Boolean(onClick);
+
+  // Resolve explicitly passed title and aria-label
+  const resolvedTitle = title;
+  const resolvedAriaLabel = camelAriaLabel || ariaLabel;
 
   // Generate an SSR-safe deterministic sub-pixel hash badge
   const subpixelHash = useMemo(() => {
@@ -150,6 +157,7 @@ export const Badge = memo(({
   return (
     <span
       ref={containerRef}
+      title={resolvedTitle}
       onClick={onClick}
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
@@ -159,6 +167,7 @@ export const Badge = memo(({
       onKeyDown={handleKeyDown}
       role={role || (onClick ? "button" : undefined)}
       tabIndex={tabIndex ?? (isInteractive ? 0 : undefined)}
+      aria-label={resolvedAriaLabel}
       className={baseClasses}
       style={{
         transformStyle: 'preserve-3d',
