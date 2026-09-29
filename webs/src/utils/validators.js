@@ -786,6 +786,21 @@ const ADFGVX_MAP = Object.freeze({ a: 0, d: 1, f: 2, g: 3, v: 4, x: 5 });
 const NIHILIST_KEYWORD_KEYS = Object.freeze(['voro', 'key', 'ai', 'pass', 'sec', 'secret', 'admin', 'code', 'prompt']);
 
 // Precomputed 2x2 Hill Cipher inverse decryption matrices modulo 26
+
+// Precomputed 27 trit combinations for Fractionated Morse Cipher decoding
+const FRACTIONATED_MORSE_TRIPLETS = Object.freeze((() => {
+  const trits = [".", "-", "x"];
+  const triplets = [];
+  for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 3; j++) {
+      for (let k = 0; k < 3; k++) {
+        triplets.push(trits[i] + trits[j] + trits[k]);
+      }
+    }
+  }
+  return triplets;
+})());
+
 const HILL_INVERSE_MATRICES = Object.freeze((() => {
   const matrices = [];
   const addedSet = new Set();
@@ -1898,6 +1913,12 @@ export const isPromptInjection = (query, isNested = false) => {
       if (portaDecoded) {
         return true;
       }
+
+      // Security: Handle Fractionated Morse Cipher (27-trit Morse stream fractionated across candidate key alphabets) and evaluate recursively
+      const fractionatedMorseDecoded = safeDecodeFractionatedMorse(targetStr);
+      if (fractionatedMorseDecoded) {
+        return true;
+      }
     }
   }
 
@@ -1905,6 +1926,61 @@ export const isPromptInjection = (query, isNested = false) => {
 };
 
 // Helper to safely decode Porta Cipher-encoded payloads across candidate keys
+
+// Helper to safely decode Fractionated Morse Cipher-encoded payloads across candidate key alphabets
+const safeDecodeFractionatedMorse = (targetStr) => {
+  if (!targetStr || typeof targetStr !== "string" || targetStr.length < 8 || targetStr.length > 500) return null;
+  const clean = targetStr.toLowerCase().replace(/[^a-z]/g, "");
+  if (clean.length < 8) return null;
+
+  const candidateKeys = VIGENERE_BEAUFORT_KEYS || ["voro", "key", "sec", "secret", "ai", "prompt", "admin", "code", "pass", "voroai"];
+  const alphabet = "abcdefghijklmnopqrstuvwxyz";
+
+  for (const key of candidateKeys) {
+    if (!key) continue;
+    let keyStr = "";
+    const seen = new Set();
+    for (const ch of (key + alphabet)) {
+      if (alphabet.includes(ch) && !seen.has(ch)) {
+        seen.add(ch);
+        keyStr += ch;
+      }
+    }
+
+    let morseStream = "";
+    let valid = true;
+    for (let i = 0; i < clean.length; i++) {
+      const idx = keyStr.indexOf(clean[i]);
+      if (idx === -1 || idx >= 27) { valid = false; break; }
+      morseStream += FRACTIONATED_MORSE_TRIPLETS[idx];
+    }
+    if (!valid) continue;
+
+    const words = morseStream.split("xx");
+    let decodedWords = [];
+    let decodeSuccess = true;
+    for (const word of words) {
+      if (!word) continue;
+      const letters = word.split("x");
+      let wordDecoded = "";
+      for (const letterMorse of letters) {
+        if (!letterMorse) continue;
+        if (!MORSE_MAP[letterMorse]) { decodeSuccess = false; break; }
+        wordDecoded += MORSE_MAP[letterMorse];
+      }
+      if (!decodeSuccess) break;
+      if (wordDecoded) decodedWords.push(wordDecoded);
+    }
+    if (!decodeSuccess || decodedWords.length === 0) continue;
+
+    const decoded = decodedWords.join(" ");
+    if (decoded && isPromptInjection(decoded, true)) {
+      return decoded;
+    }
+  }
+  return null;
+};
+
 const safeDecodePorta = (targetStr) => {
   if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
   const clean = targetStr.toLowerCase().replace(/[^a-z]/g, '');
