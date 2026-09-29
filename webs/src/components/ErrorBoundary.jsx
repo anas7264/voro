@@ -87,6 +87,8 @@ const analyzeErrorForTampering = (error, errorInfo) => {
  * Re-engineered to the VORO premium 'Forge' luxury system aesthetic.
  * Integrates comprehensive Zero-Information Leakage redaction, RASP active analysis,
  * an Accessible 3D Interaction Pattern on hover/focus, and automatic cache-shredding self-healing.
+ * Zero-allocation performance: Uses instance flags (this.isHovered, this.isFocused) and direct DOM manipulation
+ * to eliminate 100% of React re-renders during high-frequency pointer movements, hover tilts, and focus events.
  *
  * Functions both as:
  * 1. A React class-based Error Boundary wrapping children nodes.
@@ -99,10 +101,11 @@ export class ErrorBoundary extends Component {
       hasError: false,
       error: null,
       errorInfo: null,
-      isHovered: false,
-      isFocused: false,
       isDetailsOpen: false
     };
+
+    this.isHovered = false;
+    this.isFocused = false;
 
     this.buttonRef = React.createRef();
     this.txRef = React.createRef();
@@ -133,29 +136,66 @@ export class ErrorBoundary extends Component {
     button.style.setProperty("--mouse-y", `${y}px`);
     button.style.setProperty("--tilt-x", `${tiltX}deg`);
     button.style.setProperty("--tilt-y", `${tiltY}deg`);
+    button.style.transform = "perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)";
 
     if (this.txRef.current) this.txRef.current.innerText = tiltX.toFixed(1);
     if (this.tyRef.current) this.tyRef.current.innerText = tiltY.toFixed(1);
   };
 
-  handleFocus = () => {
-    this.setState({ isFocused: true });
+  handleMouseEnter = () => {
+    this.isHovered = true;
     const button = this.buttonRef.current;
     if (button) {
-      // Apply immediate static 4-degree tilt on keyboard focus for visual confirmation
+      button.style.transition = "none";
+    }
+  };
+
+  handleMouseLeave = () => {
+    this.isHovered = false;
+    const button = this.buttonRef.current;
+    if (!button) return;
+
+    button.style.transition = "transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)";
+    if (this.isFocused) {
       button.style.setProperty("--tilt-x", "4deg");
       button.style.setProperty("--tilt-y", "-4deg");
+      button.style.transform = "perspective(1000px) rotateX(4deg) rotateY(-4deg) translateY(-4px)";
+      if (this.txRef.current) this.txRef.current.innerText = "4.0";
+      if (this.tyRef.current) this.tyRef.current.innerText = "-4.0";
+    } else {
+      button.style.setProperty("--tilt-x", "0deg");
+      button.style.setProperty("--tilt-y", "0deg");
+      button.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)";
+      if (this.txRef.current) this.txRef.current.innerText = "0.0";
+      if (this.tyRef.current) this.tyRef.current.innerText = "0.0";
+    }
+  };
+
+  handleFocus = () => {
+    this.isFocused = true;
+    const button = this.buttonRef.current;
+    if (button) {
+      button.style.transition = "transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)";
+      button.style.setProperty("--tilt-x", "4deg");
+      button.style.setProperty("--tilt-y", "-4deg");
+      button.style.transform = "perspective(1000px) rotateX(4deg) rotateY(-4deg) translateY(-4px)";
       if (this.txRef.current) this.txRef.current.innerText = "4.0";
       if (this.tyRef.current) this.tyRef.current.innerText = "-4.0";
     }
   };
 
   handleBlur = () => {
-    this.setState({ isFocused: false });
+    this.isFocused = false;
     const button = this.buttonRef.current;
-    if (button) {
+    if (!button) return;
+
+    if (!this.isHovered) {
+      button.style.transition = "transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)";
       button.style.setProperty("--tilt-x", "0deg");
       button.style.setProperty("--tilt-y", "0deg");
+      button.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)";
+      if (this.txRef.current) this.txRef.current.innerText = "0.0";
+      if (this.tyRef.current) this.tyRef.current.innerText = "0.0";
     }
   };
 
@@ -185,8 +225,6 @@ export class ErrorBoundary extends Component {
       const redactedMessage = safeRedact(activeError ? (activeError.message || String(activeError)) : "An unexpected error occurred");
       const redactedStack = safeRedact(activeError ? (activeError.stack || "") : "");
       const redactedComponentStack = safeRedact(this.state.errorInfo ? (this.state.errorInfo.componentStack || "") : "");
-
-      const interactionActive = this.state.isHovered || this.state.isFocused;
 
       return (
         <div className="min-h-screen bg-[#020408] text-[#F0F4FF] flex items-center justify-center p-6 relative overflow-hidden font-sans">
@@ -278,16 +316,14 @@ export class ErrorBoundary extends Component {
               <button
                 ref={this.buttonRef}
                 onMouseMove={this.handleMouseMove}
-                onMouseEnter={() => this.setState({ isHovered: true })}
-                onMouseLeave={() => this.setState({ isHovered: false })}
+                onMouseEnter={this.handleMouseEnter}
+                onMouseLeave={this.handleMouseLeave}
                 onFocus={this.handleFocus}
                 onBlur={this.handleBlur}
                 onClick={this.handleSecureReset}
                 style={{
-                  transform: interactionActive
-                    ? "perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)"
-                    : "perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)",
-                  transition: this.state.isHovered ? "none" : "transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)",
+                  transform: "perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)",
+                  transition: "transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)",
                   transformStyle: "preserve-3d"
                 }}
                 className="group relative px-10 py-5 rounded-2xl bg-white/5 border border-white/5 hover:border-voro-primary/30 transition-all duration-700 overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408]"

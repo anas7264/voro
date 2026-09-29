@@ -15,14 +15,18 @@ import Button from './Button';
  *    to display a luxury attestation overlay when the user is inactive/idle.
  * 3. Requires explicit, trusted user interaction ("Re-Attest Presence") to unlock and restore
  *    the decrypted UI state, restoring cryptographic key enclaves lazily.
+ * 4. Zero-allocation timer efficiency: Telemetry clock interval executes strictly when
+ *    isLocked is true, eliminating 100% of background 10Hz re-render churn when unlocked.
  */
 const ScreenPrivacyGuard = memo(() => {
   const [isLocked, setIsLocked] = useState(false);
   const [telemetryTime, setTelemetryTelemetryTime] = useState('');
   const badgeRef = useRef(null);
 
-  // Update telemetry clock
+  // Update telemetry clock strictly when locked to eliminate background 10Hz re-render churn
   useEffect(() => {
+    if (!isLocked) return;
+
     const updateTime = () => {
       const d = new Date();
       setTelemetryTelemetryTime(d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) + `.${(d.getMilliseconds() / 10).toFixed(0).padStart(2, '0')}`);
@@ -30,7 +34,7 @@ const ScreenPrivacyGuard = memo(() => {
     updateTime();
     const interval = setInterval(updateTime, 100);
     return () => clearInterval(interval);
-  }, []);
+  }, [isLocked]);
 
   // Set up listeners for Visibility Change and Idle Shredding
   useEffect(() => {
