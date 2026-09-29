@@ -3,7 +3,8 @@
 import voroCrypto from './crypto.js';
 import {
   sanitizeObject, validateCallStack, executeLockdown, getDecoyData,
-  isDeceptionActive, executeSecurely, createSecureProxy, sanitizeInput
+  isDeceptionActive, executeSecurely, createSecureProxy, sanitizeInput,
+  safeJSONParse
 } from './security.js';
 
 const STORAGE_PREFIX = "voro_";
@@ -332,7 +333,7 @@ class StorageManager {
   _ghostSet(key, value) {
     try {
       const vaultRaw = localStorage.getItem(GHOST_VAULT_KEY) || "{}";
-      const vault = JSON.parse(vaultRaw);
+      const vault = safeJSONParse(vaultRaw) || {};
       vault[key] = value;
       localStorage.setItem(GHOST_VAULT_KEY, JSON.stringify(vault));
       return true;
@@ -345,7 +346,7 @@ class StorageManager {
     try {
       const vaultRaw = localStorage.getItem(GHOST_VAULT_KEY);
       if (!vaultRaw) return true;
-      const vault = JSON.parse(vaultRaw);
+      const vault = safeJSONParse(vaultRaw) || {};
       delete vault[key];
       localStorage.setItem(GHOST_VAULT_KEY, JSON.stringify(vault));
       return true;
@@ -444,7 +445,7 @@ class StorageManager {
       } else {
         // Fallback for legacy plain-text data
         try {
-          processedItem = JSON.parse(item);
+          processedItem = safeJSONParse(item);
         } catch (e) {
           // Return raw string if JSON parsing fails
         }
@@ -500,7 +501,7 @@ class StorageManager {
     }
 
     try {
-      const parsed = JSON.parse(item);
+      const parsed = safeJSONParse(item);
       this.cache.set(baseKey, parsed);
       return createSecureProxy(parsed, baseKey);
     } catch (e) {

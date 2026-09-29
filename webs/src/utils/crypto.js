@@ -3,7 +3,7 @@
 import sentinel from './security.js';
 const {
   validateCallStack, executeSecurely, createSecureProxy, registerSecureKey,
-  _TEncoderEncode, _TDecoderDecode, _Uint8Fill, _Uint8Set, _Uint8Slice,
+  safeJSONParse, _TEncoderEncode, _TDecoderDecode, _Uint8Fill, _Uint8Set, _Uint8Slice,
   _call, _slice
 } = sentinel;
 
@@ -453,7 +453,7 @@ class CryptoManager {
       // Final shred of the decrypted plain-text buffer
       _call.call(_Uint8Fill, decrypted, 0);
       try {
-        const parsed = JSON.parse(decoded);
+        const parsed = safeJSONParse(decoded);
         // Neural Synapse Cloaking: Wrap the sensitive decrypted object in a lockdown-aware proxy
         return createSecureProxy(parsed, domain);
       } catch (e) {
@@ -648,7 +648,7 @@ class CryptoManager {
       _call.call(_Uint8Fill, decryptedBytes, 0);
 
       try {
-        const parsed = JSON.parse(decoded);
+        const parsed = safeJSONParse(decoded);
         return createSecureProxy(parsed, 'voro_backup_vault');
       } catch (e) {
         return decoded;

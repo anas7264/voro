@@ -446,3 +446,14 @@ The Porta cipher uses self-reciprocal tableaux based on pairs of key letters (A/
 
 **Prevention:**
 Always include reciprocal polyalphabetic cipher decoders (such as Porta) in prompt injection validation pipelines before forwarding user text to language models.
+
+## 2026-09-29 - Prototype Pollution Defense in Storage & Crypto Deserialization
+
+**Vulnerability:**
+Encrypted and unencrypted persistent storage items, ghost vault states, and decrypted backup payloads were parsed using raw `JSON.parse()`. If an untrusted or tampered payload contained `constructor` or `prototype` keys, `JSON.parse` created objects with these properties before post-parse sanitization ran, leaving potential prototype pollution vectors.
+
+**Learning:**
+`JSON.parse` with a `secureReviver` function that explicitly returns `undefined` for `__proto__`, `constructor`, and `prototype` keys strips prototype pollution properties directly during the reviver pass before object construction completes.
+
+**Prevention:**
+Always use `safeJSONParse` instead of raw `JSON.parse` when deserializing untrusted or persistent storage payloads across crypto and storage boundaries.
