@@ -143,16 +143,13 @@ export const calculateStreak = (completedDates) => {
 
     let time;
     // ⚡ PERFORMANCE OPTIMIZATION: Fast path for standard YYYY-MM-DD ISO strings.
-    // Avoids slow VM-level generic string parsing while matching standard UTC parsing behavior.
+    // Directly constructs local midnight timestamp without Date.UTC or setHours allocations.
     if (typeof d === 'string' && d.length === 10 && d.charCodeAt(4) === 45 && d.charCodeAt(7) === 45) {
       const y = parseInt(d.slice(0, 4), 10);
       const m = parseInt(d.slice(5, 7), 10);
       const day = parseInt(d.slice(8, 10), 10);
       if (y >= 1000 && y <= 9999 && m >= 1 && m <= 12 && day >= 1 && day <= 31) {
-        const utcTime = Date.UTC(y, m - 1, day);
-        const dt = new Date(utcTime);
-        dt.setHours(0, 0, 0, 0);
-        time = dt.getTime();
+        time = new Date(y, m - 1, day).getTime();
       }
     }
 

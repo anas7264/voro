@@ -452,8 +452,6 @@ const DailyStreak = () => {
     addNotification('Behavioral synchronicity vector re-aligned.', 'success');
   }, [addNotification]);
 
-  const dynamicChartInteraction = chartHovered || chartFocused;
-
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30 pb-24 relative overflow-hidden">
       {/* Editorial Ambient background depth */}
