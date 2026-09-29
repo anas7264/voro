@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { Trophy } from 'lucide-react';
+import { Trophy, Award, Flame, Target, Layers } from 'lucide-react';
 import { AchievementCard } from '@/components/AchievementCard';
+import { Header } from '@/components/Header';
+import { Tabs } from '@/components/Tabs';
+import { Badge } from '@/components/Badge';
+import { Tag } from '@/components/Tag';
 import { achievements } from '@/data/achievements';
 import { useStorageKeySelector } from '@/hooks/useStorage';
 
@@ -11,22 +15,25 @@ const selectLevel = (data) => (typeof data?.level === 'number' ? data.level : 1)
 const selectTotalXP = (data) => (typeof data?.totalXP === 'number' ? data.totalXP : 0);
 
 /**
- * ⚡ PERFORMANCE OPTIMIZATION: Hoisted categories set.
- * Prevents calling map, instantiating a Set, and reconstructing the array on mount or re-render.
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted categories set & grouping map.
+ * Pre-computes static categories and category lookup dictionary at module load time
+ * to prevent array allocations and O(C * N) filtrations on every render.
  */
 const CATEGORIES = [...new Set(achievements.map(a => a.category))];
 
-/**
- * ⚡ PERFORMANCE OPTIMIZATION: Hoisted Achievement Grouping Map.
- * Groups static achievements by category at module load time to completely
- * avoid O(C * N) array filtrations on every render.
- */
 const ACHIEVEMENTS_BY_CATEGORY = achievements.reduce((acc, achievement) => {
   if (!acc[achievement.category]) acc[achievement.category] = [];
   acc[achievement.category].push(achievement);
   return acc;
 }, {});
 
+/**
+ * ⚡ REFINEMENT: Luxury Evolution Matrix & Artifact Enclave (Achievements Page).
+ * Re-engineered to Voro's 'Forge' luxury architectural system standard:
+ * features gallery header architecture, 60fps direct-DOM volumetric hero tilt,
+ * sliding glass matrix navigation tabs, double concentric counter-rotating orbital rings,
+ * sub-pixel attestation badging, and W3C APG compliant keyboard accessibility.
+ */
 const Achievements = () => {
   /**
    * ⚡ PERFORMANCE OPTIMIZATION: Granular Reactivity via useStorageKeySelector.
@@ -37,6 +44,8 @@ const Achievements = () => {
   const level = useStorageKeySelector('gamification', selectLevel);
   const xp = useStorageKeySelector('gamification', selectTotalXP);
 
+  const [activeCategory, setActiveCategory] = useState('ALL');
+
   const heroRef = useRef(null);
   const heroTiltXRef = useRef(null);
   const heroTiltYRef = useRef(null);
@@ -44,10 +53,14 @@ const Achievements = () => {
   const isHeroFocusedRef = useRef(false);
 
   useEffect(() => {
-    document.title = 'VORO | Achievement Matrix';
+    document.title = 'VORO | Artifact Matrix';
   }, []);
 
   const earnedIds = useMemo(() => new Set(earned), [earned]);
+
+  const completionPercentage = useMemo(() => {
+    return achievements.length > 0 ? Math.round((earned.length / achievements.length) * 100) : 0;
+  }, [earned.length]);
 
   const { xpToNextLevel, progressPercentage } = useMemo(() => {
     const currentLevelXP = level * 1000;
@@ -58,20 +71,41 @@ const Achievements = () => {
     };
   }, [level, xp]);
 
+  // Tab items for category navigation with live counters
+  const tabItems = useMemo(() => {
+    const allTab = {
+      id: 'ALL',
+      label: `ALL ARTIFACTS (${achievements.length})`,
+      icon: <Award size={14} />
+    };
+
+    const categoryTabs = CATEGORIES.map(category => {
+      const categoryAchievements = ACHIEVEMENTS_BY_CATEGORY[category] || EMPTY_ARRAY;
+      const earnedCount = categoryAchievements.filter(a => earnedIds.has(a.id)).length;
+      return {
+        id: category,
+        label: `${category.toUpperCase()} (${earnedCount}/${categoryAchievements.length})`,
+        icon: category === 'Metabolic' ? <Layers size={14} /> : category === 'Kinetic' ? <Flame size={14} /> : <Target size={14} />
+      };
+    });
+
+    return [allTab, ...categoryTabs];
+  }, [earnedIds]);
+
   const handleHeroMouseMove = useCallback((e) => {
     if (!heroRef.current) return;
     const rect = heroRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    // Max 8 degrees tilt for a premium, heavy kinetic feel
+    // Max 8 degrees tilt for a heavy, luxury kinetic feel
     const tiltY = ((x / rect.width) - 0.5) * 16;
     const tiltX = (0.5 - (y / rect.height)) * 16;
 
     heroRef.current.style.setProperty('--mouse-x', `${x}px`);
     heroRef.current.style.setProperty('--mouse-y', `${y}px`);
-    heroRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    heroRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    heroRef.current.style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
+    heroRef.current.style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
 
     if (heroTiltXRef.current) heroTiltXRef.current.innerText = tiltX.toFixed(1);
     if (heroTiltYRef.current) heroTiltYRef.current.innerText = tiltY.toFixed(1);
@@ -128,6 +162,11 @@ const Achievements = () => {
     }
   }, []);
 
+  const displayedCategories = useMemo(() => {
+    if (activeCategory === 'ALL') return CATEGORIES;
+    return CATEGORIES.filter(cat => cat === activeCategory);
+  }, [activeCategory]);
+
   return (
     <div className="min-h-screen bg-[#080B14] text-[#F0F4FF] selection:bg-voro-primary/30 pb-24">
       {/* Ambient Background Depth */}
@@ -137,33 +176,34 @@ const Achievements = () => {
       </div>
 
       <div className="relative max-w-[1440px] mx-auto px-6 py-12 md:px-12 lg:px-20">
-        <header className="mb-20 flex flex-col md:flex-row md:items-end justify-between gap-8">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3 text-voro-primary">
-              <Trophy size={18} />
-              <span className="text-[0.6rem] font-black uppercase tracking-[0.3em]">Evolution Milestones</span>
-            </div>
-            <h1 className="text-5xl md:text-6xl font-serif italic font-medium tracking-tight text-white leading-tight">
+        {/* Gallery Header Architecture */}
+        <Header
+          eyebrow="EVOLUTION_MILESTONES"
+          title={
+            <>
               Artifact <span className="text-voro-primary not-italic font-bold">Matrix</span>
-            </h1>
-            <p className="text-gray-500 font-medium tracking-widest text-[0.65rem] uppercase opacity-60">
-              Documenting the kinetics of your biological ascension
-            </p>
-          </div>
-
-          <div className="flex gap-4">
-             <div className="px-8 py-4 bg-[#0A0C14] border border-white/5 rounded-2xl shadow-xl flex items-center gap-6">
-                <div className="text-right border-r border-white/5 pr-6">
-                  <p className="text-[0.55rem] font-black text-gray-600 uppercase tracking-[0.2em] mb-1">Completion</p>
-                  <p className="text-xl font-mono font-bold text-white">{Math.round((earned.length / achievements.length) * 100)}%</p>
+            </>
+          }
+          subtitle="Documenting the kinetics of your biological ascension and milestone achievements"
+          action={
+            <div className="flex items-center gap-4 bg-[#0A0C14]/90 p-4 px-6 rounded-2xl border border-white/10 backdrop-blur-2xl shadow-2xl">
+              <div className="text-right border-r border-white/10 pr-6">
+                <p className="text-[0.5rem] font-mono font-bold text-gray-400 uppercase tracking-[0.2em] mb-0.5">Completion</p>
+                <Badge variant="voro-primary" size="md" dot={true}>
+                  {completionPercentage}%
+                </Badge>
+              </div>
+              <div className="text-right">
+                <p className="text-[0.5rem] font-mono font-bold text-gray-400 uppercase tracking-[0.2em] mb-0.5">Unlocked</p>
+                <div className="text-sm font-mono font-bold text-white">
+                  <span className="text-voro-primary">{earned.length}</span>
+                  <span className="text-gray-600 mx-1">/</span>
+                  <span>{achievements.length}</span>
                 </div>
-                <div className="text-right">
-                  <p className="text-[0.55rem] font-black text-gray-600 uppercase tracking-[0.2em] mb-1">Unlocked</p>
-                  <p className="text-xl font-mono font-bold text-voro-primary">{earned.length}<span className="text-gray-700 mx-1">/</span>{achievements.length}</p>
-                </div>
-             </div>
-          </div>
-        </header>
+              </div>
+            </div>
+          }
+        />
 
         {/* Ascension Biometric Core & Chrono-Spectral Progression Conduit */}
         <section
@@ -179,7 +219,7 @@ const Achievements = () => {
           style={{
             transformStyle: 'preserve-3d'
           }}
-          className="relative overflow-hidden rounded-[3rem] bg-[#0A0C14] border border-white/5 p-12 md:p-16 mb-20 shadow-[0_60px_120px_-20px_rgba(0,0,0,0.8),inset_0_1px_1px_0_rgba(255,255,255,0.05)] hover:border-white/10 group/hero bg-boutique-grain cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#080B14]"
+          className="relative overflow-hidden rounded-[3rem] bg-[#0A0C14] border border-white/5 p-12 md:p-16 mb-20 shadow-[0_60px_120px_-20px_rgba(0,0,0,0.8),inset_0_1px_1px_0_rgba(255,255,255,0.05)] hover:border-white/10 group/hero bg-boutique-grain cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#080B14] transition-all duration-1000"
         >
           {/* Luminous dynamic background */}
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-voro-primary/5 rounded-full blur-[130px] -mr-48 -mt-48 group-hover/hero:bg-voro-primary/10 transition-colors duration-1000 pointer-events-none" />
@@ -200,8 +240,13 @@ const Achievements = () => {
             <div className="flex flex-col items-end font-mono text-[0.45rem] font-bold text-voro-primary/60 tracking-[0.2em] space-y-1">
               <span>TX_<span ref={heroTiltXRef}>0.0</span>°</span>
               <span>TY_<span ref={heroTiltYRef}>0.0</span>°</span>
-              <span className="text-white/10">[BIOMETRIC_CORE_V3]</span>
+              <span className="text-white/20">[0xASC_CORE_V3]</span>
             </div>
+          </div>
+
+          {/* Sub-pixel System Attestation Hash */}
+          <div className="absolute bottom-4 left-8 pointer-events-none text-[0.4rem] font-mono font-black text-white/10 group-hover/hero:text-white/30 transition-colors duration-700 tracking-[0.25em] uppercase select-none z-20">
+            0xASC_CORE_ATTESTED_MATRIX
           </div>
 
           <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-16 items-center" style={{ transformStyle: 'preserve-3d' }}>
@@ -211,7 +256,7 @@ const Achievements = () => {
                 <div className="w-48 h-48 rounded-full border border-white/5 flex items-center justify-center bg-black/45 backdrop-blur-2xl shadow-[0_30px_60px_rgba(0,0,0,0.6),inset_0_2px_4px_rgba(255,255,255,0.05)] relative z-10">
                   <div className="absolute inset-0 opacity-[0.03] bg-scanline pointer-events-none rounded-full" />
                   <div className="text-center relative z-10">
-                    <p className="text-[0.55rem] font-black text-gray-500 uppercase tracking-[0.4em] mb-1.5">Ascension Level</p>
+                    <p className="text-[0.55rem] font-mono font-bold text-gray-500 uppercase tracking-[0.4em] mb-1.5">Ascension Level</p>
                     <p className="text-8xl font-serif italic font-black text-white leading-none filter drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">{level}</p>
                   </div>
                 </div>
@@ -239,7 +284,7 @@ const Achievements = () => {
                     <span className="text-7xl font-serif italic font-medium tracking-tight text-white">
                       {xp.toLocaleString()}
                     </span>
-                    <span className="text-lg font-mono font-bold text-gray-500 tracking-tight">/ {(level * 1000).toLocaleString()} <span className="text-[0.6rem] font-sans font-black text-gray-600 uppercase tracking-widest ml-1">XP</span></span>
+                    <span className="text-lg font-mono font-bold text-gray-500 tracking-tight">/ {(level * 1000).toLocaleString()} <span className="text-[0.6rem] font-mono font-bold text-gray-600 uppercase tracking-widest ml-1">XP</span></span>
                   </div>
                 </div>
 
@@ -247,7 +292,7 @@ const Achievements = () => {
                   <p className="text-[0.6rem] font-mono font-black text-voro-secondary uppercase tracking-[0.2em]">Synthesis Required</p>
                   <p className="text-2xl font-serif italic font-bold text-white">
                     {xpToNextLevel.toLocaleString()}{' '}
-                    <span className="text-[0.65rem] not-italic font-sans font-black text-gray-500 uppercase ml-1.5 tracking-widest">
+                    <span className="text-[0.65rem] not-italic font-mono font-bold text-gray-500 uppercase ml-1.5 tracking-widest">
                       XP
                     </span>
                   </p>
@@ -306,15 +351,29 @@ const Achievements = () => {
           </div>
         </section>
 
+        {/* Kinetic Category Selection Tabs */}
+        <div className="mb-16">
+          <Tabs
+            tabs={tabItems}
+            activeTab={activeCategory}
+            onTabChange={setActiveCategory}
+          />
+        </div>
+
         {/* Categorized Matrix Display */}
         <div className="space-y-24">
-          {CATEGORIES.map(category => (
+          {displayedCategories.map(category => (
             <section key={category} className="space-y-10">
               <div className="items-center gap-6 hidden md:flex">
-                <h2 className="text-[0.7rem] font-black uppercase tracking-[0.5em] text-gray-500 whitespace-nowrap">
-                  {category}
-                </h2>
-                <div className="h-px w-full bg-gradient-to-r from-white/10 to-transparent" />
+                <div className="flex items-center gap-3">
+                  <Tag variant="voro-primary" size="md" dot={true}>
+                    {category}
+                  </Tag>
+                  <span className="text-[0.6rem] font-mono font-bold text-gray-500 uppercase tracking-[0.3em]">
+                    [{(ACHIEVEMENTS_BY_CATEGORY[category] || []).length} ARTIFACTS]
+                  </span>
+                </div>
+                <div className="h-px flex-1 bg-gradient-to-r from-voro-primary/30 via-white/5 to-transparent" />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
