@@ -2914,8 +2914,8 @@ export const safeJSONParse = (text, reviver = null) => {
   if (typeof text !== 'string') return text;
 
   const secureReviver = function(key, value) {
-    if (key === '__proto__') {
-      return undefined; // Strip legacy prototype pollution vector safely
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+      return undefined; // Strip prototype pollution vectors safely during reviver pass
     }
     if (reviver) {
       return reviver.call(this, key, value);
