@@ -40,7 +40,7 @@ const PAGE_SIZE = 15;
  * Features 3D volumetric transforms, coordinate telemetry, magnetic mouse tracking,
  * and keyboard accessibility with static focus-tilts (4 degrees).
  */
-const ChronoArchiveCard = React.memo(({ workout, idx, isExpanded, onToggle, nodeId }) => {
+const ChronoArchiveCard = React.memo(({ workout, isExpanded, onToggle, nodeId }) => {
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
@@ -48,6 +48,10 @@ const ChronoArchiveCard = React.memo(({ workout, idx, isExpanded, onToggle, node
   const isFocusedRef = useRef(false);
   const contentId = useId();
   const triggerId = useId();
+
+  const handleToggleClick = useCallback(() => {
+    onToggle(workout.date);
+  }, [workout.date, onToggle]);
 
   const updateTransform = () => {
     if (!containerRef.current) return;
@@ -178,7 +182,7 @@ const ChronoArchiveCard = React.memo(({ workout, idx, isExpanded, onToggle, node
         <button
           id={triggerId}
           type="button"
-          onClick={() => onToggle(idx)}
+          onClick={handleToggleClick}
           aria-expanded={isExpanded}
           aria-controls={contentId}
           className="w-full text-left transition-all outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408] rounded-[1.5rem]"
@@ -282,12 +286,12 @@ const WorkoutHistory = () => {
   const navigate = useNavigate();
   const pageId = useId();
   const cleanPageId = useMemo(() => pageId.replace(/:/g, ''), [pageId]);
-  const [expandedIdx, setExpandedIdx] = useState(null);
+  const [expandedDate, setExpandedDate] = useState(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [selectedArchetype, setSelectedArchetype] = useState('All');
 
-  const handleToggle = useCallback((idx) => {
-    setExpandedIdx(prev => (prev === idx ? null : idx));
+  const handleToggle = useCallback((dateKey) => {
+    setExpandedDate(prev => (prev === dateKey ? null : dateKey));
   }, []);
 
   useEffect(() => {
@@ -450,7 +454,7 @@ const WorkoutHistory = () => {
                     key={arch}
                     onClick={() => {
                       setSelectedArchetype(arch);
-                      setExpandedIdx(null);
+                      setExpandedDate(null);
                     }}
                     aria-pressed={selectedArchetype === arch}
                     className={`relative px-8 py-4 rounded-full text-xs font-mono font-bold tracking-[0.15em] uppercase transition-all duration-500 overflow-hidden focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408] outline-none ${
@@ -473,8 +477,7 @@ const WorkoutHistory = () => {
                   <div key={workout.date} className="animate-slide-up" style={{ animationDelay: `${idx * 50}ms` }}>
                     <ChronoArchiveCard
                       workout={workout}
-                      idx={idx}
-                      isExpanded={expandedIdx === idx}
+                      isExpanded={expandedDate === workout.date}
                       onToggle={handleToggle}
                       nodeId={uniqueNodeId}
                     />

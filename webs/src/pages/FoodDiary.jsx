@@ -54,6 +54,10 @@ const KineticMealSlotCard = memo(({ slot, sIdx, slotMeal, totalKcal, onOpenSearc
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
 
+  const handleSearchClick = useCallback(() => {
+    onOpenSearch(slot);
+  }, [slot, onOpenSearch]);
+
   const nodeId = useMemo(() => `0xMEAL_SLOT_0${sIdx + 1}`, [sIdx]);
 
   const handleMouseMove = useCallback((e) => {
@@ -195,7 +199,7 @@ const KineticMealSlotCard = memo(({ slot, sIdx, slotMeal, totalKcal, onOpenSearc
               <p className="text-[0.55rem] font-black text-gray-600 uppercase tracking-[0.2em]">Energy kcal</p>
             </div>
             <button
-              onClick={() => onOpenSearch(slot)}
+              onClick={handleSearchClick}
               className="p-3.5 bg-white text-black rounded-full hover:scale-110 active:scale-90 transition-all shadow-xl shadow-white/5 focus-visible:ring-2 focus-visible:ring-voro-primary outline-none"
               aria-label={`Synthesize food into ${slot}`}
             >
@@ -494,7 +498,7 @@ const FoodDiary = () => {
     { label: 'Protein', value: nutritionLog.totals.protein, goal: user?.proteinGoal || 160, color: '#7C3AED', unit: 'g' },
     { label: 'Carbs', value: nutritionLog.totals.carbs, goal: user?.carbGoal || 225, color: '#10B981', unit: 'g' },
     { label: 'Fat', value: nutritionLog.totals.fat, goal: user?.fatGoal || 65, color: '#F59E0B', unit: 'g' }
-  ], [nutritionLog.totals, user]);
+  ], [nutritionLog.totals.protein, nutritionLog.totals.carbs, nutritionLog.totals.fat, user?.proteinGoal, user?.carbGoal, user?.fatGoal]);
 
   const formattedDate = useMemo(() => dateFormatter.format(new Date(`${date}T00:00:00`)), [date]);
 

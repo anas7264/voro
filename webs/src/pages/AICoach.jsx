@@ -7,6 +7,7 @@ import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useAI } from '@/hooks/useAI';
 import { useNotifications } from '@/hooks/useNotifications';
 import { isValidChatQuery, isPromptInjection } from '@/utils/validators';
+import { CachedDateTimeFormat } from '@/utils/formatters';
 
 /**
  * ⚡ LUXURY ARCHITECTURE: Static Module Datasets
@@ -44,7 +45,7 @@ const generateLocalFallback = (userInput) => {
   return `I'm here to help! Ask me about your nutrition, training, goals, or progress, and I'll give you personalized advice based on your VORO data.`;
 };
 
-const timeFormatter = new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+const timeFormatter = new CachedDateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 /**
  * ⚡ LUXURY REFINEMENT: MessageItem Dialogue Bubble
@@ -232,13 +233,17 @@ MessageItem.displayName = 'MessageItem';
  * Implements mouse-tracking, coordinate telemetry, Accessible 3D Interaction Pattern
  * (Focus applying a 4-degree static tilt), and Golden Ratio proportions.
  */
-const QuickPromptCard = memo(({ prompt, onClick }) => {
+const QuickPromptCard = memo(({ prompt, onSelect }) => {
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
   const reactId = useId();
+
+  const handleClick = useCallback(() => {
+    onSelect(prompt);
+  }, [prompt, onSelect]);
 
   const nodeId = useMemo(() => `PRMPT_${reactId.replace(/:/g, '').slice(0, 4).toUpperCase()}`, [reactId]);
 
@@ -315,7 +320,7 @@ const QuickPromptCard = memo(({ prompt, onClick }) => {
       onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
-      onClick={onClick}
+      onClick={handleClick}
       style={{
         transformStyle: 'preserve-3d'
       }}
@@ -391,7 +396,7 @@ const AICoach = () => {
     document.title = 'VORO | Neural Oracle';
   }, []);
 
-  const handleSendMessage = async (text = input) => {
+  const handleSendMessage = useCallback(async (text = input) => {
     if (!text.trim() || loading) return;
 
     // Security: Validate character length of the chat query before transmission and processing in AI/Redaction/Entropy pipelines (mitigates DoS)
@@ -450,7 +455,7 @@ const AICoach = () => {
         setLocalLoading(false);
       }, 500);
     }
-  };
+  }, [input, loading, messages, chat, setItem, addNotification]);
 
   const charactersLimit = 2000;
   const currentCharsCount = input.length;
@@ -519,11 +524,11 @@ const AICoach = () => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full">
-                {QUICK_PROMPTS.map((prompt, idx) => (
+                {QUICK_PROMPTS.map((prompt) => (
                   <QuickPromptCard
-                    key={idx}
+                    key={prompt}
                     prompt={prompt}
-                    onClick={() => handleSendMessage(prompt)}
+                    onSelect={handleSendMessage}
                   />
                 ))}
               </div>
