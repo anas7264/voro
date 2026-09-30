@@ -2897,6 +2897,19 @@ export const validateFoodDiaryEntry = (entry) => {
     errors.portion = "Portion must be between 1 and 5000 grams";
   }
 
+  // Security: Enforce strict type and length limits on optional text fields
+  if (entry.food !== undefined && entry.food !== null && entry.food !== '') {
+    if (typeof entry.food !== 'string' || entry.food.length > 100) {
+      errors.food = "Food name must be 100 characters or less";
+    }
+  }
+
+  if (entry.notes !== undefined && entry.notes !== null && entry.notes !== '') {
+    if (typeof entry.notes !== 'string' || entry.notes.length > 2048) {
+      errors.notes = "Notes must be 2048 characters or less";
+    }
+  }
+
   return { valid: Object.keys(errors).length === 0, errors };
 };
 
@@ -3020,6 +3033,19 @@ export const validateWorkoutEntry = (workout) => {
     if (workout.date && !isValidDate(workout.date)) errors.date = "Date is invalid";
   }
 
+  // Security: Enforce strict type, length, and finite range bounds on optional fields
+  if (workout.notes !== undefined && workout.notes !== null && workout.notes !== '') {
+    if (typeof workout.notes !== 'string' || workout.notes.length > 2048) {
+      errors.notes = "Notes must be 2048 characters or less";
+    }
+  }
+
+  if (workout.duration !== undefined && workout.duration !== null && workout.duration !== '') {
+    if (!isValidDuration(workout.duration)) {
+      errors.duration = "Duration must be between 1 and 3600 seconds";
+    }
+  }
+
   return { valid: Object.keys(errors).length === 0, errors };
 };
 
@@ -3041,6 +3067,13 @@ export const validateNutritionEntry = (nutrition) => {
   if (!isValidMacro(nutrition.fat)) errors.fat = "Fat must be between 0 and 500 grams";
   if (!isValidMealType(nutrition.mealType)) errors.mealType = "Invalid meal type";
   if (!isValidDate(nutrition.date)) errors.date = "Date is invalid";
+
+  // Security: Enforce strict type and length limits on optional text fields
+  if (nutrition.notes !== undefined && nutrition.notes !== null && nutrition.notes !== '') {
+    if (typeof nutrition.notes !== 'string' || nutrition.notes.length > 2048) {
+      errors.notes = "Notes must be 2048 characters or less";
+    }
+  }
 
   return { valid: Object.keys(errors).length === 0, errors };
 };
@@ -3098,6 +3131,26 @@ export const validateRecipe = (recipe) => {
         errors[`ingredient_${idx}_portion`] = `Portion for ${ing.name || 'ingredient'} must be between 1 and 5000 grams`;
       }
     });
+  }
+
+  // Security: Enforce strict type, length, and finite range bounds on optional fields
+  if (recipe.instructions !== undefined && recipe.instructions !== null && recipe.instructions !== '') {
+    if (typeof recipe.instructions !== 'string' || recipe.instructions.length > 4096) {
+      errors.instructions = "Instructions must be 4096 characters or less";
+    }
+  }
+
+  if (recipe.notes !== undefined && recipe.notes !== null && recipe.notes !== '') {
+    if (typeof recipe.notes !== 'string' || recipe.notes.length > 2048) {
+      errors.notes = "Notes must be 2048 characters or less";
+    }
+  }
+
+  if (recipe.servings !== undefined && recipe.servings !== null && recipe.servings !== '') {
+    const s = parseInt(recipe.servings, 10);
+    if (!Number.isFinite(s) || s < 1 || s > 100) {
+      errors.servings = "Servings must be between 1 and 100";
+    }
   }
 
   return { valid: Object.keys(errors).length === 0, errors };
