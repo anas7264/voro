@@ -905,6 +905,49 @@ const TRIFID_CANDIDATE_GRIDS = Object.freeze((() => {
   return grids;
 })());
 
+const STRADDLING_CHECKERBOARD_CANDIDATES = Object.freeze([
+  // 1. AT ONE SIR Layout (blanks at indices 2 and 6)
+  Object.freeze({
+    b1: 2,
+    b2: 6,
+    r0: Object.freeze(['a', 't', null, 'o', 'n', 'e', null, 's', 'i', 'r']),
+    r1: Object.freeze(['b', 'c', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm']),
+    r2: Object.freeze(['p', 'q', 'u', 'v', 'w', 'x', 'y', 'z', '.', '/'])
+  }),
+  // 2. ESTONIA Layout (blanks at indices 7 and 8)
+  Object.freeze({
+    b1: 7,
+    b2: 8,
+    r0: Object.freeze(['e', 's', 't', 'o', 'n', 'i', 'a', null, null, 'r']),
+    r1: Object.freeze(['b', 'c', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm']),
+    r2: Object.freeze(['p', 'q', 'u', 'v', 'w', 'x', 'y', 'z', '.', '/'])
+  }),
+  // 3. VORO Layout (blanks at indices 3 and 7)
+  Object.freeze({
+    b1: 3,
+    b2: 7,
+    r0: Object.freeze(['v', 'o', 'r', null, 'a', 'b', 'c', null, 'd', 'e']),
+    r1: Object.freeze(['f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'p']),
+    r2: Object.freeze(['q', 's', 't', 'u', 'w', 'x', 'y', 'z', '.', '/'])
+  }),
+  // 4. Standard Alphabet Layout 1 (blanks at 2 and 6)
+  Object.freeze({
+    b1: 2,
+    b2: 6,
+    r0: Object.freeze(['a', 'b', null, 'c', 'd', 'e', null, 'f', 'g', 'h']),
+    r1: Object.freeze(['i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r']),
+    r2: Object.freeze(['s', 't', 'u', 'v', 'w', 'x', 'y', 'z', '.', '/'])
+  }),
+  // 5. Standard Alphabet Layout 2 (blanks at 3 and 7)
+  Object.freeze({
+    b1: 3,
+    b2: 7,
+    r0: Object.freeze(['a', 'b', 'c', null, 'd', 'e', 'f', null, 'g', 'h']),
+    r1: Object.freeze(['i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r']),
+    r2: Object.freeze(['s', 't', 'u', 'v', 'w', 'x', 'y', 'z', '.', '/'])
+  })
+]);
+
 
 // Helper to safely decode space/comma/byte-separated decimal, hex, or octal character codes into ASCII
 const safeDecodeDecimal = (str) => {
@@ -1919,10 +1962,63 @@ export const isPromptInjection = (query, isNested = false) => {
       if (fractionatedMorseDecoded) {
         return true;
       }
+
+      // Security: Handle Straddling Checkerboard Cipher (10-column multi-row digit grid substitution) and evaluate recursively
+      const straddlingDecoded = safeDecodeStraddlingCheckerboard(targetStr);
+      if (straddlingDecoded) {
+        return true;
+      }
     }
   }
 
   return false;
+};
+
+// Helper to safely decode Straddling Checkerboard Cipher-encoded payloads across candidate boards
+const safeDecodeStraddlingCheckerboard = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 6 || targetStr.length > 1000) return null;
+
+  const digitChars = targetStr.replace(/[^0-9]/g, '');
+  if (digitChars.length < 6) return null;
+
+  for (let idx = 0; idx < STRADDLING_CHECKERBOARD_CANDIDATES.length; idx++) {
+    const { r0, r1, r2, b1, b2 } = STRADDLING_CHECKERBOARD_CANDIDATES[idx];
+    let decoded = '';
+    let i = 0;
+    while (i < digitChars.length) {
+      const d1 = digitChars.charCodeAt(i) - 48;
+      if (d1 < 0 || d1 > 9) {
+        i++;
+        continue;
+      }
+      if (d1 === b1) {
+        if (i + 1 >= digitChars.length) break;
+        const d2 = digitChars.charCodeAt(i + 1) - 48;
+        if (d2 >= 0 && d2 <= 9 && r1[d2]) {
+          decoded += r1[d2];
+        }
+        i += 2;
+      } else if (d1 === b2) {
+        if (i + 1 >= digitChars.length) break;
+        const d2 = digitChars.charCodeAt(i + 1) - 48;
+        if (d2 >= 0 && d2 <= 9 && r2[d2]) {
+          decoded += r2[d2];
+        }
+        i += 2;
+      } else {
+        if (r0[d1]) {
+          decoded += r0[d1];
+        }
+        i += 1;
+      }
+    }
+
+    if (decoded && decoded.length >= 6 && isPromptInjection(decoded, true)) {
+      return decoded;
+    }
+  }
+
+  return null;
 };
 
 // Helper to safely decode Porta Cipher-encoded payloads across candidate keys
