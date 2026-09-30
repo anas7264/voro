@@ -366,10 +366,14 @@ MetabolicChronometer.displayName = 'MetabolicChronometer';
  * ⚡ SUBCOMPONENT: Custom Luxury Window Card
  * Tactile glassmorphic selector button matching the "Forge" standard.
  */
-const WindowCard = memo(({ option, isSelected, onClick }) => {
+const WindowCard = memo(({ option, isSelected, onSelect }) => {
   const cardRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
+
+  const handleClick = useCallback(() => {
+    onSelect(option.id);
+  }, [option.id, onSelect]);
 
   const updateTransform = () => {
     if (!cardRef.current) return;
@@ -443,7 +447,7 @@ const WindowCard = memo(({ option, isSelected, onClick }) => {
       onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}
       onBlur={handleBlur}
-      onClick={onClick}
+      onClick={handleClick}
       aria-pressed={isSelected}
       style={{
         transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
@@ -805,17 +809,18 @@ const FastingTracker = () => {
     addNotification('Fasting cycle reset and metadata archived.', 'info');
   }, [updateItem, addNotification]);
 
-  const handleWindowChange = async (optionId) => {
+  const handleWindowChange = useCallback(async (optionId) => {
     await updateItem('fasting', { window: optionId });
     addNotification(`Deprivation window switched to ${optionId}.`, 'success');
-  };
+  }, [updateItem, addNotification]);
 
   const progress = Math.min((elapsed / totalSeconds) * 100, 100);
   const hours = Math.floor(elapsed / 3600);
   const minutes = Math.floor((elapsed % 3600) / 60);
   const seconds = elapsed % 60;
 
-  // Live Simulated Metabolic Bio-measures
+  // Live Simulated Metabolic Bio-measures quantized to 10-second intervals to eliminate redundant object re-allocations
+  const measureStep = Math.floor(elapsed / 10);
   const simulatedMeasures = useMemo(() => {
     const hoursElapsed = elapsed / 3600;
 
@@ -835,12 +840,20 @@ const FastingTracker = () => {
     const hghVal = (1.0 + Math.min(4.0, (hoursElapsed / 24) * 4)).toFixed(1);
 
     return {
-      glycogen: { val: glycogenVal.toFixed(0), progress: 100 - glycogenVal, desc: glycogenVal > 0 ? "Glycogen depletion in progress" : "Hepatic glycogen fully exhausted" },
-      autophagy: { val: autophagyVal.toFixed(0), progress: autophagyVal, desc: hoursElapsed < 12 ? "Cellular cleanup dormant (requires 12h)" : "Active autophagic cellular recycling" },
-      fat: { val: fatVal.toFixed(0), progress: fatVal, desc: "Shifting substrate dominance to lipids" },
-      hgh: { val: hghVal, progress: Math.min(100, (parseFloat(hghVal) / 5) * 100), desc: "Growth hormone production maximized" }
+      glycogenVal: glycogenVal.toFixed(0),
+      glycogenProgress: 100 - glycogenVal,
+      glycogenDesc: glycogenVal > 0 ? "Glycogen depletion in progress" : "Hepatic glycogen fully exhausted",
+      autophagyVal: autophagyVal.toFixed(0),
+      autophagyProgress: autophagyVal,
+      autophagyDesc: hoursElapsed < 12 ? "Cellular cleanup dormant (requires 12h)" : "Active autophagic cellular recycling",
+      fatVal: fatVal.toFixed(0),
+      fatProgress: fatVal,
+      fatDesc: "Shifting substrate dominance to lipids",
+      hghVal,
+      hghProgress: Math.min(100, (parseFloat(hghVal) / 5) * 100),
+      hghDesc: "Growth hormone production maximized"
     };
-  }, [elapsed]);
+  }, [measureStep]);
 
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] pb-32 selection:bg-voro-primary/30">
@@ -956,7 +969,7 @@ const FastingTracker = () => {
                     key={option.id}
                     option={option}
                     isSelected={fastingData.window === option.id}
-                    onClick={() => handleWindowChange(option.id)}
+                    onSelect={handleWindowChange}
                   />
                 ))}
               </div>
@@ -974,10 +987,10 @@ const FastingTracker = () => {
               <div className="grid grid-cols-1 gap-6">
                 <DiagnosticCell
                   title="Hepatic Glycogen"
-                  value={simulatedMeasures.glycogen.val}
+                  value={simulatedMeasures.glycogenVal}
                   unit="%"
-                  progress={simulatedMeasures.glycogen.progress}
-                  description={simulatedMeasures.glycogen.desc}
+                  progress={simulatedMeasures.glycogenProgress}
+                  description={simulatedMeasures.glycogenDesc}
                   icon={Activity}
                   color="text-amber-500"
                   glow="rgba(245,158,11,0.06)"
@@ -985,10 +998,10 @@ const FastingTracker = () => {
 
                 <DiagnosticCell
                   title="Autophagy Index"
-                  value={simulatedMeasures.autophagy.val}
+                  value={simulatedMeasures.autophagyVal}
                   unit="%"
-                  progress={simulatedMeasures.autophagy.progress}
-                  description={simulatedMeasures.autophagy.desc}
+                  progress={simulatedMeasures.autophagyProgress}
+                  description={simulatedMeasures.autophagyDesc}
                   icon={Brain}
                   color="text-indigo-400"
                   glow="rgba(129,140,248,0.06)"
@@ -996,10 +1009,10 @@ const FastingTracker = () => {
 
                 <DiagnosticCell
                   title="Lipid Oxidation"
-                  value={simulatedMeasures.fat.val}
+                  value={simulatedMeasures.fatVal}
                   unit="%"
-                  progress={simulatedMeasures.fat.progress}
-                  description={simulatedMeasures.fat.desc}
+                  progress={simulatedMeasures.fatProgress}
+                  description={simulatedMeasures.fatDesc}
                   icon={Flame}
                   color="text-emerald-400"
                   glow="rgba(16,185,129,0.06)"
@@ -1007,10 +1020,10 @@ const FastingTracker = () => {
 
                 <DiagnosticCell
                   title="HGH Multiplier"
-                  value={simulatedMeasures.hgh.val}
+                  value={simulatedMeasures.hghVal}
                   unit="x"
-                  progress={simulatedMeasures.hgh.progress}
-                  description={simulatedMeasures.hgh.desc}
+                  progress={simulatedMeasures.hghProgress}
+                  description={simulatedMeasures.hghDesc}
                   icon={Sparkles}
                   color="text-cyan-400"
                   glow="rgba(6,182,212,0.06)"
