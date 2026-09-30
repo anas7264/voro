@@ -24,6 +24,7 @@ const checks = [
   { name: 'Direct-DOM 60fps volumetric tilt handling', test: progressContent.includes('--tilt-x') && progressContent.includes('--tilt-y') && progressContent.includes('--mouse-x') },
   { name: 'W3C APG compliant focus tilt physics', test: progressContent.includes('setProperty(\'--tilt-x\', \'4deg\')') && progressContent.includes('role="progressbar"') },
   { name: 'Liquid border perimeter illumination mask', test: progressContent.includes('radial-gradient') && progressContent.includes('WebkitMaskComposite') },
+  { name: 'State-aware title tooltip and aria-label', test: progressContent.includes('computedTitle') && progressContent.includes('title={computedTitle}') },
   { name: 'DisplayName set', test: progressContent.includes('Progress.displayName = "Progress"') }
 ];
 

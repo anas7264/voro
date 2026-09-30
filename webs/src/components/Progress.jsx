@@ -22,6 +22,7 @@ export const Progress = memo(({
   showValue = true,
   className = "",
   nodeId: customNodeId,
+  title,
   "aria-label": ariaLabel,
   ...props
 }) => {
@@ -133,6 +134,10 @@ export const Progress = memo(({
   const activeBorderGlow = BORDER_GLOW_COLORS[color] || BORDER_GLOW_COLORS.primary;
   const activeSize = SIZES[size] || SIZES.md;
 
+  const roundedPct = Math.round(percentage);
+  const computedTitle = title || (label ? `${label}: ${Math.round(value)} / ${max} (${roundedPct}%)` : `Progress: ${Math.round(value)} / ${max} (${roundedPct}%)`);
+  const computedAriaLabel = ariaLabel || (label ? `${label}: ${roundedPct}%` : `Progress conduit: ${roundedPct}%`);
+
   return (
     <div
       ref={containerRef}
@@ -146,7 +151,8 @@ export const Progress = memo(({
       aria-valuenow={Math.round(value)}
       aria-valuemin={0}
       aria-valuemax={max}
-      aria-label={ariaLabel || label || `Progress conduit: ${Math.round(percentage)}%`}
+      aria-label={computedAriaLabel}
+      title={computedTitle}
       style={{
         transform: 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(0px)',
         transition: 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
