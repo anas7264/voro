@@ -412,21 +412,23 @@ export const exportTrainingPlan = async (trainingPlan, userData) => {
 };
 
 // Helper to sanitize filename and prevent path traversal, control characters, and unsafe extensions
-export const sanitizeFilename = (filename) => {
-  if (typeof filename !== 'string' || !filename) {
-    return 'voro-export.pdf';
+export const sanitizeFilename = (filename, defaultExt = ".pdf") => {
+  const ext = typeof defaultExt === "string" && defaultExt ? defaultExt : ".pdf";
+  if (typeof filename !== "string" || !filename) {
+    return `voro-export${ext}`;
   }
   // Strip path traversal sequences (..), directory separators, and control characters
   let clean = filename
-    .replace(/\.\./g, '')
-    .replace(/[\/\\?%*:|"<>]/g, '_')
-    .replace(/[\x00-\x1F\x7F]/g, '');
+    .replace(/\.\./g, "")
+    .replace(/[\/\\?%*:|"<>]/g, "_")
+    .replace(/[\x00-\x1F\x7F]/g, "");
   // Collapse multiple underscores and strip leading/trailing dots/underscores
-  clean = clean.replace(/_+/g, '_').replace(/^[\._]+/, '');
-  if (!clean.toLowerCase().endsWith('.pdf')) {
-    clean += '.pdf';
+  clean = clean.replace(/_+/g, "_").replace(/^[\._]+/, "");
+  const lower = clean.toLowerCase();
+  if (!lower.endsWith(".pdf") && !lower.endsWith(".csv") && !lower.endsWith(".json")) {
+    clean += ext;
   }
-  return clean || 'voro-export.pdf';
+  return clean || `voro-export${ext}`;
 };
 
 // Download PDF directly via Secure Blob URL managed within an executeSecurely block.
