@@ -18,17 +18,28 @@ export const DatePicker = memo(({
   value,
   onChange,
   label,
+  helperText,
+  description,
   error = false,
   required = false,
   disabled = false,
   className = "",
   onFocus,
   onBlur,
+  title,
   ...props
 }) => {
   const generatedId = useId();
   const inputId = id || generatedId;
   const errorId = `${inputId}-error`;
+  const helperId = `${inputId}-helper`;
+
+  const resolvedHelper = helperText || description;
+  const describedBy = [
+    error ? errorId : null,
+    resolvedHelper && !error ? helperId : null,
+    props['aria-describedby']
+  ].filter(Boolean).join(" ") || undefined;
 
   const containerRef = useRef(null);
   const spotlightRef = useRef(null);
@@ -130,6 +141,10 @@ export const DatePicker = memo(({
     if (onBlur) onBlur(e);
   };
 
+  const computedTitle = disabled
+    ? (title || props.title || "This field is disabled")
+    : (title || props.title);
+
   return (
     <div className={`w-full group/date-container ${className}`}>
       <div className="flex items-center justify-between mb-3 px-1">
@@ -175,6 +190,18 @@ export const DatePicker = memo(({
           }
           ${disabled ? "opacity-30 cursor-not-allowed" : ""}
         `}>
+          {/* Liquid Perimeter Illumination Mask */}
+          <div
+            className="absolute inset-0 rounded-[1.25rem] opacity-0 group-hover/date-container:opacity-100 group-focus-within/date-container:opacity-100 transition-opacity duration-500 pointer-events-none"
+            style={{
+              padding: '1px',
+              background: `radial-gradient(180px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ${error ? "rgba(239, 68, 68, 0.35)" : "rgba(124, 58, 237, 0.35)"}, transparent 80%)`,
+              WebkitMask: 'linear-gradient(#fff, #fff) content-box, linear-gradient(#fff, #fff)',
+              WebkitMaskComposite: 'xor',
+              maskComposite: 'exclude',
+            }}
+          />
+
           {/* Boutique Grid & Grain Texture */}
           <div className="absolute inset-0 bg-grid-white opacity-0 group-hover/date-container:opacity-[0.03] group-focus-within/date-container:opacity-[0.03] transition-opacity duration-1000 pointer-events-none" />
           <div className="absolute inset-0 bg-boutique-grain opacity-[0.02] pointer-events-none" />
@@ -207,7 +234,7 @@ export const DatePicker = memo(({
               onBlur={handleInputBlur}
               disabled={disabled}
               required={required}
-              title={disabled ? (props.title || "This field is disabled") : props.title}
+              title={computedTitle}
               className={`
                 w-full bg-transparent px-6 py-5 text-white font-mono text-sm tracking-wide
                 focus:outline-none transition-all duration-500
@@ -216,7 +243,7 @@ export const DatePicker = memo(({
               `}
               aria-label={!label ? (props['aria-label'] || "Temporal input date selector") : undefined}
               aria-invalid={!!error}
-              aria-describedby={error ? errorId : undefined}
+              aria-describedby={describedBy}
               {...props}
             />
             <Calendar
@@ -232,6 +259,13 @@ export const DatePicker = memo(({
             </div>
           </div>
         </div>
+
+        {/* Helper & Description Manifestation */}
+        {resolvedHelper && !error && (
+          <p id={helperId} className="text-[0.6rem] font-mono text-gray-400 mt-2 px-1 tracking-wide">
+            {resolvedHelper}
+          </p>
+        )}
 
         {/* Error Manifestation */}
         <div
