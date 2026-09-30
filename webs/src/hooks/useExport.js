@@ -132,11 +132,16 @@ export const useExport = () => {
       const nutritionLog = getItem("nutritionLog") || [];
       setExportProgress(40);
 
-      let csv = "Date,Meal Type,Food,Calories,Protein(g),Carbs(g),Fat(g),Notes\n";
-
-      nutritionLog.forEach(entry => {
-        csv += `${sanitizeCSVField(entry.date)},${sanitizeCSVField(entry.mealType)},${sanitizeCSVField(entry.food)},${sanitizeCSVField(entry.calories)},${sanitizeCSVField(entry.protein)},${sanitizeCSVField(entry.carbs)},${sanitizeCSVField(entry.fat)},${sanitizeCSVField(entry.notes || "")}\n`;
-      });
+      // ⚡ PERFORMANCE OPTIMIZATION: Pre-allocated row array and single-pass .join("\n") construction
+      // avoids O(N) string concatenation and intermediate string allocations during large CSV exports.
+      const len = nutritionLog.length;
+      const rows = new Array(len + 1);
+      rows[0] = "Date,Meal Type,Food,Calories,Protein(g),Carbs(g),Fat(g),Notes";
+      for (let i = 0; i < len; i++) {
+        const entry = nutritionLog[i];
+        rows[i + 1] = `${sanitizeCSVField(entry.date)},${sanitizeCSVField(entry.mealType)},${sanitizeCSVField(entry.food)},${sanitizeCSVField(entry.calories)},${sanitizeCSVField(entry.protein)},${sanitizeCSVField(entry.carbs)},${sanitizeCSVField(entry.fat)},${sanitizeCSVField(entry.notes || "")}`;
+      }
+      const csv = rows.join("\n") + "\n";
 
       setExportProgress(80);
 
@@ -145,7 +150,7 @@ export const useExport = () => {
         return window.URL.createObjectURL(blob);
       }, ["sink:URL.createObjectURL"]);
 
-      const filename = pdfExport.sanitizeFilename(`VORO-Nutrition-Log-${new Date().toISOString().split("T")[0]}.csv`);
+      const filename = pdfExport.sanitizeFilename(`VORO-Nutrition-Log-${new Date().toISOString().split("T")[0]}.csv`, ".csv");
       try {
         const link = document.createElement("a");
         link.href = url;
@@ -182,11 +187,15 @@ export const useExport = () => {
       const workoutLog = getItem("workoutLog") || [];
       setExportProgress(40);
 
-      let csv = "Date,Exercise,Category,Sets,Reps,Weight(kg),Duration(min),Notes\n";
-
-      workoutLog.forEach(entry => {
-        csv += `${sanitizeCSVField(entry.date)},${sanitizeCSVField(entry.exercise)},${sanitizeCSVField(entry.category)},${sanitizeCSVField(entry.sets)},${sanitizeCSVField(entry.reps)},${sanitizeCSVField(entry.weight)},${sanitizeCSVField(entry.duration)},${sanitizeCSVField(entry.notes || "")}\n`;
-      });
+      // ⚡ PERFORMANCE OPTIMIZATION: Pre-allocated row array and single-pass .join("\n") construction.
+      const len = workoutLog.length;
+      const rows = new Array(len + 1);
+      rows[0] = "Date,Exercise,Category,Sets,Reps,Weight(kg),Duration(min),Notes";
+      for (let i = 0; i < len; i++) {
+        const entry = workoutLog[i];
+        rows[i + 1] = `${sanitizeCSVField(entry.date)},${sanitizeCSVField(entry.exercise)},${sanitizeCSVField(entry.category)},${sanitizeCSVField(entry.sets)},${sanitizeCSVField(entry.reps)},${sanitizeCSVField(entry.weight)},${sanitizeCSVField(entry.duration)},${sanitizeCSVField(entry.notes || "")}`;
+      }
+      const csv = rows.join("\n") + "\n";
 
       setExportProgress(80);
 
@@ -195,7 +204,7 @@ export const useExport = () => {
         return window.URL.createObjectURL(blob);
       }, ["sink:URL.createObjectURL"]);
 
-      const filename = pdfExport.sanitizeFilename(`VORO-Workout-Log-${new Date().toISOString().split("T")[0]}.csv`);
+      const filename = pdfExport.sanitizeFilename(`VORO-Workout-Log-${new Date().toISOString().split("T")[0]}.csv`, ".csv");
       try {
         const link = document.createElement("a");
         link.href = url;
@@ -257,7 +266,7 @@ export const useExport = () => {
         return window.URL.createObjectURL(blob);
       }, ["sink:URL.createObjectURL"]);
 
-      const filename = pdfExport.sanitizeFilename(`VORO-Backup-${new Date().toISOString().split("T")[0]}.json`);
+      const filename = pdfExport.sanitizeFilename(`VORO-Backup-${new Date().toISOString().split("T")[0]}.json`, ".json");
       try {
         const link = document.createElement("a");
         link.href = url;
@@ -294,11 +303,15 @@ export const useExport = () => {
       const bodyMetrics = getItem("bodyMetrics") || [];
       setExportProgress(40);
 
-      let csv = "Date,Weight(kg),Chest(cm),Waist(cm),Hips(cm),Arm(cm),Thigh(cm),Body Fat(%),Notes\n";
-
-      bodyMetrics.forEach(entry => {
-        csv += `${sanitizeCSVField(entry.date)},${sanitizeCSVField(entry.weight)},${sanitizeCSVField(entry.chest || "")},${sanitizeCSVField(entry.waist || "")},${sanitizeCSVField(entry.hips || "")},${sanitizeCSVField(entry.arm || "")},${sanitizeCSVField(entry.thigh || "")},${sanitizeCSVField(entry.bodyFat || "")},${sanitizeCSVField(entry.notes || "")}\n`;
-      });
+      // ⚡ PERFORMANCE OPTIMIZATION: Pre-allocated row array and single-pass .join("\n") construction.
+      const len = bodyMetrics.length;
+      const rows = new Array(len + 1);
+      rows[0] = "Date,Weight(kg),Chest(cm),Waist(cm),Hips(cm),Arm(cm),Thigh(cm),Body Fat(%),Notes";
+      for (let i = 0; i < len; i++) {
+        const entry = bodyMetrics[i];
+        rows[i + 1] = `${sanitizeCSVField(entry.date)},${sanitizeCSVField(entry.weight)},${sanitizeCSVField(entry.chest || "")},${sanitizeCSVField(entry.waist || "")},${sanitizeCSVField(entry.hips || "")},${sanitizeCSVField(entry.arm || "")},${sanitizeCSVField(entry.thigh || "")},${sanitizeCSVField(entry.bodyFat || "")},${sanitizeCSVField(entry.notes || "")}`;
+      }
+      const csv = rows.join("\n") + "\n";
 
       setExportProgress(80);
 
@@ -307,7 +320,7 @@ export const useExport = () => {
         return window.URL.createObjectURL(blob);
       }, ["sink:URL.createObjectURL"]);
 
-      const filename = pdfExport.sanitizeFilename(`VORO-Measurements-${new Date().toISOString().split("T")[0]}.csv`);
+      const filename = pdfExport.sanitizeFilename(`VORO-Measurements-${new Date().toISOString().split("T")[0]}.csv`, ".csv");
       try {
         const link = document.createElement("a");
         link.href = url;

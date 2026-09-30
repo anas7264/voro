@@ -243,3 +243,10 @@
 
 **Action:**
 1. Use direct local numeric constructor `new Date(y, m - 1, day).getTime()` for local midnight timestamp calculation when YYYY-MM-DD integers are extracted.
+
+## 2026-10-02 - Pre-Allocated Row Arrays for CSV Export
+**Learning:** Constructing multi-thousand row CSV export strings using loop-bound string concatenation (`forEach` with `csv += ...`) causes $O(N)$ string re-allocations and heavy Garbage Collection (GC) thrashing. Pre-allocating a row array `new Array(N + 1)`, populating row elements in a single-pass `for` loop, and calling `.join('\n')` eliminates intermediate string allocations and speeds up CSV generation while preserving formula injection sanitization.
+
+**Action:**
+1. Use pre-allocated row arrays (`new Array(len + 1)`) and `.join('\n')` for bulk string or CSV generation.
+2. Avoid string concatenation (`+=`) in loop bodies over data collections.
