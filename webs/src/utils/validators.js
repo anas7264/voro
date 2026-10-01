@@ -247,7 +247,9 @@ export const isValidDuration = (seconds) => {
 
 // Water intake validation (ml: 0-5000)
 export const isValidWaterAmount = (amount) => {
-  const ml = parseInt(amount);
+  if (typeof amount !== 'number' && typeof amount !== 'string') return false;
+  if (typeof amount === 'string' && (amount.trim() === '' || /[eE]/.test(amount))) return false;
+  const ml = Number(amount);
   return Number.isFinite(ml) && ml >= 0 && ml <= 5000;
 };
 
