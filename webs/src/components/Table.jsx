@@ -28,7 +28,10 @@ export const Table = memo(({
   onRowClick,
   hoverable = true,
   striped = false,
-  compact = false
+  compact = false,
+  title,
+  caption,
+  ...props
 }) => {
   const containerRef = useRef(null);
   const tbodyRef = useRef(null);
@@ -161,6 +164,16 @@ export const Table = memo(({
   const safeHeaders = Array.isArray(headers) ? headers : EMPTY_HEADERS;
   const safeRows = Array.isArray(rows) ? rows : EMPTY_ROWS;
 
+  const computedAriaLabel = props['aria-label'] || props.ariaLabel || title || caption || "Precision Data Matrix Table";
+  const computedTitle = title || props.title;
+
+  const handleRowKeyDown = useCallback((e, row, rowIndex) => {
+    if (onRowClick && (e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      onRowClick(row, rowIndex);
+    }
+  }, [onRowClick]);
+
   return (
     <div
       ref={containerRef}
@@ -170,7 +183,8 @@ export const Table = memo(({
       onFocus={handleFocus}
       onBlur={handleBlur}
       tabIndex="0"
-      aria-label="Precision Data Matrix Table"
+      title={computedTitle}
+      aria-label={computedAriaLabel}
       style={{
         perspective: '1200px',
         transformStyle: 'preserve-3d'
@@ -265,18 +279,25 @@ export const Table = memo(({
                 </td>
               </tr>
             ) : (
-              safeRows.map((row, rowIndex) => (
-                <tr
-                  key={rowIndex}
-                  data-table-row="true"
-                  onClick={() => onRowClick && onRowClick(row, rowIndex)}
-                  className={`
-                    group/row border-b border-white/[0.03] last:border-0 transition-all duration-500 relative
-                    ${striped && rowIndex % 2 === 1 ? 'bg-white/[0.01]' : ''}
-                    ${hoverable ? 'hover:bg-white/[0.03] cursor-pointer' : ''}
-                    ${onRowClick ? 'active:scale-[0.995]' : ''}
-                  `}
-                >
+              safeRows.map((row, rowIndex) => {
+                const isRowInteractive = Boolean(onRowClick);
+                const rowTitle = isRowInteractive ? `Select entry ${rowIndex + 1}` : undefined;
+
+                return (
+                  <tr
+                    key={rowIndex}
+                    data-table-row="true"
+                    tabIndex={isRowInteractive ? 0 : undefined}
+                    onClick={() => onRowClick && onRowClick(row, rowIndex)}
+                    onKeyDown={(e) => handleRowKeyDown(e, row, rowIndex)}
+                    title={rowTitle}
+                    className={`
+                      group/row border-b border-white/[0.03] last:border-0 transition-all duration-500 relative
+                      ${striped && rowIndex % 2 === 1 ? 'bg-white/[0.01]' : ''}
+                      ${hoverable || isRowInteractive ? 'hover:bg-white/[0.03] cursor-pointer' : ''}
+                      ${isRowInteractive ? 'active:scale-[0.995] focus:outline-none focus-visible:ring-2 focus-visible:ring-voro-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14]' : ''}
+                    `}
+                  >
                   {Array.isArray(row) ? (
                     row.map((cell, cellIndex) => (
                       <td
@@ -300,8 +321,9 @@ export const Table = memo(({
                       {row}
                     </td>
                   )}
-                </tr>
-              ))
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
