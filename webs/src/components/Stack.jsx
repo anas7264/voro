@@ -45,15 +45,16 @@ const STACK_JUSTIFIES = Object.freeze({
 });
 
 /**
- * ⚡ LUXURY REFINEMENT: Kinetic Neural Layout Conduit (Stack).
+ * ⚡ LUXURY MASTERCLASS REFINEMENT: Kinetic Neural Layout Conduit (Stack).
  * Re-engineered to Voro's 'Forge' luxury architectural system standard.
  * Features zero-allocation class resolution, pure constant dictionary lookups,
- * flexible semantic element rendering, and mathematical flex rhythm.
+ * flexible polymorphic semantic element rendering, style forwarding, and mathematical flex rhythm.
  *
- * DESIGN PHILOSOPHY:
- * 1. Authority: Predictable linear flex alignment provides clean spatial hierarchy and balance.
- * 2. Precision: Pre-mapped frozen class lookup tables guarantee zero runtime garbage collection.
- * 3. Flexibility: Supports polymorphic `as` tags for semantic HTML (`nav`, `header`, `footer`, etc.).
+ * PSYCHOLOGICAL & AESTHETIC DESIGN PHILOSOPHY:
+ * 1. Visual Hierarchy & Authority: Predictable linear flex alignment provides clean spatial hierarchy,
+ *    mathematical balance, and luxury gallery elegance across complex page layouts.
+ * 2. Cognitive Ease: Consistent flex rhythm eliminates alignment awkwardness, ensuring intuitive visual scans.
+ * 3. Zero-Allocation Performance: Pre-mapped frozen class lookup tables guarantee zero runtime garbage collection.
  */
 export const Stack = memo(({
   children,
@@ -63,6 +64,7 @@ export const Stack = memo(({
   justify = "start",
   as: Component = "div",
   className = "",
+  style,
   ...props
 }) => {
   const resolvedDirection = STACK_DIRECTIONS[direction] || STACK_DIRECTIONS.vertical;
@@ -72,6 +74,7 @@ export const Stack = memo(({
 
   return (
     <Component
+      style={style}
       className={`${resolvedDirection} ${resolvedGap} ${resolvedAlign} ${resolvedJustify} ${className}`}
       {...props}
     >

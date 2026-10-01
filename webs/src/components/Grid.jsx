@@ -52,15 +52,17 @@ const GRID_GAPS = Object.freeze({
 });
 
 /**
- * ⚡ LUXURY REFINEMENT: Kinetic Structural Grid Matrix (Grid).
+ * ⚡ LUXURY MASTERCLASS REFINEMENT: Kinetic Structural Grid Matrix (Grid).
  * Re-engineered to Voro's 'Forge' luxury architectural system standard.
  * Features zero-allocation class resolution, safe static class strings for PurgeCSS,
- * flexible semantic element rendering, and mathematical spatial rhythm.
+ * flexible polymorphic semantic element rendering, style forwarding, and mathematical spatial rhythm.
  *
- * DESIGN PHILOSOPHY:
- * 1. Authority: Structural grid alignment ensures visual rhythm and balance across all device viewports.
- * 2. Precision: Pure constant dictionary lookups eliminate virtual DOM heap allocations.
- * 3. Flexibility: Supports polymorphic `as` tags for semantic HTML (`ul`, `section`, `form`, etc.).
+ * PSYCHOLOGICAL & AESTHETIC DESIGN PHILOSOPHY:
+ * 1. Visual Hierarchy & Authority: Structural grid alignment enforces visual rhythm and mathematical balance
+ *    across device viewports, giving gallery enclaves commanding structural authority.
+ * 2. Cognitive Ease: Predictable mathematical spacing reduces spatial chaos and visual fatigue, allowing
+ *    users to digest telemetry matrices effortlessly.
+ * 3. Zero-Allocation Performance: Module-scoped frozen lookup tables guarantee zero runtime garbage collection.
  */
 export const Grid = memo(({
   children,
@@ -69,6 +71,7 @@ export const Grid = memo(({
   responsive = true,
   as: Component = "div",
   className = "",
+  style,
   ...props
 }) => {
   const colsMap = responsive ? GRID_COLS_RESPONSIVE : GRID_COLS_STATIC;
@@ -77,6 +80,7 @@ export const Grid = memo(({
 
   return (
     <Component
+      style={style}
       className={`grid ${resolvedCols} ${resolvedGap} ${className}`}
       {...props}
     >
