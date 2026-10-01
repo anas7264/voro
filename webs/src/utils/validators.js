@@ -2874,13 +2874,52 @@ export const validateFitnessProfile = (profile) => {
   }
   const errors = {};
 
-  if (profile.name !== undefined && !isValidName(profile.name)) errors.name = "Name must be between 1 and 50 characters";
+  if (profile.name !== undefined && profile.name !== null && profile.name !== '' && !isValidName(profile.name)) {
+    errors.name = "Name must be between 1 and 50 characters";
+  }
   if (!isValidAge(profile.age)) errors.age = "Age must be between 13-120";
-  if (!isValidHeight(profile.height)) errors.height = "Height must be between 100-250 cm";
-  if (!isValidWeight(profile.weight)) errors.weight = "Weight must be between 30-500 kg";
+
+  const heightVal = profile.height !== undefined ? profile.height : profile.heightCm;
+  if (!isValidHeight(heightVal)) errors.height = "Height must be between 100-250 cm";
+
+  const weightVal = profile.weight !== undefined ? profile.weight : profile.currentWeight;
+  if (!isValidWeight(weightVal)) errors.weight = "Weight must be between 30-500 kg";
+
   if (!isValidGender(profile.gender)) errors.gender = "Invalid gender selection";
-  if (!isValidGoal(profile.goal)) errors.goal = "Invalid fitness goal";
+  if (!isValidGoal(profile.goal || profile.primaryGoal)) errors.goal = "Invalid fitness goal";
   if (!isValidActivityLevel(profile.activityLevel)) errors.activityLevel = "Invalid activity level";
+
+  // Security: Enforce strict type, finite numeric bounds, character length, and URL safety on optional profile fields
+  // to prevent client-side DoS, memory bloat, non-finite numeric injection, SSRF, and health profile state corruption.
+  if (profile.targetWeight !== undefined && profile.targetWeight !== null && profile.targetWeight !== '') {
+    if (!isValidWeight(profile.targetWeight)) {
+      errors.targetWeight = "Target weight must be between 30-500 kg";
+    }
+  }
+
+  if (profile.calorieGoal !== undefined && profile.calorieGoal !== null && profile.calorieGoal !== '') {
+    if (!isValidCalories(profile.calorieGoal)) {
+      errors.calorieGoal = "Calorie goal must be between 500-10000";
+    }
+  }
+
+  if (profile.bodyFat !== undefined && profile.bodyFat !== null && profile.bodyFat !== '') {
+    if (!isValidBodyFat(profile.bodyFat)) {
+      errors.bodyFat = "Body fat must be between 0-100%";
+    }
+  }
+
+  if (profile.avatarUrl !== undefined && profile.avatarUrl !== null && profile.avatarUrl !== '') {
+    if (typeof profile.avatarUrl !== 'string' || profile.avatarUrl.length > 2048 || !isValidURL(profile.avatarUrl)) {
+      errors.avatarUrl = "Invalid avatar URL or untrusted scheme";
+    }
+  }
+
+  if (profile.notes !== undefined && profile.notes !== null && profile.notes !== '') {
+    if (typeof profile.notes !== 'string' || profile.notes.length > 2048) {
+      errors.notes = "Notes must be 2048 characters or less";
+    }
+  }
 
   return { valid: Object.keys(errors).length === 0, errors };
 };
