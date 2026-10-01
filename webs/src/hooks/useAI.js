@@ -1,6 +1,14 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import { buildVORO_SystemPrompt } from "../utils/aiPrompts";
 import { voroAIClient } from "../utils/ai";
+
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted Module Constants.
+ * Pre-allocating the static system prompt and empty array fallback prevents
+ * string recreation and array allocations on every invocation.
+ */
+const EMPTY_ARRAY = Object.freeze([]);
+const SYSTEM_PROMPT = buildVORO_SystemPrompt();
 
 export const useAI = () => {
   /**
@@ -34,7 +42,7 @@ export const useAI = () => {
     try {
       const result = await voroAIClient.generateMealPlan(
         userProfile,
-        buildVORO_SystemPrompt()
+        SYSTEM_PROMPT
       );
       updateState({ response: result, loading: false });
       return result;
@@ -59,7 +67,7 @@ export const useAI = () => {
     try {
       const result = await voroAIClient.generateTrainingPlan(
         userProfile,
-        buildVORO_SystemPrompt()
+        SYSTEM_PROMPT
       );
       updateState({ response: result, loading: false });
       return result;
@@ -84,7 +92,7 @@ export const useAI = () => {
     try {
       const result = await voroAIClient.generateCoachingAdvice(
         userProfile,
-        buildVORO_SystemPrompt()
+        SYSTEM_PROMPT
       );
       updateState({ response: result, loading: false });
       return result;
@@ -109,7 +117,7 @@ export const useAI = () => {
     try {
       const result = await voroAIClient.analyzeNutrition(
         nutritionData,
-        buildVORO_SystemPrompt()
+        SYSTEM_PROMPT
       );
       updateState({ response: result, loading: false });
       return result;
@@ -134,7 +142,7 @@ export const useAI = () => {
     try {
       const result = await voroAIClient.analyzeBodyComposition(
         metrics,
-        buildVORO_SystemPrompt()
+        SYSTEM_PROMPT
       );
       updateState({ response: result, loading: false });
       return result;
@@ -147,7 +155,7 @@ export const useAI = () => {
   }, [updateState]);
 
   // General chat
-  const chat = useCallback(async (message, conversationHistory = []) => {
+  const chat = useCallback(async (message, conversationHistory = EMPTY_ARRAY) => {
     if (!voroAIClient) {
       updateState({ error: "AI client not initialized" });
       return null;
@@ -160,7 +168,7 @@ export const useAI = () => {
       const result = await voroAIClient.chat(
         message,
         conversationHistory,
-        buildVORO_SystemPrompt()
+        SYSTEM_PROMPT
       );
       updateState({ response: result, loading: false });
       return result;
@@ -185,7 +193,12 @@ export const useAI = () => {
     updateState({ error: null });
   }, [updateState]);
 
-  return {
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Memoized Hook Interface.
+   * Wrapping the returned object in useMemo ensures referential stability,
+   * preventing unnecessary re-renders in consumer components when parent state updates.
+   */
+  return useMemo(() => ({
     ...state,
     generateMealPlan,
     generateTrainingPlan,
@@ -195,7 +208,17 @@ export const useAI = () => {
     chat,
     cancel,
     clearError
-  };
+  }), [
+    state,
+    generateMealPlan,
+    generateTrainingPlan,
+    getCoachingAdvice,
+    analyzeNutrition,
+    analyzeBodyComposition,
+    chat,
+    cancel,
+    clearError
+  ]);
 };
 
 export default useAI;
