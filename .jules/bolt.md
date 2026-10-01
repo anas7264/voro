@@ -250,3 +250,10 @@
 **Action:**
 1. Use pre-allocated row arrays (`new Array(len + 1)`) and `.join('\n')` for bulk string or CSV generation.
 2. Avoid string concatenation (`+=`) in loop bodies over data collections.
+
+## 2026-10-03 - Local Midnight Timestamp Extraction for ISO Date Strings
+**Learning:** Parsing `YYYY-MM-DD` ISO strings using `new Date("YYYY-MM-DD")` treats input as UTC midnight. Calling `.setHours(0,0,0,0)` on the resulting date mutates it according to local timezone hours, causing a 1-day timezone offset error in western hemispheres. Extracting year, month, and day integers and validating no date rollover occurred (`dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d`) before calling `dt.getTime()` produces exact local midnight timestamps, avoiding UTC timezone drift bugs and eliminating `.setHours()` object mutation allocations.
+
+**Action:**
+1. Use exact integer parsing and constructor validation (`new Date(y, m - 1, d)`) for 10-character `YYYY-MM-DD` strings to compute local midnight timestamps.
+2. Validate constructor output against input integers to avoid JS date rollover bugs (e.g., Feb 31).
