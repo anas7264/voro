@@ -57,10 +57,11 @@ export const useChallenge = () => {
   // Update challenge progress
   const updateChallengeProgress = useCallback((challengeId, progressData) => {
     try {
-      const current = userChallengeProgress[challengeId] || {};
+      const currentProgress = getItem("challengeProgress") || {};
+      const current = currentProgress[challengeId] || {};
       const updated = { ...current, ...progressData, lastUpdated: new Date().toISOString() };
 
-      const newProgress = { ...userChallengeProgress, [challengeId]: updated };
+      const newProgress = { ...currentProgress, [challengeId]: updated };
       setItem("challengeProgress", newProgress);
       setUserChallengeProgress(newProgress);
 
@@ -69,7 +70,7 @@ export const useChallenge = () => {
       console.error("Failed to update challenge progress:", err);
       return null;
     }
-  }, [userChallengeProgress, setItem]);
+  }, [getItem, setItem]);
 
   // Check if challenge is complete
   /**
@@ -79,7 +80,7 @@ export const useChallenge = () => {
   const isChallengeComplete = useCallback((challengeId) => {
     try {
       const challenge = CHALLENGES_BY_ID[challengeId];
-      const progress = userChallengeProgress[challengeId];
+      const progress = (getItem("challengeProgress") || {})[challengeId];
 
       if (!challenge || !progress) return false;
 
@@ -89,7 +90,7 @@ export const useChallenge = () => {
       console.error("Failed to check challenge completion:", err);
       return false;
     }
-  }, [userChallengeProgress]);
+  }, [getItem]);
 
   // Get challenge progress
   /**
@@ -99,7 +100,7 @@ export const useChallenge = () => {
   const getChallengeProgress = useCallback((challengeId) => {
     try {
       const challenge = CHALLENGES_BY_ID[challengeId];
-      const progress = userChallengeProgress[challengeId];
+      const progress = (getItem("challengeProgress") || {})[challengeId];
 
       if (!challenge || !progress) return null;
 
@@ -108,7 +109,7 @@ export const useChallenge = () => {
       console.error("Failed to get challenge progress:", err);
       return null;
     }
-  }, [userChallengeProgress]);
+  }, [getItem]);
 
   // Get all challenge progress
   /**
@@ -145,7 +146,7 @@ export const useChallenge = () => {
    */
   const resetDailyChallenges = useCallback(() => {
     try {
-      const newProgress = { ...userChallengeProgress };
+      const newProgress = { ...(getItem("challengeProgress") || {}) };
 
       for (let i = 0; i < DAILY_CHALLENGES.length; i++) {
         delete newProgress[DAILY_CHALLENGES[i].id];
@@ -159,7 +160,7 @@ export const useChallenge = () => {
       console.error("Failed to reset daily challenges:", err);
       return false;
     }
-  }, [userChallengeProgress, setItem]);
+  }, [getItem, setItem]);
 
   // Reset weekly challenges
   /**
@@ -168,7 +169,7 @@ export const useChallenge = () => {
    */
   const resetWeeklyChallenges = useCallback(() => {
     try {
-      const newProgress = { ...userChallengeProgress };
+      const newProgress = { ...(getItem("challengeProgress") || {}) };
 
       for (let i = 0; i < WEEKLY_CHALLENGES.length; i++) {
         delete newProgress[WEEKLY_CHALLENGES[i].id];
@@ -182,7 +183,7 @@ export const useChallenge = () => {
       console.error("Failed to reset weekly challenges:", err);
       return false;
     }
-  }, [userChallengeProgress, setItem]);
+  }, [getItem, setItem]);
 
   // Get challenge by ID
   /**

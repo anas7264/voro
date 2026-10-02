@@ -230,20 +230,13 @@ const Dashboard = () => {
    */
   const today = useMemo(() => getFastDateStr(new Date()), []);
 
-  const nutritionToday = useStorageKeySelector(
-    'nutrition_log',
-    useCallback((log) => (log || {})[today] || INITIAL_NUTRITION, [today])
-  );
+  const selectNutritionToday = useCallback((log) => (log || {})[today] || INITIAL_NUTRITION, [today]);
+  const selectWorkoutToday = useCallback((log) => (log || {})[today], [today]);
+  const selectWeights30D = useCallback((metrics) => (metrics?.weights || []).slice(-30), []);
 
-  const workoutToday = useStorageKeySelector(
-    'workout_log',
-    useCallback((log) => (log || {})[today], [today])
-  );
-
-  const weights30D = useStorageKeySelector(
-    'body_metrics',
-    useCallback((metrics) => (metrics?.weights || []).slice(-30), [])
-  );
+  const nutritionToday = useStorageKeySelector('nutrition_log', selectNutritionToday);
+  const workoutToday = useStorageKeySelector('workout_log', selectWorkoutToday);
+  const weights30D = useStorageKeySelector('body_metrics', selectWeights30D);
 
   /**
    * ⚡ PERFORMANCE OPTIMIZATION: Memoized Streak Aggregation.
@@ -882,7 +875,7 @@ const QUICK_LOG_ICONS = Object.freeze({
   water: Droplets
 });
 
-const QuickLogModal = ({ isOpen, onClose, onSubmit }) => {
+const QuickLogModal = memo(({ isOpen, onClose, onSubmit }) => {
   const magnitudeId = useId();
   const [type, setType] = useState('meal');
   const [value, setValue] = useState('');
@@ -974,6 +967,7 @@ const QuickLogModal = ({ isOpen, onClose, onSubmit }) => {
       </div>
     </Modal>
   );
-};
+});
+QuickLogModal.displayName = 'QuickLogModal';
 
 export default Dashboard;

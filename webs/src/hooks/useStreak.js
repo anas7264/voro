@@ -35,7 +35,7 @@ const getLocalMidnightTime = (dateInput) => {
 };
 
 export const useStreak = () => {
-  const { setItem } = useStorageMethods();
+  const { getItem, setItem } = useStorageMethods();
 
   /**
    * ⚡ OPTIMIZATION: Surgical Reactivity.
@@ -76,16 +76,17 @@ export const useStreak = () => {
   // Mark day as completed
   const markDayCompleted = useCallback(() => {
     try {
+      const currentData = selectStreak(getItem("streak"));
       const today = new Date().toISOString().split("T")[0];
 
       // Check if already completed today
-      if (streakData.lastCompletedDate?.includes(today)) {
+      if (currentData.lastCompletedDate?.includes(today)) {
         return { message: "Already completed today", updated: false };
       }
 
       // Calculate new streak
-      const lastDate = streakData.lastCompletedDate;
-      let newStreak = streakData.current || 0;
+      const lastDate = currentData.lastCompletedDate;
+      let newStreak = currentData.current || 0;
 
       if (lastDate) {
         const lastTime = getLocalMidnightTime(lastDate);
@@ -108,13 +109,13 @@ export const useStreak = () => {
       }
 
       // Update best streak
-      let newBestStreak = streakData.best || 0;
+      let newBestStreak = currentData.best || 0;
       if (newStreak > newBestStreak) {
         newBestStreak = newStreak;
       }
 
       // Update data
-      const updatedDates = [...(streakData.completedDates || []), today];
+      const updatedDates = [...(currentData.completedDates || []), today];
       const updatedStreakData = {
         current: newStreak,
         best: newBestStreak,
@@ -134,15 +135,16 @@ export const useStreak = () => {
       console.error("Failed to mark day as completed:", err);
       return { message: "Error marking day complete", updated: false, error: err };
     }
-  }, [streakData, setItem]);
+  }, [getItem, setItem]);
 
   // Get streak info (legacy support)
   const getStreakInfo = useCallback(() => {
+    const currentData = selectStreak(getItem("streak"));
     return {
-      ...streakData,
+      ...currentData,
       status: streakStatus
     };
-  }, [streakData, streakStatus]);
+  }, [getItem, streakStatus]);
 
   // Get streak percentage for week
   // ⚡ PERFORMANCE OPTIMIZATION: Uses Set-based O(1) membership checks and fast manual Date formatting via `getFastDateStr`.
@@ -204,9 +206,10 @@ export const useStreak = () => {
   // Reset streak (admin only)
   const resetStreak = useCallback(() => {
     try {
+      const currentData = selectStreak(getItem("streak"));
       const resetData = {
         current: 0,
-        best: bestStreak, // Keep best streak record
+        best: currentData.best || 0, // Keep best streak record
         completedDates: [],
         lastCompletedDate: null
       };
@@ -217,7 +220,7 @@ export const useStreak = () => {
       console.error("Failed to reset streak:", err);
       return false;
     }
-  }, [bestStreak, setItem]);
+  }, [getItem, setItem]);
 
   // Deprecated: initializeStreak is now handled by reactive useMemo
   const initializeStreak = useCallback(() => {

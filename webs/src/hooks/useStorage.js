@@ -36,10 +36,38 @@ export const useStorageKeySelector = (key, selector, equalityFn) => {
   const effectiveEqualityFn = equalityFn || defaultEquality;
 
   const getSnapshot = useCallback(() => {
-    const fullState = storage.get(key);
+    let fullState;
+    if (Array.isArray(key)) {
+      let changed = false;
+      const lastState = lastStateRef.current;
+      if (!lastState || typeof lastState !== "object") {
+        changed = true;
+      } else {
+        const len = key.length;
+        for (let i = 0; i < len; i++) {
+          const k = key[i];
+          if (storage.get(k) !== lastState[k]) {
+            changed = true;
+            break;
+          }
+        }
+      }
 
-    if (fullState === lastStateRef.current) {
-      return lastSelectedStateRef.current;
+      if (!changed) {
+        return lastSelectedStateRef.current;
+      }
+
+      fullState = {};
+      const len = key.length;
+      for (let i = 0; i < len; i++) {
+        const k = key[i];
+        fullState[k] = storage.get(k);
+      }
+    } else {
+      fullState = storage.get(key);
+      if (fullState === lastStateRef.current) {
+        return lastSelectedStateRef.current;
+      }
     }
 
     const selectedState = selector(fullState);
