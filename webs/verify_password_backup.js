@@ -297,6 +297,34 @@ const runTests = async () => {
     throw new Error("❌ Failure: Malicious iteration payloads were not properly rejected!");
   }
 
+  // --- TEST 7: Malformed salt, IV, and ciphertext parameters are safely rejected ---
+  console.log("🛡️ Test 7: Verifying non-string, non-hex, or out-of-bounds salt, IV, and ciphertext parameters are safely rejected...");
+  const malformedSalt1 = { ...encrypted, salt: 12345 }; // Non-string salt
+  const malformedSalt2 = { ...encrypted, salt: "not_a_hex_string_1234567890123456" }; // Non-hex characters
+  const malformedSalt3 = { ...encrypted, salt: "a1b2c3" }; // Too short (< 16 bytes = 32 hex chars)
+
+  const malformedIV1 = { ...encrypted, iv: null }; // Null IV
+  const malformedIV2 = { ...encrypted, iv: "invalid_iv_hex_12345" }; // Non-hex characters
+  const malformedIV3 = { ...encrypted, iv: "12345678901234567890" }; // Too short (< 12 bytes = 24 hex chars)
+
+  const malformedCiphertext1 = { ...encrypted, ciphertext: 9999 }; // Non-string ciphertext
+  const malformedCiphertext2 = { ...encrypted, ciphertext: "A".repeat(10000001) }; // Exceeds max length limit
+
+  const mres1 = await voroCrypto.decryptWithPassword(malformedSalt1, password);
+  const mres2 = await voroCrypto.decryptWithPassword(malformedSalt2, password);
+  const mres3 = await voroCrypto.decryptWithPassword(malformedSalt3, password);
+  const mres4 = await voroCrypto.decryptWithPassword(malformedIV1, password).catch(() => null);
+  const mres5 = await voroCrypto.decryptWithPassword(malformedIV2, password);
+  const mres6 = await voroCrypto.decryptWithPassword(malformedIV3, password);
+  const mres7 = await voroCrypto.decryptWithPassword(malformedCiphertext1, password);
+  const mres8 = await voroCrypto.decryptWithPassword(malformedCiphertext2, password);
+
+  if ([mres1, mres2, mres3, mres4, mres5, mres6, mres7, mres8].every(r => r === null)) {
+    console.log("✅ Success: Malformed salt, IV, and ciphertext parameter vectors were safely rejected.");
+  } else {
+    throw new Error("❌ Failure: Malformed salt, IV, or ciphertext payloads were not properly rejected!");
+  }
+
   console.log("\n🎉 ALL PASSWORD-BASED BACKUP SECURITY TESTS PASSED SUCCESSFULLY!");
   console.log("=========================================");
   process.exit(0);
