@@ -18,7 +18,7 @@ const DEFAULT_GAMIFICATION_DATA = Object.freeze({
 const selectGamification = (val) => val || DEFAULT_GAMIFICATION_DATA;
 
 export const useGamification = () => {
-  const { setItem } = useStorageMethods();
+  const { getItem, setItem } = useStorageMethods();
 
   /**
    * ⚡ OPTIMIZATION: Surgical Reactivity.
@@ -30,15 +30,16 @@ export const useGamification = () => {
   // Award XP for action
   const awardXP = useCallback((action, metadata = {}) => {
     try {
+      const currentGameState = selectGamification(getItem("gamification"));
       const xp = gamification.calculateXP(action, metadata);
 
       if (xp === 0) return null;
 
-      const newTotalXP = (gameState.totalXP || 0) + xp;
+      const newTotalXP = (currentGameState.totalXP || 0) + xp;
       const levelInfo = gamification.getLevelFromXP(newTotalXP);
 
       const updatedState = {
-        ...gameState,
+        ...currentGameState,
         totalXP: newTotalXP,
         level: levelInfo.level
       };
@@ -50,20 +51,21 @@ export const useGamification = () => {
       console.error("Failed to award XP:", err);
       return null;
     }
-  }, [gameState, setItem]);
+  }, [getItem, setItem]);
 
   // Unlock achievement
   const unlockAchievement = useCallback((achievementId, achievement) => {
     try {
-      if (gameState.achievements?.includes(achievementId)) {
+      const currentGameState = selectGamification(getItem("gamification"));
+      if (currentGameState.achievements?.includes(achievementId)) {
         return null; // Already unlocked
       }
 
       const xpReward = achievement.xpReward || 50;
       const updatedState = {
-        ...gameState,
-        achievements: [...(gameState.achievements || []), achievementId],
-        totalXP: (gameState.totalXP || 0) + xpReward
+        ...currentGameState,
+        achievements: [...(currentGameState.achievements || []), achievementId],
+        totalXP: (currentGameState.totalXP || 0) + xpReward
       };
 
       const levelInfo = gamification.getLevelFromXP(updatedState.totalXP);
@@ -76,13 +78,14 @@ export const useGamification = () => {
       console.error("Failed to unlock achievement:", err);
       return null;
     }
-  }, [gameState, setItem]);
+  }, [getItem, setItem]);
 
   // Complete challenge
   const completeChallenge = useCallback((challengeId, challenge) => {
     try {
+      const currentGameState = selectGamification(getItem("gamification"));
       // Check if already completed in this cycle
-      const alreadyCompleted = gameState.completedChallenges?.some(c => c.id === challengeId);
+      const alreadyCompleted = currentGameState.completedChallenges?.some(c => c.id === challengeId);
 
       if (alreadyCompleted) {
         return null;
@@ -96,9 +99,9 @@ export const useGamification = () => {
       };
 
       const updatedState = {
-        ...gameState,
-        completedChallenges: [...(gameState.completedChallenges || []), completedChallenge],
-        totalXP: (gameState.totalXP || 0) + xpReward
+        ...currentGameState,
+        completedChallenges: [...(currentGameState.completedChallenges || []), completedChallenge],
+        totalXP: (currentGameState.totalXP || 0) + xpReward
       };
 
       const levelInfo = gamification.getLevelFromXP(updatedState.totalXP);
@@ -111,20 +114,21 @@ export const useGamification = () => {
       console.error("Failed to complete challenge:", err);
       return null;
     }
-  }, [gameState, setItem]);
+  }, [getItem, setItem]);
 
   // Update streak
   const updateStreak = useCallback((add = true) => {
     try {
-      let newStreak = add ? (gameState.currentStreak || 0) + 1 : 0;
-      let newBestStreak = gameState.bestStreak || 0;
+      const currentGameState = selectGamification(getItem("gamification"));
+      let newStreak = add ? (currentGameState.currentStreak || 0) + 1 : 0;
+      let newBestStreak = currentGameState.bestStreak || 0;
 
       if (newStreak > newBestStreak) {
         newBestStreak = newStreak;
       }
 
       const updatedState = {
-        ...gameState,
+        ...currentGameState,
         currentStreak: newStreak,
         bestStreak: newBestStreak
       };
@@ -136,18 +140,19 @@ export const useGamification = () => {
       console.error("Failed to update streak:", err);
       return null;
     }
-  }, [gameState, setItem]);
+  }, [getItem, setItem]);
 
   // Get current level info
   const getLevelInfo = useCallback(() => {
     try {
-      const totalXP = gameState.totalXP || 0;
+      const currentGameState = selectGamification(getItem("gamification"));
+      const totalXP = currentGameState.totalXP || 0;
       return gamification.getLevelFromXP(totalXP);
     } catch (err) {
       console.error("Failed to get level info:", err);
       return null;
     }
-  }, [gameState.totalXP]);
+  }, [getItem]);
 
   // Get rank tier
   const getRankTier = useCallback(() => {
@@ -164,22 +169,24 @@ export const useGamification = () => {
   // Get all stats
   const getGameStats = useCallback(() => {
     try {
-      return gamification.getGamificationStats(gameState);
+      const currentGameState = selectGamification(getItem("gamification"));
+      return gamification.getGamificationStats(currentGameState);
     } catch (err) {
       console.error("Failed to get game stats:", err);
       return null;
     }
-  }, [gameState]);
+  }, [getItem]);
 
   // Predict next achievement
   const predictNextAchievement = useCallback(() => {
     try {
-      return gamification.predictNextAchievement(gameState);
+      const currentGameState = selectGamification(getItem("gamification"));
+      return gamification.predictNextAchievement(currentGameState);
     } catch (err) {
       console.error("Failed to predict next achievement:", err);
       return null;
     }
-  }, [gameState]);
+  }, [getItem]);
 
   // Reset gamification (debug only)
   const resetGamification = useCallback(() => {
