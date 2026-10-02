@@ -41,6 +41,63 @@ const dateFormatter = new Intl.DateTimeFormat('en-US', {
 });
 
 /**
+ * ⚡ PERFORMANCE OPTIMIZATION: Module-Scoped Selector & Custom Equality Comparator.
+ * Prevents redundant component re-renders when nutrition_log updates for other dates,
+ * or when mealTotals object instances are newly allocated with identical numeric values.
+ */
+const selectNutritionLogForDate = (logs, date) => {
+  const log = (logs || {})[date] || INITIAL_LOG_TEMPLATE;
+  const meals = log.meals || INITIAL_LOG_TEMPLATE.meals;
+  const mealTotals = {};
+
+  for (let i = 0; i < MEAL_SLOTS.length; i++) {
+    const slot = MEAL_SLOTS[i];
+    const slotList = meals[slot];
+    let sum = 0;
+    if (Array.isArray(slotList)) {
+      for (let j = 0; j < slotList.length; j++) {
+        sum += (slotList[j].calories || 0);
+      }
+    }
+    mealTotals[slot] = sum;
+  }
+
+  return {
+    meals,
+    water: log.water || 0,
+    totals: log.totals || INITIAL_LOG_TEMPLATE.totals,
+    mealTotals
+  };
+};
+
+const shallowNutritionLogEqual = (a, b) => {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  if (a.water !== b.water) return false;
+  if (a.meals !== b.meals) return false;
+  if (a.totals !== b.totals) {
+    if (!a.totals || !b.totals) return false;
+    if (
+      a.totals.calories !== b.totals.calories ||
+      a.totals.protein !== b.totals.protein ||
+      a.totals.carbs !== b.totals.carbs ||
+      a.totals.fat !== b.totals.fat ||
+      a.totals.fiber !== b.totals.fiber
+    ) {
+      return false;
+    }
+  }
+  if (a.mealTotals !== b.mealTotals) {
+    if (!a.mealTotals || !b.mealTotals) return false;
+    for (let i = 0; i < MEAL_SLOTS.length; i++) {
+      const slot = MEAL_SLOTS[i];
+      if (a.mealTotals[slot] !== b.mealTotals[slot]) return false;
+    }
+  }
+  return true;
+};
+
+/**
  * ⚡ SUBCOMPONENT: KineticMealSlotCard
  * Memoized card component with 60fps direct-DOM 3D volumetric hover tilts,
  * holographic telemetry coordinates, sub-pixel node hashes, and W3C APG focus tilts.
@@ -329,36 +386,20 @@ const FoodDiary = () => {
   const [selectedSlot, setSelectedSlot] = useState(null);
 
   /**
-   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity & Single-Pass Loop.
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity with Custom Equality Check.
    * Subscribes strictly to data for the selected date slice in 'nutrition_log'
-   * using imperative loop execution to avoid array function allocations.
+   * and uses shallowNutritionLogEqual to prevent re-renders when mealTotals object
+   * instances are recreated or when other date logs change.
    */
+  const selectLogForDate = useCallback(
+    (logs) => selectNutritionLogForDate(logs, date),
+    [date]
+  );
+
   const nutritionLog = useStorageKeySelector(
     'nutrition_log',
-    useCallback((logs) => {
-      const log = (logs || {})[date] || INITIAL_LOG_TEMPLATE;
-      const meals = log.meals || INITIAL_LOG_TEMPLATE.meals;
-      const mealTotals = {};
-
-      for (let i = 0; i < MEAL_SLOTS.length; i++) {
-        const slot = MEAL_SLOTS[i];
-        const slotList = meals[slot];
-        let sum = 0;
-        if (Array.isArray(slotList)) {
-          for (let j = 0; j < slotList.length; j++) {
-            sum += (slotList[j].calories || 0);
-          }
-        }
-        mealTotals[slot] = sum;
-      }
-
-      return {
-        meals,
-        water: log.water || 0,
-        totals: log.totals || INITIAL_LOG_TEMPLATE.totals,
-        mealTotals
-      };
-    }, [date])
+    selectLogForDate,
+    shallowNutritionLogEqual
   );
 
   const { setItem, getItem } = useStorageMethods();
