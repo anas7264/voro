@@ -907,6 +907,40 @@ const TRIFID_CANDIDATE_GRIDS = Object.freeze((() => {
   return grids;
 })());
 
+const constructKeywordAlphabet = (key) => {
+  const cleanKey = key.toLowerCase().replace(/[^a-z]/g, '');
+  const seen = new Set();
+  let sub = '';
+  for (let i = 0; i < cleanKey.length; i++) {
+    const ch = cleanKey[i];
+    if (!seen.has(ch)) {
+      seen.add(ch);
+      sub += ch;
+    }
+  }
+  for (let code = 97; code <= 122; code++) {
+    const ch = String.fromCharCode(code);
+    if (!seen.has(ch)) {
+      seen.add(ch);
+      sub += ch;
+    }
+  }
+  return sub;
+};
+
+const KEYWORD_DECODE_MAPS = Object.freeze(CIPHER_KEYWORDS.map(kw => {
+  const sub = constructKeywordAlphabet(kw);
+  const map = new Uint8Array(256);
+  for (let i = 0; i < 256; i++) map[i] = i;
+  for (let i = 0; i < 26; i++) {
+    const cipherChar = sub.charCodeAt(i);
+    const plainChar = 97 + i;
+    map[cipherChar] = plainChar;
+    map[cipherChar - 32] = plainChar - 32;
+  }
+  return map;
+}));
+
 const STRADDLING_CHECKERBOARD_CANDIDATES = Object.freeze([
   // 1. AT ONE SIR Layout (blanks at indices 2 and 6)
   Object.freeze({
@@ -1970,10 +2004,44 @@ export const isPromptInjection = (query, isNested = false) => {
       if (straddlingDecoded) {
         return true;
       }
+
+      // Security: Handle Keyword Substitution Cipher (monoalphabetic cipher across candidate keywords) and evaluate recursively
+      const keywordSubDecoded = safeDecodeKeywordSubstitution(targetStr);
+      if (keywordSubDecoded) {
+        return true;
+      }
     }
   }
 
   return false;
+};
+
+// Helper to safely decode Keyword Substitution Cipher-encoded payloads across candidate keyword alphabet maps
+const safeDecodeKeywordSubstitution = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+
+  for (let idx = 0; idx < KEYWORD_DECODE_MAPS.length; idx++) {
+    const map = KEYWORD_DECODE_MAPS[idx];
+    let decoded = '';
+    let changed = false;
+
+    for (let i = 0; i < targetStr.length; i++) {
+      const code = targetStr.charCodeAt(i);
+      if ((code >= 65 && code <= 90) || (code >= 97 && code <= 122)) {
+        const decCode = map[code];
+        if (decCode !== code) changed = true;
+        decoded += String.fromCharCode(decCode);
+      } else {
+        decoded += targetStr[i];
+      }
+    }
+
+    if (changed && decoded !== targetStr && isPromptInjection(decoded, true)) {
+      return decoded;
+    }
+  }
+
+  return null;
 };
 
 // Helper to safely decode Straddling Checkerboard Cipher-encoded payloads across candidate boards
