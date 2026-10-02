@@ -23,8 +23,8 @@ const radarChartCode = fs.readFileSync(radarChartPath, 'utf8');
 
 // Test 1: LineChartComponent checks
 console.log("🧪 Test 1: Verifying LineChartComponent luxury refinements...");
-if (!lineChartCode.includes('0xCHT_TELEMETRY')) {
-  throw new Error("LineChartComponent missing sub-pixel attestation hash badge '0xCHT_TELEMETRY'");
+if (!lineChartCode.includes('0xLINE_TELEMETRY')) {
+  throw new Error("LineChartComponent missing sub-pixel attestation hash badge '0xLINE_TELEMETRY'");
 }
 if (!lineChartCode.includes('DEFAULT_MARGIN = Object.freeze')) {
   throw new Error("LineChartComponent missing hoisted frozen DEFAULT_MARGIN fallback");
