@@ -567,6 +567,26 @@ class CryptoManager {
       throw new Error("Security Sentinel: Missing cryptographic parameters in payload.");
     }
 
+    if (typeof saltHex !== 'string' || typeof ivHex !== 'string' || typeof ciphertextBase64 !== 'string') {
+      console.warn("Security Sentinel: Cryptographic parameters must be strings.");
+      return null;
+    }
+
+    if (!/^[0-9a-fA-F]+$/.test(saltHex) || saltHex.length < 32 || saltHex.length > 128 || saltHex.length % 2 !== 0) {
+      console.warn("Security Sentinel: Invalid or untrusted salt parameter in backup payload.");
+      return null;
+    }
+
+    if (!/^[0-9a-fA-F]+$/.test(ivHex) || ivHex.length < 24 || ivHex.length > 32 || ivHex.length % 2 !== 0) {
+      console.warn("Security Sentinel: Invalid or untrusted IV parameter in backup payload.");
+      return null;
+    }
+
+    if (ciphertextBase64.length > 10000000) {
+      console.warn("Security Sentinel: Ciphertext payload exceeds maximum safe length limit.");
+      return null;
+    }
+
     let iterCount = 100000;
     if (iterations !== undefined && iterations !== null) {
       if (typeof iterations !== 'number' || !Number.isInteger(iterations) || iterations < 10000 || iterations > 1000000) {
