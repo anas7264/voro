@@ -23,6 +23,7 @@ export const Select = memo(({
   required = false,
   label,
   helperText,
+  placeholder,
   className = "",
   onFocus,
   onBlur,
@@ -39,6 +40,10 @@ export const Select = memo(({
     helperText && !error ? helperId : null,
     props['aria-describedby']
   ].filter(Boolean).join(" ") || undefined;
+
+  const computedTitle = disabled
+    ? (title || props.title || "This option is disabled")
+    : (title || props.title);
 
   const containerRef = useRef(null);
   const txRef = useRef(null);
@@ -171,7 +176,9 @@ export const Select = memo(({
         }}
       >
         {/* Architectural Framing: High-end charcoal box */}
-        <div className={`
+        <div
+          title={computedTitle}
+          className={`
           relative overflow-hidden rounded-[1.25rem] border transition-all duration-500
           ${error
             ? "border-red-500/40 bg-red-500/[0.02] shadow-[0_10px_30px_rgba(239,68,68,0.1)]"
@@ -209,15 +216,21 @@ export const Select = memo(({
             onBlur={handleBlur}
             disabled={disabled}
             required={required}
-            title={disabled ? (title || props.title || "This option is disabled") : (title || props.title)}
+            title={computedTitle}
             className={`
               w-full bg-transparent px-6 py-5 text-white font-mono text-sm tracking-widest
               focus:outline-none transition-all duration-500 appearance-none cursor-pointer
               ${disabled ? "cursor-not-allowed" : ""}
             `}
+            aria-label={!label ? props['aria-label'] : undefined}
             aria-invalid={!!error}
             aria-describedby={describedBy}
           >
+            {placeholder && (
+              <option value="" disabled className="bg-[#0A0C14] text-gray-500">
+                {placeholder}
+              </option>
+            )}
             {options.map(opt => (
               <option key={opt.value} value={opt.value} className="bg-[#0A0C14] text-white">
                 {opt.label}
