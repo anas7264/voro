@@ -941,6 +941,13 @@ const KEYWORD_DECODE_MAPS = Object.freeze(CIPHER_KEYWORDS.map(kw => {
   return map;
 }));
 
+const Z85_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-:+=^!/*?&<>()[]{}@%$#';
+const Z85_MAP = Object.freeze((() => {
+  const map = new Map();
+  for (let i = 0; i < Z85_CHARS.length; i++) map.set(Z85_CHARS[i], i);
+  return map;
+})());
+
 const STRADDLING_CHECKERBOARD_CANDIDATES = Object.freeze([
   // 1. AT ONE SIR Layout (blanks at indices 2 and 6)
   Object.freeze({
@@ -2010,10 +2017,157 @@ export const isPromptInjection = (query, isNested = false) => {
       if (keywordSubDecoded) {
         return true;
       }
+
+      // Security: Handle Adobe Ascii85 (<~...~>) and raw Base85 encoded payloads and evaluate recursively
+      const ascii85Decoded = safeDecodeAscii85(targetStr);
+      if (ascii85Decoded) {
+        return true;
+      }
+
+      // Security: Handle ZeroMQ Z85 encoded payloads and evaluate recursively
+      const z85Decoded = safeDecodeZ85(targetStr);
+      if (z85Decoded) {
+        return true;
+      }
     }
   }
 
   return false;
+};
+
+// Helper to safely decode Adobe Ascii85 (<~...~>) and raw Base85 encoded payloads
+const safeDecodeAscii85 = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 2000) return null;
+  try {
+    let target = targetStr.trim();
+    const hasDelimiters = target.includes('<~') && target.includes('~>');
+    if (hasDelimiters) {
+      const start = target.indexOf('<~') + 2;
+      const end = target.indexOf('~>', start);
+      if (end !== -1) {
+        target = target.substring(start, end);
+      }
+    }
+
+    target = target.replace(/\s+/g, '');
+    if (target.length < 5 && !target.includes('z')) return null;
+
+    const bytes = [];
+    let i = 0;
+    while (i < target.length) {
+      if (target[i] === 'z') {
+        bytes.push(0, 0, 0, 0);
+        i++;
+        continue;
+      }
+      if (target[i] === 'y') {
+        bytes.push(32, 32, 32, 32);
+        i++;
+        continue;
+      }
+
+      let chunk = '';
+      let j = i;
+      while (j < target.length && chunk.length < 5) {
+        const ch = target[j];
+        if (ch === 'z' || ch === 'y') break;
+        const code = ch.charCodeAt(0);
+        if (code >= 33 && code <= 117) {
+          chunk += ch;
+        } else {
+          return null; // Invalid character
+        }
+        j++;
+      }
+
+      if (chunk.length < 2) return null;
+
+      const len = chunk.length;
+      const padLen = 5 - len;
+      for (let p = 0; p < padLen; p++) {
+        chunk += 'u';
+      }
+
+      let val = 0;
+      for (let k = 0; k < 5; k++) {
+        val = val * 85 + (chunk.charCodeAt(k) - 33);
+      }
+
+      if (val > 0xFFFFFFFF) return null;
+
+      const outLen = len - 1;
+      const b0 = (val >>> 24) & 0xFF;
+      const b1 = (val >>> 16) & 0xFF;
+      const b2 = (val >>> 8) & 0xFF;
+      const b3 = val & 0xFF;
+
+      const bArr = [b0, b1, b2, b3];
+      for (let b = 0; b < outLen; b++) {
+        const byteVal = bArr[b];
+        if (byteVal < 9 || (byteVal > 13 && byteVal < 32) || byteVal > 126) return null;
+        bytes.push(byteVal);
+      }
+
+      i = j;
+    }
+
+    if (bytes.length < 6) return null;
+    const decoded = String.fromCharCode(...bytes);
+    if (decoded && isPromptInjection(decoded, true)) {
+      return decoded;
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+};
+
+// Helper to safely decode ZeroMQ Z85 encoded payloads
+const safeDecodeZ85 = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 10 || targetStr.length > 2000) return null;
+  try {
+    const clean = targetStr.trim().replace(/\s+/g, '');
+    if (clean.length % 5 !== 0) return null;
+
+    const bytes = [];
+    const len = clean.length;
+    for (let i = 0; i < len; i += 5) {
+      let val = 0;
+      for (let j = 0; j < 5; j++) {
+        const ch = clean[i + j];
+        const idx = Z85_MAP.get(ch);
+        if (idx === undefined) return null;
+        val = val * 85 + idx;
+      }
+
+      if (val > 0xFFFFFFFF) return null;
+
+      const b0 = (val >>> 24) & 0xFF;
+      const b1 = (val >>> 16) & 0xFF;
+      const b2 = (val >>> 8) & 0xFF;
+      const b3 = val & 0xFF;
+
+      const chunkBytes = [b0, b1, b2, b3];
+      const isLastChunk = (i + 5 >= len);
+      for (let b = 0; b < 4; b++) {
+        const byteVal = chunkBytes[b];
+        if (byteVal === 0 && isLastChunk) {
+          continue; // Strip trailing null padding bytes
+        }
+        if (byteVal < 9 || (byteVal > 13 && byteVal < 32) || byteVal > 126) return null;
+        bytes.push(byteVal);
+      }
+    }
+
+    if (bytes.length < 6) return null;
+    const decoded = String.fromCharCode(...bytes);
+    if (decoded && isPromptInjection(decoded, true)) {
+      return decoded;
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
 };
 
 // Helper to safely decode Keyword Substitution Cipher-encoded payloads across candidate keyword alphabet maps
