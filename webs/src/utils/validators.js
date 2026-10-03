@@ -948,6 +948,13 @@ const Z85_MAP = Object.freeze((() => {
   return map;
 })());
 
+const BASE45_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:';
+const BASE45_MAP = Object.freeze((() => {
+  const map = new Map();
+  for (let i = 0; i < BASE45_CHARS.length; i++) map.set(BASE45_CHARS[i], i);
+  return map;
+})());
+
 const STRADDLING_CHECKERBOARD_CANDIDATES = Object.freeze([
   // 1. AT ONE SIR Layout (blanks at indices 2 and 6)
   Object.freeze({
@@ -2029,6 +2036,12 @@ export const isPromptInjection = (query, isNested = false) => {
       if (z85Decoded) {
         return true;
       }
+
+      // Security: Handle Base45 (RFC 9285) encoded payloads and evaluate recursively
+      const base45Decoded = safeDecodeBase45(targetStr);
+      if (base45Decoded) {
+        return true;
+      }
     }
   }
 
@@ -2111,6 +2124,47 @@ const safeDecodeAscii85 = (targetStr) => {
       i = j;
     }
 
+    if (bytes.length < 6) return null;
+    const decoded = String.fromCharCode(...bytes);
+    if (decoded && isPromptInjection(decoded, true)) {
+      return decoded;
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+};
+
+// Helper to safely decode Base45 (RFC 9285) encoded payloads
+const safeDecodeBase45 = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 2000) return null;
+  try {
+    const clean = targetStr.trim();
+    const bytes = [];
+    let i = 0;
+    while (i < clean.length) {
+      if (i + 2 < clean.length && BASE45_MAP.has(clean[i]) && BASE45_MAP.has(clean[i + 1]) && BASE45_MAP.has(clean[i + 2])) {
+        const v1 = BASE45_MAP.get(clean[i]);
+        const v2 = BASE45_MAP.get(clean[i + 1]);
+        const v3 = BASE45_MAP.get(clean[i + 2]);
+        const val = v1 + v2 * 45 + v3 * 2025;
+        if (val > 65535) return null;
+        const b1 = Math.floor(val / 256);
+        const b2 = val % 256;
+        if (b1 < 9 || (b1 > 13 && b1 < 32) || b1 > 126 || b2 < 9 || (b2 > 13 && b2 < 32) || b2 > 126) return null;
+        bytes.push(b1, b2);
+        i += 3;
+      } else if (i + 1 < clean.length && BASE45_MAP.has(clean[i]) && BASE45_MAP.has(clean[i + 1])) {
+        const v1 = BASE45_MAP.get(clean[i]);
+        const v2 = BASE45_MAP.get(clean[i + 1]);
+        const val = v1 + v2 * 45;
+        if (val > 255 || val < 9 || (val > 13 && val < 32) || val > 126) return null;
+        bytes.push(val);
+        i += 2;
+      } else {
+        return null;
+      }
+    }
     if (bytes.length < 6) return null;
     const decoded = String.fromCharCode(...bytes);
     if (decoded && isPromptInjection(decoded, true)) {
