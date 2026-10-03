@@ -2,9 +2,17 @@ import React, { memo, useRef, useMemo, useId } from "react";
 
 /**
  * ⚡ REFINEMENT: Luxury Forge-Standard Card Container ('Spatial Artifact Enclave').
- * Features ultra-high-fidelity glassmorphic surfaces, 60fps direct-DOM 3D volumetric tilt,
+ * Re-engineered to Voro's 'Forge' luxury gallery system standard with 3D volumetric tilt,
  * magnetic liquid border intelligence, holographic coordinate telemetry overlays,
- * sub-pixel hash badging, and W3C APG compliant keyboard focus states.
+ * sub-pixel hash badging, state-aware micro-UX title tooltips, and W3C APG compliant accessibility.
+ *
+ * DESIGN PHILOSOPHY & PSYCHOLOGICAL RATIONALE:
+ * 1. Visual Hierarchy & Spatial Authority: Heavy glassmorphic surfaces (#0A0C14) paired with 2.5rem golden-ratio corner radii
+ *    establish an elevated gallery enclave. Elements breathe with generous p-10 interior padding and subtle inset specular highlights.
+ * 2. High-End Micro-interactions: Direct-DOM 60fps volumetric tilt (--tilt-x, --tilt-y) and internal parallax displacement
+ *    bypasses React render passes, delivering tactile depth and zero-latency responsiveness.
+ * 3. Cognitive Ease & Accessibility: State-aware title tooltips and normalized aria-label forwarding reduce cognitive load
+ *    and ensure seamless W3C APG screen-reader navigation.
  */
 const Card = memo(({
   children,
@@ -14,6 +22,9 @@ const Card = memo(({
   nodeId = "CARD_01",
   tabIndex,
   role,
+  title,
+  ariaLabel,
+  "aria-label": customAriaLabel,
   onClick,
   onKeyDown,
   onMouseEnter,
@@ -37,6 +48,10 @@ const Card = memo(({
   }, [generatedId]);
 
   const isInteractive = hover || variant === "premium" || variant === "interactive" || Boolean(onClick);
+
+  // Compute state-aware title tooltip and normalized ARIA accessibility label
+  const computedTitle = title || (isInteractive ? "Interactive spatial artifact node" : undefined);
+  const computedAriaLabel = customAriaLabel || ariaLabel || (onClick ? "Interactive spatial card node" : undefined);
 
   const handleMouseMove = (e) => {
     if (onMouseMove) onMouseMove(e);
@@ -152,6 +167,8 @@ const Card = memo(({
     <div
       ref={containerRef}
       role={role || (onClick ? "button" : undefined)}
+      title={computedTitle}
+      aria-label={computedAriaLabel}
       onClick={onClick}
       onKeyDown={handleKeyDown}
       onMouseMove={handleMouseMove}
