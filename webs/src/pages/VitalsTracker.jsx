@@ -460,7 +460,7 @@ const VitalsTracker = () => {
    * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity via selector hook.
    */
   const history = useStorageKeySelector('vitals', selectVitals);
-  const { setItem } = useStorageMethods();
+  const { setItem, getItem } = useStorageMethods();
   const { addNotification } = useNotifications();
   const [vitals, setVitals] = useState({
     heartRate: 72,
@@ -503,7 +503,7 @@ const VitalsTracker = () => {
       });
   }, [history]);
 
-  const handleSaveVitals = async () => {
+  const handleSaveVitals = useCallback(async () => {
     const { valid, errors } = validateVitals(vitals);
 
     if (!valid) {
@@ -519,13 +519,14 @@ const VitalsTracker = () => {
         ...vitals,
       };
 
-      const updated = [...history, entry];
+      const currentHistory = getItem('vitals') || history || [];
+      const updated = [...currentHistory, entry];
       await setItem('vitals', updated);
       addNotification('Biometric data synchronized', 'success');
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [vitals, history, getItem, setItem, addNotification]);
 
   const heartRateStatus = useMemo(() => getHeartRateStatus(vitals.heartRate), [vitals.heartRate]);
   const bpStatus = useMemo(() => getBloodPressureStatus(vitals.bloodPressure), [vitals.bloodPressure]);

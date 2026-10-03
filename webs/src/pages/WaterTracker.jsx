@@ -3,7 +3,7 @@ import { Plus, Droplet, Trash2, TrendingUp, ChevronLeft, ChevronRight, Target, Z
 import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { validateWaterEntry } from '@/utils/validators';
-import { getFastShortDate } from '@/utils/formatters';
+import { getFastShortDate, CachedDateTimeFormat } from '@/utils/formatters';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import Header from '@/components/Header';
@@ -15,7 +15,7 @@ import LineChartComponent from '@/components/LineChartComponent';
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters and static constants.
  * Prevents redundant object/array instantiation in loops and component renders.
  */
-const longDateFormatter = new Intl.DateTimeFormat('en-US', {
+const longDateFormatter = new CachedDateTimeFormat('en-US', {
   weekday: 'short',
   month: 'short',
   day: 'numeric'
@@ -511,7 +511,7 @@ const WaterTracker = () => {
     document.title = 'VORO | Hydration Flow Synthesis';
   }, []);
 
-  const addWater = async (amount) => {
+  const addWater = useCallback(async (amount) => {
     const { valid, errors } = validateWaterEntry({ amount, date });
 
     if (!valid) {
@@ -526,10 +526,12 @@ const WaterTracker = () => {
     };
 
     /**
-     * ⚡ OPTIMIZATION: Use updateItem for surgical key-level updates.
-     * Reduces the complexity of reading and spreading entire log objects.
+     * ⚡ OPTIMIZATION: Synchronous getItem reads latest state to stabilize callback
+     * and avoid closure staleness or child re-renders.
      */
-    const updatedLogs = [...dailyLogs, newLog];
+    const logs = getItem('water_log') || {};
+    const currentDailyLogs = logs[date] || dailyLogs || [];
+    const updatedLogs = [...currentDailyLogs, newLog];
 
     const history = getItem('water_history') || {};
     const newTotal = (history[date] || 0) + amount;
@@ -540,13 +542,15 @@ const WaterTracker = () => {
     if (newTotal >= dailyGoal && (newTotal - amount) < dailyGoal) {
       addNotification('Hydration threshold achieved. Cellular homeostasis optimized.', 'success');
     }
-  };
+  }, [date, dailyLogs, dailyGoal, getItem, updateItem, addNotification]);
 
   const deleteLog = useCallback(async (id) => {
-    const logToDelete = dailyLogs.find(l => l.id === id);
+    const logs = getItem('water_log') || {};
+    const currentDailyLogs = logs[date] || dailyLogs || [];
+    const logToDelete = currentDailyLogs.find(l => l.id === id);
     if (!logToDelete) return;
 
-    const updatedLogs = dailyLogs.filter(log => log.id !== id);
+    const updatedLogs = currentDailyLogs.filter(log => log.id !== id);
     const history = getItem('water_history') || {};
     const newTotal = Math.max(0, (history[date] || 0) - logToDelete.amount);
 

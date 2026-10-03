@@ -5,6 +5,7 @@ import Card from '@/components/Card';
 import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { supplements } from '@/data/supplements';
+import { CachedDateTimeFormat } from '@/utils/formatters';
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters & pre-processed static data structures.
@@ -13,7 +14,7 @@ import { supplements } from '@/data/supplements';
 const EMPTY_ARRAY = Object.freeze([]);
 const selectSupplements = (s) => (Array.isArray(s) ? s : EMPTY_ARRAY);
 
-const fullDateFormatter = new Intl.DateTimeFormat('en-US', {
+const fullDateFormatter = new CachedDateTimeFormat('en-US', {
   month: 'short',
   day: 'numeric',
   year: 'numeric'
