@@ -9,7 +9,7 @@ import { useAppContext as useApp } from '@/hooks/useAppContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import { calculateBMI, calculateFFMI } from '@/utils/calculators';
 import { isValidWeight, isValidBodyFat, isPositiveNumber } from '@/utils/validators';
-import { getFastShortDate } from '@/utils/formatters';
+import { getFastShortDate, CachedDateTimeFormat } from '@/utils/formatters';
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters & static datasets.
@@ -20,7 +20,7 @@ const selectWeights = (metrics) => metrics?.weights || EMPTY_ARRAY;
 const selectBodyFatRecords = (metrics) => metrics?.bodyFat || EMPTY_ARRAY;
 const selectMeasurementsRecord = (metrics) => metrics?.measurements || EMPTY_ARRAY;
 
-const longDateFormatter = new Intl.DateTimeFormat('en-US', {
+const longDateFormatter = new CachedDateTimeFormat('en-US', {
   weekday: 'long',
   year: 'numeric',
   month: 'long',
@@ -46,7 +46,7 @@ const SVG_NODES = Object.freeze([
 ]);
 
 const BodyMetrics = () => {
-  const { updateItem } = useStorageMethods();
+  const { updateItem, getItem } = useStorageMethods();
   const { user } = useApp();
   const { addNotification } = useNotifications();
   const [weight, setWeight] = useState('');
@@ -168,7 +168,7 @@ const BodyMetrics = () => {
     if (tiltYRef?.current) tiltYRef.current.innerText = '-4.0';
   }, []);
 
-  const addWeight = async () => {
+  const addWeight = useCallback(async () => {
     if (!weight) return;
 
     if (!isValidWeight(weight)) {
@@ -181,18 +181,18 @@ const BodyMetrics = () => {
       value: Number(weight),
     };
 
-    /**
-     * ⚡ OPTIMIZATION: Use updateItem for atomic key-level persistence.
-     */
+    const currentMetrics = getItem('body_metrics') || {};
+    const currentWeights = currentMetrics.weights || weights || [];
+
     await updateItem('body_metrics', {
-      weights: [...weights, newWeight]
+      weights: [...currentWeights, newWeight]
     });
 
     setWeight('');
     addNotification('Mass record synchronized', 'success');
-  };
+  }, [weight, weights, getItem, updateItem, addNotification]);
 
-  const addMeasurement = async () => {
+  const addMeasurement = useCallback(async () => {
     const invalidFields = Object.entries(measurements).filter(([_, val]) => val && !isPositiveNumber(val));
     if (invalidFields.length > 0) {
       addNotification('All measurements must be positive numbers', 'error');
@@ -209,18 +209,18 @@ const BodyMetrics = () => {
       ...measurements,
     };
 
-    /**
-     * ⚡ OPTIMIZATION: Atomic update for anatomical dimensions.
-     */
+    const currentMetrics = getItem('body_metrics') || {};
+    const currentMeasurements = currentMetrics.measurements || measurementsRecord || [];
+
     await updateItem('body_metrics', {
-      measurements: [...measurementsRecord, newMeasurement]
+      measurements: [...currentMeasurements, newMeasurement]
     });
 
     setMeasurements(INITIAL_MEASUREMENTS);
     addNotification('Anatomical dimensions recorded', 'success');
-  };
+  }, [measurements, measurementsRecord, getItem, updateItem, addNotification]);
 
-  const addBodyFat = async () => {
+  const addBodyFat = useCallback(async () => {
     if (!bodyFat) return;
 
     if (!isValidBodyFat(bodyFat)) {
@@ -233,16 +233,16 @@ const BodyMetrics = () => {
       value: Number(bodyFat),
     };
 
-    /**
-     * ⚡ OPTIMIZATION: Atomic update for adipose index.
-     */
+    const currentMetrics = getItem('body_metrics') || {};
+    const currentBodyFatRecords = currentMetrics.bodyFat || bodyFatRecords || [];
+
     await updateItem('body_metrics', {
-      bodyFat: [...bodyFatRecords, newBodyFat]
+      bodyFat: [...currentBodyFatRecords, newBodyFat]
     });
 
     setBodyFat('');
     addNotification('Adipose index updated', 'success');
-  };
+  }, [bodyFat, bodyFatRecords, getItem, updateItem, addNotification]);
 
   /**
    * ⚡ OPTIMIZATION: Memoized derived data with surgical reactivity.

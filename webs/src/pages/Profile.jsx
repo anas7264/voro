@@ -6,11 +6,12 @@ import { useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { calculateBMI, calculateBMR, calculateTDEE } from '@/utils/calculators';
 import { validateFitnessProfile } from '@/utils/validators';
+import { CachedDateTimeFormat } from '@/utils/formatters';
 
 // 🧊 Frozen Module-Scoped Static Configuration & Formatters (Zero Runtime Allocation)
 const GENDER_OPTIONS = Object.freeze(['Male', 'Female', 'Other']);
 
-const INIT_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
+const INIT_DATE_FORMATTER = new CachedDateTimeFormat('en-US', {
   month: 'long',
   day: 'numeric',
   year: 'numeric'

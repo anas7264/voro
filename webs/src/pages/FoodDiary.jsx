@@ -11,6 +11,7 @@ import Modal from '@/components/Modal';
 import Ring from '@/components/Ring';
 import { NutritionCard } from '@/components/NutritionCard';
 import { foods } from '@/data/foods';
+import { CachedDateTimeFormat } from '@/utils/formatters';
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Module-Scoped Frozen Constants.
@@ -34,7 +35,7 @@ const INITIAL_LOG_TEMPLATE = Object.freeze({
  * ⚡ PERFORMANCE OPTIMIZATION: Module-Scoped Date Formatter.
  * Prevents redundant object instantiation of Intl.DateTimeFormat in render loops.
  */
-const dateFormatter = new Intl.DateTimeFormat('en-US', {
+const dateFormatter = new CachedDateTimeFormat('en-US', {
   weekday: 'short',
   month: 'short',
   day: 'numeric'

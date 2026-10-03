@@ -4,12 +4,13 @@ import { Card, Button, Divider, DatePicker } from '@/components';
 import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
 import { isDateInFuture } from '@/utils/validators';
+import { CachedDateTimeFormat } from '@/utils/formatters';
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters & static datasets.
  * Prevents redundant object instantiation of Intl.DateTimeFormat & static arrays in loops.
  */
-const longDateFormatter = new Intl.DateTimeFormat('en-US', {
+const longDateFormatter = new CachedDateTimeFormat('en-US', {
   weekday: 'short',
   month: 'long',
   day: 'numeric',

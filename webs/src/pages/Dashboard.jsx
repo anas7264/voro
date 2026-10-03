@@ -19,7 +19,7 @@ import { useAppContext } from '@/hooks/useAppContext';
 import { useStorageMethods, useStorageKeySelector } from '@/hooks/useStorage';
 import { useAI } from '@/hooks/useAI';
 import { useNotifications } from '@/hooks/useNotifications';
-import { getFastDateStr, getFastShortDate } from '@/utils/formatters';
+import { getFastDateStr, getFastShortDate, CachedDateTimeFormat } from '@/utils/formatters';
 import Modal from '@/components/Modal';
 import LineChartComponent from '@/components/LineChartComponent';
 import Ring from '@/components/Ring';
@@ -64,7 +64,7 @@ const getGreeting = () => {
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted formatters.
  * Prevents redundant object instantiation of Intl.DateTimeFormat in loops or high-frequency renders.
  */
-const longDateFormatter = new Intl.DateTimeFormat('en-US', {
+const longDateFormatter = new CachedDateTimeFormat('en-US', {
   weekday: 'long',
   year: 'numeric',
   month: 'long',

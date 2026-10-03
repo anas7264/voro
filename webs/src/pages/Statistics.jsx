@@ -4,13 +4,13 @@ import { Card, Button, Tabs, LineChartComponent, BarChartComponent, PieChartComp
 import { useStorageKeySelector } from '@/hooks/useStorage';
 import { useApp } from '@/hooks/useAppContext';
 import { useExport } from '@/hooks/useExport';
-import { getFastDateStr } from '@/utils/formatters';
+import { getFastDateStr, CachedDateTimeFormat } from '@/utils/formatters';
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted constants and formatters.
  * Prevents redundant object instantiation and memory pressure in the render cycle.
  */
-const LABEL_FORMATTER = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+const LABEL_FORMATTER = new CachedDateTimeFormat('en-US', { month: 'short', day: 'numeric' });
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const PERIOD_TABS = [
   { id: '7D', label: '7D' },
