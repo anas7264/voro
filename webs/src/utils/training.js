@@ -9,11 +9,13 @@ import { calculateOneRepMax, calculateTrainingVolume, suggestProgressiveOverload
  * prevent heap-allocation and Garbage Collection (GC) churn in hot paths.
  */
 const REST_RECOMMENDATIONS = Object.freeze({
-  strength: Object.freeze({ min: 180, max: 300, description: "3-5 minutes for CNS recovery" }),
-  hypertrophy: Object.freeze({ min: 60, max: 90, description: "1-1.5 minutes for metabolic stress" }),
-  endurance: Object.freeze({ min: 30, max: 60, description: "30-60 seconds to maintain heart rate" }),
-  power: Object.freeze({ min: 180, max: 300, description: "3-5 minutes for complete nervous system recovery" })
+  strength: Object.freeze({ min: 180, max: 300, formattedMin: "3:00", formattedMax: "5:00", description: "3-5 minutes for CNS recovery" }),
+  hypertrophy: Object.freeze({ min: 60, max: 90, formattedMin: "1:00", formattedMax: "1:30", description: "1-1.5 minutes for metabolic stress" }),
+  endurance: Object.freeze({ min: 30, max: 60, formattedMin: "0:30", formattedMax: "1:00", description: "30-60 seconds to maintain heart rate" }),
+  power: Object.freeze({ min: 180, max: 300, formattedMin: "3:00", formattedMax: "5:00", description: "3-5 minutes for complete nervous system recovery" })
 });
+
+const DEFAULT_FORM_ISSUES = Object.freeze(["None observed"]);
 
 const RED_FLAGS = Object.freeze([
   "loose form",
@@ -103,7 +105,9 @@ export const analyzeTrainingVolume = (workouts) => {
   const len = workouts ? workouts.length : 0;
   for (let i = 0; i < len; i++) {
     const workout = workouts[i];
-    const volume = calculateTrainingVolume(workout.sets, workout.reps, workout.weight);
+    const volume = typeof workout.volume === 'number'
+      ? workout.volume
+      : calculateTrainingVolume(workout.sets, workout.reps, workout.weight);
     totalVolume += volume;
 
     // Group by exercise
@@ -145,15 +149,18 @@ export const analyzeTrainingVolume = (workouts) => {
 
 // Detect PRs (Personal Records)
 export const detectPersonalRecords = (currentLift, previousMaxes) => {
-  const isNewPR = currentLift.weight > (previousMaxes[currentLift.exercise] || 0);
-  const improvement = currentLift.weight - (previousMaxes[currentLift.exercise] || 0);
+  // ⚡ PERFORMANCE OPTIMIZATION: Cache dictionary lookup and current weight.
+  const prevMax = (previousMaxes && previousMaxes[currentLift.exercise]) || 0;
+  const currWeight = currentLift?.weight || 0;
+  const isNewPR = currWeight > prevMax;
+  const improvement = currWeight - prevMax;
 
   return {
     isNewPR,
-    currentWeight: currentLift.weight,
-    previousMax: previousMaxes[currentLift.exercise] || 0,
+    currentWeight: currWeight,
+    previousMax: prevMax,
     improvement,
-    improvementPercentage: ((improvement / (previousMaxes[currentLift.exercise] || currentLift.weight)) * 100).toFixed(1),
+    improvementPercentage: ((improvement / (prevMax || currWeight)) * 100).toFixed(1),
     celebration: isNewPR ? "🎉 NEW PR! 🎉" : ""
   };
 };
@@ -231,13 +238,15 @@ export const calculateTrainingStress = (sets, reps, weight, oneRepMax, trainingA
 
 // Rest period recommendations
 export const getRestPeriodRecommendation = (exercise, goal = "hypertrophy", previousRestTime = null) => {
+  // ⚡ PERFORMANCE OPTIMIZATION: Pre-formatted min/max strings on frozen REST_RECOMMENDATIONS
+  // completely bypass Math.floor, modulo arithmetic, and string padding allocations on every invocation.
   const recommendation = REST_RECOMMENDATIONS[goal] || REST_RECOMMENDATIONS.hypertrophy;
 
   return {
     minSeconds: recommendation.min,
     maxSeconds: recommendation.max,
-    formattedMin: `${Math.floor(recommendation.min / 60)}:${(recommendation.min % 60).toString().padStart(2, "0")}`,
-    formattedMax: `${Math.floor(recommendation.max / 60)}:${(recommendation.max % 60).toString().padStart(2, "0")}`,
+    formattedMin: recommendation.formattedMin,
+    formattedMax: recommendation.formattedMax,
     description: recommendation.description,
     improvement: previousRestTime ? (previousRestTime < recommendation.min ? "Increase rest" : "Decrease rest") : ""
   };
@@ -248,16 +257,16 @@ export const assessFormQuality = (workoutNotes, exerciseDifficulty) => {
   let formScore = 100;
   const issues = [];
 
-  // ⚡ PERFORMANCE OPTIMIZATION: Avoid repeatedly executing .toLowerCase() inside loop and
-  // use imperative for loop over module-scoped RED_FLAGS array.
+  // ⚡ PERFORMANCE OPTIMIZATION: Skip RED_FLAGS search loop if notes are empty.
   const notesLower = workoutNotes?.toLowerCase() || "";
-
-  const flagsLen = RED_FLAGS.length;
-  for (let i = 0; i < flagsLen; i++) {
-    const flag = RED_FLAGS[i];
-    if (notesLower.includes(flag)) {
-      formScore -= 15;
-      issues.push(flag);
+  if (notesLower) {
+    const flagsLen = RED_FLAGS.length;
+    for (let i = 0; i < flagsLen; i++) {
+      const flag = RED_FLAGS[i];
+      if (notesLower.includes(flag)) {
+        formScore -= 15;
+        issues.push(flag);
+      }
     }
   }
 
@@ -266,7 +275,7 @@ export const assessFormQuality = (workoutNotes, exerciseDifficulty) => {
   return {
     formScore,
     status: formScore >= 80 ? "Excellent" : (formScore >= 60 ? "Good" : "Needs Improvement"),
-    issues: issues.length > 0 ? issues : ["None observed"],
+    issues: issues.length > 0 ? issues : DEFAULT_FORM_ISSUES,
     recommendation: formScore < 80 ? "Focus on form before increasing weight" : "Form looks good, can progress weight"
   };
 };
@@ -305,8 +314,16 @@ export const getPeriodizationPhaseRecommendations = (weekNumber, totalWeeks, goa
 
 // Exercise variation suggestions for muscular adaptation
 export const suggestExerciseVariations = (exercise, previousVariations = []) => {
+  // ⚡ PERFORMANCE OPTIMIZATION: Fast-path when previousVariations is empty to bypass filter allocation.
+  // When previousVariations contains elements, use Set.has for O(1) lookup.
   const availableVariations = EXERCISE_VARIATIONS[exercise] || [];
-  const unusedVariations = availableVariations.filter(v => !previousVariations.includes(v));
+  let unusedVariations;
+  if (!previousVariations || previousVariations.length === 0) {
+    unusedVariations = availableVariations;
+  } else {
+    const prevSet = new Set(previousVariations);
+    unusedVariations = availableVariations.filter(v => !prevSet.has(v));
+  }
 
   return {
     currentExercise: exercise,
