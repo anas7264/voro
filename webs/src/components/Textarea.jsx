@@ -230,6 +230,7 @@ export const Textarea = memo(({
             `}
             aria-invalid={!!error}
             aria-describedby={describedBy}
+            aria-label={!label ? (props['aria-label'] || props.ariaLabel || placeholder || "Text input field") : undefined}
           />
 
           {/* Sub-pixel Hash Badge (Industrial Detail) */}

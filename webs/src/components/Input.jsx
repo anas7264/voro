@@ -230,6 +230,7 @@ export const Input = memo(({
             required={required}
             aria-invalid={!!error}
             aria-describedby={describedBy}
+            aria-label={!label ? (props['aria-label'] || props.ariaLabel || placeholder || "Input field") : undefined}
           />
 
           {/* Sub-pixel Hash Badge (Industrial Detail) */}

@@ -21,3 +21,7 @@
 ## 2025-05-23 - Avoiding `aria-label` and `role="button"` Overrides on Table Rows
 **Learning:** Setting `aria-label` or `role="button"` directly on `<tr>` elements in an HTML `<table>` overrides all child `<td>` text nodes for screen readers and breaks native table navigation. Interactive table rows should instead use `tabIndex={0}`, `onKeyDown` (`Enter` and `Space` activation), hover `title` tooltips, and focus-visible rings without altering the `<tr>` element's native ARIA semantics or masking cell text.
 **Action:** When making table rows interactive, provide keyboard navigation (`tabIndex={0}` and `onKeyDown`) and hover `title` tooltips without adding `role="button"` or `aria-label` to `<tr>` nodes.
+
+## 2025-05-24 - Action-Oriented Fallback Accessible Names for Unlabelled Form Controls
+**Learning:** Form input primitives (`Input`, `Select`, `Textarea`) rendered without visual `label` props often leave screen reader users with unlabelled inputs. Providing fallback `aria-label` resolution (`props['aria-label'] || props.ariaLabel || placeholder || defaultFallback`) when `!label` ensures assistive technologies always announce an accessible name while allowing native `<label>` association when `label` is present.
+**Action:** When designing form input primitives that support optional visual labels, conditionally supply `aria-label` only when no visible label is rendered, prioritizing explicit ARIA props and placeholders before falling back to generic type descriptions.

@@ -222,7 +222,7 @@ export const Select = memo(({
               focus:outline-none transition-all duration-500 appearance-none cursor-pointer
               ${disabled ? "cursor-not-allowed" : ""}
             `}
-            aria-label={!label ? props['aria-label'] : undefined}
+            aria-label={!label ? (props['aria-label'] || props.ariaLabel || placeholder || "Selection input") : undefined}
             aria-invalid={!!error}
             aria-describedby={describedBy}
           >
