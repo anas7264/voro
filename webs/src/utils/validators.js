@@ -3494,6 +3494,19 @@ export const validateHabit = (habit) => {
     errors.color = "Invalid color selection";
   }
 
+  // Security: Enforce strict type and length limits on optional text fields
+  if (habit.description !== undefined && habit.description !== null && habit.description !== '') {
+    if (typeof habit.description !== 'string' || habit.description.length > 2048) {
+      errors.description = "Description must be 2048 characters or less";
+    }
+  }
+
+  if (habit.notes !== undefined && habit.notes !== null && habit.notes !== '') {
+    if (typeof habit.notes !== 'string' || habit.notes.length > 2048) {
+      errors.notes = "Notes must be 2048 characters or less";
+    }
+  }
+
   return { valid: Object.keys(errors).length === 0, errors };
 };
 
@@ -3564,6 +3577,13 @@ export const validateWaterEntry = (entry) => {
 
   if (entry.date && !isValidDate(entry.date)) {
     errors.date = "Date is invalid";
+  }
+
+  // Security: Enforce strict type and length limits on optional text fields
+  if (entry.notes !== undefined && entry.notes !== null && entry.notes !== '') {
+    if (typeof entry.notes !== 'string' || entry.notes.length > 2048) {
+      errors.notes = "Notes must be 2048 characters or less";
+    }
   }
 
   return { valid: Object.keys(errors).length === 0, errors };

@@ -2,7 +2,9 @@ import {
   validateWorkoutEntry,
   validateNutritionEntry,
   validateRecipe,
-  validateFoodDiaryEntry
+  validateFoodDiaryEntry,
+  validateHabit,
+  validateWaterEntry
 } from './src/utils/validators.js';
 
 console.log("=========================================");
@@ -113,6 +115,54 @@ if (validateFoodDiaryEntry(overlongFoodNotes).valid) {
   throw new Error("❌ Test 4 Failed: Overlong food diary notes (>2048 chars) passed validation!");
 }
 console.log("✅ Success: validateFoodDiaryEntry optional fields verified!");
+
+// 5. Test validateHabit optional description and notes
+console.log("🛡️ Test 5: Testing validateHabit optional description and notes bounds...");
+const validHabit = {
+  name: "Daily Reading",
+  icon: "📚",
+  color: "voro-primary",
+  description: "Read 20 pages",
+  notes: "Focus on non-fiction"
+};
+const validHabitResult = validateHabit(validHabit);
+if (!validHabitResult.valid) {
+  throw new Error("❌ Test 5 Failed: Valid habit entry rejected! " + JSON.stringify(validHabitResult.errors));
+}
+
+const overlongHabitDesc = { ...validHabit, description: "f".repeat(2049) };
+if (validateHabit(overlongHabitDesc).valid) {
+  throw new Error("❌ Test 5 Failed: Overlong habit description (>2048 chars) passed validation!");
+}
+
+const nonStringHabitNotes = { ...validHabit, notes: 12345 };
+if (validateHabit(nonStringHabitNotes).valid) {
+  throw new Error("❌ Test 5 Failed: Non-string habit notes passed validation!");
+}
+console.log("✅ Success: validateHabit optional fields verified!");
+
+// 6. Test validateWaterEntry optional notes
+console.log("🛡️ Test 6: Testing validateWaterEntry optional notes bounds...");
+const validWater = {
+  amount: 500,
+  date: "2026-06-15",
+  notes: "Cold filtered water"
+};
+const validWaterResult = validateWaterEntry(validWater);
+if (!validWaterResult.valid) {
+  throw new Error("❌ Test 6 Failed: Valid water entry rejected! " + JSON.stringify(validWaterResult.errors));
+}
+
+const overlongWaterNotes = { ...validWater, notes: "g".repeat(2049) };
+if (validateWaterEntry(overlongWaterNotes).valid) {
+  throw new Error("❌ Test 6 Failed: Overlong water notes (>2048 chars) passed validation!");
+}
+
+const nonStringWaterNotes = { ...validWater, notes: [1, 2, 3] };
+if (validateWaterEntry(nonStringWaterNotes).valid) {
+  throw new Error("❌ Test 6 Failed: Non-string water notes passed validation!");
+}
+console.log("✅ Success: validateWaterEntry optional fields verified!");
 
 console.log("\n🎉 ALL ENTRY VALIDATION SECURITY HARDENING TESTS PASSED SUCCESSFULLY!");
 console.log("=========================================");
