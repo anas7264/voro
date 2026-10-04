@@ -1,5 +1,16 @@
-import React, { useId, useMemo, useRef, memo } from "react";
-import { Calendar } from "lucide-react";
+import React, { useId, useMemo, useRef, memo, useCallback } from "react";
+import { Calendar, Clock } from "lucide-react";
+import { CachedDateTimeFormat } from "../utils/formatters";
+
+/**
+ * Helper to convert Date instance to ISO YYYY-MM-DD string without timezone drift
+ */
+const toISODateString = (date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
 
 /**
  * ⚡ REFINEMENT: Luxury Neural Temporal Node (DatePicker).
@@ -23,6 +34,7 @@ export const DatePicker = memo(({
   error = false,
   required = false,
   disabled = false,
+  showPresets = true,
   className = "",
   onFocus,
   onBlur,
@@ -42,6 +54,7 @@ export const DatePicker = memo(({
   ].filter(Boolean).join(" ") || undefined;
 
   const containerRef = useRef(null);
+  const inputRef = useRef(null);
   const spotlightRef = useRef(null);
   const txRef = useRef(null);
   const tyRef = useRef(null);
@@ -55,16 +68,49 @@ export const DatePicker = memo(({
     return `DT_${cleanId.slice(0, 3).toUpperCase()}`;
   }, [generatedId]);
 
-  const updateTransformStyle = () => {
+  // Zero-allocation date preview formatting (e.g. "May 15, 2025")
+  const displayFormattedDate = useMemo(() => {
+    if (!value || typeof value !== 'string') return null;
+    const parts = value.split('-');
+    if (parts.length !== 3) return null;
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
+
+    const dateObj = new Date(year, month, day);
+    const todayStr = toISODateString(new Date());
+    if (value === todayStr) return "Today";
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (value === toISODateString(yesterday)) return "Yesterday";
+
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    if (value === toISODateString(tomorrow)) return "Tomorrow";
+
+    try {
+      return CachedDateTimeFormat.format(dateObj, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    } catch {
+      return value;
+    }
+  }, [value]);
+
+  const updateTransformStyle = useCallback(() => {
     if (!containerRef.current) return;
     const active = isHoveredRef.current || isFocusedRef.current;
     containerRef.current.style.transform = active
       ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)'
       : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
     containerRef.current.style.transition = isHoveredRef.current ? 'none' : 'transform 0.7s cubic-bezier(0.16,1,0.3,1)';
-  };
+  }, []);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!containerRef.current || disabled) return;
 
     const rect = containerRef.current.getBoundingClientRect();
@@ -88,15 +134,15 @@ export const DatePicker = memo(({
     if (tyRef.current) tyRef.current.innerText = tiltY.toFixed(1);
 
     updateTransformStyle();
-  };
+  }, [disabled, updateTransformStyle]);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     if (disabled) return;
     isHoveredRef.current = true;
     updateTransformStyle();
-  };
+  }, [disabled, updateTransformStyle]);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
     if (!containerRef.current) return;
 
@@ -116,9 +162,9 @@ export const DatePicker = memo(({
     }
 
     updateTransformStyle();
-  };
+  }, [updateTransformStyle]);
 
-  const handleInputFocus = (e) => {
+  const handleInputFocus = useCallback((e) => {
     isFocusedRef.current = true;
     if (containerRef.current) {
       // W3C APG compliant static 4-degree focus tilt
@@ -129,9 +175,9 @@ export const DatePicker = memo(({
     }
     updateTransformStyle();
     if (onFocus) onFocus(e);
-  };
+  }, [onFocus, updateTransformStyle]);
 
-  const handleInputBlur = (e) => {
+  const handleInputBlur = useCallback((e) => {
     isFocusedRef.current = false;
     if (containerRef.current && !isHoveredRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
@@ -139,7 +185,46 @@ export const DatePicker = memo(({
     }
     updateTransformStyle();
     if (onBlur) onBlur(e);
-  };
+  }, [onBlur, updateTransformStyle]);
+
+  // Dual-compatible change emitter supporting both onChange(str) and onChange(evt)
+  const emitChange = useCallback((val) => {
+    if (!onChange || disabled) return;
+    // Call with string value; if caller expects e.target.value, pass synthetic event as fallback
+    const syntheticEvent = { target: { value: val, id: inputId }, currentTarget: { value: val, id: inputId } };
+    onChange(val, syntheticEvent);
+  }, [onChange, disabled, inputId]);
+
+  // Quick preset handlers
+  const handleSetToday = useCallback((e) => {
+    e.stopPropagation();
+    emitChange(toISODateString(new Date()));
+  }, [emitChange]);
+
+  const handleSetYesterday = useCallback((e) => {
+    e.stopPropagation();
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    emitChange(toISODateString(yesterday));
+  }, [emitChange]);
+
+  const handleClear = useCallback((e) => {
+    e.stopPropagation();
+    emitChange("");
+  }, [emitChange]);
+
+  const handleCalendarClick = useCallback(() => {
+    if (disabled || !inputRef.current) return;
+    try {
+      if (typeof inputRef.current.showPicker === 'function') {
+        inputRef.current.showPicker();
+      } else {
+        inputRef.current.focus();
+      }
+    } catch {
+      inputRef.current.focus();
+    }
+  }, [disabled]);
 
   const computedTitle = disabled
     ? (title || props.title || "This field is disabled")
@@ -158,8 +243,39 @@ export const DatePicker = memo(({
           </label>
         )}
 
-        {/* Holographic Telemetry & Node Identifier */}
+        {/* Quick Temporal Presets & Holographic Telemetry Node */}
         <div className="flex items-center gap-3 font-mono text-[0.45rem] font-bold text-gray-600 uppercase tracking-widest">
+          {!disabled && showPresets && (
+            <div className="flex items-center gap-1.5 opacity-80 group-hover/date-container:opacity-100 transition-opacity duration-300">
+              <button
+                type="button"
+                onClick={handleSetToday}
+                className="px-2 py-0.5 rounded-md bg-white/[0.04] hover:bg-voro-primary/20 hover:text-voro-primary border border-white/5 transition-all text-gray-400 font-mono text-[0.45rem] tracking-wider"
+                title="Select today's date"
+              >
+                TODAY
+              </button>
+              <button
+                type="button"
+                onClick={handleSetYesterday}
+                className="px-2 py-0.5 rounded-md bg-white/[0.04] hover:bg-voro-primary/20 hover:text-voro-primary border border-white/5 transition-all text-gray-400 font-mono text-[0.45rem] tracking-wider"
+                title="Select yesterday's date"
+              >
+                YESTERDAY
+              </button>
+              {value && (
+                <button
+                  type="button"
+                  onClick={handleClear}
+                  className="px-1.5 py-0.5 rounded-md bg-red-500/10 hover:bg-red-500/20 hover:text-red-400 border border-red-500/20 transition-all text-red-400/80 font-mono text-[0.45rem] tracking-wider"
+                  title="Clear date selection"
+                >
+                  CLEAR
+                </button>
+              )}
+            </div>
+          )}
+
           <span className="opacity-0 group-hover/date-container:opacity-100 group-focus-within/date-container:opacity-100 transition-opacity duration-500 text-voro-primary/80">
             TX_<span ref={txRef}>0.0</span>° TY_<span ref={tyRef}>0.0</span>°
           </span>
@@ -224,8 +340,9 @@ export const DatePicker = memo(({
             scale-y-0 group-focus-within/date-container:scale-y-100 group-hover/date-container:scale-y-75
           `} />
 
-          <div className="relative flex items-center">
+          <div className="relative flex items-center justify-between">
             <input
+              ref={inputRef}
               id={inputId}
               type="date"
               value={value || ""}
@@ -246,10 +363,26 @@ export const DatePicker = memo(({
               aria-describedby={describedBy}
               {...props}
             />
-            <Calendar
-              className="absolute right-6 text-gray-500 group-hover/date-container:text-white group-focus-within/date-container:text-voro-primary group-hover/date-container:scale-110 transition-all duration-500 pointer-events-none"
-              size={18}
-            />
+
+            {/* Editorial Formatted Preview Badge & Calendar Trigger */}
+            <div className="absolute right-6 flex items-center gap-3 pointer-events-none">
+              {displayFormattedDate && (
+                <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-voro-primary/10 border border-voro-primary/20 text-voro-primary text-xs font-serif italic tracking-tight shadow-[0_0_10px_rgba(124,58,237,0.2)]">
+                  <Clock size={11} className="text-voro-primary/80" />
+                  {displayFormattedDate}
+                </span>
+              )}
+              <button
+                type="button"
+                tabIndex={-1}
+                onClick={handleCalendarClick}
+                disabled={disabled}
+                className="pointer-events-auto text-gray-500 group-hover/date-container:text-white group-focus-within/date-container:text-voro-primary group-hover/date-container:scale-110 transition-all duration-500 cursor-pointer focus:outline-none"
+                title="Open calendar picker"
+              >
+                <Calendar size={18} />
+              </button>
+            </div>
           </div>
 
           {/* Sub-pixel Hash Badge (Industrial Detail) */}
