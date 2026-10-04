@@ -66,7 +66,7 @@ export const Accordion = memo(({
     return openState === index;
   }, [allowMultiple, openState]);
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = useCallback((e) => {
     const buttons = Array.from(accordionRef.current?.querySelectorAll('button') || []);
     const currentIndex = buttons.indexOf(document.activeElement);
 
@@ -92,7 +92,9 @@ export const Accordion = memo(({
 
     e.preventDefault();
     buttons[nextIndex]?.focus();
-  };
+  }, []);
+
+  const safeItems = Array.isArray(items) ? items : EMPTY_ITEMS;
 
   return (
     <div
@@ -100,12 +102,12 @@ export const Accordion = memo(({
       onKeyDown={handleKeyDown}
       className={`space-y-6 ${className}`}
     >
-      {items.map((item, index) => (
+      {safeItems.map((item, index) => (
         <AccordionItem
-          key={item.id || index}
+          key={item?.id || index}
           item={item}
           isOpen={isItemOpen(index)}
-          onToggle={() => handleToggle(index)}
+          onToggle={handleToggle}
           index={index}
         />
       ))}
@@ -124,6 +126,10 @@ const AccordionItem = memo(({ item, isOpen, onToggle, index }) => {
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
 
+  const itemTitle = item?.title || "Untitled Section";
+  const itemContent = item?.content || null;
+  const itemTag = item?.tag || null;
+
   // Generate stable, deterministic system node identification and attestation markers
   const nodeId = useMemo(() => `NODE_AC_${index.toString().padStart(2, '0')}`, [index]);
 
@@ -132,7 +138,11 @@ const AccordionItem = memo(({ item, isOpen, onToggle, index }) => {
     return `0xACD_${cleanId.slice(0, 4).toUpperCase().padStart(4, '0')}`;
   }, [generatedId]);
 
-  const handleMouseMove = (e) => {
+  const handleToggleClick = useCallback(() => {
+    onToggle?.(index);
+  }, [onToggle, index]);
+
+  const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
 
     const rect = containerRef.current.getBoundingClientRect();
@@ -159,13 +169,13 @@ const AccordionItem = memo(({ item, isOpen, onToggle, index }) => {
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
-  };
+  }, []);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     isHoveredRef.current = true;
-  };
+  }, []);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
     if (!containerRef.current) return;
 
@@ -190,9 +200,9 @@ const AccordionItem = memo(({ item, isOpen, onToggle, index }) => {
       if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
     }
-  };
+  }, []);
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     isFocusedRef.current = true;
     if (!containerRef.current) return;
 
@@ -203,9 +213,9 @@ const AccordionItem = memo(({ item, isOpen, onToggle, index }) => {
     style.setProperty('transition', 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)');
     if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
     if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
-  };
+  }, []);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
     if (!containerRef.current) return;
 
@@ -218,7 +228,7 @@ const AccordionItem = memo(({ item, isOpen, onToggle, index }) => {
       if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
     }
-  };
+  }, []);
 
   return (
     <div
@@ -273,10 +283,10 @@ const AccordionItem = memo(({ item, isOpen, onToggle, index }) => {
 
       <button
         id={buttonId}
-        onClick={onToggle}
+        onClick={handleToggleClick}
         onFocus={handleFocus}
         onBlur={handleBlur}
-        title={isOpen ? `Collapse ${item.title}` : `Expand ${item.title}`}
+        title={isOpen ? `Collapse ${itemTitle}` : `Expand ${itemTitle}`}
         className="relative z-10 w-full px-10 py-8 flex items-center justify-between outline-none focus-visible:ring-2 focus-visible:ring-voro-primary/50 focus-visible:ring-offset-4 focus-visible:ring-offset-[#0A0C14] rounded-[2.5rem]"
         aria-expanded={isOpen}
         aria-controls={regionId}
@@ -286,18 +296,18 @@ const AccordionItem = memo(({ item, isOpen, onToggle, index }) => {
              <span className="text-[0.55rem] font-mono font-black text-voro-primary uppercase tracking-[0.4em]">
                {nodeId}
              </span>
-             {item.tag && (
+             {itemTag && (
                <>
                  <div className="h-px w-3 bg-voro-primary/30" />
                  <span className="text-[0.55rem] font-mono font-bold text-gray-400 uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10">
-                   {item.tag}
+                   {itemTag}
                  </span>
                </>
              )}
              <div className="h-px w-4 bg-voro-primary/30" />
           </div>
           <span className={`text-2xl md:text-3xl font-serif italic font-medium tracking-tight transition-colors duration-500 ${isOpen ? "text-white" : "text-gray-400 group-hover/accordion-item:text-white"}`}>
-            {item.title}
+            {itemTitle}
           </span>
         </div>
 
@@ -325,7 +335,7 @@ const AccordionItem = memo(({ item, isOpen, onToggle, index }) => {
           <div className="px-10 pb-10 pt-2 space-y-8" style={{ transform: 'translateZ(30px)' }}>
             <div className="h-px w-full bg-gradient-to-r from-voro-primary/20 via-white/5 to-transparent" />
             <div className="text-gray-400 font-medium leading-relaxed max-w-2xl">
-              {item.content}
+              {itemContent}
             </div>
 
             {/* Artifact Metadata & Coordinate Telemetry */}
