@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef, memo, useDeferredValue } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef, memo, useDeferredValue } from 'react';
 import { BookOpen, Clock, ArrowUpRight, Search, Bookmark, Share2, Sparkles, Filter, Newspaper, Cpu, ShieldCheck, Activity, X } from 'lucide-react';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -189,7 +189,7 @@ const DossierHero = memo(({ article, onAccessDossier }) => {
   const imageRef = useRef(null);
   const contentRef = useRef(null);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -207,16 +207,16 @@ const DossierHero = memo(({ article, onAccessDossier }) => {
 
     containerRef.current.style.setProperty('--mouse-x', `${x}px`);
     containerRef.current.style.setProperty('--mouse-y', `${y}px`);
-  };
+  }, []);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     if (imageRef.current) {
       imageRef.current.style.transform = `scale(1) translate3d(0, 0, 0)`;
     }
     if (contentRef.current) {
       contentRef.current.style.transform = `translate3d(0, 0, 0) rotateX(0) rotateY(0)`;
     }
-  };
+  }, []);
 
   return (
     <section
@@ -331,7 +331,7 @@ const EducationArticleCard = memo(({ article, idx, isBookmarked, onToggleBookmar
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
 
-  const updateTransform = () => {
+  const updateTransform = useCallback(() => {
     if (!containerRef.current) return;
     const active = isHoveredRef.current || isFocusedRef.current;
     containerRef.current.style.transform = active
@@ -340,9 +340,9 @@ const EducationArticleCard = memo(({ article, idx, isBookmarked, onToggleBookmar
     containerRef.current.style.transition = isHoveredRef.current
       ? 'none'
       : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
-  };
+  }, []);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -362,23 +362,23 @@ const EducationArticleCard = memo(({ article, idx, isBookmarked, onToggleBookmar
     if (isHoveredRef.current) {
       updateTransform();
     }
-  };
+  }, [updateTransform]);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     isHoveredRef.current = true;
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     isFocusedRef.current = true;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '4deg');
@@ -387,16 +387,16 @@ const EducationArticleCard = memo(({ article, idx, isBookmarked, onToggleBookmar
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
   return (
     <div
@@ -547,7 +547,7 @@ const EducationHub = () => {
     document.title = 'VORO | Intellectual Archive';
   }, []);
 
-  const handleToggleBookmark = (id, title) => {
+  const handleToggleBookmark = useCallback((id, title) => {
     setBookmarkedIds((prev) => {
       const isBookmarked = prev.includes(id);
       if (isBookmarked) {
@@ -558,9 +558,9 @@ const EducationHub = () => {
         return [...prev, id];
       }
     });
-  };
+  }, [addNotification]);
 
-  const handleShare = (title) => {
+  const handleShare = useCallback((title) => {
     const shareUrl = `${window.location.origin}/education/article/${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
     navigator.clipboard.writeText(shareUrl)
       .then(() => {
@@ -569,15 +569,15 @@ const EducationHub = () => {
       .catch(() => {
         addNotification('Unable to copy share link to clipboard.', 'error');
       });
-  };
+  }, [addNotification]);
 
-  const handleReadDossier = (title) => {
+  const handleReadDossier = useCallback((title) => {
     addNotification(`Syncing metadata for "${title}"...`, 'info');
-  };
+  }, [addNotification]);
 
-  const handleFooterClick = (label) => {
+  const handleFooterClick = useCallback((label) => {
     addNotification(`Accessing ${label} secure channel...`, 'info');
-  };
+  }, [addNotification]);
 
   /**
    * ⚡ PERFORMANCE OPTIMIZATION: Concurrent Search Filtering with Deferred Value.
