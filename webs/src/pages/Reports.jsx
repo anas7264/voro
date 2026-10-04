@@ -49,16 +49,16 @@ const DossierReportCard = memo(({ report, onSynthesize }) => {
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
 
-  const updateTransform = () => {
+  const updateTransform = useCallback(() => {
     if (!containerRef.current) return;
     const active = isHoveredRef.current || isFocusedRef.current;
     containerRef.current.style.transform = active
       ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-6px)'
       : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
     containerRef.current.style.transition = isHoveredRef.current ? 'none' : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
-  };
+  }, []);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -78,23 +78,23 @@ const DossierReportCard = memo(({ report, onSynthesize }) => {
     if (isHoveredRef.current || isFocusedRef.current) {
       updateTransform();
     }
-  };
+  }, [updateTransform]);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     isHoveredRef.current = true;
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     isFocusedRef.current = true;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '4deg');
@@ -103,16 +103,16 @@ const DossierReportCard = memo(({ report, onSynthesize }) => {
       if (tyRef.current) tyRef.current.innerText = "-4.0";
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
   return (
     <div
@@ -206,7 +206,7 @@ DossierReportCard.displayName = 'DossierReportCard';
 const SecureExportEnclave = memo(({ onJSONExport }) => {
   const containerRef = useRef(null);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -214,7 +214,7 @@ const SecureExportEnclave = memo(({ onJSONExport }) => {
 
     containerRef.current.style.setProperty('--mouse-x', `${x}px`);
     containerRef.current.style.setProperty('--mouse-y', `${y}px`);
-  };
+  }, []);
 
   return (
     <div

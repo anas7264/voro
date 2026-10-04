@@ -21,11 +21,15 @@ async function runVerification() {
       viewport: { width: 1440, height: 900 }
     });
     const page = await context.newPage();
+    page.on('console', msg => console.log('PAGE LOG:', msg.text()));
+    page.on('pageerror', err => console.log('PAGE ERROR:', err.message));
 
     console.log('⚡ Injecting E2E test mode bypass...');
     await page.addInitScript(() => {
       window.__VORO_TEST_BYPASS__ = true;
       localStorage.setItem('voro_test_mode', 'true');
+      localStorage.setItem('voro_user', JSON.stringify({ name: 'Voro User', age: 30 }));
+      localStorage.setItem('voro_profile', JSON.stringify({ name: 'Voro Profile', age: 30 }));
     });
 
     console.log('📍 Navigating to Education Hub page...');

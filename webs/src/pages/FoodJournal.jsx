@@ -21,6 +21,9 @@ const timeFormatter = new CachedDateTimeFormat('en-US', {
   minute: '2-digit'
 });
 
+const EMPTY_ARRAY = Object.freeze([]);
+const selectFoodJournal = (data) => data || EMPTY_ARRAY;
+
 /**
  * ⚡ SUBCOMPONENT: JournalEntryCard
  * Features 60fps direct-DOM 3D volumetric hover tilts, real-time coordinate telemetry,
@@ -37,7 +40,6 @@ const JournalEntryCard = memo(({ entry, onDelete, index }) => {
   const isFocusedRef = useRef(false);
 
   const [purgeState, setPurgeState] = useState(false);
-  const [announcement, setAnnouncement] = useState('');
 
   const { formattedDate, formattedTime, nodeId } = useMemo(() => {
     return {
@@ -107,8 +109,7 @@ const JournalEntryCard = memo(({ entry, onDelete, index }) => {
       if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     }
-    setAnnouncement(`Journal entry recorded on ${formattedDate} at ${formattedTime}. Note: ${entry.note}`);
-  }, [formattedDate, formattedTime, entry.note]);
+  }, []);
 
   const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
@@ -121,7 +122,6 @@ const JournalEntryCard = memo(({ entry, onDelete, index }) => {
       if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
     }
-    setAnnouncement('');
   }, []);
 
   const handlePurgeTrigger = useCallback(() => {
@@ -144,14 +144,8 @@ const JournalEntryCard = memo(({ entry, onDelete, index }) => {
   }, []);
 
   return (
-    <>
-      {announcement && (
-        <div className="sr-only" aria-live="polite">
-          {announcement}
-        </div>
-      )}
-      <div
-        ref={cardRef}
+    <div
+      ref={cardRef}
         onMouseMove={handleMouseMove}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -249,7 +243,6 @@ const JournalEntryCard = memo(({ entry, onDelete, index }) => {
           </div>
         </div>
       </div>
-    </>
   );
 });
 
@@ -293,7 +286,7 @@ const FoodJournal = () => {
    */
   const foodJournalData = useStorageKeySelector(
     'food_journal',
-    useCallback((data) => data || [], [])
+    selectFoodJournal
   );
 
   useEffect(() => {
