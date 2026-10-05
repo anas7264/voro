@@ -2054,6 +2054,12 @@ export const isPromptInjection = (query, isNested = false) => {
       if (baudotDecoded) {
         return true;
       }
+
+      // Security: Handle Trithemius Cipher (progressive letter-shift polyalphabetic encoding) and evaluate recursively
+      const trithemiusDecoded = safeDecodeTrithemius(targetStr);
+      if (trithemiusDecoded) {
+        return true;
+      }
     }
   }
 
@@ -2154,6 +2160,50 @@ const safeDecodeBaudot = (targetStr) => {
   } catch {
     // Defensive error handling
   }
+  return null;
+};
+
+/**
+ * Helper to safely decode Trithemius cipher-encoded prompt injection payloads.
+ * Decodes progressive letter-shift polyalphabetic ciphers where shift increases by 1 per character/letter position.
+ * Evaluates both forward (decrypting with -i) and backward (decrypting with +i) letter shifts.
+ */
+const safeDecodeTrithemius = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 1000) return null;
+
+  const modes = ['letter', 'total'];
+
+  for (const mode of modes) {
+    for (const dir of [1, -1]) {
+      let decoded = '';
+      let letterIdx = 0;
+
+      for (let i = 0; i < targetStr.length; i++) {
+        const code = targetStr.charCodeAt(i);
+        const shiftIdx = mode === 'letter' ? letterIdx : i;
+        const shift = dir * shiftIdx;
+
+        if (code >= 65 && code <= 90) {
+          let x = (code - 65 - shift) % 26;
+          if (x < 0) x += 26;
+          decoded += String.fromCharCode(x + 65);
+          letterIdx++;
+        } else if (code >= 97 && code <= 122) {
+          let x = (code - 97 - shift) % 26;
+          if (x < 0) x += 26;
+          decoded += String.fromCharCode(x + 97);
+          letterIdx++;
+        } else {
+          decoded += targetStr[i];
+        }
+      }
+
+      if (decoded !== targetStr && isPromptInjection(decoded, true)) {
+        return decoded;
+      }
+    }
+  }
+
   return null;
 };
 

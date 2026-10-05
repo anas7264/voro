@@ -457,3 +457,14 @@ Encrypted and unencrypted persistent storage items, ghost vault states, and decr
 
 **Prevention:**
 Always use `safeJSONParse` instead of raw `JSON.parse` when deserializing untrusted or persistent storage payloads across crypto and storage boundaries.
+
+## 2026-09-30 - Trithemius Polyalphabetic Cipher Prompt Injection Shield
+
+**Vulnerability:**
+Prompt injection detectors matching fixed keyword patterns or static key ciphers (like Vigenère or Caesar) can be bypassed using progressive-shift polyalphabetic ciphers like the Trithemius cipher. In a Trithemius cipher, each character is shifted by its position index $i$ modulo 26 ($C[i] = (P[i] \pm i) \bmod 26$). Large language models autonomously decipher Trithemius progressive-shift encodings, allowing obfuscated prompt injection payloads to reach LLM execution contexts.
+
+**Learning:**
+Neutralizing Trithemius cipher obfuscation requires calculating progressive letter shifts across both letter-index and total character-index positioning in forward ($P_i = (C_i - i) \bmod 26$) and reverse ($P_i = (C_i + i) \bmod 26$) directions. Recursively evaluating decoded strings against `isPromptInjection` blocks progressive polyalphabetic injection payloads before they hit downstream LLM contexts.
+
+**Prevention:**
+Always include progressive-shift polyalphabetic cipher decoders (such as Trithemius) in input validation pipelines before forwarding user text to language models.
