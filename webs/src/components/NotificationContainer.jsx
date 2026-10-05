@@ -1,6 +1,32 @@
 import React, { memo } from "react";
+import { useCallback } from "react";
 import { useNotifications, useNotificationState } from "../hooks/useNotifications";
 import { Alert } from "./Alert";
+
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Memoized Notification Item.
+ * Stabilizes the `onClose` callback reference using `useCallback` to prevent
+ * unnecessary re-renders of existing `Alert` cards when notifications are added or removed.
+ */
+const NotificationItem = memo(({ notification, onRemove }) => {
+  const handleClose = useCallback(() => {
+    onRemove(notification.id);
+  }, [notification.id, onRemove]);
+
+  return (
+    <div className="pointer-events-auto">
+      <Alert
+        type={notification.type}
+        title={notification.title}
+        message={notification.message}
+        onClose={handleClose}
+        className="animate-slide-up"
+      />
+    </div>
+  );
+});
+
+NotificationItem.displayName = "NotificationItem";
 
 /**
  * ⚡ LUXURY MASTERCLASS REFINEMENT: Kinetic Notification Matrix Stream ('NotificationContainer').
@@ -55,15 +81,11 @@ export const NotificationContainer = memo(() => {
       {/* ⚡ Active Signal Payload Stack */}
       <div className="space-y-4 sm:space-y-5">
         {notifications.map((notification) => (
-          <div key={notification.id} className="pointer-events-auto">
-            <Alert
-              type={notification.type}
-              title={notification.title}
-              message={notification.message}
-              onClose={() => removeNotification(notification.id)}
-              className="animate-slide-up"
-            />
-          </div>
+          <NotificationItem
+            key={notification.id}
+            notification={notification}
+            onRemove={removeNotification}
+          />
         ))}
       </div>
     </section>
