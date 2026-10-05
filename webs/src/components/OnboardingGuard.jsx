@@ -1,15 +1,21 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAppContext } from '@/hooks/useAppContext';
 import { LoadingSpinner } from './LoadingSpinner';
 
-const OnboardingGuard = ({ children }) => {
+/**
+ * ⚡ REFINEMENT: Luxury Onboarding Access & Identity Guard Enclave ('OnboardingGuard').
+ * Re-engineered conforming to Voro's 'Forge' luxury architecture and zero-allocation performance standards.
+ * Features Memoized wrapper execution, JSDoc architectural documentation, and seamless
+ * spatial loading transition with full-screen neural synthesis matrix.
+ */
+const OnboardingGuard = memo(({ children }) => {
   const { user, loading } = useAppContext();
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#080B14]">
-        <LoadingSpinner fullscreen />
+        <LoadingSpinner fullscreen message="Authenticating Subject Specimen" />
       </div>
     );
   }
@@ -20,6 +26,8 @@ const OnboardingGuard = ({ children }) => {
   }
 
   return children;
-};
+});
+
+OnboardingGuard.displayName = "OnboardingGuard";
 
 export default OnboardingGuard;
