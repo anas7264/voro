@@ -2048,10 +2048,113 @@ export const isPromptInjection = (query, isNested = false) => {
       if (scytaleDecoded) {
         return true;
       }
+
+      // Security: Handle Baudot Code (ITA2 5-bit teleprinter encoding) and evaluate recursively
+      const baudotDecoded = safeDecodeBaudot(targetStr);
+      if (baudotDecoded) {
+        return true;
+      }
     }
   }
 
   return false;
+};
+
+
+// Precomputed Baudot Code (ITA2 / CCITT No. 2) lookup tables
+const BAUDOT_LTRS = Object.freeze({
+  0: '', 1: 'E', 2: '\n', 3: 'A', 4: ' ', 5: 'S', 6: 'I', 7: 'U',
+  8: '\r', 9: 'D', 10: 'R', 11: 'J', 12: 'N', 13: 'F', 14: 'C', 15: 'K',
+  16: 'T', 17: 'Z', 18: 'L', 19: 'W', 20: 'H', 21: 'Y', 22: 'P', 23: 'Q',
+  24: 'O', 25: 'B', 26: 'G', 27: 'FIGS', 28: 'M', 29: 'X', 30: 'V', 31: 'LTRS'
+});
+
+const BAUDOT_FIGS = Object.freeze({
+  0: '', 1: '3', 2: '\n', 3: '-', 4: ' ', 5: "'", 6: '8', 7: '7',
+  8: '\r', 9: '$', 10: '4', 11: "'", 12: ',', 13: '!', 14: ':', 15: '(',
+  16: '5', 17: '+', 18: ')', 19: '2', 20: '#', 21: '6', 22: '0', 23: '1',
+  24: '9', 25: '?', 26: '&', 27: 'FIGS', 28: '.', 29: '/', 30: '=', 31: 'LTRS'
+});
+
+/**
+ * Helper to safely decode 5-bit Baudot Code (ITA2) encoded prompt injection payloads.
+ * Supports tokenized decimals/hex, 5-bit space-delimited binary streams, and contiguous 5-bit binary streams.
+ */
+const safeDecodeBaudot = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 5 || targetStr.length > 3000) return null;
+  try {
+    const clean = targetStr.trim();
+
+    // Strategy 1: Tokenized values (space, comma, dash, or slash separated numbers in range 0..31)
+    const tokens = clean.split(/[\s,-/]+/);
+    if (tokens.length >= 4) {
+      let validTokens = true;
+      const codes = [];
+      for (let i = 0; i < tokens.length; i++) {
+        const tok = tokens[i].trim();
+        if (!tok) continue;
+        let num = NaN;
+        if (/^0x[0-9a-fA-F]+$/i.test(tok)) {
+          num = parseInt(tok, 16);
+        } else if (/^[0-1]{5}$/.test(tok)) {
+          num = parseInt(tok, 2);
+        } else if (/^\d+$/.test(tok)) {
+          num = parseInt(tok, 10);
+        } else {
+          validTokens = false;
+          break;
+        }
+        if (isNaN(num) || num < 0 || num > 31) {
+          validTokens = false;
+          break;
+        }
+        codes.push(num);
+      }
+
+      if (validTokens && codes.length >= 4) {
+        let decoded = '';
+        let mode = 'LTRS'; // Default Baudot state
+        for (const code of codes) {
+          if (code === 31) {
+            mode = 'LTRS';
+          } else if (code === 27) {
+            mode = 'FIGS';
+          } else {
+            const char = mode === 'LTRS' ? BAUDOT_LTRS[code] : BAUDOT_FIGS[code];
+            if (char) decoded += char;
+          }
+        }
+        if (decoded.length >= 4 && isPromptInjection(decoded, true)) {
+          return decoded;
+        }
+      }
+    }
+
+    // Strategy 2: Contiguous or space-delimited 5-bit binary string stream
+    const binaryOnly = clean.replace(/\s+/g, '');
+    if (/^[01]+$/.test(binaryOnly) && binaryOnly.length >= 20 && binaryOnly.length % 5 === 0) {
+      let decoded = '';
+      let mode = 'LTRS';
+      for (let i = 0; i < binaryOnly.length; i += 5) {
+        const chunk = binaryOnly.slice(i, i + 5);
+        const code = parseInt(chunk, 2);
+        if (code === 31) {
+          mode = 'LTRS';
+        } else if (code === 27) {
+          mode = 'FIGS';
+        } else {
+          const char = mode === 'LTRS' ? BAUDOT_LTRS[code] : BAUDOT_FIGS[code];
+          if (char) decoded += char;
+        }
+      }
+      if (decoded.length >= 4 && isPromptInjection(decoded, true)) {
+        return decoded;
+      }
+    }
+  } catch {
+    // Defensive error handling
+  }
+  return null;
 };
 
 // Helper to safely decode Adobe Ascii85 (<~...~>) and raw Base85 encoded payloads
