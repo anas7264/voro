@@ -289,6 +289,8 @@ const Sidebar = ({ collapsed, setCollapsed, isMobile }) => {
           <button
             onClick={() => setCollapsed(!collapsed)}
             className="text-gray-400 hover:text-white transition-colors p-2 rounded-xl bg-white/[0.02] border border-white/5 focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408] outline-none active:scale-90"
+            aria-expanded={!collapsed}
+            aria-controls="sidebar-navigation"
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
@@ -298,7 +300,7 @@ const Sidebar = ({ collapsed, setCollapsed, isMobile }) => {
       </div>
 
       {/* Navigation Matrix */}
-      <nav className="flex-1 overflow-y-auto py-12 px-6 space-y-12 no-scrollbar">
+      <nav id="sidebar-navigation" className="flex-1 overflow-y-auto py-12 px-6 space-y-12 no-scrollbar">
         {navSections.map((section) => (
           <div key={section.label} className="space-y-6">
             {(!collapsed || isMobile) && (
