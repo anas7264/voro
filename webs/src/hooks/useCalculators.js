@@ -14,7 +14,12 @@ const CALCULATORS_API = Object.freeze({
   calculateTDEE: calculators.calculateTDEE,
   calculateProteinTarget: calculators.calculateProteinTarget,
   calculateWaterIntake: calculators.calculateWaterIntake,
-  calculateOneRepMax: (weight, reps, method = "average") => calculators.calculateOneRepMax[method](weight, reps),
+  calculateOneRepMax: (weight, reps, method = "average") => {
+    const fn = (calculators.calculateOneRepMax && calculators.calculateOneRepMax[method])
+      ? calculators.calculateOneRepMax[method]
+      : calculators.calculateOneRepMax.average;
+    return fn(weight, reps);
+  },
   calculateWilks: calculators.calculateWilksCoefficient,
   calculateFFMI: calculators.calculateFFMI,
   calculateIdealWeight: calculators.calculateIdealWeight,
