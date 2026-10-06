@@ -89,22 +89,52 @@ export const calculateWaterIntake = (weightKg, activityMinutesPerDay = 0) => {
 
 // One Rep Max estimators
 export const calculateOneRepMax = {
-  epley: (weight, reps) => Math.round(weight * (1 + reps / 30)),
-  brzycki: (weight, reps) => Math.round(weight * (36 / (37 - reps))),
-  lander: (weight, reps) => Math.round((100 * weight) / (101.3 - 2.67123 * reps)),
-  reynolds: (weight, reps) => Math.round(weight * (1 + reps / 15)),
-  adamson: (weight, reps) => Math.round(weight * (1 + reps / 20)),
+  epley: (weight, reps) => {
+    if (!weight || !reps || weight <= 0 || reps <= 0 || !Number.isFinite(weight) || !Number.isFinite(reps)) return 0;
+    if (reps === 1) return Math.round(weight);
+    return Math.round(weight * (1 + reps / 30));
+  },
+  brzycki: (weight, reps) => {
+    if (!weight || !reps || weight <= 0 || reps <= 0 || !Number.isFinite(weight) || !Number.isFinite(reps)) return 0;
+    if (reps === 1) return Math.round(weight);
+    const safeReps = Math.min(reps, 36);
+    return Math.round(weight * (36 / (37 - safeReps)));
+  },
+  lander: (weight, reps) => {
+    if (!weight || !reps || weight <= 0 || reps <= 0 || !Number.isFinite(weight) || !Number.isFinite(reps)) return 0;
+    if (reps === 1) return Math.round(weight);
+    const denom = 101.3 - 2.67123 * reps;
+    if (denom <= 0) return Math.round(weight * 2);
+    return Math.round((100 * weight) / denom);
+  },
+  reynolds: (weight, reps) => {
+    if (!weight || !reps || weight <= 0 || reps <= 0 || !Number.isFinite(weight) || !Number.isFinite(reps)) return 0;
+    if (reps === 1) return Math.round(weight);
+    return Math.round(weight * (1 + reps / 15));
+  },
+  adamson: (weight, reps) => {
+    if (!weight || !reps || weight <= 0 || reps <= 0 || !Number.isFinite(weight) || !Number.isFinite(reps)) return 0;
+    if (reps === 1) return Math.round(weight);
+    return Math.round(weight * (1 + reps / 20));
+  },
   /**
    * ⚡ PERFORMANCE OPTIMIZATION: Zero-allocation average calculation.
    * Completely bypasses array allocation `[estimates]`, closure execution, and `.reduce()` logic.
-   * Directly sums and computes the mean.
+   * Includes defensive boundary checks to prevent divide-by-zero on reps >= 37 and short-circuits when reps === 1.
    */
   average: (weight, reps) => {
+    if (!weight || !reps || weight <= 0 || reps <= 0 || !Number.isFinite(weight) || !Number.isFinite(reps)) return 0;
+    if (reps === 1) return Math.round(weight);
+
+    const safeRepsBrzycki = Math.min(reps, 36);
+    const landerDenom = 101.3 - 2.67123 * reps;
+
     const epley = weight * (1 + reps / 30);
-    const brzycki = weight * (36 / (37 - reps));
-    const lander = (100 * weight) / (101.3 - 2.67123 * reps);
+    const brzycki = weight * (36 / (37 - safeRepsBrzycki));
+    const lander = landerDenom > 0 ? (100 * weight) / landerDenom : weight * 2;
     const reynolds = weight * (1 + reps / 15);
     const adamson = weight * (1 + reps / 20);
+
     return Math.round((epley + brzycki + lander + reynolds + adamson) / 5);
   }
 };
