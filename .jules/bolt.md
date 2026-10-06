@@ -257,3 +257,10 @@
 **Action:**
 1. Use exact integer parsing and constructor validation (`new Date(y, m - 1, d)`) for 10-character `YYYY-MM-DD` strings to compute local midnight timestamps.
 2. Validate constructor output against input integers to avoid JS date rollover bugs (e.g., Feb 31).
+
+## 2026-10-04 - Chunked Batch Binary String Conversion for Crypto Payloads
+**Learning:** Converting Uint8Array encrypted byte payloads to binary strings using single-character concatenation loops (`binary += String.fromCharCode(bytes[i])`) allocates $O(N)$ intermediate 1-char heap strings (over 200,000 heap objects for a 100KB payload), triggering severe Garbage Collection (GC) pauses during storage updates. A chunked `String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK_SIZE))` helper with 4KB blocks processes bytes natively, reducing string allocations from $O(N)$ to $O(N / 4096)$ and eliminating GC pressure during storage persistence.
+
+**Action:**
+1. Use chunked `String.fromCharCode.apply` (4KB blocks) for converting `Uint8Array` bytes to binary strings prior to Base64 encoding.
+2. Ensure chunk size remains <= 8192 bytes to avoid V8 call stack argument size limits.
