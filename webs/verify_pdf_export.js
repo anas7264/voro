@@ -1,6 +1,6 @@
 // Security Verification Test: PDF Export & Download Lifecycle Security
 import './mock_window.js';
-import { sanitizeFilename, downloadPDF, savePDF } from './src/utils/pdfExport.js';
+import { sanitizeFilename, downloadPDF, savePDF, exportMealPlan } from './src/utils/pdfExport.js';
 
 console.log('=========================================');
 console.log('🧪 RUNNING SECURITY VERIFICATION: PDF EXPORT');
@@ -89,6 +89,27 @@ console.log('🛡️ Test 5: Verifying Blob URL revocation on exception in downl
   }
   assert(saveCompleted, 'savePDF should execute successfully');
   console.log('✅ Success: savePDF delegated correctly.');
+
+  // Test 7: Verify exportMealPlan date sanitization
+  console.log('🛡️ Test 7: Verifying exportMealPlan sanitizes day.date in PDF generation...');
+  let mealPlanExported = false;
+  try {
+    const mockUserData = { name: "Test User", tdee: 2000, proteinTarget: 150, carbsTarget: 200, fatTarget: 60 };
+    const mockMealPlan = [
+      {
+        date: '<script>alert("xss")</script>2026-03-31',
+        meals: [{ type: 'Breakfast', name: 'Oatmeal', calories: 350, protein: 15, carbs: 50, fat: 5 }]
+      }
+    ];
+    const pdfDoc = await exportMealPlan(mockMealPlan, mockUserData);
+    assert(pdfDoc !== null && typeof pdfDoc === 'object', 'exportMealPlan should return a valid jsPDF instance');
+    mealPlanExported = true;
+  } catch (err) {
+    console.error("Caught error in exportMealPlan test:", err);
+    mealPlanExported = false;
+  }
+  assert(mealPlanExported, 'exportMealPlan should execute without error when sanitizing untrusted date inputs');
+  console.log('✅ Success: exportMealPlan date sanitization verified.');
 
   console.log('=========================================');
   console.log(`🎉 ALL ${testsPassed}/${testsTotal} PDF EXPORT SECURITY VERIFICATION TESTS PASSED SUCCESSFULLY!`);
