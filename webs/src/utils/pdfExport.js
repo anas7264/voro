@@ -97,8 +97,11 @@ const addVOROFooter = (doc, pageNumber = 1) => {
 };
 
 // Export Weekly Report
+const DocClass = typeof jsPDF === "function" ? jsPDF : (jsPDF.jsPDF || jsPDF);
+
+// Export Weekly Report
 export const exportWeeklyReport = async (userData, workouts, nutrition) => {
-  const doc = new jsPDF();
+  const doc = new DocClass();
   let yPosition = 10;
 
   // Sign report contents using SCAS (HMAC-SHA-256)
@@ -179,7 +182,7 @@ export const exportWeeklyReport = async (userData, workouts, nutrition) => {
 
 // Export Monthly Report
 export const exportMonthlyReport = async (userData, allWorkouts, allNutrition, metrics) => {
-  const doc = new jsPDF();
+  const doc = new DocClass();
   let yPosition = 10;
 
   // Sign report contents using SCAS (HMAC-SHA-256)
@@ -258,7 +261,7 @@ export const exportMonthlyReport = async (userData, allWorkouts, allNutrition, m
 
 // Export Meal Plan
 export const exportMealPlan = async (mealPlan, userData) => {
-  const doc = new jsPDF();
+  const doc = new DocClass();
   let yPosition = 10;
 
   // Sign report contents using SCAS (HMAC-SHA-256)
@@ -295,7 +298,7 @@ export const exportMealPlan = async (mealPlan, userData) => {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
     doc.setTextColor(16, 185, 129);
-    doc.text(`Day ${index + 1}: ${day.date}`, 15, yPosition);
+    doc.text(`Day ${index + 1}: ${sanitizeInput(day.date)}`, 15, yPosition);
     yPosition += 7;
 
     const mealData = day.meals.map(meal => [
@@ -326,7 +329,7 @@ export const exportMealPlan = async (mealPlan, userData) => {
 
 // Export Training Plan
 export const exportTrainingPlan = async (trainingPlan, userData) => {
-  const doc = new jsPDF();
+  const doc = new DocClass();
   let yPosition = 10;
   let pageNum = 1;
 
