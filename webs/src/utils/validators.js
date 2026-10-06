@@ -955,6 +955,13 @@ const BASE45_MAP = Object.freeze((() => {
   return map;
 })());
 
+const BASE91_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$%&()*+,./:;<=>?@[]^_`{|}~"';
+const BASE91_MAP = Object.freeze((() => {
+  const map = new Map();
+  for (let i = 0; i < BASE91_CHARS.length; i++) map.set(BASE91_CHARS[i], i);
+  return map;
+})());
+
 const STRADDLING_CHECKERBOARD_CANDIDATES = Object.freeze([
   // 1. AT ONE SIR Layout (blanks at indices 2 and 6)
   Object.freeze({
@@ -2060,6 +2067,12 @@ export const isPromptInjection = (query, isNested = false) => {
       if (trithemiusDecoded) {
         return true;
       }
+
+      // Security: Handle Base91 encoded payloads and evaluate recursively
+      const base91Decoded = safeDecodeBase91(targetStr);
+      if (base91Decoded) {
+        return true;
+      }
     }
   }
 
@@ -2284,6 +2297,56 @@ const safeDecodeAscii85 = (targetStr) => {
     }
 
     if (bytes.length < 6) return null;
+    const decoded = String.fromCharCode(...bytes);
+    if (decoded && isPromptInjection(decoded, true)) {
+      return decoded;
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+};
+
+// Helper to safely decode Base91 encoded payloads
+const safeDecodeBase91 = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 4 || targetStr.length > 2000) return null;
+  try {
+    const clean = targetStr.trim();
+    let v = -1;
+    let b = 0;
+    let n = 0;
+    const bytes = [];
+
+    for (let i = 0; i < clean.length; i++) {
+      const ch = clean[i];
+      const p = BASE91_MAP.get(ch);
+      if (p === undefined) return null;
+
+      if (v < 0) {
+        v = p;
+      } else {
+        v += p * 91;
+        b |= v << n;
+        n += (v & 8191) > 88 ? 13 : 14;
+        do {
+          const byteVal = b & 255;
+          if (byteVal < 9 || (byteVal > 13 && byteVal < 32) || byteVal > 126) return null;
+          bytes.push(byteVal);
+          b >>= 8;
+          n -= 8;
+        } while (n > 7);
+        v = -1;
+      }
+    }
+
+    if (v >= 0) {
+      const byteVal = (b | (v << n)) & 255;
+      if (byteVal >= 9 && (byteVal <= 13 || byteVal >= 32) && byteVal <= 126) {
+        bytes.push(byteVal);
+      }
+    }
+
+    if (bytes.length < 4) return null;
     const decoded = String.fromCharCode(...bytes);
     if (decoded && isPromptInjection(decoded, true)) {
       return decoded;
