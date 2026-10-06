@@ -252,22 +252,26 @@ export const Alert = memo(({ type = "info", title, message, onClose, className =
                 <span>TY_<span ref={tiltYRef}>0.00</span>°</span>
               </div>
 
-              {onClose && (
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="p-1.5 rounded-xl bg-white/[0.03] border border-white/5 text-gray-400 hover:text-white hover:border-white/20 transition-all duration-300 outline-none focus-visible:ring-1 focus-visible:ring-current group/btn"
-                  aria-label={
-                    typeof title === "string" && title
-                      ? `Dismiss ${title}`
-                      : typeof message === "string" && message
-                      ? `Dismiss ${message}`
-                      : "Dismiss notification"
-                  }
-                >
-                  <X size={14} className="group-hover/btn:rotate-90 transition-transform duration-300" />
-                </button>
-              )}
+              {onClose && (() => {
+                const dismissLabel =
+                  typeof title === "string" && title
+                    ? `Dismiss ${title}`
+                    : typeof message === "string" && message
+                    ? `Dismiss ${message}`
+                    : "Dismiss notification";
+
+                return (
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="p-1.5 rounded-xl bg-white/[0.03] border border-white/5 text-gray-400 hover:text-white hover:border-white/20 transition-all duration-300 outline-none focus-visible:ring-1 focus-visible:ring-current group/btn"
+                    aria-label={dismissLabel}
+                    title={dismissLabel}
+                  >
+                    <X size={14} className="group-hover/btn:rotate-90 transition-transform duration-300" />
+                  </button>
+                );
+              })()}
             </div>
           </div>
 

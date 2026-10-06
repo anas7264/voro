@@ -24,7 +24,7 @@ const checks = [
   { name: 'Live spatial coordinate telemetry overlays', test: alertContent.includes('tiltXRef') && alertContent.includes('tiltYRef') && alertContent.includes('TX_') },
   { name: 'W3C APG compliant static 4-degree focus tilt', test: alertContent.includes('4.00deg') && alertContent.includes('-4.00deg') },
   { name: 'Dynamic liquid border illumination mask', test: alertContent.includes('radial-gradient') && alertContent.includes('WebkitMaskComposite') },
-  { name: 'Dismiss button with accessible ARIA label', test: alertContent.includes('onClose') && alertContent.includes('aria-label') },
+  { name: 'Dismiss button with accessible ARIA label and hover title tooltip', test: alertContent.includes('onClose') && alertContent.includes('aria-label={dismissLabel}') && alertContent.includes('title={dismissLabel}') },
   { name: 'W3C APG Role & Attributes', test: alertContent.includes('role="alert"') && alertContent.includes('aria-atomic="true"') && alertContent.includes('tabIndex={0}') },
   { name: 'Escape key dismissal keyboard support', test: alertContent.includes('handleKeyDown') && alertContent.includes('e.key === "Escape"') && alertContent.includes('onKeyDown={handleKeyDown}') },
   { name: 'DisplayName set', test: alertContent.includes('Alert.displayName = "Alert"') }
