@@ -19,6 +19,25 @@ const KEY_SIZE = 256;
 const ENCODER = typeof TextEncoder !== 'undefined' ? new TextEncoder() : null;
 const DECODER = typeof TextDecoder !== 'undefined' ? new TextDecoder() : null;
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Chunked batch conversion of Uint8Array to binary string.
+ * Replaces O(N) single-character string concatenation loops with chunked String.fromCharCode.apply,
+ * drastically reducing intermediate heap string allocations and Garbage Collection (GC) pauses
+ * during high-frequency data encryption operations.
+ */
+const bytesToBinaryString = (bytes) => {
+  const len = bytes.byteLength;
+  if (len <= 4096) {
+    return String.fromCharCode.apply(null, bytes);
+  }
+  let binary = '';
+  const CHUNK_SIZE = 4096;
+  for (let i = 0; i < len; i += CHUNK_SIZE) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK_SIZE));
+  }
+  return binary;
+};
+
 class CryptoManager {
   constructor() {
     this.key = null;
@@ -373,11 +392,8 @@ class CryptoManager {
     _call.call(_Uint8Set, combined, iv);
     _call.call(_Uint8Set, combined, new Uint8Array(ciphertext), iv.length);
 
-    let binary = '';
     const bytes = new Uint8Array(combined);
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
+    const binary = bytesToBinaryString(bytes);
 
     // Shred IV and combined buffer
     _call.call(_Uint8Fill, iv, 0);
@@ -532,10 +548,7 @@ class CryptoManager {
 
     // base64 encode the ciphertext
     const ciphertextBytes = new Uint8Array(ciphertext);
-    let binary = '';
-    for (let i = 0; i < ciphertextBytes.byteLength; i++) {
-      binary += String.fromCharCode(ciphertextBytes[i]);
-    }
+    const binary = bytesToBinaryString(ciphertextBytes);
     const ciphertextBase64 = btoa(binary);
 
     _call.call(_Uint8Fill, salt, 0);
