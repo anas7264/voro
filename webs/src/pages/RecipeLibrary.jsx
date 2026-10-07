@@ -430,12 +430,20 @@ const RecipeLibrary = () => {
     return categoryList.filter(recipe => (recipe.name || '').toLowerCase().includes(q));
   }, [recipesByCategory, selectedCategory, deferredSearchQuery]);
 
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Synchronous Storage State Access.
+   * Uses getItem('recipes') inside the callback to eliminate the `recipes` dependency array requirement.
+   * This maintains a referentially stable callback reference across search query/filter state updates,
+   * preserving React.memo child isolation for all RecipeArtifactCard instances in the grid.
+   */
   const handleDelete = useCallback(async (id, name) => {
     setOptimisticDeletedIds(prev => new Set(prev).add(id));
-    const updated = recipes.filter(r => r.id !== id);
+    const currentStored = getItem('recipes');
+    const raw = Array.isArray(currentStored) && currentStored.length > 0 ? currentStored : MOCK_DEMO_RECIPES;
+    const updated = raw.filter(r => r.id !== id);
     await setItem('recipes', updated);
     addNotification(`Formula "${name}" decommissioned from codex.`, 'info');
-  }, [recipes, setItem, addNotification]);
+  }, [getItem, setItem, addNotification]);
 
   const handleLogRecipe = useCallback(async (recipe) => {
     const todayStr = new Date().toISOString().split('T')[0];
