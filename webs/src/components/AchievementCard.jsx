@@ -100,7 +100,7 @@ const RARITY_STYLES = Object.freeze({
  * attestation hash badging, zero React state re-renders on hover/focus, and
  * W3C APG compliant keyboard focus states.
  */
-export const AchievementCard = memo(({ achievement, unlocked, onClick, className = "" }) => {
+export const AchievementCard = memo(({ achievement, unlocked, onClick, title, className = "" }) => {
   const Icon = ICON_MAP[achievement?.icon] || Trophy;
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
@@ -188,6 +188,7 @@ export const AchievementCard = memo(({ achievement, unlocked, onClick, className
 
   const style = RARITY_STYLES[achievement?.rarity] || RARITY_STYLES.Common;
   const cardLabel = `Achievement: ${achievement?.name || 'Artifact'}. ${achievement?.description || ''}. Rarity: ${achievement?.rarity || 'Common'}. Status: ${unlocked ? 'Unlocked' : 'Locked'}`;
+  const computedTitle = title || (!unlocked ? `Locked: ${achievement?.name || 'Achievement'}` : (onClick ? `Select ${achievement?.name || 'Achievement'}` : undefined));
 
   return (
     <div
@@ -202,6 +203,7 @@ export const AchievementCard = memo(({ achievement, unlocked, onClick, className
       tabIndex={unlocked ? 0 : -1}
       role={onClick ? "button" : "article"}
       aria-label={cardLabel}
+      title={computedTitle}
       style={{
         transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
         transition: 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)',
@@ -324,8 +326,12 @@ export const AchievementCard = memo(({ achievement, unlocked, onClick, className
 
       {/* Lock Overlay for Restricted Access */}
       {!unlocked && (
-        <div className="absolute top-8 right-8 p-3 bg-[#0A0C14] border border-white/10 rounded-2xl text-gray-700 shadow-2xl">
-          <Lock size={14} />
+        <div
+          title="Achievement Locked"
+          aria-label="Achievement Locked"
+          className="absolute top-8 right-8 p-3 bg-[#0A0C14] border border-white/10 rounded-2xl text-gray-500 shadow-2xl"
+        >
+          <Lock size={14} aria-hidden="true" />
         </div>
       )}
 

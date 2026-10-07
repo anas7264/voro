@@ -25,3 +25,7 @@
 ## 2025-05-24 - Action-Oriented Fallback Accessible Names for Unlabelled Form Controls
 **Learning:** Form input primitives (`Input`, `Select`, `Textarea`) rendered without visual `label` props often leave screen reader users with unlabelled inputs. Providing fallback `aria-label` resolution (`props['aria-label'] || props.ariaLabel || placeholder || defaultFallback`) when `!label` ensures assistive technologies always announce an accessible name while allowing native `<label>` association when `label` is present.
 **Action:** When designing form input primitives that support optional visual labels, conditionally supply `aria-label` only when no visible label is rendered, prioritizing explicit ARIA props and placeholders before falling back to generic type descriptions.
+
+## 2025-05-25 - Avoiding Redundant ARIA Attributes on Visible Tab Lists and Text Buttons
+**Learning:** Adding `aria-label` or native `title` tooltips to visible text buttons or tabs that already render human-readable labels can create unwanted native desktop tooltip popups and introduce broken `[object Object]` announcements if labels contain React nodes. Additionally, elements with CSS `visibility: hidden` are already excluded from the accessibility tree, making extra `aria-hidden` attributes redundant.
+**Action:** Reserve `aria-label` and `title` tooltips for icon-only controls, locked/disabled overlay indicators, or unlabelled controls, and rely on native `visibility: hidden` or `display: none` for screen reader hiding.
