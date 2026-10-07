@@ -306,7 +306,7 @@ const SavedTrainingPlans = () => {
   const { addNotification } = useNotifications();
 
   const plansData = useStorageKeySelector('plans', selectPlans);
-  const { setItem } = useStorageMethods();
+  const { getItem, setItem } = useStorageMethods();
 
   // Simulated 2.5-second cinematic loading sequence for initial alignment
   const [isLoading, setIsLoading] = useState(true);
@@ -367,13 +367,20 @@ const SavedTrainingPlans = () => {
     return result;
   }, [plansData.savedTrainingPlans]);
 
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Synchronous Storage State Access.
+   * Reads storage state directly via getItem('plans') to eliminate the `plansData` dependency.
+   * Guarantees a referentially stable callback reference across storage updates and re-renders,
+   * keeping all KineticBlueprintCard components 100% memoized and preventing unnecessary card re-renders.
+   */
   const handleDeletePlan = useCallback(async (id) => {
-    const rawPlans = plansData.savedTrainingPlans || [];
+    const currentPlans = getItem('plans') || EMPTY_OBJECT;
+    const rawPlans = currentPlans.savedTrainingPlans || [];
     const updated = rawPlans.filter(p => p.id !== id);
 
-    await setItem('plans', { ...plansData, savedTrainingPlans: updated });
+    await setItem('plans', { ...currentPlans, savedTrainingPlans: updated });
     addNotification('Kinetic blueprint purged from enclave.', 'info');
-  }, [plansData, setItem, addNotification]);
+  }, [getItem, setItem, addNotification]);
 
   const handleAnalyzePlan = useCallback((plan) => {
     navigate('/workout/plan', { state: { selectedPlan: plan } });

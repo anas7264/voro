@@ -264,3 +264,10 @@
 **Action:**
 1. Use chunked `String.fromCharCode.apply` (4KB blocks) for converting `Uint8Array` bytes to binary strings prior to Base64 encoding.
 2. Ensure chunk size remains <= 8192 bytes to avoid V8 call stack argument size limits.
+
+## 2026-10-05 - Synchronous Storage State Access for Action Callback Stabilization
+**Learning:** Including reactive storage data arrays/objects (like `recipes` or `plansData`) in `useCallback` dependency arrays causes action callbacks (e.g. `handleDelete`) to change identity whenever storage updates or filtering state changes. This invalidates `React.memo` wrapping child components (`RecipeArtifactCard`, `KineticBlueprintCard`), forcing all cards in a grid to re-render unnecessarily. Using `getItem('key')` synchronously inside event handlers eliminates the state dependency from `useCallback` (`[getItem, setItem, addNotification]`), maintaining stable function references across re-renders and preserving 100% `React.memo` child isolation.
+
+**Action:**
+1. Read storage state directly via `getItem('key')` inside async action callbacks when possible.
+2. Keep `useCallback` dependencies restricted to stable context methods (`getItem`, `setItem`, `addNotification`).
