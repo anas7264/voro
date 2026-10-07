@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback, memo } from 'react';
+import React, { useEffect, useMemo, useRef, useCallback, memo } from 'react';
 import { Zap, TrendingUp, Activity, Scale, Dumbbell, ShieldCheck, Cpu, Target as TargetIcon } from 'lucide-react';
 import { Button, LineChartComponent, RadarChartComponent, Stat } from '@/components';
 import { useStorageKeySelector } from '@/hooks/useStorage';
