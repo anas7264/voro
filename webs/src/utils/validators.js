@@ -2073,6 +2073,12 @@ export const isPromptInjection = (query, isNested = false) => {
       if (base91Decoded) {
         return true;
       }
+
+      // Security: Handle Gray Code (Reflected Binary Gray Code) encoded payloads and evaluate recursively
+      const grayCodeDecoded = safeDecodeGrayCode(targetStr);
+      if (grayCodeDecoded) {
+        return true;
+      }
     }
   }
 
@@ -2301,6 +2307,106 @@ const safeDecodeAscii85 = (targetStr) => {
     if (decoded && isPromptInjection(decoded, true)) {
       return decoded;
     }
+    return null;
+  } catch (e) {
+    return null;
+  }
+};
+
+/**
+ * Helper to safely decode Gray Code (Reflected Binary Gray Code) encoded prompt injection payloads.
+ * Supports tokenized binary (space/comma-separated or contiguous 7/8-bit streams),
+ * decimal integers, and hex-encoded Gray Code streams.
+ */
+const safeDecodeGrayCode = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 4 || targetStr.length > 2000) return null;
+  try {
+    const grayToBinary = (g) => {
+      let b = g;
+      while (g > 0) {
+        g >>= 1;
+        b ^= g;
+      }
+      return b;
+    };
+
+    const clean = targetStr.trim();
+
+    // 1. Tokenized binary, decimal integers, or hex tokens
+    const rawTokens = clean.split(/[\s,.\-_\/:;+=]+/).filter(Boolean);
+    if (rawTokens.length >= 3) {
+      // Try candidate interpretations: binary, decimal, hex
+      const candidateBases = [];
+
+      // Check if all tokens match binary (7-8 bits)
+      if (rawTokens.every(t => /^[01]{7,8}$/.test(t))) {
+        candidateBases.push(2);
+      }
+      // Check if all tokens match decimal integers (0-255)
+      if (rawTokens.every(t => /^\d{1,3}$/.test(t) && parseInt(t, 10) <= 255)) {
+        candidateBases.push(10);
+      }
+      // Check if all tokens match hex (0x prefixed or 2 hex chars)
+      if (rawTokens.every(t => /^0x[0-9a-fA-F]{1,2}$/i.test(t) || /^[0-9a-fA-F]{1,2}$/i.test(t))) {
+        candidateBases.push(16);
+      }
+
+      for (const radix of candidateBases) {
+        const decodedChars = [];
+        let validTokens = true;
+
+        for (const token of rawTokens) {
+          const num = parseInt(token.replace(/^0x/i, ''), radix);
+          if (isNaN(num) || num < 0 || num > 255) {
+            validTokens = false;
+            break;
+          }
+          const binVal = grayToBinary(num);
+          if (binVal < 9 || (binVal > 13 && binVal < 32) || binVal > 126) {
+            validTokens = false;
+            break;
+          }
+          decodedChars.push(String.fromCharCode(binVal));
+        }
+
+        if (validTokens && decodedChars.length >= 3) {
+          const decoded = decodedChars.join('');
+          if (decoded && isPromptInjection(decoded, true)) {
+            return decoded;
+          }
+        }
+      }
+    }
+
+    // 2. Contiguous binary Gray Code stream (7-bit or 8-bit octets)
+    const binOnly = clean.replace(/\s+/g, '');
+    if (/^[01]{21,}$/.test(binOnly)) {
+      for (const bitLen of [8, 7]) {
+        if (binOnly.length % bitLen !== 0) continue;
+        const decodedChars = [];
+        let validStream = true;
+
+        for (let i = 0; i < binOnly.length; i += bitLen) {
+          const chunk = binOnly.slice(i, i + bitLen);
+          const num = parseInt(chunk, 2);
+          const binVal = grayToBinary(num);
+
+          if (binVal < 9 || (binVal > 13 && binVal < 32) || binVal > 126) {
+            validStream = false;
+            break;
+          }
+          decodedChars.push(String.fromCharCode(binVal));
+        }
+
+        if (validStream && decodedChars.length >= 3) {
+          const decoded = decodedChars.join('');
+          if (decoded && isPromptInjection(decoded, true)) {
+            return decoded;
+          }
+        }
+      }
+    }
+
     return null;
   } catch (e) {
     return null;
