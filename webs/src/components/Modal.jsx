@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useId, useMemo, useRef } from "react";
+import React, { memo, useEffect, useId, useMemo, useRef, useCallback } from "react";
 import { X } from "lucide-react";
 
 /**
@@ -17,11 +17,12 @@ const MODAL_SIZES = Object.freeze({
  * ⚡ REFINEMENT: Luxury Neural Interruption Chamber ('Modal').
  * Re-engineered conforming to Voro's 'Forge' luxury architecture:
  * 1. Ultra-high-fidelity glassmorphism with 60fps direct-DOM 3D volumetric tilt tracking.
- * 2. Magnetic liquid border intelligence (reactive perimeter light gradient mask).
- * 3. Live holographic spatial coordinate telemetry (`TX_...°`, `TY_...°`).
- * 4. SSR-safe deterministic sub-pixel attestation badging (`0xMDL_...`) via React `useId()`.
- * 5. Editorial typography pairing Playfair Display italic serif headings with JetBrains Mono tabular metadata.
- * 6. W3C APG compliant modal dialog accessibility with strict keyboard focus trapping and focus restoration on unmount.
+ * 2. Zero-allocation interaction performance flags via useRef (`isHoveredRef`, `isFocusedRef`).
+ * 3. Magnetic liquid border intelligence (reactive perimeter light gradient mask).
+ * 4. Live holographic spatial coordinate telemetry (`TX_...°`, `TY_...°`).
+ * 5. SSR-safe deterministic sub-pixel attestation badging (`0xMDL_..._ATTESTED_CHAMBER`) via React `useId()`.
+ * 6. Editorial typography pairing Playfair Display italic serif headings with JetBrains Mono tabular metadata.
+ * 7. W3C APG compliant modal dialog accessibility with strict keyboard focus trapping, static 4.0° focus tilt fallback, and focus restoration on unmount.
  */
 export const Modal = memo(({ isOpen, onClose, title, children, size = "md", ...props }) => {
   const generatedId = useId();
@@ -29,6 +30,8 @@ export const Modal = memo(({ isOpen, onClose, title, children, size = "md", ...p
   const modalRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
 
   // Generate a stable system ID and sub-pixel hash for the modal node
   const nodeId = useMemo(() => {
@@ -91,7 +94,8 @@ export const Modal = memo(({ isOpen, onClose, title, children, size = "md", ...p
     };
   }, [isOpen, onClose]);
 
-  const handleMouseMove = (e) => {
+  // 60fps Direct-DOM 3D Volumetric Tilt Handler
+  const handleMouseMove = useCallback((e) => {
     if (!modalRef.current) return;
     const rect = modalRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -111,19 +115,61 @@ export const Modal = memo(({ isOpen, onClose, title, children, size = "md", ...p
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
-  };
+  }, []);
 
-  const handleMouseLeave = () => {
+  const handleMouseEnter = useCallback(() => {
+    isHoveredRef.current = true;
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    isHoveredRef.current = false;
     if (!modalRef.current) return;
-    const style = modalRef.current.style;
-    style.setProperty('--tilt-x', '0deg');
-    style.setProperty('--tilt-y', '0deg');
-    style.setProperty('transform', 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)');
-    style.setProperty('transition', 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)');
 
-    if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
-    if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
-  };
+    const style = modalRef.current.style;
+    if (isFocusedRef.current) {
+      style.setProperty('--tilt-x', '4.00deg');
+      style.setProperty('--tilt-y', '-4.00deg');
+      style.setProperty('transform', 'perspective(1200px) rotateX(4deg) rotateY(-4deg) translateY(-2px)');
+      style.setProperty('transition', 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)');
+      if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
+    } else {
+      style.setProperty('--tilt-x', '0deg');
+      style.setProperty('--tilt-y', '0deg');
+      style.setProperty('transform', 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)');
+      style.setProperty('transition', 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)');
+      if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
+    }
+  }, []);
+
+  const handleFocus = useCallback(() => {
+    isFocusedRef.current = true;
+    if (!modalRef.current) return;
+
+    const style = modalRef.current.style;
+    style.setProperty('--tilt-x', '4.00deg');
+    style.setProperty('--tilt-y', '-4.00deg');
+    style.setProperty('transform', 'perspective(1200px) rotateX(4deg) rotateY(-4deg) translateY(-2px)');
+    style.setProperty('transition', 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)');
+    if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
+    if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    isFocusedRef.current = false;
+    if (!modalRef.current) return;
+
+    if (!isHoveredRef.current) {
+      const style = modalRef.current.style;
+      style.setProperty('--tilt-x', '0deg');
+      style.setProperty('--tilt-y', '0deg');
+      style.setProperty('transform', 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)');
+      style.setProperty('transition', 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)');
+      if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
+    }
+  }, []);
 
   if (!isOpen) return null;
 
@@ -144,7 +190,10 @@ export const Modal = memo(({ isOpen, onClose, title, children, size = "md", ...p
         ref={modalRef}
         tabIndex={-1}
         onMouseMove={handleMouseMove}
+        onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         className={`
           group relative w-full max-h-full rounded-[3rem] bg-[#0A0C14]/90 backdrop-blur-3xl border border-white/10
           shadow-[0_80px_160px_-40px_rgba(0,0,0,0.9),inset_0_1px_1px_0_rgba(255,255,255,0.08)]
