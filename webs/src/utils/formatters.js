@@ -1,6 +1,8 @@
 // VORO Formatters
 // Data formatting utilities for display
 
+import { sanitizeInput } from "./security.js";
+
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Static lookup tables to avoid garbage collection and string allocations.
  */
@@ -192,6 +194,7 @@ export const formatDate = (date, format = "short") => {
 export const formatNumber = (num, decimals = 0) => {
   if (num === null || num === undefined) return "0";
   const val = typeof num === 'number' ? num : parseFloat(num);
+  if (!Number.isFinite(val)) return "0";
 
   const formatter = PRESET_NUMBER_FORMATTERS[decimals];
   if (formatter) return formatter.format(val);
@@ -238,11 +241,12 @@ export const formatHeight = (value, from = "cm", to = "cm") => {
 
 // Format time duration (seconds to HH:MM:SS or MM:SS)
 export const formatTime = (seconds, includeHours = false) => {
-  if (!seconds) return "0:00";
+  const s = typeof seconds === 'number' ? seconds : parseFloat(seconds);
+  if (!Number.isFinite(s) || s <= 0) return "0:00";
 
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = Math.floor(seconds % 60);
+  const hours = Math.floor(s / 3600);
+  const minutes = Math.floor((s % 3600) / 60);
+  const secs = Math.floor(s % 60);
 
   const paddedMins = minutes < 60 ? PADDED_NUMS[minutes] : String(minutes).padStart(2, '0');
   const paddedSecs = secs < 60 ? PADDED_NUMS[secs] : String(secs).padStart(2, '0');
@@ -300,11 +304,13 @@ export const formatMeasurement = (value, unit = "cm", decimals = 1) => {
 
 // Format pace (minutes:seconds per km)
 export const formatPace = (metersPerSecond) => {
-  const kmPerHour = (metersPerSecond * 3.6);
+  const mps = typeof metersPerSecond === 'number' ? metersPerSecond : parseFloat(metersPerSecond);
+  if (!Number.isFinite(mps) || mps <= 0) return "0:00/km";
+  const kmPerHour = mps * 3.6;
   const secondsPerKm = 3600 / (kmPerHour * 1000);
   const minutes = Math.floor(secondsPerKm / 60);
   const seconds = Math.round(secondsPerKm % 60);
-  const paddedSecs = seconds < 60 ? PADDED_NUMS[seconds] : String(seconds).padStart(2, '0');
+  const paddedSecs = seconds >= 0 && seconds < 60 ? PADDED_NUMS[seconds] : String(seconds).padStart(2, '0');
   return `${minutes}:${paddedSecs}/km`;
 };
 
@@ -353,8 +359,11 @@ export const formatDistance = (km, unit = "km") => {
 
 // Format duration with text (e.g., "2 hours 30 minutes")
 export const formatDurationText = (seconds) => {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
+  const s = typeof seconds === 'number' ? seconds : parseFloat(seconds);
+  if (!Number.isFinite(s) || s <= 0) return "0 minutes";
+
+  const hours = Math.floor(s / 3600);
+  const minutes = Math.floor((s % 3600) / 60);
 
   let result = [];
   if (hours > 0) result.push(`${hours} hour${hours > 1 ? "s" : ""}`);
@@ -388,12 +397,14 @@ export const formatStreak = (days) => {
 
 // Format phone number
 export const formatPhoneNumber = (phone) => {
-  if (!phone || typeof phone !== "string") return phone ? String(phone) : "";
+  if (!phone) return "";
+  if (typeof phone !== "string") return String(phone);
+  if (phone.length > 50) return sanitizeInput(phone.slice(0, 50));
   const cleaned = phone.replace(/\D/g, "");
   if (cleaned.length === 10) {
     return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
   }
-  return phone;
+  return sanitizeInput(phone);
 };
 
 // Format units display
