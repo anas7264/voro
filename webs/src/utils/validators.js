@@ -1393,7 +1393,7 @@ const safeDecodeBacon = (str) => {
           decoded.replace(/j/g, 'i')
         ];
         for (const cand of candidates) {
-          if (isPromptInjection(cand, true)) {
+          if (hasPromptInjectionKeywords(cand)) {
             return cand;
           }
         }
@@ -1458,7 +1458,7 @@ const safeDecodeXOR = (targetStr) => {
           }
           decoded += String.fromCharCode(code);
         }
-        if (isValidASCII && decoded.length >= 8 && isPromptInjection(decoded, true)) {
+        if (isValidASCII && decoded.length >= 8 && hasPromptInjectionKeywords(decoded)) {
             return decoded;
         }
       }
@@ -1479,7 +1479,7 @@ const safeDecodeXOR = (targetStr) => {
           decoded += String.fromCharCode(code);
         }
         if (isValidASCII && decoded.length >= 8) {
-          if (isPromptInjection(decoded, true)) {
+          if (hasPromptInjectionKeywords(decoded)) {
             return decoded;
           }
         }
@@ -1502,7 +1502,7 @@ const safeDecodeXOR = (targetStr) => {
         decoded += String.fromCharCode(code);
       }
       if (isValidASCII && decoded.length >= 8) {
-        if (isPromptInjection(decoded, true)) {
+        if (hasPromptInjectionKeywords(decoded)) {
           return decoded;
         }
       }
@@ -1524,7 +1524,7 @@ const safeDecodeXOR = (targetStr) => {
         decoded += String.fromCharCode(code);
       }
       if (isValidASCII && decoded.length >= 8) {
-        if (isPromptInjection(decoded, true)) {
+        if (hasPromptInjectionKeywords(decoded)) {
           return decoded;
         }
       }
@@ -1541,6 +1541,23 @@ const DELIMITER_RE = /\[\/?(?:USER_?DATA|SECURITY_?PROTOCOL|MESSAGE_?HISTORY|USE
 const MARKDOWN_RE = /[\*_~`]/g;
 const NON_ALPHANUM_RE = /[^a-z0-9]/g;
 const HEX_MATCH_RE = /[0-9a-fA-F]{8,}/g;
+
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Direct prompt injection keyword matcher for decoded candidates.
+ * Directly evaluates pre-compiled regex rules with leetspeak decoding and diacritic normalization
+ * without re-entering isPromptInjection, eliminating thousands of recursive cipher evaluations.
+ */
+const hasPromptInjectionKeywords = (str) => {
+  if (!str || typeof str !== 'string' || str.length < 8) return false;
+  const decoded = decodeLeetspeak(str).normalize('NFKD').toLowerCase()
+    .replace(/[\u0300-\u036f\u1ab0-\u1aff\u1dc0-\u1dff\u20d0-\u20ff\ufe20-\ufe2f]/g, '');
+  const compressed = decoded.replace(NON_ALPHANUM_RE, '');
+  return DELIMITER_RE.test(decoded) ||
+         OVERRIDE_RE.test(decoded) ||
+         HARVESTING_RE.test(decoded) ||
+         ROLEPLAY_RE.test(decoded) ||
+         COMPRESSED_BLOCKLIST_RE.test(compressed);
+};
 const BASE64_MATCH_RE = /[A-Za-z0-9+\/\-_]{8,}=*/g;
 const INVISIBLE_CHARS_RE = /[\u200b-\u200f\u2028\u2029\u202a-\u202e\u205f\u2060-\u206f\u3000\ufeff\u00ad\u2400-\u243f\ufe00-\ufe0f\u180e\u1680\u20dd-\u20e4\u3164\uffa0\u115f\u1160]|[\u{E0100}-\u{E01EF}\u{1D173}-\u{1D17A}\u{1BCA0}-\u{1BCA3}\u{13430}-\u{1343F}]/gu;
 
@@ -1597,7 +1614,7 @@ const safeDecodeColumnarTransposition = (targetStr) => {
           }
         }
 
-        if (decoded !== clean && isPromptInjection(decoded, true)) {
+        if (decoded !== clean && hasPromptInjectionKeywords(decoded)) {
           return decoded;
         }
       }
@@ -1636,7 +1653,7 @@ const safeDecodeColumnarTransposition = (targetStr) => {
         }
       }
 
-      if (decoded !== clean && isPromptInjection(decoded, true)) {
+      if (decoded !== clean && hasPromptInjectionKeywords(decoded)) {
         return decoded;
       }
     }
@@ -1707,7 +1724,7 @@ const safeDecodeNihilist = (targetStr) => {
       if (isValid && decoded.length >= 4) {
         const candidates = [decoded, decoded.replace(/i/g, 'j')];
         for (const cand of candidates) {
-          if (cand !== targetStr && isPromptInjection(cand, true)) {
+          if (cand !== targetStr && hasPromptInjectionKeywords(cand)) {
             return cand;
           }
         }
@@ -1776,18 +1793,18 @@ export const isPromptInjection = (query, isNested = false) => {
       for (const match of hexMatches) {
         const decoded = safeDecodeHex(match);
         if (decoded) {
-          if (isPromptInjection(decoded, true)) return true;
+          if (hasPromptInjectionKeywords(decoded)) return true;
           hexDecodedList.push(decoded);
         }
       }
       if (hexDecodedList.length > 1) {
-        if (isPromptInjection(hexDecodedList.join(' '), true)) return true;
+        if (hasPromptInjectionKeywords(hexDecodedList.join(' '))) return true;
       }
 
       const decimalMatches = targetStr.match(DECIMAL_MATCH_RE) || [];
       for (const match of decimalMatches) {
         const decimalDecoded = safeDecodeDecimal(match);
-        if (decimalDecoded && isPromptInjection(decimalDecoded, true)) {
+        if (decimalDecoded && hasPromptInjectionKeywords(decimalDecoded)) {
           return true;
         }
       }
@@ -1795,7 +1812,7 @@ export const isPromptInjection = (query, isNested = false) => {
       const octalMatches = targetStr.match(OCTAL_MATCH_RE) || [];
       for (const match of octalMatches) {
         const octalDecoded = safeDecodeOctal(match);
-        if (octalDecoded && isPromptInjection(octalDecoded, true)) {
+        if (octalDecoded && hasPromptInjectionKeywords(octalDecoded)) {
           return true;
         }
       }
@@ -1803,7 +1820,7 @@ export const isPromptInjection = (query, isNested = false) => {
       const hexByteMatches = targetStr.match(HEX_BYTES_MATCH_RE) || [];
       for (const match of hexByteMatches) {
         const hexByteDecoded = safeDecodeHexBytes(match);
-        if (hexByteDecoded && isPromptInjection(hexByteDecoded, true)) {
+        if (hexByteDecoded && hasPromptInjectionKeywords(hexByteDecoded)) {
           return true;
         }
       }
@@ -1811,7 +1828,7 @@ export const isPromptInjection = (query, isNested = false) => {
       const multiRadixMatches = targetStr.match(MULTI_RADIX_MATCH_RE) || [];
       for (const match of multiRadixMatches) {
         const multiRadixDecoded = safeDecodeMultiRadix(match);
-        if (multiRadixDecoded && isPromptInjection(multiRadixDecoded, true)) {
+        if (multiRadixDecoded && hasPromptInjectionKeywords(multiRadixDecoded)) {
           return true;
         }
       }
@@ -1821,23 +1838,23 @@ export const isPromptInjection = (query, isNested = false) => {
       for (const match of base64Matches) {
         const decoded = safeAtob(match);
         if (decoded) {
-          if (isPromptInjection(decoded, true)) return true;
+          if (hasPromptInjectionKeywords(decoded)) return true;
           base64DecodedList.push(decoded);
         }
       }
       if (base64DecodedList.length > 1) {
-        if (isPromptInjection(base64DecodedList.join(' '), true)) return true;
+        if (hasPromptInjectionKeywords(base64DecodedList.join(' '))) return true;
       }
 
       const base32Decoded = safeDecodeBase32(targetStr.trim());
-      if (base32Decoded && isPromptInjection(base32Decoded, true)) {
+      if (base32Decoded && hasPromptInjectionKeywords(base32Decoded)) {
         return true;
       }
 
       const base58Matches = targetStr.match(BASE58_MATCH_RE) || [];
       for (const match of base58Matches) {
         const base58Decoded = safeDecodeBase58(match);
-        if (base58Decoded && isPromptInjection(base58Decoded, true)) {
+        if (base58Decoded && hasPromptInjectionKeywords(base58Decoded)) {
           return true;
         }
       }
@@ -1845,7 +1862,7 @@ export const isPromptInjection = (query, isNested = false) => {
       const binaryMatches = targetStr.match(BINARY_MATCH_RE) || [];
       for (const match of binaryMatches) {
         const binaryDecoded = safeDecodeBinary(match);
-        if (binaryDecoded && isPromptInjection(binaryDecoded, true)) {
+        if (binaryDecoded && hasPromptInjectionKeywords(binaryDecoded)) {
           return true;
         }
       }
@@ -1853,7 +1870,7 @@ export const isPromptInjection = (query, isNested = false) => {
       const morseMatches = targetStr.match(MORSE_MATCH_RE) || [];
       for (const match of morseMatches) {
         const morseDecoded = safeDecodeMorse(match);
-        if (morseDecoded && isPromptInjection(morseDecoded, true)) {
+        if (morseDecoded && hasPromptInjectionKeywords(morseDecoded)) {
           return true;
         }
       }
@@ -1861,24 +1878,24 @@ export const isPromptInjection = (query, isNested = false) => {
       // Security: Handle Caesar cipher (ROT-1 through ROT-25) and ROT47-encoded obfuscation and evaluate recursively
       for (let s = 1; s < 26; s++) {
         const caesarDecoded = safeDecodeCaesar(targetStr, s);
-        if (caesarDecoded && isPromptInjection(caesarDecoded, true)) {
+        if (caesarDecoded && hasPromptInjectionKeywords(caesarDecoded)) {
           return true;
         }
       }
 
       const rot47Decoded = safeDecodeRot47(targetStr);
-      if (rot47Decoded && isPromptInjection(rot47Decoded, true)) {
+      if (rot47Decoded && hasPromptInjectionKeywords(rot47Decoded)) {
         return true;
       }
 
       const atbashDecoded = safeDecodeAtbash(targetStr);
-      if (atbashDecoded && isPromptInjection(atbashDecoded, true)) {
+      if (atbashDecoded && hasPromptInjectionKeywords(atbashDecoded)) {
         return true;
       }
 
       // Security: Handle reversed-string/words obfuscation and evaluate recursively
       const reversedStr = safeReverseString(targetStr);
-      if (reversedStr && isPromptInjection(reversedStr, true)) {
+      if (reversedStr && hasPromptInjectionKeywords(reversedStr)) {
         return true;
       }
 
@@ -1978,7 +1995,7 @@ export const isPromptInjection = (query, isNested = false) => {
         return true;
       }
 
-      // Security: Handle Autokey Cipher (polyalphabetic substitution with plaintext keystream) and evaluate recursively
+      // Security: Handle Autokey Cipher (polyalphabetic substitution with plaintext keystream continuation) and evaluate recursively
       const autokeyDecoded = safeDecodeAutokey(targetStr);
       if (autokeyDecoded) {
         return true;
@@ -2149,7 +2166,7 @@ const safeDecodeBaudot = (targetStr) => {
             if (char) decoded += char;
           }
         }
-        if (decoded.length >= 4 && isPromptInjection(decoded, true)) {
+        if (decoded.length >= 4 && hasPromptInjectionKeywords(decoded)) {
           return decoded;
         }
       }
@@ -2172,7 +2189,7 @@ const safeDecodeBaudot = (targetStr) => {
           if (char) decoded += char;
         }
       }
-      if (decoded.length >= 4 && isPromptInjection(decoded, true)) {
+      if (decoded.length >= 4 && hasPromptInjectionKeywords(decoded)) {
         return decoded;
       }
     }
@@ -2217,7 +2234,7 @@ const safeDecodeTrithemius = (targetStr) => {
         }
       }
 
-      if (decoded !== targetStr && isPromptInjection(decoded, true)) {
+      if (decoded !== targetStr && hasPromptInjectionKeywords(decoded)) {
         return decoded;
       }
     }
@@ -2304,7 +2321,7 @@ const safeDecodeAscii85 = (targetStr) => {
 
     if (bytes.length < 6) return null;
     const decoded = String.fromCharCode(...bytes);
-    if (decoded && isPromptInjection(decoded, true)) {
+    if (decoded && hasPromptInjectionKeywords(decoded)) {
       return decoded;
     }
     return null;
@@ -2371,7 +2388,7 @@ const safeDecodeGrayCode = (targetStr) => {
 
         if (validTokens && decodedChars.length >= 3) {
           const decoded = decodedChars.join('');
-          if (decoded && isPromptInjection(decoded, true)) {
+          if (decoded && hasPromptInjectionKeywords(decoded)) {
             return decoded;
           }
         }
@@ -2400,7 +2417,7 @@ const safeDecodeGrayCode = (targetStr) => {
 
         if (validStream && decodedChars.length >= 3) {
           const decoded = decodedChars.join('');
-          if (decoded && isPromptInjection(decoded, true)) {
+          if (decoded && hasPromptInjectionKeywords(decoded)) {
             return decoded;
           }
         }
@@ -2454,7 +2471,7 @@ const safeDecodeBase91 = (targetStr) => {
 
     if (bytes.length < 4) return null;
     const decoded = String.fromCharCode(...bytes);
-    if (decoded && isPromptInjection(decoded, true)) {
+    if (decoded && hasPromptInjectionKeywords(decoded)) {
       return decoded;
     }
     return null;
@@ -2495,7 +2512,7 @@ const safeDecodeBase45 = (targetStr) => {
     }
     if (bytes.length < 6) return null;
     const decoded = String.fromCharCode(...bytes);
-    if (decoded && isPromptInjection(decoded, true)) {
+    if (decoded && hasPromptInjectionKeywords(decoded)) {
       return decoded;
     }
     return null;
@@ -2543,7 +2560,7 @@ const safeDecodeZ85 = (targetStr) => {
 
     if (bytes.length < 6) return null;
     const decoded = String.fromCharCode(...bytes);
-    if (decoded && isPromptInjection(decoded, true)) {
+    if (decoded && hasPromptInjectionKeywords(decoded)) {
       return decoded;
     }
     return null;
@@ -2572,7 +2589,7 @@ const safeDecodeKeywordSubstitution = (targetStr) => {
       }
     }
 
-    if (changed && decoded !== targetStr && isPromptInjection(decoded, true)) {
+    if (changed && decoded !== targetStr && hasPromptInjectionKeywords(decoded)) {
       return decoded;
     }
   }
@@ -2619,7 +2636,7 @@ const safeDecodeStraddlingCheckerboard = (targetStr) => {
       }
     }
 
-    if (decoded && decoded.length >= 6 && isPromptInjection(decoded, true)) {
+    if (decoded && decoded.length >= 6 && hasPromptInjectionKeywords(decoded)) {
       return decoded;
     }
   }
@@ -2676,7 +2693,7 @@ const safeDecodeFractionatedMorse = (targetStr) => {
     if (!decodeSuccess || decodedWords.length === 0) continue;
 
     const decoded = decodedWords.join(" ");
-    if (decoded && isPromptInjection(decoded, true)) {
+    if (decoded && hasPromptInjectionKeywords(decoded)) {
       return decoded;
     }
   }
@@ -2719,7 +2736,7 @@ const safeDecodeScytale = (targetStr) => {
       }
     }
 
-    if (decoded1 !== targetStr && isPromptInjection(decoded1, true)) {
+    if (decoded1 !== targetStr && hasPromptInjectionKeywords(decoded1)) {
       return decoded1;
     }
 
@@ -2747,7 +2764,7 @@ const safeDecodeScytale = (targetStr) => {
       }
     }
 
-    if (decoded2 !== targetStr && isPromptInjection(decoded2, true)) {
+    if (decoded2 !== targetStr && hasPromptInjectionKeywords(decoded2)) {
       return decoded2;
     }
   }
@@ -2773,7 +2790,7 @@ const safeDecodePorta = (targetStr) => {
         decoded += String.fromCharCode(((c - 13 - k + 260) % 13) + 97);
       }
     }
-    if (isPromptInjection(decoded, true)) {
+    if (hasPromptInjectionKeywords(decoded)) {
       return decoded;
     }
   }
@@ -2805,7 +2822,7 @@ const safeDecodeHill = (targetStr) => {
       decoded += String.fromCharCode(p0 + 97, p1 + 97);
     }
 
-    if (decoded && decoded !== targetStr && isPromptInjection(decoded, true)) {
+    if (decoded && decoded !== targetStr && hasPromptInjectionKeywords(decoded)) {
       return decoded;
     }
   }
@@ -2829,7 +2846,7 @@ const safeDecodeADFGVX = (targetStr) => {
       if (r === undefined || c === undefined) break;
       decoded += matrix[r][c];
     }
-    if (decoded && decoded !== targetStr && isPromptInjection(decoded, true)) {
+    if (decoded && decoded !== targetStr && hasPromptInjectionKeywords(decoded)) {
       return decoded;
     }
   }
@@ -2852,7 +2869,7 @@ const safeDecodeADFGX = (targetStr) => {
       const c = ADFGX_MAP[clean[i + 1]];
       decoded += matrix[r][c];
     }
-    if (decoded && decoded !== targetStr && isPromptInjection(decoded, true)) {
+    if (decoded && decoded !== targetStr && hasPromptInjectionKeywords(decoded)) {
       return decoded;
     }
   }
@@ -2905,7 +2922,7 @@ const safeDecodeTrifid = (targetStr) => {
       const cleanDecoded = decoded.replace(new RegExp(`[\\${sym}#.\\s+]`, 'g'), ' ');
       const candidates = [decoded, cleanDecoded, decoded.replace(/#/g, ''), decoded.replace(/\./g, '')];
       for (const cand of candidates) {
-        if (cand !== targetStr && isPromptInjection(cand, true)) {
+        if (cand !== targetStr && hasPromptInjectionKeywords(cand)) {
           return cand;
         }
       }
@@ -2958,7 +2975,7 @@ const safeDecodePlayfair = (targetStr) => {
         decoded.replace(/x/g, '').replace(/i/g, 'j')
       ];
       for (const cand of candidates) {
-        if (cand !== targetStr && isPromptInjection(cand, true)) {
+        if (cand !== targetStr && hasPromptInjectionKeywords(cand)) {
           return cand;
         }
       }
@@ -3007,7 +3024,7 @@ const safeDecodeTwoSquare = (targetStr) => {
           decoded.replace(/i/g, 'j')
         ];
         for (const cand of candidates) {
-          if (cand !== targetStr && isPromptInjection(cand, true)) {
+          if (cand !== targetStr && hasPromptInjectionKeywords(cand)) {
             return cand;
           }
         }
@@ -3065,7 +3082,7 @@ const safeDecodeFourSquare = (targetStr) => {
           decoded.replace(/i/g, 'j')
         ];
         for (const cand of candidates) {
-          if (cand !== targetStr && isPromptInjection(cand, true)) {
+          if (cand !== targetStr && hasPromptInjectionKeywords(cand)) {
             return cand;
           }
         }
@@ -3115,7 +3132,7 @@ const safeDecodeBifid = (targetStr) => {
         decoded.replace(/i/g, 'j')
       ];
       for (const cand of candidates) {
-        if (cand !== targetStr && isPromptInjection(cand, true)) {
+        if (cand !== targetStr && hasPromptInjectionKeywords(cand)) {
           return cand;
         }
       }
@@ -3125,35 +3142,42 @@ const safeDecodeBifid = (targetStr) => {
   return null;
 };
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Module-scoped reusable Code Buffer for zero-allocation
+ * cipher decoding passes across Vigenère, Beaufort, Gronsfeld, Autokey, Porta, and Affine.
+ */
+const CODE_BUFFER = new Uint16Array(2048);
+
 // Helper to safely decode Vigenère cipher-encoded payloads (P_i = (C_i - K_{i mod L}) mod 26)
 const safeDecodeVigenere = (targetStr) => {
-  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 2000) return null;
+  const N = targetStr.length;
 
   for (const key of VIGENERE_BEAUFORT_KEYS) {
     const L = key.length;
-    let decoded = '';
     let keyIdx = 0;
 
-    for (let i = 0; i < targetStr.length; i++) {
+    for (let i = 0; i < N; i++) {
       const code = targetStr.charCodeAt(i);
       const kShift = key.charCodeAt(keyIdx % L) - 97;
 
       if (code >= 65 && code <= 90) {
         let x = (code - 65 - kShift) % 26;
         if (x < 0) x += 26;
-        decoded += String.fromCharCode(x + 65);
+        CODE_BUFFER[i] = x + 65;
         keyIdx++;
       } else if (code >= 97 && code <= 122) {
         let x = (code - 97 - kShift) % 26;
         if (x < 0) x += 26;
-        decoded += String.fromCharCode(x + 97);
+        CODE_BUFFER[i] = x + 97;
         keyIdx++;
       } else {
-        decoded += targetStr[i];
+        CODE_BUFFER[i] = code;
       }
     }
 
-    if (decoded !== targetStr && isPromptInjection(decoded, true)) {
+    const decoded = String.fromCharCode.apply(null, CODE_BUFFER.subarray(0, N));
+    if (decoded !== targetStr && hasPromptInjectionKeywords(decoded)) {
       return decoded;
     }
   }
@@ -3163,13 +3187,13 @@ const safeDecodeVigenere = (targetStr) => {
 
 // Helper to safely decode Autokey cipher-encoded payloads (polyalphabetic substitution with plaintext keystream continuation)
 const safeDecodeAutokey = (targetStr) => {
-  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 2000) return null;
+  const N = targetStr.length;
 
   for (const initKey of AUTOKEY_KEYS) {
-    let decoded = '';
     const plainChars = [];
 
-    for (let i = 0; i < targetStr.length; i++) {
+    for (let i = 0; i < N; i++) {
       const code = targetStr.charCodeAt(i);
       let kVal = 0;
       if (plainChars.length < initKey.length) {
@@ -3182,18 +3206,19 @@ const safeDecodeAutokey = (targetStr) => {
         let x = (code - 65 - kVal) % 26;
         if (x < 0) x += 26;
         plainChars.push(x);
-        decoded += String.fromCharCode(x + 65);
+        CODE_BUFFER[i] = x + 65;
       } else if (code >= 97 && code <= 122) {
         let x = (code - 97 - kVal) % 26;
         if (x < 0) x += 26;
         plainChars.push(x);
-        decoded += String.fromCharCode(x + 97);
+        CODE_BUFFER[i] = x + 97;
       } else {
-        decoded += targetStr[i];
+        CODE_BUFFER[i] = code;
       }
     }
 
-    if (decoded !== targetStr && isPromptInjection(decoded, true)) {
+    const decoded = String.fromCharCode.apply(null, CODE_BUFFER.subarray(0, N));
+    if (decoded !== targetStr && hasPromptInjectionKeywords(decoded)) {
       return decoded;
     }
   }
@@ -3203,33 +3228,34 @@ const safeDecodeAutokey = (targetStr) => {
 
 // Helper to safely decode Beaufort cipher-encoded payloads (P_i = (K_{i mod L} - C_i) mod 26)
 const safeDecodeBeaufort = (targetStr) => {
-  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 2000) return null;
+  const N = targetStr.length;
 
   for (const key of VIGENERE_BEAUFORT_KEYS) {
     const L = key.length;
-    let decoded = '';
     let keyIdx = 0;
 
-    for (let i = 0; i < targetStr.length; i++) {
+    for (let i = 0; i < N; i++) {
       const code = targetStr.charCodeAt(i);
       const kVal = key.charCodeAt(keyIdx % L) - 97;
 
       if (code >= 65 && code <= 90) {
         let x = (kVal - (code - 65)) % 26;
         if (x < 0) x += 26;
-        decoded += String.fromCharCode(x + 65);
+        CODE_BUFFER[i] = x + 65;
         keyIdx++;
       } else if (code >= 97 && code <= 122) {
         let x = (kVal - (code - 97)) % 26;
         if (x < 0) x += 26;
-        decoded += String.fromCharCode(x + 97);
+        CODE_BUFFER[i] = x + 97;
         keyIdx++;
       } else {
-        decoded += targetStr[i];
+        CODE_BUFFER[i] = code;
       }
     }
 
-    if (decoded !== targetStr && isPromptInjection(decoded, true)) {
+    const decoded = String.fromCharCode.apply(null, CODE_BUFFER.subarray(0, N));
+    if (decoded !== targetStr && hasPromptInjectionKeywords(decoded)) {
       return decoded;
     }
   }
@@ -3239,33 +3265,34 @@ const safeDecodeBeaufort = (targetStr) => {
 
 // Helper to safely decode Gronsfeld cipher-encoded payloads (Vigenère with numeric digit keys)
 const safeDecodeGronsfeld = (targetStr) => {
-  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 2000) return null;
+  const N = targetStr.length;
 
   for (const key of GRONSFELD_KEYS) {
     const L = key.length;
-    let decoded = '';
     let keyIdx = 0;
 
-    for (let i = 0; i < targetStr.length; i++) {
+    for (let i = 0; i < N; i++) {
       const code = targetStr.charCodeAt(i);
       const dShift = key.charCodeAt(keyIdx % L) - 48;
 
       if (code >= 65 && code <= 90) {
         let x = (code - 65 - dShift) % 26;
         if (x < 0) x += 26;
-        decoded += String.fromCharCode(x + 65);
+        CODE_BUFFER[i] = x + 65;
         keyIdx++;
       } else if (code >= 97 && code <= 122) {
         let x = (code - 97 - dShift) % 26;
         if (x < 0) x += 26;
-        decoded += String.fromCharCode(x + 97);
+        CODE_BUFFER[i] = x + 97;
         keyIdx++;
       } else {
-        decoded += targetStr[i];
+        CODE_BUFFER[i] = code;
       }
     }
 
-    if (decoded !== targetStr && isPromptInjection(decoded, true)) {
+    const decoded = String.fromCharCode.apply(null, CODE_BUFFER.subarray(0, N));
+    if (decoded !== targetStr && hasPromptInjectionKeywords(decoded)) {
       return decoded;
     }
   }
@@ -3304,7 +3331,7 @@ const safeDecodeRailFence = (targetStr) => {
     }
 
     const decoded = decodedArr.join('');
-    if (decoded !== targetStr && isPromptInjection(decoded, true)) {
+    if (decoded !== targetStr && hasPromptInjectionKeywords(decoded)) {
       return decoded;
     }
   }
@@ -3324,7 +3351,7 @@ const safeDecodeA1Z26 = (targetStr) => {
       const num = parseInt(t, 10);
       decoded += String.fromCharCode(96 + num);
     }
-    if (decoded.length >= 4 && isPromptInjection(decoded, true)) {
+    if (decoded.length >= 4 && hasPromptInjectionKeywords(decoded)) {
       return decoded;
     }
   }
@@ -3342,7 +3369,7 @@ const safeDecodeA1Z26 = (targetStr) => {
       }
       decoded += String.fromCharCode(96 + num);
     }
-    if (isValid && decoded.length >= 4 && isPromptInjection(decoded, true)) {
+    if (isValid && decoded.length >= 4 && hasPromptInjectionKeywords(decoded)) {
       return decoded;
     }
   }
@@ -3390,7 +3417,7 @@ const safeDecodeAffine = (targetStr) => {
         }
       }
 
-      if (decoded !== targetStr && isPromptInjection(decoded, true)) {
+      if (decoded !== targetStr && hasPromptInjectionKeywords(decoded)) {
         return decoded;
       }
     }
@@ -3430,7 +3457,7 @@ const safeDecodeTapCode = (targetStr) => {
       if (decoded.length >= 4) {
         const cand1 = decoded;
         const cand2 = decoded.replace(/c/g, 'k');
-        if (isPromptInjection(cand1, true) || isPromptInjection(cand2, true)) {
+        if (hasPromptInjectionKeywords(cand1) || hasPromptInjectionKeywords(cand2)) {
           return cand1;
         }
       }
@@ -3449,7 +3476,7 @@ const safeDecodeTapCode = (targetStr) => {
     if (decoded.length >= 4) {
       const cand1 = decoded;
       const cand2 = decoded.replace(/c/g, 'k');
-      if (isPromptInjection(cand1, true) || isPromptInjection(cand2, true)) {
+      if (hasPromptInjectionKeywords(cand1) || hasPromptInjectionKeywords(cand2)) {
         return cand1;
       }
     }
@@ -3482,7 +3509,7 @@ const safeDecodePolybius = (targetStr) => {
   if (decoded.length >= 4) {
     const cand1 = decoded;
     const cand2 = decoded.replace(/i/g, 'j');
-    if (isPromptInjection(cand1, true) || isPromptInjection(cand2, true)) return cand1;
+    if (hasPromptInjectionKeywords(cand1) || hasPromptInjectionKeywords(cand2)) return cand1;
   }
   return null;
 };
