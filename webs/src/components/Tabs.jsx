@@ -256,7 +256,9 @@ export const Tabs = memo(({ tabs = EMPTY_TABS, activeTab, onTabChange, className
               id={`${baseId}-panel-${tab.id}`}
               role="tabpanel"
               aria-labelledby={`${baseId}-tab-${tab.id}`}
-              className={`transition-all duration-700 cubic-bezier(0.16, 1, 0.3, 1) ${
+              tabIndex={isActive ? 0 : -1}
+              aria-hidden={!isActive}
+              className={`transition-all duration-700 cubic-bezier(0.16, 1, 0.3, 1) outline-none focus-visible:ring-2 focus-visible:ring-voro-primary/50 focus-visible:ring-offset-4 focus-visible:ring-offset-[#0A0C14] rounded-2xl ${
                 isActive
                   ? "opacity-100 translate-y-0 scale-100 visible"
                   : "opacity-0 translate-y-6 scale-[0.99] invisible absolute inset-0 pointer-events-none"
