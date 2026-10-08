@@ -271,3 +271,10 @@
 **Action:**
 1. Read storage state directly via `getItem('key')` inside async action callbacks when possible.
 2. Keep `useCallback` dependencies restricted to stable context methods (`getItem`, `setItem`, `addNotification`).
+
+## 2026-10-06 - Non-Recursive Cipher Candidate Evaluation & Code Buffering
+**Learning:** In multi-cipher prompt injection detection, calling `isPromptInjection(decoded, true)` recursively for candidate decoded strings caused thousands of re-entries per input query, executing repeated NFKD unicode normalizations and re-running 30+ cipher helpers recursively. Replacing recursive calls with direct regex evaluations via `hasPromptInjectionKeywords` and utilizing a module-scoped `CODE_BUFFER` (`Uint16Array(2048)`) for polyalphabetic cipher decoding eliminated thousands of recursive re-entries and string heap allocations.
+
+**Action:**
+1. Evaluate decoded cipher candidate strings directly against pre-compiled regex rules rather than re-entering top-level validation routines.
+2. Use module-scoped `Uint16Array` buffers and `String.fromCharCode.apply` for zero-allocation polyalphabetic cipher character decoding.
