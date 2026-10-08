@@ -57,6 +57,36 @@ const CustomTooltip = memo(({ active, payload, totalValue, unit = "Units" }) => 
 
 CustomTooltip.displayName = "CustomTooltip";
 
+const PieLegend = memo(({ payload, data, valueKey, totalValue, chartColors }) => {
+  if (!payload || !payload.length) return null;
+  return (
+    <div className="flex flex-wrap justify-center gap-x-8 gap-y-3 mt-6 pt-4 border-t border-white/5">
+      {payload.map((entry, index) => {
+        const itemVal = Array.isArray(data) && data[index] ? Number(data[index][valueKey]) || 0 : 0;
+        const itemPct = totalValue > 0 ? ((itemVal / totalValue) * 100).toFixed(1) : "0.0";
+        const color = chartColors[index % chartColors.length];
+
+        return (
+          <div key={index} className="flex items-center gap-2.5 group/legend cursor-pointer">
+            <div
+              className="w-2 h-2 rounded-full shadow-[0_0_8px_currentColor] group-hover/legend:scale-125 transition-transform duration-300"
+              style={{ backgroundColor: color, color }}
+            />
+            <span className="text-[0.6rem] font-mono font-bold text-gray-400 group-hover/legend:text-white uppercase tracking-[0.15em] transition-colors duration-300">
+              {entry.value}
+            </span>
+            <span className="text-[0.5rem] font-mono font-black text-voro-primary/80 bg-voro-primary/10 px-1.5 py-0.5 rounded border border-voro-primary/20">
+              {itemPct}%
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+});
+
+PieLegend.displayName = "PieLegend";
+
 /**
  * ⚡ REFINEMENT: Luxury Neural Distribution Specimen (PieChartComponent).
  * Re-engineered to Voro's 'Forge' luxury architecture and zero-allocation performance standards:
@@ -331,29 +361,14 @@ export const PieChartComponent = memo(({
             <Tooltip content={<CustomTooltip totalValue={totalValue} unit={unit} />} />
 
             <Legend
-              content={({ payload }) => (
-                <div className="flex flex-wrap justify-center gap-x-8 gap-y-3 mt-6 pt-4 border-t border-white/5">
-                  {payload && payload.map((entry, index) => {
-                    const itemVal = Array.isArray(data) && data[index] ? Number(data[index][valueKey]) || 0 : 0;
-                    const itemPct = totalValue > 0 ? ((itemVal / totalValue) * 100).toFixed(1) : "0.0";
-                    const color = chartColors[index % chartColors.length];
-
-                    return (
-                      <div key={index} className="flex items-center gap-2.5 group/legend cursor-pointer">
-                        <div
-                          className="w-2 h-2 rounded-full shadow-[0_0_8px_currentColor] group-hover/legend:scale-125 transition-transform duration-300"
-                          style={{ backgroundColor: color, color }}
-                        />
-                        <span className="text-[0.6rem] font-mono font-bold text-gray-400 group-hover/legend:text-white uppercase tracking-[0.15em] transition-colors duration-300">
-                          {entry.value}
-                        </span>
-                        <span className="text-[0.5rem] font-mono font-black text-voro-primary/80 bg-voro-primary/10 px-1.5 py-0.5 rounded border border-voro-primary/20">
-                          {itemPct}%
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
+              content={(legendProps) => (
+                <PieLegend
+                  {...legendProps}
+                  data={data}
+                  valueKey={valueKey}
+                  totalValue={totalValue}
+                  chartColors={chartColors}
+                />
               )}
             />
           </PieChart>
