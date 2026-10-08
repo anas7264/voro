@@ -58,70 +58,89 @@ export const getPasswordStrength = (password) => {
   return { level: "Strong", score: 5, feedback: [] };
 };
 
+/**
+ * Strict Numeric Parser & Validator Helpers
+ * Disallows trailing characters, non-primitive values, scientific notation,
+ * empty strings, and non-finite numeric coercions (NaN, Infinity) to prevent
+ * input validation bypasses and client-side code/string injection risks.
+ */
+const parseStrictNumber = (val) => {
+  if (typeof val !== 'number' && typeof val !== 'string') return NaN;
+  if (typeof val === 'string' && (val.trim() === '' || /[eE]/.test(val))) return NaN;
+  const num = Number(val);
+  return Number.isFinite(num) ? num : NaN;
+};
+
+const parseStrictInt = (val) => {
+  const num = parseStrictNumber(val);
+  return Number.isInteger(num) ? num : NaN;
+};
+
 // Positive number validation
 export const isPositiveNumber = (value) => {
-  const num = parseFloat(value);
+  const num = parseStrictNumber(value);
   return Number.isFinite(num) && num > 0;
 };
 
 // Non-negative number validation
 export const isNonNegativeNumber = (value) => {
-  const num = parseFloat(value);
+  const num = parseStrictNumber(value);
   return Number.isFinite(num) && num >= 0;
 };
 
 // Integer validation
 export const isInteger = (value) => {
-  return Number.isInteger(parseFloat(value));
+  const num = parseStrictNumber(value);
+  return Number.isInteger(num);
 };
 
 // Weight validation (reasonable range in kg: 30-500kg)
 export const isValidWeight = (weight) => {
-  const w = parseFloat(weight);
+  const w = parseStrictNumber(weight);
   return Number.isFinite(w) && w >= 30 && w <= 500;
 };
 
 // Exercise weight validation (reasonable range in kg: 0-1000kg)
 export const isValidExerciseWeight = (weight) => {
-  const w = parseFloat(weight);
+  const w = parseStrictNumber(weight);
   return Number.isFinite(w) && w >= 0 && w <= 1000;
 };
 
 // Height validation (reasonable range in cm: 100-250cm)
 export const isValidHeight = (height) => {
-  const h = parseFloat(height);
+  const h = parseStrictNumber(height);
   return Number.isFinite(h) && h >= 100 && h <= 250;
 };
 
 // Age validation (reasonable range: 13-120)
 export const isValidAge = (age) => {
-  const a = parseInt(age);
+  const a = parseStrictInt(age);
   return Number.isFinite(a) && a >= 13 && a <= 120;
 };
 
 // Body fat percentage validation (0-100%)
 export const isValidBodyFat = (percentage) => {
-  const bf = parseFloat(percentage);
+  const bf = parseStrictNumber(percentage);
   return Number.isFinite(bf) && bf >= 0 && bf <= 100;
 };
 
 // Calorie validation (daily intake: 500-10000)
 export const isValidCalories = (calories) => {
-  const cal = parseFloat(calories);
+  const cal = parseStrictNumber(calories);
   return Number.isFinite(cal) && cal >= 500 && cal <= 10000;
 };
 
 // Macro validation (g: 0-500g)
 export const isValidMacro = (value) => {
-  const v = parseFloat(value);
+  const v = parseStrictNumber(value);
   return Number.isFinite(v) && v >= 0 && v <= 500;
 };
 
 // Macro ratio validation (protein 10-50%, carbs 20-70%, fat 10-50%)
 export const isValidMacroRatio = (protein, carbs, fat) => {
-  const p = parseFloat(protein);
-  const c = parseFloat(carbs);
-  const f = parseFloat(fat);
+  const p = parseStrictNumber(protein);
+  const c = parseStrictNumber(carbs);
+  const f = parseStrictNumber(fat);
 
   if (!Number.isFinite(p) || !Number.isFinite(c) || !Number.isFinite(f)) {
     return false;
@@ -203,14 +222,14 @@ export const isValidURL = (url) => {
 
 // Heart rate validation (bpm: 30-220)
 export const isValidHeartRate = (bpm) => {
-  const hr = parseInt(bpm);
+  const hr = parseStrictInt(bpm);
   return Number.isFinite(hr) && hr >= 30 && hr <= 220;
 };
 
 // Blood pressure validation (systolic: 70-200, diastolic: 40-120)
 export const isValidBloodPressure = (systolic, diastolic) => {
-  const sys = parseInt(systolic);
-  const dia = parseInt(diastolic);
+  const sys = parseStrictInt(systolic);
+  const dia = parseStrictInt(diastolic);
 
   return (
     Number.isFinite(sys) &&
@@ -223,25 +242,25 @@ export const isValidBloodPressure = (systolic, diastolic) => {
 
 // Temperature validation (Celsius: -50 to 50)
 export const isValidTemperature = (temp) => {
-  const t = parseFloat(temp);
+  const t = parseStrictNumber(temp);
   return Number.isFinite(t) && t >= -50 && t <= 50;
 };
 
 // Rep range validation (1-100 reps)
 export const isValidReps = (reps) => {
-  const r = parseInt(reps);
+  const r = parseStrictInt(reps);
   return Number.isFinite(r) && r >= 1 && r <= 100;
 };
 
 // Set count validation (1-50 sets)
 export const isValidSets = (sets) => {
-  const s = parseInt(sets);
+  const s = parseStrictInt(sets);
   return Number.isFinite(s) && s >= 1 && s <= 50;
 };
 
 // Duration validation (seconds, 1-3600)
 export const isValidDuration = (seconds) => {
-  const dur = parseInt(seconds);
+  const dur = parseStrictNumber(seconds);
   return Number.isFinite(dur) && dur >= 1 && dur <= 3600;
 };
 
