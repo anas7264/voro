@@ -1319,6 +1319,44 @@ const safeDecodeCaesar = (str, shift) => {
 
 const safeDecodeRot13 = (str) => safeDecodeCaesar(str, 13);
 
+// Helper to safely decode ROT5-encoded digits (0-9 rotated by 5)
+const safeDecodeROT5 = (str) => {
+  if (!str || typeof str !== 'string' || str.length < 8) return null;
+  let decoded = '';
+  let changed = false;
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    if (code >= 48 && code <= 57) { // '0'-'9'
+      decoded += String.fromCharCode(((code - 48 + 5) % 10) + 48);
+      changed = true;
+    } else {
+      decoded += str[i];
+    }
+  }
+  return changed ? decoded : null;
+};
+
+// Helper to safely decode ROT18-encoded text (ROT13 for A-Z/a-z and ROT5 for 0-9)
+const safeDecodeROT18 = (str) => {
+  if (!str || typeof str !== 'string' || str.length < 8) return null;
+  let decoded = '';
+  let changed = false;
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    if ((code >= 65 && code <= 90) || (code >= 97 && code <= 122)) {
+      const base = code >= 97 ? 97 : 65;
+      decoded += String.fromCharCode(((code - base + 13) % 26) + base);
+      changed = true;
+    } else if (code >= 48 && code <= 57) {
+      decoded += String.fromCharCode(((code - 48 + 5) % 10) + 48);
+      changed = true;
+    } else {
+      decoded += str[i];
+    }
+  }
+  return changed ? decoded : null;
+};
+
 // Helper to reverse a string (for reversed-keyword evasion)
 const safeReverseString = (str) => {
   if (!str || typeof str !== 'string' || str.length < 8) return null;
@@ -1397,6 +1435,112 @@ const safeDecodeBacon = (str) => {
             return cand;
           }
         }
+      }
+    }
+  }
+
+  return null;
+};
+
+/**
+ * Helper to safely decode VIC Cipher (Soviet Espionage Cipher) encoded prompt injection payloads.
+ * Evaluates digit streams against straddling checkerboard candidates both directly and after
+ * columnar transposition passes across candidate keywords/column widths.
+ */
+const safeDecodeVICCipher = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 6 || targetStr.length > 2000) return null;
+
+  const digitChars = targetStr.replace(/[^0-9]/g, '');
+  if (digitChars.length < 6) return null;
+
+  // 1. Direct straddling checkerboard evaluation
+  const directDecoded = safeDecodeStraddlingCheckerboard(targetStr);
+  if (directDecoded && hasPromptInjectionKeywords(directDecoded)) {
+    return directDecoded;
+  }
+
+  // 2. Transposed digit stream evaluation (Columnar Transposition over digit stream + Straddling Checkerboard)
+  const candidateKeywords = ['', ...CIPHER_KEYWORDS];
+  const N = digitChars.length;
+
+  for (const keyWord of candidateKeywords) {
+    let order = [];
+    let K = 0;
+
+    if (!keyWord) {
+      for (let width = 2; width <= 6; width++) {
+        if (width >= N) continue;
+        order = Array.from({ length: width }, (_, i) => i);
+        K = width;
+
+        const R = Math.floor(N / K);
+        const Rem = N % K;
+        const colLens = new Array(K);
+        for (let c = 0; c < K; c++) {
+          colLens[c] = R + (c < Rem ? 1 : 0);
+        }
+
+        const cols = new Array(K);
+        let curr = 0;
+        for (let i = 0; i < K; i++) {
+          const colIdx = order[i];
+          const len = colLens[colIdx];
+          cols[colIdx] = digitChars.slice(curr, curr + len);
+          curr += len;
+        }
+
+        let untransposedDigits = '';
+        const maxRows = Math.ceil(N / K);
+        for (let r = 0; r < maxRows; r++) {
+          for (let c = 0; c < K; c++) {
+            if (r < cols[c].length) {
+              untransposedDigits += cols[c][r];
+            }
+          }
+        }
+
+        const decoded = safeDecodeStraddlingCheckerboard(untransposedDigits);
+        if (decoded && hasPromptInjectionKeywords(decoded)) {
+          return decoded;
+        }
+      }
+    } else {
+      K = keyWord.length;
+      if (K < 2 || K > 8 || K >= N) continue;
+
+      const keyChars = keyWord.toLowerCase().split('').map((ch, idx) => ({ ch, idx }));
+      keyChars.sort((a, b) => a.ch.localeCompare(b.ch));
+      order = keyChars.map(item => item.idx);
+
+      const R = Math.floor(N / K);
+      const Rem = N % K;
+      const colLens = new Array(K);
+      for (let c = 0; c < K; c++) {
+        colLens[c] = R + (c < Rem ? 1 : 0);
+      }
+
+      const cols = new Array(K);
+      let curr = 0;
+      for (let i = 0; i < K; i++) {
+        const colIdx = order[i];
+        const len = colLens[colIdx];
+        cols[colIdx] = digitChars.slice(curr, curr + len);
+        curr += len;
+      }
+
+      let untransposedDigits = '';
+      const maxRows = Math.ceil(N / K);
+      for (let r = 0; r < maxRows; r++) {
+        for (let c = 0; c < K; c++) {
+          if (r < cols[c].length) {
+            untransposedDigits += cols[c][r];
+          }
+        }
+      }
+
+      const decoded = safeDecodeStraddlingCheckerboard(untransposedDigits);
+      if (decoded && hasPromptInjectionKeywords(decoded)) {
+        return decoded;
       }
     }
   }
@@ -1551,12 +1695,14 @@ const hasPromptInjectionKeywords = (str) => {
   if (!str || typeof str !== 'string' || str.length < 8) return false;
   const decoded = decodeLeetspeak(str).normalize('NFKD').toLowerCase()
     .replace(/[\u0300-\u036f\u1ab0-\u1aff\u1dc0-\u1dff\u20d0-\u20ff\ufe20-\ufe2f]/g, '');
-  const compressed = decoded.replace(NON_ALPHANUM_RE, '');
+  const compressedFromDecoded = decoded.replace(/[^a-z]/g, '');
+  const compressedFromRaw = str.toLowerCase().replace(/[^a-z]/g, '');
   return DELIMITER_RE.test(decoded) ||
          OVERRIDE_RE.test(decoded) ||
          HARVESTING_RE.test(decoded) ||
          ROLEPLAY_RE.test(decoded) ||
-         COMPRESSED_BLOCKLIST_RE.test(compressed);
+         COMPRESSED_BLOCKLIST_RE.test(compressedFromDecoded) ||
+         COMPRESSED_BLOCKLIST_RE.test(compressedFromRaw);
 };
 const BASE64_MATCH_RE = /[A-Za-z0-9+\/\-_]{8,}=*/g;
 const INVISIBLE_CHARS_RE = /[\u200b-\u200f\u2028\u2029\u202a-\u202e\u205f\u2060-\u206f\u3000\ufeff\u00ad\u2400-\u243f\ufe00-\ufe0f\u180e\u1680\u20dd-\u20e4\u3164\uffa0\u115f\u1160]|[\u{E0100}-\u{E01EF}\u{1D173}-\u{1D17A}\u{1BCA0}-\u{1BCA3}\u{13430}-\u{1343F}]/gu;
@@ -2094,6 +2240,23 @@ export const isPromptInjection = (query, isNested = false) => {
       // Security: Handle Gray Code (Reflected Binary Gray Code) encoded payloads and evaluate recursively
       const grayCodeDecoded = safeDecodeGrayCode(targetStr);
       if (grayCodeDecoded) {
+        return true;
+      }
+
+      // Security: Handle ROT5 digit rotation and ROT18 alphanumeric rotation
+      const rot5Decoded = safeDecodeROT5(targetStr);
+      if (rot5Decoded && hasPromptInjectionKeywords(rot5Decoded)) {
+        return true;
+      }
+
+      const rot18Decoded = safeDecodeROT18(targetStr);
+      if (rot18Decoded && hasPromptInjectionKeywords(rot18Decoded)) {
+        return true;
+      }
+
+      // Security: Handle VIC Cipher (Soviet espionage straddling checkerboard + columnar transposition)
+      const vicDecoded = safeDecodeVICCipher(targetStr);
+      if (vicDecoded) {
         return true;
       }
     }
