@@ -29,3 +29,7 @@
 ## 2025-05-25 - Avoiding Redundant ARIA Attributes on Visible Tab Lists and Text Buttons
 **Learning:** Adding `aria-label` or native `title` tooltips to visible text buttons or tabs that already render human-readable labels can create unwanted native desktop tooltip popups and introduce broken `[object Object]` announcements if labels contain React nodes. Additionally, elements with CSS `visibility: hidden` are already excluded from the accessibility tree, making extra `aria-hidden` attributes redundant.
 **Action:** Reserve `aria-label` and `title` tooltips for icon-only controls, locked/disabled overlay indicators, or unlabelled controls, and rely on native `visibility: hidden` or `display: none` for screen reader hiding.
+
+## 2025-05-26 - Native Label Association vs. Non-Semantic Element Click Handlers in Form Controls
+**Learning:** Using non-semantic elements like `<span>` with `onClick` handlers for form control labels fails native label-to-control association and can trigger duplicate click events. Replacing them with semantic `<label htmlFor={controlId}>` elements leverages native browser label targeting without requiring explicit click listeners on non-interactive elements.
+**Action:** When creating or refining form controls and toggle switches, use semantic `<label htmlFor={id}>` elements for label text and rely on native browser event forwarding to the target control.
