@@ -263,9 +263,9 @@ export const Toggle = memo(({
       <div className="relative z-10 flex items-center justify-between gap-6" style={{ transform: 'translateZ(30px)' }}>
         <div className="flex flex-col min-w-0 pr-2">
           {label && (
-            <span
+            <label
               id={labelId}
-              onClick={handleToggle}
+              htmlFor={toggleId}
               className={`
                 text-xs md:text-sm font-serif italic font-medium tracking-tight transition-colors duration-300
                 ${disabled
@@ -275,7 +275,7 @@ export const Toggle = memo(({
               `}
             >
               {label}
-            </span>
+            </label>
           )}
 
           {resolvedDescription && (
@@ -309,7 +309,7 @@ export const Toggle = memo(({
           aria-describedby={calculatedDescribedBy}
           disabled={disabled}
           aria-labelledby={label ? labelId : undefined}
-          aria-label={!label ? (ariaLabel || "Toggle switch") : undefined}
+          aria-label={!label ? (ariaLabel || props['aria-label'] || props.ariaLabel || "Toggle switch") : undefined}
           onClick={handleToggle}
           style={{ transform: 'translateZ(50px)' }}
           className={`
