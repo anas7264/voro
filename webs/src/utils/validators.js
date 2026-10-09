@@ -687,6 +687,27 @@ const CIPHER_KEYWORDS = Object.freeze([
   'bifid', 'monarchy', 'keyword'
 ]);
 
+const getPermutations = (arr) => {
+  if (arr.length <= 1) return [arr];
+  const result = [];
+  for (let i = 0; i < arr.length; i++) {
+    const current = arr[i];
+    const remaining = arr.slice(0, i).concat(arr.slice(i + 1));
+    const perms = getPermutations(remaining);
+    for (let p = 0; p < perms.length; p++) {
+      result.push([current, ...perms[p]]);
+    }
+  }
+  return result;
+};
+
+const CANDIDATE_COLUMN_ORDERS = Object.freeze([
+  ...getPermutations([0, 1]),
+  ...getPermutations([0, 1, 2]),
+  ...getPermutations([0, 1, 2, 3]),
+  ...getPermutations([0, 1, 2, 3, 4])
+]);
+
 // Helper to construct a 5x5 alphabet grid for Playfair, Bifid, and Polybius ciphers
 const construct5x5Grid = (key = '') => {
   const cleanKey = key.toLowerCase().replace(/j/g, 'i').replace(/[^a-z]/g, '');
@@ -3012,13 +3033,14 @@ const safeDecodeHill = (targetStr) => {
   return null;
 };
 
-// Helper to safely decode ADFGVX Cipher-encoded payloads across candidate 6x6 Polybius grids
+// Helper to safely decode ADFGVX Cipher-encoded payloads across candidate 6x6 Polybius grids (supports Columnar Transposition)
 const safeDecodeADFGVX = (targetStr) => {
   if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
 
   const clean = targetStr.toLowerCase().replace(/[^adfgvx]/g, '');
   if (clean.length < 8 || clean.length % 2 !== 0) return null;
 
+  // 1. Direct Polybius Grid Evaluation
   for (let idx = 0; idx < CANDIDATE_6X6_GRIDS.length; idx++) {
     const { matrix } = CANDIDATE_6X6_GRIDS[idx];
     let decoded = '';
@@ -3033,26 +3055,240 @@ const safeDecodeADFGVX = (targetStr) => {
     }
   }
 
+  // 2. Untranspose Columnar Transposition over ADFGVX stream, then Polybius Grid Evaluation
+  const N = clean.length;
+
+  // 2a. Exhaustive search over all permutations for widths 2..5
+  for (let pIdx = 0; pIdx < CANDIDATE_COLUMN_ORDERS.length; pIdx++) {
+    const order = CANDIDATE_COLUMN_ORDERS[pIdx];
+    const K = order.length;
+    if (K >= N) continue;
+
+    const R = Math.floor(N / K);
+    const Rem = N % K;
+    const colLens = new Array(K);
+    for (let c = 0; c < K; c++) {
+      colLens[c] = R + (c < Rem ? 1 : 0);
+    }
+
+    const cols = new Array(K);
+    let curr = 0;
+    for (let i = 0; i < K; i++) {
+      const colIdx = order[i];
+      const len = colLens[colIdx];
+      cols[colIdx] = clean.slice(curr, curr + len);
+      curr += len;
+    }
+
+    let untransposed = '';
+    const maxRows = Math.ceil(N / K);
+    for (let r = 0; r < maxRows; r++) {
+      for (let c = 0; c < K; c++) {
+        if (r < cols[c].length) {
+          untransposed += cols[c][r];
+        }
+      }
+    }
+
+    if (untransposed.length % 2 === 0) {
+      for (let idx = 0; idx < CANDIDATE_6X6_GRIDS.length; idx++) {
+        const { matrix } = CANDIDATE_6X6_GRIDS[idx];
+        let decoded = '';
+        for (let i = 0; i < untransposed.length; i += 2) {
+          const r = ADFGVX_MAP[untransposed[i]];
+          const c = ADFGVX_MAP[untransposed[i + 1]];
+          if (r === undefined || c === undefined) break;
+          decoded += matrix[r][c];
+        }
+        if (decoded && decoded !== targetStr && hasPromptInjectionKeywords(decoded)) {
+          return decoded;
+        }
+      }
+    }
+  }
+
+  // 2b. Search over candidate keywords for key lengths 2..8
+  for (let kwIdx = 0; kwIdx < CIPHER_KEYWORDS.length; kwIdx++) {
+    const keyWord = CIPHER_KEYWORDS[kwIdx];
+    const K = keyWord.length;
+    if (K < 2 || K > 8 || K >= N) continue;
+
+    const keyChars = keyWord.toLowerCase().split('').map((ch, idx) => ({ ch, idx }));
+    keyChars.sort((a, b) => a.ch.localeCompare(b.ch));
+    const order = keyChars.map(item => item.idx);
+
+    const R = Math.floor(N / K);
+    const Rem = N % K;
+
+    const colLens = new Array(K);
+    for (let c = 0; c < K; c++) {
+      colLens[c] = R + (c < Rem ? 1 : 0);
+    }
+
+    const cols = new Array(K);
+    let curr = 0;
+    for (let i = 0; i < K; i++) {
+      const colIdx = order[i];
+      const len = colLens[colIdx];
+      cols[colIdx] = clean.slice(curr, curr + len);
+      curr += len;
+    }
+
+    let untransposed = '';
+    const maxRows = Math.ceil(N / K);
+    for (let r = 0; r < maxRows; r++) {
+      for (let c = 0; c < K; c++) {
+        if (r < cols[c].length) {
+          untransposed += cols[c][r];
+        }
+      }
+    }
+
+    if (untransposed.length % 2 === 0) {
+      for (let idx = 0; idx < CANDIDATE_6X6_GRIDS.length; idx++) {
+        const { matrix } = CANDIDATE_6X6_GRIDS[idx];
+        let decoded = '';
+        for (let i = 0; i < untransposed.length; i += 2) {
+          const r = ADFGVX_MAP[untransposed[i]];
+          const c = ADFGVX_MAP[untransposed[i + 1]];
+          if (r === undefined || c === undefined) break;
+          decoded += matrix[r][c];
+        }
+        if (decoded && decoded !== targetStr && hasPromptInjectionKeywords(decoded)) {
+          return decoded;
+        }
+      }
+    }
+  }
+
   return null;
 };
 
-// Helper to safely decode ADFGX Cipher-encoded payloads across candidate 5x5 Polybius grids
+// Helper to safely decode ADFGX Cipher-encoded payloads across candidate 5x5 Polybius grids (supports Columnar Transposition)
 const safeDecodeADFGX = (targetStr) => {
   if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
 
   const clean = targetStr.toLowerCase().replace(/[^adfgx]/g, '');
   if (clean.length < 8 || clean.length % 2 !== 0) return null;
 
+  // 1. Direct Polybius Grid Evaluation
   for (let idx = 0; idx < CANDIDATE_GRIDS.length; idx++) {
     const { matrix } = CANDIDATE_GRIDS[idx];
     let decoded = '';
     for (let i = 0; i < clean.length; i += 2) {
       const r = ADFGX_MAP[clean[i]];
       const c = ADFGX_MAP[clean[i + 1]];
+      if (r === undefined || c === undefined) break;
       decoded += matrix[r][c];
     }
     if (decoded && decoded !== targetStr && hasPromptInjectionKeywords(decoded)) {
       return decoded;
+    }
+  }
+
+  // 2. Untranspose Columnar Transposition over ADFGX stream, then Polybius Grid Evaluation
+  const N = clean.length;
+
+  // 2a. Exhaustive search over all permutations for widths 2..5
+  for (let pIdx = 0; pIdx < CANDIDATE_COLUMN_ORDERS.length; pIdx++) {
+    const order = CANDIDATE_COLUMN_ORDERS[pIdx];
+    const K = order.length;
+    if (K >= N) continue;
+
+    const R = Math.floor(N / K);
+    const Rem = N % K;
+    const colLens = new Array(K);
+    for (let c = 0; c < K; c++) {
+      colLens[c] = R + (c < Rem ? 1 : 0);
+    }
+
+    const cols = new Array(K);
+    let curr = 0;
+    for (let i = 0; i < K; i++) {
+      const colIdx = order[i];
+      const len = colLens[colIdx];
+      cols[colIdx] = clean.slice(curr, curr + len);
+      curr += len;
+    }
+
+    let untransposed = '';
+    const maxRows = Math.ceil(N / K);
+    for (let r = 0; r < maxRows; r++) {
+      for (let c = 0; c < K; c++) {
+        if (r < cols[c].length) {
+          untransposed += cols[c][r];
+        }
+      }
+    }
+
+    if (untransposed.length % 2 === 0) {
+      for (let idx = 0; idx < CANDIDATE_GRIDS.length; idx++) {
+        const { matrix } = CANDIDATE_GRIDS[idx];
+        let decoded = '';
+        for (let i = 0; i < untransposed.length; i += 2) {
+          const r = ADFGX_MAP[untransposed[i]];
+          const c = ADFGX_MAP[untransposed[i + 1]];
+          if (r === undefined || c === undefined) break;
+          decoded += matrix[r][c];
+        }
+        if (decoded && decoded !== targetStr && hasPromptInjectionKeywords(decoded)) {
+          return decoded;
+        }
+      }
+    }
+  }
+
+  // 2b. Search over candidate keywords for key lengths 2..8
+  for (let kwIdx = 0; kwIdx < CIPHER_KEYWORDS.length; kwIdx++) {
+    const keyWord = CIPHER_KEYWORDS[kwIdx];
+    const K = keyWord.length;
+    if (K < 2 || K > 8 || K >= N) continue;
+
+    const keyChars = keyWord.toLowerCase().split('').map((ch, idx) => ({ ch, idx }));
+    keyChars.sort((a, b) => a.ch.localeCompare(b.ch));
+    const order = keyChars.map(item => item.idx);
+
+    const R = Math.floor(N / K);
+    const Rem = N % K;
+
+    const colLens = new Array(K);
+    for (let c = 0; c < K; c++) {
+      colLens[c] = R + (c < Rem ? 1 : 0);
+    }
+
+    const cols = new Array(K);
+    let curr = 0;
+    for (let i = 0; i < K; i++) {
+      const colIdx = order[i];
+      const len = colLens[colIdx];
+      cols[colIdx] = clean.slice(curr, curr + len);
+      curr += len;
+    }
+
+    let untransposed = '';
+    const maxRows = Math.ceil(N / K);
+    for (let r = 0; r < maxRows; r++) {
+      for (let c = 0; c < K; c++) {
+        if (r < cols[c].length) {
+          untransposed += cols[c][r];
+        }
+      }
+    }
+
+    if (untransposed.length % 2 === 0) {
+      for (let idx = 0; idx < CANDIDATE_GRIDS.length; idx++) {
+        const { matrix } = CANDIDATE_GRIDS[idx];
+        let decoded = '';
+        for (let i = 0; i < untransposed.length; i += 2) {
+          const r = ADFGX_MAP[untransposed[i]];
+          const c = ADFGX_MAP[untransposed[i + 1]];
+          if (r === undefined || c === undefined) break;
+          decoded += matrix[r][c];
+        }
+        if (decoded && decoded !== targetStr && hasPromptInjectionKeywords(decoded)) {
+          return decoded;
+        }
+      }
     }
   }
 
