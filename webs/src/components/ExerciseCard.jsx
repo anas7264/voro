@@ -33,13 +33,9 @@ export const ExerciseCard = memo(({
   const reactId = useId();
 
   // Generate an SSR-safe deterministic system node ID and sub-pixel attestation hash badge
-  const { nodeId, subpixelHash } = useMemo(() => {
-    const cleanId = reactId.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-    return {
-      nodeId: `EX_NODE_${cleanId.slice(-4).padStart(4, '0')}`,
-      subpixelHash: `0xEX_${cleanId.slice(-6).padStart(6, '0')}`
-    };
-  }, [reactId]);
+  const cleanId = useMemo(() => reactId.replace(/[^a-zA-Z0-9]/g, '').toUpperCase(), [reactId]);
+  const nodeId = useMemo(() => `EX_NODE_${cleanId.slice(-4).padStart(4, '0')}`, [cleanId]);
+  const subpixelHash = useMemo(() => `0xEX_${cleanId.slice(-6).padStart(6, '0')}`, [cleanId]);
 
   const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
@@ -56,7 +52,7 @@ export const ExerciseCard = memo(({
     style.setProperty('--mouse-y', `${y.toFixed(1)}px`);
     style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
     style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
-    style.setProperty('transform', 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-8px)');
+    style.setProperty('transform', `perspective(1000px) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg) translateY(-8px)`);
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);

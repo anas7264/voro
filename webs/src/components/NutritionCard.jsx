@@ -39,6 +39,9 @@ export const NutritionCard = memo(({
   const tiltYRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
+  const mealRef = useRef(meal);
+  mealRef.current = meal;
+
   const [isConfirming, setIsConfirming] = useState(false);
   const reactId = useId();
 
@@ -50,14 +53,10 @@ export const NutritionCard = memo(({
     }
   }, [isConfirming]);
 
-  // Generate an SSR-safe deterministic sub-pixel hash badge
-  const { nodeId, subpixelHash } = useMemo(() => {
-    const cleanId = reactId.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-    return {
-      nodeId: `MET_NODE_${cleanId.slice(-4).padStart(4, '0')}`,
-      subpixelHash: `0xMET_${cleanId.slice(-6).padStart(6, '0')}`
-    };
-  }, [reactId]);
+  // Generate an SSR-safe deterministic system node ID and sub-pixel hash badge
+  const cleanId = useMemo(() => reactId.replace(/[^a-zA-Z0-9]/g, '').toUpperCase(), [reactId]);
+  const nodeId = useMemo(() => `MET_NODE_${cleanId.slice(-4).padStart(4, '0')}`, [cleanId]);
+  const subpixelHash = useMemo(() => `0xMET_${cleanId.slice(-6).padStart(6, '0')}`, [cleanId]);
 
   // Direct DOM 60fps 3D volumetric rotational tilt and mouse tracking
   const handleMouseMove = useCallback((e) => {
@@ -139,27 +138,27 @@ export const NutritionCard = memo(({
 
   const handleEditClick = useCallback((e) => {
     e.stopPropagation();
-    onEdit?.(meal);
-  }, [onEdit, meal]);
+    onEdit?.(mealRef.current);
+  }, [onEdit]);
 
   const handleDeleteClick = useCallback((e) => {
     e.stopPropagation();
     if (isConfirming) {
-      onDelete?.(meal);
+      onDelete?.(mealRef.current);
       setIsConfirming(false);
     } else {
       setIsConfirming(true);
     }
-  }, [isConfirming, onDelete, meal]);
+  }, [isConfirming, onDelete]);
 
   const handleKeyDown = useCallback((e) => {
     if (e.target === containerRef.current && (e.key === "Enter" || e.key === " ")) {
       e.preventDefault();
       if (onEdit) {
-        onEdit(meal);
+        onEdit(mealRef.current);
       }
     }
-  }, [onEdit, meal]);
+  }, [onEdit]);
 
   const mealName = meal?.name || "Metabolic Entry";
   const mealType = meal?.mealType || "Artifact";
