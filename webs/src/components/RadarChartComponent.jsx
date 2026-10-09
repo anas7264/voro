@@ -71,6 +71,12 @@ const CustomTooltip = memo(({ active, payload, label }) => {
 CustomTooltip.displayName = "CustomTooltip";
 
 /**
+ * ⚡ PERFORMANCE OPTIMIZATION: Hoisted Static Tooltip React Element.
+ * Bypasses JSX element allocation per component render pass.
+ */
+const CUSTOM_TOOLTIP_ELEMENT = <CustomTooltip />;
+
+/**
  * ⚡ REFINEMENT: Luxury Neural Capability Specimen (RadarChartComponent).
  * Re-engineered to Voro's 'Forge' luxury architecture and zero-allocation performance standards:
  * 1. Direct-DOM 60fps 3D volumetric rotational tilt tracking (`--mouse-x`, `--mouse-y`, `--tilt-x`, `--tilt-y`).
@@ -325,7 +331,7 @@ export const RadarChartComponent = memo(({
             />
 
             <Tooltip
-              content={<CustomTooltip />}
+              content={CUSTOM_TOOLTIP_ELEMENT}
               cursor={DEFAULT_CURSOR}
             />
 
