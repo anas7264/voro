@@ -1085,6 +1085,15 @@ const runTests = async () => {
     throw new Error("❌ Failure: Base91 Cipher prompt injection bypass attempt allowed!");
   }
 
+  console.log("🛡️ Test 100: Verifying Base36 Cipher prompt injection attempts are blocked...");
+  const base36Payload = "vl9s1nkr0oglvx599tcvmur"; // "ignore previous" in Base36
+
+  if (isPromptInjection(base36Payload)) {
+    console.log("✅ Success: Base36 Cipher prompt injection attempt successfully blocked!");
+  } else {
+    throw new Error("❌ Failure: Base36 Cipher prompt injection bypass attempt allowed!");
+  }
+
   console.log("\n🎉 ALL INJECTION OBFUSCATION SECURITY VERIFICATION TESTS PASSED SUCCESSFULLY!");
   console.log("=========================================");
   process.exit(0);

@@ -660,6 +660,8 @@ const BASE32_FORMAT_RE = /^[A-Z2-7=]+$/i;
 const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 const BASE58_FORMAT_RE = /^[1-9A-HJ-NP-Za-km-z]{8,}$/;
 const BASE58_MATCH_RE = /[1-9A-HJ-NP-Za-km-z]{12,}/g;
+const BASE36_FORMAT_RE = /^[0-9a-zA-Z]{12,}$/;
+const BASE36_MATCH_RE = /\b[0-9a-zA-Z]{12,}\b/g;
 const NON_PRINTABLE_ASCII_RE = /[\x00-\x09\x0B\x0C\x0E-\x1F\x7F-\xFF]/;
 const HEX_FORMAT_RE = /^[0-9a-fA-F]{8,}$/;
 const BINARY_MATCH_RE = /(?:(?:0b)?[01]{7,8}(?:[\s,.\-_\/:;+=]+|$)){2,}|(?:0b[01]{7,8}){2,}/gi;
@@ -1066,6 +1068,32 @@ const safeDecodeDecimal = (str) => {
         return null;
       }
       if (code < 9 || (code > 13 && code < 32) || code > 126) return null;
+      decoded += String.fromCharCode(code);
+    }
+    return decoded.length >= 8 ? decoded : null;
+  } catch (e) {
+    return null;
+  }
+};
+
+// Helper to safely decode Base36-encoded text (0-9, a-z) with printable-ASCII verification
+const safeDecodeBase36 = (str) => {
+  try {
+    if (!str || typeof str !== 'string' || !BASE36_FORMAT_RE.test(str)) return null;
+    const cleanStr = str.toLowerCase();
+    let num = 0n;
+    for (let i = 0; i < cleanStr.length; i++) {
+      const code = cleanStr.charCodeAt(i);
+      const val = code >= 48 && code <= 57 ? BigInt(code - 48) : BigInt(code - 87);
+      if (val < 0n || val >= 36n) return null;
+      num = num * 36n + val;
+    }
+    let hex = num.toString(16);
+    if (hex.length % 2 !== 0) hex = '0' + hex;
+    let decoded = '';
+    for (let i = 0; i < hex.length; i += 2) {
+      const code = parseInt(hex.substring(i, i + 2), 16);
+      if (code < 32 || code > 126) return null;
       decoded += String.fromCharCode(code);
     }
     return decoded.length >= 8 ? decoded : null;
@@ -1991,6 +2019,14 @@ export const isPromptInjection = (query, isNested = false) => {
       for (const match of decimalMatches) {
         const decimalDecoded = safeDecodeDecimal(match);
         if (decimalDecoded && hasPromptInjectionKeywords(decimalDecoded)) {
+          return true;
+        }
+      }
+
+      const base36Matches = targetStr.match(BASE36_MATCH_RE) || [];
+      for (const match of base36Matches) {
+        const base36Decoded = safeDecodeBase36(match);
+        if (base36Decoded && hasPromptInjectionKeywords(base36Decoded)) {
           return true;
         }
       }
