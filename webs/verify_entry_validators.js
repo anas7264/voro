@@ -4,7 +4,9 @@ import {
   validateRecipe,
   validateFoodDiaryEntry,
   validateHabit,
-  validateWaterEntry
+  validateWaterEntry,
+  validateVitals,
+  isValidWaterAmount
 } from './src/utils/validators.js';
 
 console.log("=========================================");
@@ -163,6 +165,37 @@ if (validateWaterEntry(nonStringWaterNotes).valid) {
   throw new Error("❌ Test 6 Failed: Non-string water notes passed validation!");
 }
 console.log("✅ Success: validateWaterEntry optional fields verified!");
+
+// 7. Test strict numeric validation hardening against trailing string injections and scientific notation
+console.log("🛡️ Test 7: Testing strict numeric validation against trailing string injections and scientific notation...");
+if (validateFoodDiaryEntry({ portion: "200<script>" }).valid) {
+  throw new Error("❌ Test 7 Failed: Trailing string injection in food portion passed validation!");
+}
+
+if (validateFoodDiaryEntry({ portion: "1e3" }).valid) {
+  throw new Error("❌ Test 7 Failed: Scientific notation in food portion passed validation!");
+}
+
+if (validateVitals({ heartRate: 70, sleep: "8<script>", mood: 7, energy: 8 }).valid) {
+  throw new Error("❌ Test 7 Failed: Trailing string injection in vitals sleep passed validation!");
+}
+
+if (validateVitals({ heartRate: 70, sleep: 8, mood: 7, energy: 8, glucose: "100mg/dL" }).valid) {
+  throw new Error("❌ Test 7 Failed: Trailing string injection in vitals glucose passed validation!");
+}
+
+if (validateRecipe({ name: "Oatmeal", ingredients: [{ name: "Oats", portion: "100<script>" }] }).valid) {
+  throw new Error("❌ Test 7 Failed: Trailing string injection in recipe portion passed validation!");
+}
+
+if (validateRecipe({ name: "Oatmeal", ingredients: [{ name: "Oats", portion: 100 }], servings: "2servings" }).valid) {
+  throw new Error("❌ Test 7 Failed: Trailing string injection in recipe servings passed validation!");
+}
+
+if (isValidWaterAmount("500ml") || isValidWaterAmount("1e3")) {
+  throw new Error("❌ Test 7 Failed: Trailing string injection or scientific notation passed isValidWaterAmount!");
+}
+console.log("✅ Success: Strict numeric validation against trailing string injections and scientific notation verified!");
 
 console.log("\n🎉 ALL ENTRY VALIDATION SECURITY HARDENING TESTS PASSED SUCCESSFULLY!");
 console.log("=========================================");
