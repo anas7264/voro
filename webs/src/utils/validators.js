@@ -662,6 +662,8 @@ const BASE58_FORMAT_RE = /^[1-9A-HJ-NP-Za-km-z]{8,}$/;
 const BASE58_MATCH_RE = /[1-9A-HJ-NP-Za-km-z]{12,}/g;
 const BASE36_FORMAT_RE = /^[0-9a-zA-Z]{12,}$/;
 const BASE36_MATCH_RE = /\b[0-9a-zA-Z]{12,}\b/g;
+const BASE62_FORMAT_RE = /^[0-9a-zA-Z]{8,}$/;
+const BASE62_MATCH_RE = /\b[0-9a-zA-Z]{8,}\b/g;
 const NON_PRINTABLE_ASCII_RE = /[\x00-\x09\x0B\x0C\x0E-\x1F\x7F-\xFF]/;
 const HEX_FORMAT_RE = /^[0-9a-fA-F]{8,}$/;
 const BINARY_MATCH_RE = /(?:(?:0b)?[01]{7,8}(?:[\s,.\-_\/:;+=]+|$)){2,}|(?:0b[01]{7,8}){2,}/gi;
@@ -1071,6 +1073,59 @@ const safeDecodeDecimal = (str) => {
       decoded += String.fromCharCode(code);
     }
     return decoded.length >= 8 ? decoded : null;
+  } catch (e) {
+    return null;
+  }
+};
+
+// Helper to safely decode Base62-encoded text (0-9, A-Z, a-z) with printable-ASCII verification
+export const safeDecodeBase62 = (str) => {
+  try {
+    if (!str || typeof str !== 'string' || !BASE62_FORMAT_RE.test(str)) return null;
+
+    // Candidate character set valuation functions for base 62 numeral representations
+    const alphabets = [
+      // 1. GMP / Standard URL shortener: 0-9 (0..9), A-Z (10..35), a-z (36..61)
+      (code) => (code >= 48 && code <= 57 ? BigInt(code - 48) : (code >= 65 && code <= 90 ? BigInt(code - 55) : BigInt(code - 61))),
+      // 2. Inverted Base62: 0-9 (0..9), a-z (10..35), A-Z (36..61)
+      (code) => (code >= 48 && code <= 57 ? BigInt(code - 48) : (code >= 97 && code <= 122 ? BigInt(code - 87) : BigInt(code - 29))),
+      // 3. Positional Base62: A-Z (0..25), a-z (26..51), 0-9 (52..61)
+      (code) => (code >= 65 && code <= 90 ? BigInt(code - 65) : (code >= 97 && code <= 122 ? BigInt(code - 71) : BigInt(code + 4))),
+      // 4. Positional Base62: a-z (0..25), A-Z (26..51), 0-9 (52..61)
+      (code) => (code >= 97 && code <= 122 ? BigInt(code - 97) : (code >= 65 && code <= 90 ? BigInt(code - 39) : BigInt(code + 4)))
+    ];
+
+    for (const getVal of alphabets) {
+      let num = 0n;
+      let valid = true;
+      for (let i = 0; i < str.length; i++) {
+        const code = str.charCodeAt(i);
+        const val = getVal(code);
+        if (val < 0n || val >= 62n) {
+          valid = false;
+          break;
+        }
+        num = num * 62n + val;
+      }
+      if (!valid) continue;
+
+      let hex = num.toString(16);
+      if (hex.length % 2 !== 0) hex = '0' + hex;
+      let decoded = '';
+      let isPrintable = true;
+      for (let i = 0; i < hex.length; i += 2) {
+        const code = parseInt(hex.substring(i, i + 2), 16);
+        if ((code < 32 || code > 126) && code !== 10 && code !== 13 && code !== 9) {
+          isPrintable = false;
+          break;
+        }
+        decoded += String.fromCharCode(code);
+      }
+      if (isPrintable && decoded.length >= 8) {
+        return decoded;
+      }
+    }
+    return null;
   } catch (e) {
     return null;
   }
@@ -2019,6 +2074,14 @@ export const isPromptInjection = (query, isNested = false) => {
       for (const match of decimalMatches) {
         const decimalDecoded = safeDecodeDecimal(match);
         if (decimalDecoded && hasPromptInjectionKeywords(decimalDecoded)) {
+          return true;
+        }
+      }
+
+      const base62Matches = targetStr.match(BASE62_MATCH_RE) || [];
+      for (const match of base62Matches) {
+        const base62Decoded = safeDecodeBase62(match);
+        if (base62Decoded && hasPromptInjectionKeywords(base62Decoded)) {
           return true;
         }
       }
@@ -4436,6 +4499,7 @@ export default {
   isValidJournalNote,
   isValidChatQuery,
   isValidName,
+  safeDecodeBase62,
   isPromptInjection,
   sanitizeCSVField
 };
