@@ -266,9 +266,7 @@ export const isValidDuration = (seconds) => {
 
 // Water intake validation (ml: 0-5000)
 export const isValidWaterAmount = (amount) => {
-  if (typeof amount !== 'number' && typeof amount !== 'string') return false;
-  if (typeof amount === 'string' && (amount.trim() === '' || /[eE]/.test(amount))) return false;
-  const ml = Number(amount);
+  const ml = parseStrictNumber(amount);
   return Number.isFinite(ml) && ml >= 0 && ml <= 5000;
 };
 
@@ -4153,7 +4151,7 @@ export const validateFoodDiaryEntry = (entry) => {
   }
   const errors = {};
 
-  const portion = parseFloat(entry.portion);
+  const portion = parseStrictNumber(entry.portion);
   if (!Number.isFinite(portion) || portion < 1 || portion > 5000) {
     errors.portion = "Portion must be between 1 and 5000 grams";
   }
@@ -4198,25 +4196,25 @@ export const validateVitals = (vitals) => {
     }
   }
 
-  const sleep = parseFloat(vitals.sleep);
-  if (isNaN(sleep) || !Number.isFinite(sleep) || sleep < 0 || sleep > 24) {
+  const sleep = parseStrictNumber(vitals.sleep);
+  if (!Number.isFinite(sleep) || sleep < 0 || sleep > 24) {
     errors.sleep = "Sleep must be between 0-24 hours";
   }
 
-  const mood = parseFloat(vitals.mood);
-  if (isNaN(mood) || !Number.isFinite(mood) || mood < 1 || mood > 10) {
+  const mood = parseStrictNumber(vitals.mood);
+  if (!Number.isFinite(mood) || mood < 1 || mood > 10) {
     errors.mood = "Mood must be between 1-10";
   }
 
-  const energy = parseFloat(vitals.energy);
-  if (isNaN(energy) || !Number.isFinite(energy) || energy < 1 || energy > 10) {
+  const energy = parseStrictNumber(vitals.energy);
+  if (!Number.isFinite(energy) || energy < 1 || energy > 10) {
     errors.energy = "Energy must be between 1-10";
   }
 
   // Security: Enforce strict type, finite numeric bounds, and character length limits on optional vitals metrics
   // to prevent client-side DoS, memory bloat, non-finite numeric injection, and health state corruption.
   if (vitals.glucose !== undefined && vitals.glucose !== null && vitals.glucose !== '') {
-    const g = parseFloat(vitals.glucose);
+    const g = parseStrictNumber(vitals.glucose);
     if (!Number.isFinite(g) || g < 20 || g > 1000) errors.glucose = "Glucose must be between 20-1000 mg/dL";
   }
 
@@ -4233,7 +4231,7 @@ export const validateVitals = (vitals) => {
   }
 
   if (vitals.oxygen !== undefined && vitals.oxygen !== null && vitals.oxygen !== '') {
-    const o = parseFloat(vitals.oxygen);
+    const o = parseStrictNumber(vitals.oxygen);
     if (!Number.isFinite(o) || o < 50 || o > 100) errors.oxygen = "Oxygen saturation must be between 50-100%";
   }
 
@@ -4400,7 +4398,7 @@ export const validateRecipe = (recipe) => {
       if (typeof ing.name !== 'string' || !ing.name.trim() || ing.name.length > 100) {
         errors[`ingredient_${idx}_name`] = `Ingredient ${idx + 1} name must be between 1 and 100 characters`;
       }
-      const portion = parseFloat(ing.portion);
+      const portion = parseStrictNumber(ing.portion);
       if (!Number.isFinite(portion) || portion < 1 || portion > 5000) {
         errors[`ingredient_${idx}_portion`] = `Portion for ${ing.name || 'ingredient'} must be between 1 and 5000 grams`;
       }
@@ -4421,7 +4419,7 @@ export const validateRecipe = (recipe) => {
   }
 
   if (recipe.servings !== undefined && recipe.servings !== null && recipe.servings !== '') {
-    const s = parseInt(recipe.servings, 10);
+    const s = parseStrictInt(recipe.servings);
     if (!Number.isFinite(s) || s < 1 || s > 100) {
       errors.servings = "Servings must be between 1 and 100";
     }
