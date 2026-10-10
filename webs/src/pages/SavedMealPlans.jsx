@@ -218,7 +218,7 @@ const SavedMealPlans = () => {
   const { addNotification } = useNotifications();
 
   const plansData = useStorageKeySelector('plans', selectPlans);
-  const { setItem } = useStorageMethods();
+  const { getItem, setItem } = useStorageMethods();
 
   // Local state for deletion confirmation
   const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
@@ -276,22 +276,25 @@ const SavedMealPlans = () => {
   }, [plansData.savedMealPlans]);
 
   /**
-   * ⚡ OPTIMISTIC UI: Instantly removes the deleted item from the view state
-   * before the async IndexedDB transaction resolves, achieving absolute smoothness.
+   * ⚡ PERFORMANCE OPTIMIZATION: Synchronous Storage State Access.
+   * Reads storage state directly via getItem('plans') to eliminate the `plansData` dependency.
+   * Guarantees a referentially stable callback reference across storage updates and re-renders,
+   * keeping all SavedMealPlanCard components 100% memoized and preventing unnecessary card re-renders.
    */
   const handleDeletePlan = useCallback(async (id) => {
     if (confirmingDeleteId === id) {
-      const rawPlans = plansData.savedMealPlans || [];
+      const currentPlans = getItem('plans') || EMPTY_OBJECT;
+      const rawPlans = currentPlans.savedMealPlans || EMPTY_ARRAY;
       const updated = rawPlans.filter(p => p.id !== id);
 
       // Perform immediate non-blocking update
-      await setItem('plans', { ...plansData, savedMealPlans: updated });
+      await setItem('plans', { ...currentPlans, savedMealPlans: updated });
       addNotification('Trophic blueprint purged from enclave.', 'info');
       setConfirmingDeleteId(null);
     } else {
       setConfirmingDeleteId(id);
     }
-  }, [confirmingDeleteId, plansData, setItem, addNotification]);
+  }, [confirmingDeleteId, getItem, setItem, addNotification]);
 
   const handleExportJSON = useCallback(async (plan) => {
     if (!plan) return;
