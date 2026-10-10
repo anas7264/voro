@@ -20,11 +20,23 @@ const selectHabitsList = (data) => (Array.isArray(data?.list) && data.list.lengt
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Zero-Allocation Date Selector.
- * Uses cached getFastDateStr(new Date()) to eliminate ISO date string allocations
+ * Caches today's date string with timestamp check to eliminate Date object allocations
  * during selector evaluation loops.
  */
+let _lastDateCheckMs = 0;
+let _cachedTodayDateStr = '';
+
+const getTodayDateStr = () => {
+  const now = Date.now();
+  if (now - _lastDateCheckMs > 60000 || !_cachedTodayDateStr) {
+    _lastDateCheckMs = now;
+    _cachedTodayDateStr = getFastDateStr(new Date(now));
+  }
+  return _cachedTodayDateStr;
+};
+
 const selectTodayLog = (data) => {
-  const today = getFastDateStr(new Date());
+  const today = getTodayDateStr();
   return data?.log?.[today] || EMPTY_LOG;
 };
 
@@ -55,16 +67,16 @@ const HabitItem = memo(({ habit, isDone, onToggle, onRemove }) => {
     return COLOR_HEX_MAP[habit.color] || (habit.color && habit.color.startsWith('#') ? habit.color : '#7C3AED');
   }, [habit.color]);
 
-  const updateTransform = () => {
+  const updateTransform = useCallback(() => {
     if (!containerRef.current) return;
     const active = isHoveredRef.current || isFocusedRef.current;
     containerRef.current.style.transform = active
       ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
       : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
     containerRef.current.style.transition = isHoveredRef.current ? 'none' : 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
-  };
+  }, []);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -87,14 +99,14 @@ const HabitItem = memo(({ habit, isDone, onToggle, onRemove }) => {
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
-  };
+  }, []);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     isHoveredRef.current = true;
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
@@ -105,9 +117,9 @@ const HabitItem = memo(({ habit, isDone, onToggle, onRemove }) => {
     if (tiltXRef.current) tiltXRef.current.innerText = '0.0';
     if (tiltYRef.current) tiltYRef.current.innerText = '0.0';
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     isFocusedRef.current = true;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '4deg');
@@ -118,9 +130,9 @@ const HabitItem = memo(({ habit, isDone, onToggle, onRemove }) => {
     if (tiltXRef.current) tiltXRef.current.innerText = '4.0';
     if (tiltYRef.current) tiltYRef.current.innerText = '-4.0';
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
@@ -131,9 +143,9 @@ const HabitItem = memo(({ habit, isDone, onToggle, onRemove }) => {
     if (tiltXRef.current) tiltXRef.current.innerText = '0.0';
     if (tiltYRef.current) tiltYRef.current.innerText = '0.0';
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleDeleteClick = (e) => {
+  const handleDeleteClick = useCallback((e) => {
     e.stopPropagation();
     if (isDeleting) {
       onRemove(habit.id);
@@ -145,7 +157,7 @@ const HabitItem = memo(({ habit, isDone, onToggle, onRemove }) => {
         setIsDeleting(false);
       }, 3000);
     }
-  };
+  }, [isDeleting, onRemove, habit.id]);
 
   useEffect(() => {
     return () => {
@@ -327,14 +339,14 @@ const HabitTracker = () => {
     document.title = 'VORO | Habit Tracker';
   }, []);
 
-  const updateCelebrationTransform = () => {
+  const updateCelebrationTransform = useCallback(() => {
     if (!celebrationRef.current) return;
     const active = isCelebrationHoveredRef.current || isCelebrationFocusedRef.current;
     celebrationRef.current.style.transform = active
       ? 'perspective(1200px) rotateX(var(--cel-tilt-x, 0deg)) rotateY(var(--cel-tilt-y, 0deg)) translateY(-4px)'
       : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
     celebrationRef.current.style.transition = isCelebrationHoveredRef.current ? 'none' : 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
-  };
+  }, []);
 
   const addHabit = useCallback(async () => {
     const { valid, errors } = validateHabit(newHabit);
@@ -400,7 +412,7 @@ const HabitTracker = () => {
   ), []);
 
   // Volumetric mouse tilt handlers for the Milestone celebration card
-  const handleCelebrationMouseMove = (e) => {
+  const handleCelebrationMouseMove = useCallback((e) => {
     if (!celebrationRef.current) return;
     const rect = celebrationRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -411,39 +423,39 @@ const HabitTracker = () => {
 
     celebrationRef.current.style.setProperty('--cel-tilt-x', `${tiltX}deg`);
     celebrationRef.current.style.setProperty('--cel-tilt-y', `${tiltY}deg`);
-  };
+  }, []);
 
-  const handleCelebrationMouseEnter = () => {
+  const handleCelebrationMouseEnter = useCallback(() => {
     isCelebrationHoveredRef.current = true;
     updateCelebrationTransform();
-  };
+  }, [updateCelebrationTransform]);
 
-  const handleCelebrationMouseLeave = () => {
+  const handleCelebrationMouseLeave = useCallback(() => {
     isCelebrationHoveredRef.current = false;
     if (celebrationRef.current) {
       celebrationRef.current.style.setProperty('--cel-tilt-x', '0deg');
       celebrationRef.current.style.setProperty('--cel-tilt-y', '0deg');
     }
     updateCelebrationTransform();
-  };
+  }, [updateCelebrationTransform]);
 
-  const handleCelebrationFocus = () => {
+  const handleCelebrationFocus = useCallback(() => {
     isCelebrationFocusedRef.current = true;
     if (celebrationRef.current) {
       celebrationRef.current.style.setProperty('--cel-tilt-x', '4deg');
       celebrationRef.current.style.setProperty('--cel-tilt-y', '-4deg');
     }
     updateCelebrationTransform();
-  };
+  }, [updateCelebrationTransform]);
 
-  const handleCelebrationBlur = () => {
+  const handleCelebrationBlur = useCallback(() => {
     isCelebrationFocusedRef.current = false;
     if (celebrationRef.current) {
       celebrationRef.current.style.setProperty('--cel-tilt-x', '0deg');
       celebrationRef.current.style.setProperty('--cel-tilt-y', '0deg');
     }
     updateCelebrationTransform();
-  };
+  }, [updateCelebrationTransform]);
 
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] pb-32 selection:bg-voro-primary/30">

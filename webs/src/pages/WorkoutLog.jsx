@@ -179,7 +179,7 @@ const KineticExerciseCard = memo(({ exercise, exerciseIdx, onUpdateSet, onAddSet
     };
   }, []);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -200,17 +200,17 @@ const KineticExerciseCard = memo(({ exercise, exerciseIdx, onUpdateSet, onAddSet
       cardRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
       cardRef.current.style.transition = 'none';
     }
-  };
+  }, []);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     isHoveredRef.current = true;
     if (cardRef.current) {
       cardRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
       cardRef.current.style.transition = 'none';
     }
-  };
+  }, []);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
     if (cardRef.current) {
       cardRef.current.style.setProperty('--tilt-x', '0deg');
@@ -222,9 +222,9 @@ const KineticExerciseCard = memo(({ exercise, exerciseIdx, onUpdateSet, onAddSet
     }
     if (txRef.current) txRef.current.innerText = '0.0';
     if (tyRef.current) tyRef.current.innerText = '0.0';
-  };
+  }, []);
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     isFocusedRef.current = true;
     if (cardRef.current) {
       cardRef.current.style.setProperty('--tilt-x', '4deg');
@@ -234,9 +234,9 @@ const KineticExerciseCard = memo(({ exercise, exerciseIdx, onUpdateSet, onAddSet
       if (txRef.current) txRef.current.innerText = '4.0';
       if (tyRef.current) tyRef.current.innerText = '-4.0';
     }
-  };
+  }, []);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
     if (cardRef.current) {
       if (!isHoveredRef.current) {
@@ -250,9 +250,9 @@ const KineticExerciseCard = memo(({ exercise, exerciseIdx, onUpdateSet, onAddSet
       setIsPurging(false);
       if (purgeTimerRef.current) clearTimeout(purgeTimerRef.current);
     }
-  };
+  }, [isPurging]);
 
-  const handlePurgeTrigger = (e) => {
+  const handlePurgeTrigger = useCallback((e) => {
     e.stopPropagation();
     if (isPurging) {
       if (purgeTimerRef.current) clearTimeout(purgeTimerRef.current);
@@ -263,7 +263,7 @@ const KineticExerciseCard = memo(({ exercise, exerciseIdx, onUpdateSet, onAddSet
         setIsPurging(false);
       }, 3000);
     }
-  };
+  }, [isPurging, onRemoveExercise, exercise.id]);
 
   return (
     <div

@@ -121,7 +121,7 @@ const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive
     return METABOLIC_PHASES.ketosis;
   }, [progress]);
 
-  const updateTransform = () => {
+  const updateTransform = useCallback(() => {
     if (!containerRef.current) return;
     const active = isHoveredRef.current || isFocusedRef.current;
     containerRef.current.style.transform = active
@@ -130,9 +130,9 @@ const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive
     containerRef.current.style.transition = isHoveredRef.current
       ? 'none'
       : 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)';
-  };
+  }, []);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -153,23 +153,23 @@ const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive
     if (isHoveredRef.current) {
       updateTransform();
     }
-  };
+  }, [updateTransform]);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     isHoveredRef.current = true;
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     isFocusedRef.current = true;
     if (containerRef.current) {
       // Provide a subtle static tilt for keyboard focus feedback
@@ -179,16 +179,16 @@ const MetabolicChronometer = memo(({ progress, hours, minutes, seconds, isActive
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
   return (
     <div
@@ -375,7 +375,7 @@ const WindowCard = memo(({ option, isSelected, onSelect }) => {
     onSelect(option.id);
   }, [option.id, onSelect]);
 
-  const updateTransform = () => {
+  const updateTransform = useCallback(() => {
     if (!cardRef.current) return;
     const active = isHoveredRef.current || isFocusedRef.current;
     cardRef.current.style.transform = active
@@ -384,9 +384,9 @@ const WindowCard = memo(({ option, isSelected, onSelect }) => {
     cardRef.current.style.transition = isHoveredRef.current
       ? 'none'
       : 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
-  };
+  }, []);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -404,23 +404,23 @@ const WindowCard = memo(({ option, isSelected, onSelect }) => {
     if (isHoveredRef.current) {
       updateTransform();
     }
-  };
+  }, [updateTransform]);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     isHoveredRef.current = true;
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
     if (cardRef.current) {
       cardRef.current.style.setProperty('--tilt-x', '0deg');
       cardRef.current.style.setProperty('--tilt-y', '0deg');
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     isFocusedRef.current = true;
     if (cardRef.current) {
       // 4-degree static tilt on focus
@@ -428,16 +428,16 @@ const WindowCard = memo(({ option, isSelected, onSelect }) => {
       cardRef.current.style.setProperty('--tilt-y', '-4deg');
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
     if (cardRef.current) {
       cardRef.current.style.setProperty('--tilt-x', '0deg');
       cardRef.current.style.setProperty('--tilt-y', '0deg');
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
   return (
     <button
@@ -509,7 +509,7 @@ const DiagnosticCell = memo(({ title, value, unit, progress, description, icon: 
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
 
-  const updateTransform = () => {
+  const updateTransform = useCallback(() => {
     if (!cellRef.current) return;
     const active = isHoveredRef.current || isFocusedRef.current;
     cellRef.current.style.transform = active
@@ -518,9 +518,9 @@ const DiagnosticCell = memo(({ title, value, unit, progress, description, icon: 
     cellRef.current.style.transition = isHoveredRef.current
       ? 'none'
       : 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
-  };
+  }, []);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!cellRef.current) return;
     const rect = cellRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -537,39 +537,39 @@ const DiagnosticCell = memo(({ title, value, unit, progress, description, icon: 
     if (isHoveredRef.current) {
       updateTransform();
     }
-  };
+  }, [updateTransform]);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     isHoveredRef.current = true;
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
     if (cellRef.current) {
       cellRef.current.style.setProperty('--tilt-x', '0deg');
       cellRef.current.style.setProperty('--tilt-y', '0deg');
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     isFocusedRef.current = true;
     if (cellRef.current) {
       cellRef.current.style.setProperty('--tilt-x', '4deg');
       cellRef.current.style.setProperty('--tilt-y', '-4deg');
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
     if (cellRef.current) {
       cellRef.current.style.setProperty('--tilt-x', '0deg');
       cellRef.current.style.setProperty('--tilt-y', '0deg');
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
   return (
     <div

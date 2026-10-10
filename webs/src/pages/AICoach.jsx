@@ -72,16 +72,16 @@ const MessageItem = memo(({ msg }) => {
     }
   }, [msg.timestamp]);
 
-  const updateTransform = () => {
+  const updateTransform = useCallback(() => {
     if (!nodeRef.current || !isAssistant) return;
     const active = isHoveredRef.current || isFocusedRef.current;
     nodeRef.current.style.transform = active
       ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)'
       : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
     nodeRef.current.style.transition = isHoveredRef.current ? 'none' : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
-  };
+  }, [isAssistant]);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!nodeRef.current || !isAssistant) return;
     const rect = nodeRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -101,15 +101,15 @@ const MessageItem = memo(({ msg }) => {
     if (isHoveredRef.current || isFocusedRef.current) {
       updateTransform();
     }
-  };
+  }, [isAssistant, updateTransform]);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     if (!isAssistant) return;
     isHoveredRef.current = true;
     updateTransform();
-  };
+  }, [isAssistant, updateTransform]);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     if (!isAssistant) return;
     isHoveredRef.current = false;
     if (nodeRef.current) {
@@ -117,9 +117,9 @@ const MessageItem = memo(({ msg }) => {
       nodeRef.current.style.setProperty('--tilt-y', '0deg');
     }
     updateTransform();
-  };
+  }, [isAssistant, updateTransform]);
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     if (!isAssistant) return;
     isFocusedRef.current = true;
     if (nodeRef.current) {
@@ -129,9 +129,9 @@ const MessageItem = memo(({ msg }) => {
       if (tiltYRef.current) tiltYRef.current.innerText = "-3.0";
     }
     updateTransform();
-  };
+  }, [isAssistant, updateTransform]);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     if (!isAssistant) return;
     isFocusedRef.current = false;
     if (nodeRef.current) {
@@ -139,7 +139,7 @@ const MessageItem = memo(({ msg }) => {
       nodeRef.current.style.setProperty('--tilt-y', '0deg');
     }
     updateTransform();
-  };
+  }, [isAssistant, updateTransform]);
 
   return (
     <div className={`flex ${isAssistant ? 'justify-start' : 'justify-end'} group/msg animate-fade-in relative z-10 w-full`}>
@@ -247,16 +247,16 @@ const QuickPromptCard = memo(({ prompt, onSelect }) => {
 
   const nodeId = useMemo(() => `PRMPT_${reactId.replace(/:/g, '').slice(0, 4).toUpperCase()}`, [reactId]);
 
-  const updateTransform = () => {
+  const updateTransform = useCallback(() => {
     if (!containerRef.current) return;
     const active = isHoveredRef.current || isFocusedRef.current;
     containerRef.current.style.transform = active
       ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
       : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
     containerRef.current.style.transition = isHoveredRef.current ? 'none' : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
-  };
+  }, []);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -276,23 +276,23 @@ const QuickPromptCard = memo(({ prompt, onSelect }) => {
     if (isHoveredRef.current || isFocusedRef.current) {
       updateTransform();
     }
-  };
+  }, [updateTransform]);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     isHoveredRef.current = true;
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     isFocusedRef.current = true;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '4deg');
@@ -301,16 +301,16 @@ const QuickPromptCard = memo(({ prompt, onSelect }) => {
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
   return (
     <button
