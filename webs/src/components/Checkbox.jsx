@@ -132,7 +132,8 @@ export const Checkbox = memo(({
 
   const boxSizeClass = CHECKBOX_SIZES[size] || CHECKBOX_SIZES.md;
   const checkIconSize = ICON_SIZES[size] || ICON_SIZES.md;
-  const computedTitle = disabled ? (title || "This option is disabled") : title;
+  const computedTitle = disabled ? (title || props.title || "This option is disabled") : (title || props.title);
+  const computedAriaLabel = !label ? (props['aria-label'] || props.ariaLabel || "Toggle switch") : undefined;
 
   return (
     <div className={`w-full group/checkbox-container ${className}`}>
@@ -201,6 +202,7 @@ export const Checkbox = memo(({
               aria-checked={checked}
               aria-invalid={!!error}
               aria-describedby={describedBy}
+              aria-label={computedAriaLabel}
             />
 
             {/* Architectural Box: High-end charcoal optical switch */}
