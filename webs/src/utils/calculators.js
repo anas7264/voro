@@ -45,14 +45,26 @@ const GOAL_CALORIC_ADJUSTMENTS = Object.freeze({
   aggressive_bulk: 1.25 // 25% surplus
 });
 
+const DEFAULT_HR_ZONES = Object.freeze({
+  warmup: Object.freeze({ min: 0, max: 0, name: "Warm-up", intensity: "50-60%" }),
+  zone2: Object.freeze({ min: 0, max: 0, name: "Zone 2", intensity: "60-70%" }),
+  zone3: Object.freeze({ min: 0, max: 0, name: "Zone 3", intensity: "70-80%" }),
+  zone4: Object.freeze({ min: 0, max: 0, name: "Zone 4", intensity: "80-90%" }),
+  zone5: Object.freeze({ min: 0, max: 0, name: "VO2 Max", intensity: "90-100%" })
+});
+
+const REST_REDUCTION_SUGGESTION = Object.freeze({ method: "Reduce Rest", suggestedRestReduction: "Decrease rest 15-30 seconds" });
+const VARIATION_SUGGESTION = Object.freeze({ method: "Add Exercise Variation", suggestion: "Change grip, angle, or ROM" });
+
 // BMI Calculation: weight(kg) / height(m)²
 export const calculateBMI = (weightKg, heightCm) => {
-  if (!weightKg || !heightCm || heightCm <= 0 || !Number.isFinite(weightKg) || !Number.isFinite(heightCm)) return "0.0";
+  if (!weightKg || !heightCm || weightKg <= 0 || heightCm <= 0 || !Number.isFinite(weightKg) || !Number.isFinite(heightCm)) return "0.0";
   const heightM = heightCm / 100;
   return (weightKg / (heightM * heightM)).toFixed(1);
 };
 
 export const getBMICategory = (bmi) => {
+  if (!Number.isFinite(bmi) || bmi <= 0) return "Unknown";
   if (bmi < 18.5) return "Underweight";
   if (bmi < 25) return "Normal Weight";
   if (bmi < 30) return "Overweight";
@@ -61,6 +73,7 @@ export const getBMICategory = (bmi) => {
 
 // Basal Metabolic Rate - Mifflin-St Jeor (most accurate)
 export const calculateBMR = (weightKg, heightCm, age, gender) => {
+  if (!weightKg || !heightCm || !age || weightKg <= 0 || heightCm <= 0 || age <= 0 || !Number.isFinite(weightKg) || !Number.isFinite(heightCm) || !Number.isFinite(age)) return "0";
   // Performance optimization: Avoid repeated lowercasing where possible.
   const isMale = typeof gender === 'string' && (gender === 'male' || gender.toLowerCase() === "male");
   if (isMale) {
@@ -72,18 +85,23 @@ export const calculateBMR = (weightKg, heightCm, age, gender) => {
 
 // Total Daily Energy Expenditure using activity multiplier
 export const calculateTDEE = (bmr, activityLevel) => {
-  return Math.round(bmr * (TDEE_MULTIPLIERS[activityLevel] || 1.55));
+  const numericBmr = typeof bmr === 'number' ? bmr : parseFloat(bmr);
+  if (!numericBmr || numericBmr <= 0 || !Number.isFinite(numericBmr)) return 0;
+  return Math.round(numericBmr * (TDEE_MULTIPLIERS[activityLevel] || 1.55));
 };
 
 // Protein targets based on goal and weight
 export const calculateProteinTarget = (weightKg, goal = "maintenance") => {
+  if (!weightKg || weightKg <= 0 || !Number.isFinite(weightKg)) return 0;
   return Math.round(weightKg * (PROTEIN_TARGET_MULTIPLIERS[goal] || 1.6));
 };
 
 // Water intake recommendation in liters
 export const calculateWaterIntake = (weightKg, activityMinutesPerDay = 0) => {
+  if (!weightKg || weightKg <= 0 || !Number.isFinite(weightKg)) return "0.0";
+  const mins = Number.isFinite(activityMinutesPerDay) && activityMinutesPerDay > 0 ? activityMinutesPerDay : 0;
   const baseIntake = weightKg * 0.035; // ~35ml per kg
-  const exerciseBonus = (activityMinutesPerDay / 30) * 0.5; // 500ml per 30 min exercise
+  const exerciseBonus = (mins / 30) * 0.5; // 500ml per 30 min exercise
   return (baseIntake + exerciseBonus).toFixed(1);
 };
 
@@ -141,32 +159,37 @@ export const calculateOneRepMax = {
 
 // Wilks Coefficient (strength-to-bodyweight ratio for comparing lifters)
 export const calculateWilksCoefficient = (totalWeight, bodyweightKg, gender) => {
+  if (!totalWeight || !bodyweightKg || totalWeight <= 0 || bodyweightKg <= 0 || !Number.isFinite(totalWeight) || !Number.isFinite(bodyweightKg)) return "0.00";
   const isMale = typeof gender === 'string' && (gender === 'male' || gender.toLowerCase() === "male");
   const a = isMale ? -216.0475 : -594.31;
   const b = isMale ? 16.2606 : 27.91957;
   const c = isMale ? -0.002388 : -0.12835;
-  // Performance optimization: Avoid Math.pow and compute direct multiplication
   const bodyweightSq = bodyweightKg * bodyweightKg;
-  const coefficient = 500 / (a + b * bodyweightKg + c * bodyweightSq);
+  const denom = a + b * bodyweightKg + c * bodyweightSq;
+  if (!denom || !Number.isFinite(denom) || denom === 0) return "0.00";
+  const coefficient = 500 / denom;
   return (totalWeight * coefficient).toFixed(2);
 };
 
 // Fat-Free Mass Index (muscle mass relative to height)
 export const calculateFFMI = (weightKg, bodyFatPercent, heightCm) => {
-  const leanMassKg = weightKg * (1 - bodyFatPercent / 100);
+  if (!weightKg || !heightCm || weightKg <= 0 || heightCm <= 0 || !Number.isFinite(weightKg) || !Number.isFinite(heightCm)) return "0.0";
+  const bf = Number.isFinite(bodyFatPercent) ? Math.max(0, Math.min(100, bodyFatPercent)) : 0;
+  const leanMassKg = weightKg * (1 - bf / 100);
   const heightM = heightCm / 100;
   return (leanMassKg / (heightM * heightM)).toFixed(1);
 };
 
 // Maximum Heart Rate and training zones
 export const calculateMaxHeartRate = (age, method = "karvonen") => {
-  if (method === "karvonen") return 220 - age;
+  if (!age || age <= 0 || !Number.isFinite(age)) return 0;
   if (method === "tanaka") return Math.round(208 - (0.7 * age));
   if (method === "gulati_female") return Math.round(206 - (0.88 * age));
-  return 220 - age; // Default
+  return Math.round(220 - age); // Default
 };
 
 export const getHeartRateZones = (maxHeartRate, restingHeartRate = 60) => {
+  if (!maxHeartRate || maxHeartRate <= 0 || !Number.isFinite(maxHeartRate)) return DEFAULT_HR_ZONES;
   const zone2 = maxHeartRate * 0.5; // Warm-up: 50%
   const zone3 = maxHeartRate * 0.6; // Zone 2: 60%
   const zone4 = maxHeartRate * 0.7; // Zone 3: 70%
@@ -184,10 +207,10 @@ export const getHeartRateZones = (maxHeartRate, restingHeartRate = 60) => {
 
 // VO2 Max estimation (Karvonen formula from max heart rate)
 export const estimateVO2Max = (age, gender, resting_heart_rate) => {
+  if (!age || age <= 0 || !Number.isFinite(age) || !resting_heart_rate || resting_heart_rate <= 0 || !Number.isFinite(resting_heart_rate)) return 0;
   const maxHR = calculateMaxHeartRate(age);
-  // Simplified: (maxHR - restingHR) / age correlates to fitness level
   const fitnessIndex = ((maxHR - resting_heart_rate) / age) * 10;
-  return Math.round(fitnessIndex * 0.5); // Rough estimate
+  return Math.round(fitnessIndex * 0.5);
 };
 
 // Pace converter (convert between min/km and km/h)
@@ -213,16 +236,17 @@ export const convertPace = (pace, unit = "kmh_to_pace") => {
 
 // Caloric burn estimates by activity
 export const estimateCaloriesBurned = (weightKg, durationMinutes, activity) => {
+  if (!weightKg || !durationMinutes || weightKg <= 0 || durationMinutes <= 0 || !Number.isFinite(weightKg) || !Number.isFinite(durationMinutes)) return 0;
   const met = CALORIC_BURN_METS[activity] || 5.0;
   return Math.round((met * weightKg * durationMinutes) / 60);
 };
 
 // Macro ratio calculator
 export const calculateMacroRatios = (calories, goalProteinG, goalCarbG, goalFatG) => {
-  const cals = calories && calories > 0 ? calories : 0;
-  const pG = goalProteinG || 0;
-  const cG = goalCarbG || 0;
-  const fG = goalFatG || 0;
+  const cals = calories && calories > 0 && Number.isFinite(calories) ? calories : 0;
+  const pG = goalProteinG && Number.isFinite(goalProteinG) ? goalProteinG : 0;
+  const cG = goalCarbG && Number.isFinite(goalCarbG) ? goalCarbG : 0;
+  const fG = goalFatG && Number.isFinite(goalFatG) ? goalFatG : 0;
   return {
     protein: { grams: pG, calories: pG * 4, percentage: cals > 0 ? ((pG * 4) / cals * 100).toFixed(1) : "0.0" },
     carbs: { grams: cG, calories: cG * 4, percentage: cals > 0 ? ((cG * 4) / cals * 100).toFixed(1) : "0.0" },
@@ -232,31 +256,35 @@ export const calculateMacroRatios = (calories, goalProteinG, goalCarbG, goalFatG
 
 // Calculate surplus/deficit for goal
 export const calculateCalorieAdjustment = (tdee, goal) => {
+  if (!tdee || tdee <= 0 || !Number.isFinite(tdee)) return 0;
   const multiplier = GOAL_CALORIC_ADJUSTMENTS[goal] || 1.0;
   return Math.round(tdee * multiplier);
 };
 
 // Periodization cycle calculator
 export const calculatePeriodizationCycle = (totalWeeks, cycles = 4) => {
-  const weeksPerCycle = Math.floor(totalWeeks / cycles);
-  const remainder = totalWeeks % cycles;
+  const validWeeks = Number.isFinite(totalWeeks) && totalWeeks > 0 ? Math.floor(totalWeeks) : 12;
+  const validCycles = Number.isFinite(cycles) && cycles > 0 ? Math.floor(cycles) : 4;
+
+  const weeksPerCycle = Math.floor(validWeeks / validCycles);
+  const remainder = validWeeks % validCycles;
 
   // ⚡ PERFORMANCE OPTIMIZATION: Single-pass pre-allocated array instantiation.
   // Replaces multi-pass `Array(cycles).fill().map()` construct, completely eliminating
   // temporary intermediate array allocations and callback closure allocations.
   const deload = Math.ceil((weeksPerCycle + remainder) / 4);
-  const cycleBreakdown = new Array(cycles);
-  for (let i = 0; i < cycles; i++) {
+  const cycleBreakdown = new Array(validCycles);
+  for (let i = 0; i < validCycles; i++) {
     cycleBreakdown[i] = {
       cycle: i + 1,
-      weeks: i === cycles - 1 ? weeksPerCycle + remainder : weeksPerCycle,
+      weeks: i === validCycles - 1 ? weeksPerCycle + remainder : weeksPerCycle,
       deload
     };
   }
 
   return {
-    totalWeeks,
-    cycles,
+    totalWeeks: validWeeks,
+    cycles: validCycles,
     weeksPerCycle,
     remainderWeeks: remainder,
     cycleBreakdown
@@ -265,39 +293,65 @@ export const calculatePeriodizationCycle = (totalWeeks, cycles = 4) => {
 
 // Training volume calculator (sets × reps × weight)
 export const calculateTrainingVolume = (sets, reps, weight) => {
-  return sets * reps * weight;
+  const s = Number.isFinite(sets) && sets > 0 ? sets : 0;
+  const r = Number.isFinite(reps) && reps > 0 ? reps : 0;
+  const w = Number.isFinite(weight) && weight > 0 ? weight : 0;
+  return s * r * w;
 };
 
 // Progressive overload suggestions
-export const suggestProgressiveOverload = (currentSets, currentReps, currentWeight, trainingAge = "intermediate") => {
-  const strategies = [
-    { method: "Add Reps", currentReps, suggestedReps: currentReps + 1 },
-    { method: "Add Sets", currentSets, suggestedSets: currentSets + 1 },
-    { method: "Increase Weight", currentWeight, suggestedWeight: Math.round(currentWeight * 1.025) },
-    { method: "Reduce Rest", suggestedRestReduction: "Decrease rest 15-30 seconds" },
-    { method: "Add Exercise Variation", suggestion: "Change grip, angle, or ROM" }
-  ];
+export const suggestProgressiveOverload = (currentSets = 3, currentReps = 10, currentWeight = 60, trainingAge = "intermediate") => {
+  const sets = Number.isFinite(currentSets) && currentSets > 0 ? currentSets : 3;
+  const reps = Number.isFinite(currentReps) && currentReps > 0 ? currentReps : 10;
+  const weight = Number.isFinite(currentWeight) && currentWeight > 0 ? currentWeight : 60;
 
-  return strategies;
+  return [
+    { method: "Add Reps", currentReps: reps, suggestedReps: reps + 1 },
+    { method: "Add Sets", currentSets: sets, suggestedSets: sets + 1 },
+    { method: "Increase Weight", currentWeight: weight, suggestedWeight: Math.round(weight * 1.025) },
+    REST_REDUCTION_SUGGESTION,
+    VARIATION_SUGGESTION
+  ];
 };
 
 // Recovery score (0-100) based on sleep, stress, nutrition
-export const calculateRecoveryScore = (sleepHours, stressLevel, nutritionCompleteness) => {
-  const sleepScore = Math.min((sleepHours / 8) * 40, 40);
-  const stressScore = (1 - stressLevel / 10) * 30; // 0-10 stress scale inverted
-  const nutritionScore = nutritionCompleteness * 30; // 0-1 completeness
+export const calculateRecoveryScore = (sleepHours = 8, stressLevel = 5, nutritionCompleteness = 1) => {
+  const sleep = Number.isFinite(sleepHours) ? Math.max(0, sleepHours) : 8;
+  const stress = Number.isFinite(stressLevel) ? Math.max(0, Math.min(10, stressLevel)) : 5;
+  const nutrition = Number.isFinite(nutritionCompleteness) ? Math.max(0, Math.min(1, nutritionCompleteness)) : 1;
+
+  const sleepScore = Math.min((sleep / 8) * 40, 40);
+  const stressScore = (1 - stress / 10) * 30; // 0-10 stress scale inverted
+  const nutritionScore = nutrition * 30; // 0-1 completeness
 
   return Math.round(sleepScore + stressScore + nutritionScore);
 };
 
 // Overtraining risk assessment (0-100, >70 indicates high risk)
-export const assessOvertrainingRisk = (weeklyVolume, weeklyFrequency, averageIntensity, sleepQuality) => {
-  const volumeRisk = Math.min((weeklyVolume / 20000) * 30, 30); // Normalized to 20k volume
-  const frequencyRisk = Math.min((weeklyFrequency / 6) * 30, 30); // Normalized to 6x/week
-  const intensityRisk = (averageIntensity / 10) * 30; // 0-10 scale
-  const sleepRisk = (1 - sleepQuality / 10) * 10; // 0-10 quality inverted
+export const assessOvertrainingRisk = (weeklyVolume = 0, weeklyFrequency = 0, averageIntensity = 5, sleepQuality = 8) => {
+  const volume = Number.isFinite(weeklyVolume) && weeklyVolume > 0 ? weeklyVolume : 0;
+  const freq = Number.isFinite(weeklyFrequency) && weeklyFrequency > 0 ? weeklyFrequency : 0;
+  const intensity = Number.isFinite(averageIntensity) ? Math.max(0, Math.min(10, averageIntensity)) : 5;
+  const sleep = Number.isFinite(sleepQuality) ? Math.max(0, Math.min(10, sleepQuality)) : 8;
+
+  const volumeRisk = Math.min((volume / 20000) * 30, 30); // Normalized to 20k volume
+  const frequencyRisk = Math.min((freq / 6) * 30, 30); // Normalized to 6x/week
+  const intensityRisk = (intensity / 10) * 30; // 0-10 scale
+  const sleepRisk = (1 - sleep / 10) * 10; // 0-10 quality inverted
 
   return Math.round(volumeRisk + frequencyRisk + intensityRisk + sleepRisk);
+};
+
+// Ideal Body Weight - Devine Formula
+export const calculateIdealWeight = (heightCm, gender = 'Male') => {
+  if (!heightCm || heightCm <= 0 || !Number.isFinite(heightCm)) return 0;
+  const heightInches = (heightCm - 152.4) / 2.54;
+  const isMale = typeof gender === 'string' && (gender === 'Male' || gender.toLowerCase() === "male");
+  if (isMale) {
+    return Math.max(50 + (2.3 * heightInches), 40);
+  } else {
+    return Math.max(45.5 + (2.3 * heightInches), 38);
+  }
 };
 
 export default {
@@ -321,16 +375,6 @@ export default {
   calculateTrainingVolume,
   suggestProgressiveOverload,
   calculateRecoveryScore,
-  assessOvertrainingRisk
-};
-
-// Ideal Body Weight - Devine Formula
-export const calculateIdealWeight = (heightCm, gender = 'Male') => {
-  const heightInches = (heightCm - 152.4) / 2.54;
-  const isMale = typeof gender === 'string' && (gender === 'Male' || gender.toLowerCase() === "male");
-  if (isMale) {
-    return Math.max(50 + (2.3 * heightInches), 40);
-  } else {
-    return Math.max(45.5 + (2.3 * heightInches), 38);
-  }
+  assessOvertrainingRisk,
+  calculateIdealWeight
 };
