@@ -577,7 +577,19 @@ const WaterTracker = () => {
   };
 
   const percentage = Math.min((todayTotal / dailyGoal) * 100, 100);
-  const formattedDate = longDateFormatter.format(new Date(date));
+  const formattedDate = useMemo(() => longDateFormatter.format(new Date(`${date}T00:00:00`)), [date]);
+
+  const prevDateFormatted = useMemo(() => {
+    const d = new Date(`${date}T00:00:00`);
+    d.setDate(d.getDate() - 1);
+    return longDateFormatter.format(d);
+  }, [date]);
+
+  const nextDateFormatted = useMemo(() => {
+    const d = new Date(`${date}T00:00:00`);
+    d.setDate(d.getDate() + 1);
+    return longDateFormatter.format(d);
+  }, [date]);
 
   // Clinical-grade real-time status indicators based on physiological water balance
   const biologicalState = useMemo(() => {
@@ -612,8 +624,8 @@ const WaterTracker = () => {
               <button
                 onClick={() => handleDateChange(-1)}
                 className="p-4 hover:bg-white/5 rounded-[1.75rem] text-gray-500 hover:text-white transition-all active:scale-90 focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:border-blue-500/50 outline-none cursor-pointer"
-                aria-label="Previous chronological index"
-                title="Previous date"
+                aria-label={`Navigate to previous day (${prevDateFormatted})`}
+                title={`Previous date (${prevDateFormatted})`}
               >
                 <ChevronLeft size={20} />
               </button>
@@ -624,8 +636,8 @@ const WaterTracker = () => {
               <button
                 onClick={() => handleDateChange(1)}
                 className="p-4 hover:bg-white/5 rounded-[1.75rem] text-gray-500 hover:text-white transition-all active:scale-90 focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:border-blue-500/50 outline-none cursor-pointer"
-                aria-label="Next chronological index"
-                title="Next date"
+                aria-label={`Navigate to next day (${nextDateFormatted})`}
+                title={`Next date (${nextDateFormatted})`}
               >
                 <ChevronRight size={20} />
               </button>

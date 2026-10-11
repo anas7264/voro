@@ -544,6 +544,18 @@ const FoodDiary = () => {
 
   const formattedDate = useMemo(() => dateFormatter.format(new Date(`${date}T00:00:00`)), [date]);
 
+  const prevDateFormatted = useMemo(() => {
+    const d = new Date(`${date}T00:00:00`);
+    d.setDate(d.getDate() - 1);
+    return dateFormatter.format(d);
+  }, [date]);
+
+  const nextDateFormatted = useMemo(() => {
+    const d = new Date(`${date}T00:00:00`);
+    d.setDate(d.getDate() + 1);
+    return dateFormatter.format(d);
+  }, [date]);
+
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] pb-20 bg-boutique-grain selection:bg-voro-primary/30 relative">
       {/* Ambient Background Lighting */}
@@ -567,8 +579,9 @@ const FoodDiary = () => {
           <div className="flex items-center gap-4 bg-[#0A0C14] border border-white/5 rounded-2xl p-2 shadow-xl">
             <button
               onClick={() => handleDateChange(-1)}
-              className="p-3 hover:bg-white/5 rounded-xl text-gray-500 hover:text-white transition-all focus-visible:ring-2 focus-visible:ring-voro-primary outline-none"
-              aria-label="Previous day"
+              className="p-3 hover:bg-white/5 rounded-xl text-gray-500 hover:text-white transition-all focus-visible:ring-2 focus-visible:ring-voro-primary outline-none cursor-pointer"
+              aria-label={`Navigate to previous day (${prevDateFormatted})`}
+              title={`Previous date (${prevDateFormatted})`}
             >
               <ChevronLeft size={20} />
             </button>
@@ -578,8 +591,9 @@ const FoodDiary = () => {
             </div>
             <button
               onClick={() => handleDateChange(1)}
-              className="p-3 hover:bg-white/5 rounded-xl text-gray-500 hover:text-white transition-all focus-visible:ring-2 focus-visible:ring-voro-primary outline-none"
-              aria-label="Next day"
+              className="p-3 hover:bg-white/5 rounded-xl text-gray-500 hover:text-white transition-all focus-visible:ring-2 focus-visible:ring-voro-primary outline-none cursor-pointer"
+              aria-label={`Navigate to next day (${nextDateFormatted})`}
+              title={`Next date (${nextDateFormatted})`}
             >
               <ChevronRight size={20} />
             </button>

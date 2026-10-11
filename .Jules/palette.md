@@ -33,3 +33,7 @@
 ## 2025-05-26 - Native Label Association vs. Non-Semantic Element Click Handlers in Form Controls
 **Learning:** Using non-semantic elements like `<span>` with `onClick` handlers for form control labels fails native label-to-control association and can trigger duplicate click events. Replacing them with semantic `<label htmlFor={controlId}>` elements leverages native browser label targeting without requiring explicit click listeners on non-interactive elements.
 **Action:** When creating or refining form controls and toggle switches, use semantic `<label htmlFor={id}>` elements for label text and rely on native browser event forwarding to the target control.
+
+## 2025-05-27 - Destination-Specific Temporal Context for Icon-Only Navigation Buttons
+**Learning:** Icon-only date navigation controls (such as previous/next day chevron buttons) leave screen reader users without actionable context if labeled generically (e.g. "Previous day" or "Previous chronological index"). Providing dynamic `aria-label` and `title` attributes with exact formatted date targets (e.g. "Navigate to previous day (Wed, May 14)") gives screen reader and hover tooltip users precise destination context. Furthermore, instantiating target dates with local time strings (`${date}T00:00:00`) prevents timezone offset bugs when formatting date labels.
+**Action:** When implementing previous/next date controls, dynamically compute and format target destination dates using local midnight ISO strings, and supply explicit target date strings in `aria-label` and `title` attributes.
