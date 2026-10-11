@@ -741,6 +741,9 @@ export const sanitizeCSVField = (field) => {
     str = "'" + str;
   }
 
+  // Neutralize formula triggers following newlines within multiline CSV fields
+  str = _call.call(_replace, str, /([\r\n]+\s*)([=+\-@\t\r%|])/g, '$1\'$2');
+
   // 3. Escape double quotes by doubling them (" -> "") and wrap in double quotes
   const escaped = _call.call(_replace, str, /"/g, '""');
   return `"${escaped}"`;
