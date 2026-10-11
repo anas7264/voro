@@ -9,6 +9,19 @@
 const EMPTY_ARRAY = Object.freeze([]);
 const EMPTY_OBJECT = Object.freeze({});
 
+const safeJoin = (arr, fallback = "None") => {
+  return Array.isArray(arr) && arr.length > 0 ? arr.join(", ") : fallback;
+};
+
+const safeStringify = (obj, fallback = "{}") => {
+  if (!obj || typeof obj !== 'object') return fallback;
+  try {
+    return JSON.stringify(obj);
+  } catch (e) {
+    return fallback;
+  }
+};
+
 const STATIC_VORO_SYSTEM_PROMPT = Object.freeze(`You are VORO, a comprehensive AI fitness coach and health advisor integrated into the VORO fitness app.
 
 [SECURITY_PROTOCOL]
@@ -56,22 +69,23 @@ TONE:
 
 // Build meal plan system prompt from user profile
 export const buildMealPlanPrompt = (userProfile = EMPTY_OBJECT) => {
+  const profile = userProfile || EMPTY_OBJECT;
   const {
-    age,
-    gender,
-    weight,
-    height,
-    goal,
-    dietaryRestrictions = EMPTY_ARRAY,
-    allergies = EMPTY_ARRAY,
-    cuisinePreferences = EMPTY_ARRAY,
-    tdee,
-    proteinTarget,
-    carbsTarget,
-    fatTarget,
-    activityLevel,
-    experienceLevel
-  } = userProfile;
+    age = "N/A",
+    gender = "N/A",
+    weight = "N/A",
+    height = "N/A",
+    goal = "General Fitness",
+    dietaryRestrictions,
+    allergies,
+    cuisinePreferences,
+    tdee = "N/A",
+    proteinTarget = "N/A",
+    carbsTarget = "N/A",
+    fatTarget = "N/A",
+    activityLevel = "Moderate",
+    experienceLevel = "Intermediate"
+  } = profile;
 
   return `You are a professional sports nutritionist and meal planner for the VORO fitness app.
 
@@ -91,9 +105,9 @@ NUTRITIONAL TARGETS:
 - Fat: ${fatTarget}g
 
 PREFERENCES & RESTRICTIONS:
-- Dietary Restrictions: ${dietaryRestrictions.length > 0 ? dietaryRestrictions.join(", ") : "None"}
-- Allergies: ${allergies.length > 0 ? allergies.join(", ") : "None"}
-- Cuisine Preferences: ${cuisinePreferences.length > 0 ? cuisinePreferences.join(", ") : "Varied"}
+- Dietary Restrictions: ${safeJoin(dietaryRestrictions, "None")}
+- Allergies: ${safeJoin(allergies, "None")}
+- Cuisine Preferences: ${safeJoin(cuisinePreferences, "Varied")}
 
 INSTRUCTIONS:
 1. Create a 7-day meal plan that meets the nutritional targets above
@@ -112,19 +126,20 @@ Format your response as a structured JSON with daily meals, total macros, and sh
 
 // Build training plan system prompt from user profile
 export const buildTrainingPlanPrompt = (userProfile = EMPTY_OBJECT) => {
+  const profile = userProfile || EMPTY_OBJECT;
   const {
-    age,
-    gender,
-    weight,
-    goal,
-    experienceLevel,
-    availableDays,
-    sessionDuration,
-    injuries = EMPTY_ARRAY,
-    equipment = EMPTY_ARRAY,
-    currentStrength = EMPTY_OBJECT,
-    preferences = EMPTY_OBJECT
-  } = userProfile;
+    age = "N/A",
+    gender = "N/A",
+    weight = "N/A",
+    goal = "General Fitness",
+    experienceLevel = "Intermediate",
+    availableDays = 4,
+    sessionDuration = 60,
+    injuries,
+    equipment,
+    currentStrength,
+    preferences
+  } = profile;
 
   return `You are a certified strength and conditioning coach for the VORO fitness app.
 
@@ -136,12 +151,12 @@ USER PROFILE:
 - Experience: ${experienceLevel}
 - Available Training Days: ${availableDays} per week
 - Session Duration: ${sessionDuration} minutes
-- Current Strength Levels: ${JSON.stringify(currentStrength)}
+- Current Strength Levels: ${safeStringify(currentStrength)}
 
 CONSTRAINTS:
-- Injuries/Limitations: ${injuries.length > 0 ? injuries.join(", ") : "None"}
-- Available Equipment: ${equipment.length > 0 ? equipment.join(", ") : "Bodyweight only"}
-- Preferences: ${JSON.stringify(preferences)}
+- Injuries/Limitations: ${safeJoin(injuries, "None")}
+- Available Equipment: ${safeJoin(equipment, "Bodyweight only")}
+- Preferences: ${safeStringify(preferences)}
 
 INSTRUCTIONS:
 1. Create a periodized ${availableDays}-day per week training program
@@ -160,21 +175,22 @@ Format your response as a structured 4-week training block with daily workouts, 
 
 // Build coaching/advice system prompt
 export const buildCoachPrompt = (userProfile = EMPTY_OBJECT) => {
+  const profile = userProfile || EMPTY_OBJECT;
   const {
-    age,
-    goal,
-    recentChallenges = EMPTY_ARRAY,
-    achievements = EMPTY_ARRAY,
-    consistencyLevel
-  } = userProfile;
+    age = "N/A",
+    goal = "General Fitness",
+    recentChallenges,
+    achievements,
+    consistencyLevel = 5
+  } = profile;
 
   return `You are a motivational fitness coach and accountability partner for the VORO fitness app.
 
 USER CONTEXT:
 - Age: ${age}
 - Goal: ${goal}
-- Recent Achievements: ${achievements.length > 0 ? achievements.join(", ") : "Just starting"}
-- Current Challenges: ${recentChallenges.length > 0 ? recentChallenges.join(", ") : "Maintaining consistency"}
+- Recent Achievements: ${safeJoin(achievements, "Just starting")}
+- Current Challenges: ${safeJoin(recentChallenges, "Maintaining consistency")}
 - Consistency Level: ${consistencyLevel}/10
 
 INSTRUCTIONS:
@@ -194,22 +210,23 @@ Keep responses conversational, supportive, and focused on sustainable progress o
 
 // Build nutrition analysis system prompt
 export const buildNutritionAnalysisPrompt = (userProfile = EMPTY_OBJECT) => {
+  const profile = userProfile || EMPTY_OBJECT;
   const {
-    recentDays = EMPTY_ARRAY,
-    tdee,
-    goals,
-    concerns = EMPTY_ARRAY
-  } = userProfile;
+    recentDays,
+    tdee = "N/A",
+    goals = "General Nutrition",
+    concerns
+  } = profile;
 
   return `You are a registered dietitian analyzing nutrition data for the VORO fitness app.
 
 USER CONTEXT:
 - Daily Target Calories: ${tdee}
 - Fitness Goals: ${goals}
-- Health Concerns: ${concerns.length > 0 ? concerns.join(", ") : "None"}
+- Health Concerns: ${safeJoin(concerns, "None")}
 
 RECENT NUTRITION DATA:
-${JSON.stringify(recentDays, null, 2)}
+${safeStringify(recentDays, "[]")}
 
 INSTRUCTIONS:
 1. Analyze macro distribution vs. targets
@@ -228,18 +245,19 @@ Focus on practical, sustainable changes rather than perfection.`;
 
 // Build body composition analysis system prompt
 export const buildBodyCompositionPrompt = (userProfile = EMPTY_OBJECT) => {
+  const profile = userProfile || EMPTY_OBJECT;
   const {
-    measurements = EMPTY_ARRAY,
-    goal,
-    timeline
-  } = userProfile;
+    measurements,
+    goal = "Recomposition",
+    timeline = "12 weeks"
+  } = profile;
 
   return `You are a body composition specialist using the VORO fitness app data.
 
 USER CONTEXT:
 - Goal: ${goal}
 - Timeline: ${timeline}
-- Measurement History: ${JSON.stringify(measurements)}
+- Measurement History: ${safeStringify(measurements, "[]")}
 
 INSTRUCTIONS:
 1. Analyze body composition trends
@@ -258,19 +276,20 @@ Use data to provide science-backed recommendations, not guesses.`;
 
 // Build injury prevention system prompt
 export const buildInjuryPreventionPrompt = (userProfile = EMPTY_OBJECT) => {
+  const profile = userProfile || EMPTY_OBJECT;
   const {
-    pastInjuries = EMPTY_ARRAY,
-    currentPainAreas = EMPTY_ARRAY,
-    movementPatterns = EMPTY_OBJECT,
-    workloadTrend
-  } = userProfile;
+    pastInjuries,
+    currentPainAreas,
+    movementPatterns,
+    workloadTrend = "Stable"
+  } = profile;
 
   return `You are a sports medicine professional advising on injury prevention for the VORO fitness app.
 
 USER CONTEXT:
-- Past Injuries: ${pastInjuries.length > 0 ? pastInjuries.join(", ") : "None"}
-- Current Pain/Issues: ${currentPainAreas.length > 0 ? currentPainAreas.join(", ") : "None"}
-- Movement Quality: ${JSON.stringify(movementPatterns)}
+- Past Injuries: ${safeJoin(pastInjuries, "None")}
+- Current Pain/Issues: ${safeJoin(currentPainAreas, "None")}
+- Movement Quality: ${safeStringify(movementPatterns)}
 - Workload Trend: ${workloadTrend}
 
 INSTRUCTIONS:
@@ -290,13 +309,14 @@ Prioritize athlete safety and long-term health over short-term performance.`;
 
 // Build competition prep system prompt
 export const buildCompetitionPrepPrompt = (userProfile = EMPTY_OBJECT) => {
+  const profile = userProfile || EMPTY_OBJECT;
   const {
-    competitionDate,
-    daysUntilCompetition,
-    goal,
-    currentLevel,
-    previousCompetitions = EMPTY_ARRAY
-  } = userProfile;
+    competitionDate = "TBD",
+    daysUntilCompetition = 30,
+    goal = "Peak Performance",
+    currentLevel = "Intermediate",
+    previousCompetitions
+  } = profile;
 
   return `You are a competition preparation specialist for the VORO fitness app.
 
@@ -305,7 +325,7 @@ COMPETITION DETAILS:
 - Days Until: ${daysUntilCompetition}
 - Goal: ${goal}
 - Current Level: ${currentLevel}
-- Past Competition Experience: ${previousCompetitions.length > 0 ? "Yes" : "No"}
+- Past Competition Experience: ${safeJoin(previousCompetitions, "").length > 0 ? "Yes" : "No"}
 
 INSTRUCTIONS:
 1. Create periodized prep plan for ${daysUntilCompetition} days
@@ -324,14 +344,15 @@ Focus on peaking at the right time, managing fatigue, and confidence building.`;
 
 // Build general wellness system prompt
 export const buildWellnessPrompt = (userProfile = EMPTY_OBJECT) => {
+  const profile = userProfile || EMPTY_OBJECT;
   const {
-    stressLevel,
-    sleepQuality,
-    workoutFrequency,
-    nutritionConsistency,
-    mentalHealth,
-    goals
-  } = userProfile;
+    stressLevel = 5,
+    sleepQuality = 7,
+    workoutFrequency = 3,
+    nutritionConsistency = 80,
+    mentalHealth = "Good",
+    goals = "Overall Health"
+  } = profile;
 
   return `You are a wellness and holistic health advisor for the VORO fitness app.
 
