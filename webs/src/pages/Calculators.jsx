@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, memo, useRef } from 'react';
+import React, { useEffect, useState, useMemo, memo, useRef, useId } from 'react';
 import Card from '@/components/Card';
 import Tabs from '@/components/Tabs';
 import { useCalculators } from '@/hooks/useCalculators';
@@ -791,7 +791,8 @@ ActivityCoefficientSelector.displayName = "ActivityCoefficientSelector";
 /**
  * ⚡ LUXURY MASTERCLASS CONTAINER CARD: Volumetric 3D Interactive Container
  * Encloses the calculation display inside a luxury 3D container node with magnetic
- * mouse tracking, liquid border illumination, and static 4-degree focus tilt.
+ * mouse tracking, liquid border perimeter illumination, holographic telemetry,
+ * sub-pixel attestation hash badging, and static 4-degree focus tilt.
  */
 const VolumetricComputationNode = memo(({ children, nodeId }) => {
   const containerRef = useRef(null);
@@ -799,6 +800,14 @@ const VolumetricComputationNode = memo(({ children, nodeId }) => {
   const tiltYRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
+
+  const reactId = useId();
+
+  // SSR-safe deterministic sub-pixel attestation hash badging
+  const subpixelHash = useMemo(() => {
+    const cleanId = reactId.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    return `0xCALC_${cleanId.slice(-4).padStart(4, '0')}_ATTESTED_MATRIX`;
+  }, [reactId]);
 
   const handleMouseMove = (e) => {
     if (!containerRef.current) return;
@@ -810,8 +819,8 @@ const VolumetricComputationNode = memo(({ children, nodeId }) => {
     const tiltX = (0.5 - (y / rect.height)) * 16;
 
     const style = containerRef.current.style;
-    style.setProperty('--mouse-x', `${x}px`);
-    style.setProperty('--mouse-y', `${y}px`);
+    style.setProperty('--mouse-x', `${x.toFixed(1)}px`);
+    style.setProperty('--mouse-y', `${y.toFixed(1)}px`);
     style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
     style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
     style.setProperty('transform', `perspective(1500px) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg) translateY(-4px)`);
@@ -889,6 +898,19 @@ const VolumetricComputationNode = memo(({ children, nodeId }) => {
       }}
       className="relative p-10 md:p-14 rounded-[3rem] bg-[#0A0C14] border border-white/5 shadow-[0_60px_120px_-20px_rgba(0,0,0,0.8)] hover:border-white/10 group/comp cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408] overflow-hidden min-h-[480px] flex flex-col justify-center"
     >
+      {/* 🛰️ Liquid Border Intelligence: Dynamic reactive perimeter illumination */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 rounded-[3rem] opacity-0 group-hover/comp:opacity-100 group-focus-visible/comp:opacity-100 transition-opacity duration-700 pointer-events-none"
+        style={{
+          padding: '1px',
+          background: `radial-gradient(500px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(124, 58, 237, 0.35), transparent 80%)`,
+          WebkitMask: 'linear-gradient(#fff, #fff) content-box, linear-gradient(#fff, #fff)',
+          WebkitMaskComposite: 'xor',
+          maskComposite: 'exclude',
+        }}
+      />
+
       {/* Precision Grid & Grain Background */}
       <div className="absolute inset-0 rounded-[3rem] overflow-hidden pointer-events-none">
         <div className="absolute inset-0 bg-grid-white opacity-0 group-hover/comp:opacity-100 group-focus-visible/comp:opacity-100 transition-opacity duration-1000" />
@@ -906,6 +928,7 @@ const VolumetricComputationNode = memo(({ children, nodeId }) => {
 
       {/* Coordinate Telemetry Overlay */}
       <div
+        aria-hidden="true"
         className="absolute top-6 right-8 pointer-events-none opacity-0 group-hover/comp:opacity-100 group-focus-visible/comp:opacity-100 transition-all duration-500 z-20"
         style={{ transform: 'translateZ(60px)' }}
       >
@@ -914,6 +937,15 @@ const VolumetricComputationNode = memo(({ children, nodeId }) => {
           <span>TY_<span ref={tiltYRef}>0.0</span>°</span>
           <span className="text-white/20">[{nodeId}]</span>
         </div>
+      </div>
+
+      {/* Sub-pixel System Attestation Hash Marker */}
+      <div
+        aria-hidden="true"
+        className="absolute bottom-4 left-8 text-[0.4rem] font-mono font-bold text-white/10 group-hover/comp:text-white/30 group-focus-visible/comp:text-white/30 transition-colors duration-700 tracking-[0.25em] pointer-events-none select-none z-20"
+        style={{ transform: 'translateZ(40px)' }}
+      >
+        {subpixelHash}
       </div>
 
       <div className="relative z-10" style={{ transform: 'translateZ(40px)' }}>
