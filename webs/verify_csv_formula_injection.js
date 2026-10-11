@@ -75,6 +75,12 @@ assert(t11a === '"Grilled Salmon"' && t11b === '"450"', `Safe text and numbers a
 const t12 = validatorSanitizeCSVField('=SUM(1,2)');
 assert(t12 === '"\'=SUM(1,2)"', `Validator re-export functions identically: got ${t12}`);
 
+// Test 13: Multiline Field Formula Trigger Neutralization
+const t13a = sanitizeCSVField('Notes:\n=SUM(1,2)');
+const t13b = validatorSanitizeCSVField('Notes:\r\n  +CMD|\' /C calc\'!A1');
+assert(t13a === '"Notes:\n\'=SUM(1,2)"', `Multiline equals formula trigger prepends single quote after newline: got ${t13a}`);
+assert(t13b === '"Notes:\r\n  \'+CMD|\' /C calc\'!A1"', `Multiline plus formula trigger prepends single quote after CRLF + spaces: got ${t13b}`);
+
 console.log('=========================================');
 console.log(`📊 RESULTS: ${passed} Passed, ${failed} Failed`);
 console.log('=========================================');

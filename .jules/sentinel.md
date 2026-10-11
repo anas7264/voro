@@ -468,3 +468,14 @@ Neutralizing Trithemius cipher obfuscation requires calculating progressive lett
 
 **Prevention:**
 Always include progressive-shift polyalphabetic cipher decoders (such as Trithemius) in input validation pipelines before forwarding user text to language models.
+
+## 2026-10-11 - Multiline CSV Formula Injection Shield
+
+**Vulnerability:**
+CSV sanitization functions (`sanitizeCSVField`) typically check if a field string starts with formula trigger characters (`=`, `+`, `-`, `@`, `\t`, `\r`, `%`, `|`). If user-controlled multiline text fields (such as workout or food diary notes containing line breaks `\n` or `\r\n`) contain formula triggers at the beginning of subsequent lines within the cell (e.g. `"Notes:\n=1+1"` or `"Food Log\r\n  +CMD|' /C calc'!A1"`), initial-character checks fail to prepend single quote (`'`) neutralization flags. When opened in spreadsheet applications (Microsoft Excel, LibreOffice Calc, or Google Sheets), lines starting with formula triggers after a newline within a quoted cell can execute as formulas or DDE commands.
+
+**Learning:**
+CSV formula neutralization must evaluate both the start of the field string and all line break boundaries within multiline fields. Applying regex replacement `/([\r\n]+\s*)([=+\-@\t\r%|])/g` to prepend single quotes (`'`) to formula triggers following newlines ensures that every line within a multiline CSV field is safely neutralized.
+
+**Prevention:**
+Always apply line-break-aware regex replacements (`/([\r\n]+\s*)([=+\-@\t\r%|])/g`) in CSV field sanitization functions to prevent multiline formula injection attacks in exported spreadsheet files.
