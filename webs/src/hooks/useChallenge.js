@@ -18,6 +18,15 @@ const CHALLENGES_BY_ID = Object.freeze(
 const DAILY_CHALLENGES = Object.freeze(challenges.filter(c => c.duration === "daily"));
 const WEEKLY_CHALLENGES = Object.freeze(challenges.filter(c => c.duration === "weekly"));
 
+const EMPTY_ARRAY = Object.freeze([]);
+const CHALLENGES_BY_CATEGORY = Object.freeze(
+  challenges.reduce((acc, c) => {
+    if (!acc[c.category]) acc[c.category] = [];
+    acc[c.category].push(c);
+    return acc;
+  }, Object.create(null))
+);
+
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity for Action Hook.
  * Uses useStorageMethods() instead of useStorage() to get stable storage methods,
@@ -199,8 +208,12 @@ export const useChallenge = () => {
   }, []);
 
   // Get challenges by category
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: O(1) hashtable lookup.
+   * Replaces O(N) array `.filter()` scan with module-scoped CHALLENGES_BY_CATEGORY index.
+   */
   const getChallengesByCategory = useCallback((category) => {
-    return challenges.filter(c => c.category === category);
+    return CHALLENGES_BY_CATEGORY[category] || EMPTY_ARRAY;
   }, []);
 
   return {
