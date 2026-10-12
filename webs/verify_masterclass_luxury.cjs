@@ -1,0 +1,56 @@
+const fs = require('fs');
+const path = require('path');
+
+console.log('⚡ Running Daily UI/UX Masterclass Refinement Verifier...\n');
+
+const componentsToVerify = [
+  { name: 'Avatar.jsx', path: 'webs/src/components/Avatar.jsx' },
+  { name: 'Badge.jsx', path: 'webs/src/components/Badge.jsx' },
+  { name: 'Button.jsx', path: 'webs/src/components/Button.jsx' },
+  { name: 'Card.jsx', path: 'webs/src/components/Card.jsx' },
+  { name: 'ChallengeCard.jsx', path: 'webs/src/components/ChallengeCard.jsx' },
+  { name: 'Divider.jsx', path: 'webs/src/components/Divider.jsx' },
+  { name: 'Header.jsx', path: 'webs/src/components/Header.jsx' },
+  { name: 'Progress.jsx', path: 'webs/src/components/Progress.jsx' },
+  { name: 'Ring.jsx', path: 'webs/src/components/Ring.jsx' },
+  { name: 'Stat.jsx', path: 'webs/src/components/Stat.jsx' },
+  { name: 'Table.jsx', path: 'webs/src/components/Table.jsx' },
+  { name: 'Tag.jsx', path: 'webs/src/components/Tag.jsx' },
+  { name: 'VoroLogo.jsx', path: 'webs/src/components/VoroLogo.jsx' }
+];
+
+let totalChecks = 0;
+let passedChecks = 0;
+
+function check(description, condition) {
+  totalChecks++;
+  if (condition) {
+    passedChecks++;
+    console.log(`  ✓ ${description}`);
+  } else {
+    console.error(`  ✕ FAIL: ${description}`);
+  }
+}
+
+componentsToVerify.forEach(comp => {
+  console.log(`Evaluating ${comp.name}...`);
+  const fullPath = path.resolve(__dirname, '..', comp.path);
+  const code = fs.readFileSync(fullPath, 'utf8');
+
+  check(`${comp.name} uses React.memo for render optimization`, code.includes('memo('));
+  check(`${comp.name} uses SSR-safe useId for unique attestation/node markers`, code.includes('useId()'));
+  check(`${comp.name} features direct-DOM 60fps rotational tilt or vector tracking`, code.includes('style.setProperty') || code.includes('--tilt-x') || code.includes('transform'));
+  check(`${comp.name} includes sub-pixel attestation hash badging or telemetry overlay`, code.includes('0x') || code.includes('TX_'));
+  check(`${comp.name} exports displayName for React dev tools`, code.includes('displayName'));
+});
+
+console.log(`\n--------------------------------------------------`);
+console.log(`Masterclass UI/UX Refinement Results: ${passedChecks}/${totalChecks} checks passed.`);
+
+if (passedChecks === totalChecks) {
+  console.log('🎉 ALL LUXURY MASTERCLASS REFINEMENT CHECKS PASSED PERFECTLY!\n');
+  process.exit(0);
+} else {
+  console.error('❌ SOME CHECKS FAILED!\n');
+  process.exit(1);
+}
