@@ -1,5 +1,7 @@
 // VORO AI System Prompts
-// Claude AI prompt builders for personalized recommendations
+// Claude AI prompt builders for personalized recommendations with SPI-DNE Protection
+
+import { isPromptInjection } from './validators.js';
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Module-scoped Frozen Static Constants.
@@ -9,14 +11,109 @@
 const EMPTY_ARRAY = Object.freeze([]);
 const EMPTY_OBJECT = Object.freeze({});
 
+const DANGEROUS_CONTROL_CHARS_RE = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF\u115F\u1160\u3164\uFFA0]/g;
+const DELIMITER_TAG_RE = /\[\/?(?:USER_?DATA|SECURITY_?PROTOCOL|MESSAGE_?HISTORY|USER_?INPUT|SYSTEM|OVERRIDE)(?:_[A-Za-z0-9_-]+)?\]/gi;
+const SUSPICIOUS_PROMPT_INJECTION_RE = /ignore|system|prompt|instruction|bypass|override|developer|dan\b|forget|reveal|output|show|what\s+is|roleplay|pretend|terminal|linux|unrestricted|disabl|\[|\%|\&|\\|0x|0b|0o|[^\x00-\x7F]/i;
+
+const safeBase64Decode = (str) => {
+  try {
+    if (!str || typeof str !== 'string' || str.length < 8) return null;
+    const normalized = str.replace(/-/g, '+').replace(/_/g, '/');
+    let padded = normalized;
+    while (padded.length % 4 !== 0) padded += '=';
+    const decoded = typeof atob !== 'undefined' ? atob(padded) : Buffer.from(padded, 'base64').toString('utf-8');
+    if (/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\xFF]/.test(decoded)) return null;
+    return decoded;
+  } catch (e) {
+    return null;
+  }
+};
+
+const checkPromptInjection = (cleaned) => {
+  if (cleaned.length < 8) return false;
+  if (SUSPICIOUS_PROMPT_INJECTION_RE.test(cleaned)) {
+    return isPromptInjection(cleaned);
+  }
+  const decodedBase64 = safeBase64Decode(cleaned);
+  if (decodedBase64 && isPromptInjection(decodedBase64)) {
+    return true;
+  }
+  return false;
+};
+
+/**
+ * Zero-Trust System Prompt Injection & Delimiter Neutralization Engine (SPI-DNE)
+ * Sanitizes user profile fields and dynamic strings injected into system prompts or user messages:
+ * 1. Strips dangerous control and zero-width characters.
+ * 2. Evaluates inputs against isPromptInjection rules, replacing detected injection payloads with "[REDACTED_PROMPT_INJECTION]".
+ * 3. Neutralizes systemic delimiter tags (e.g. [USER_DATA_...], [SECURITY_PROTOCOL_...], [SYSTEM_OVERRIDE]).
+ * 4. Escapes remaining unhandled brackets to prevent delimiter breakout.
+ */
+export const sanitizePromptInput = (val, fallback = "N/A") => {
+  if (val === null || val === undefined) return fallback;
+  if (typeof val !== 'string') {
+    if (typeof val === 'number' || typeof val === 'boolean') return String(val);
+    return fallback;
+  }
+
+  let cleaned = val;
+
+  // 1. Strip null bytes, dangerous control characters, and zero-width/invisible markers
+  cleaned = cleaned.replace(DANGEROUS_CONTROL_CHARS_RE, '');
+
+  if (cleaned.trim() === '') return fallback;
+
+  // 2. Evaluate for Prompt Injection payloads (fast-path filter before deep multi-cipher scanning)
+  if (checkPromptInjection(cleaned)) {
+    return "[REDACTED_PROMPT_INJECTION]";
+  }
+
+  // 3. Neutralize deliberate delimiter tag breakout patterns
+  if (cleaned.includes('[')) {
+    cleaned = cleaned.replace(DELIMITER_TAG_RE, '[[NEUTRALIZED_DELIMITER]]');
+    cleaned = cleaned.replace(/\[/g, '【').replace(/\]/g, '】');
+  }
+
+  return cleaned.trim() || fallback;
+};
+
 const safeJoin = (arr, fallback = "None") => {
-  return Array.isArray(arr) && arr.length > 0 ? arr.join(", ") : fallback;
+  if (!Array.isArray(arr) || arr.length === 0) return fallback;
+  const sanitized = arr
+    .map(item => sanitizePromptInput(item, ""))
+    .filter(item => item !== "" && item !== "N/A");
+  return sanitized.length > 0 ? sanitized.join(", ") : fallback;
+};
+
+const sanitizeObjectForPrompt = (obj, depth = 0, seen = new WeakSet()) => {
+  if (depth > 6) return "[MAX_DEPTH_EXCEEDED]";
+  if (obj === null || obj === undefined) return obj;
+  if (typeof obj === 'string') return sanitizePromptInput(obj, "");
+  if (typeof obj === 'number' || typeof obj === 'boolean') return obj;
+  if (typeof obj !== 'object') return null;
+
+  if (seen.has(obj)) return "[CIRCULAR_REFERENCE]";
+  seen.add(obj);
+
+  if (Array.isArray(obj)) {
+    return obj.map(item => sanitizeObjectForPrompt(item, depth + 1, seen));
+  }
+
+  const cleaned = {};
+  const keys = Object.getOwnPropertyNames(obj);
+  for (const key of keys) {
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
+    const cleanKey = sanitizePromptInput(key, "param");
+    cleaned[cleanKey] = sanitizeObjectForPrompt(obj[key], depth + 1, seen);
+  }
+  return cleaned;
 };
 
 const safeStringify = (obj, fallback = "{}") => {
   if (!obj || typeof obj !== 'object') return fallback;
   try {
-    return JSON.stringify(obj);
+    const sanitizedObj = sanitizeObjectForPrompt(obj);
+    return JSON.stringify(sanitizedObj);
   } catch (e) {
     return fallback;
   }
@@ -71,38 +168,50 @@ TONE:
 export const buildMealPlanPrompt = (userProfile = EMPTY_OBJECT) => {
   const profile = userProfile || EMPTY_OBJECT;
   const {
-    age = "N/A",
-    gender = "N/A",
-    weight = "N/A",
-    height = "N/A",
-    goal = "General Fitness",
+    age,
+    gender,
+    weight,
+    height,
+    goal,
     dietaryRestrictions,
     allergies,
     cuisinePreferences,
-    tdee = "N/A",
-    proteinTarget = "N/A",
-    carbsTarget = "N/A",
-    fatTarget = "N/A",
-    activityLevel = "Moderate",
-    experienceLevel = "Intermediate"
+    tdee,
+    proteinTarget,
+    carbsTarget,
+    fatTarget,
+    activityLevel,
+    experienceLevel
   } = profile;
+
+  const ageVal = sanitizePromptInput(age, "N/A");
+  const genderVal = sanitizePromptInput(gender, "N/A");
+  const weightVal = sanitizePromptInput(weight, "N/A");
+  const heightVal = sanitizePromptInput(height, "N/A");
+  const goalVal = sanitizePromptInput(goal, "General Fitness");
+  const activityLevelVal = sanitizePromptInput(activityLevel, "Moderate");
+  const experienceLevelVal = sanitizePromptInput(experienceLevel, "Intermediate");
+  const tdeeVal = sanitizePromptInput(tdee, "N/A");
+  const proteinTargetVal = sanitizePromptInput(proteinTarget, "N/A");
+  const carbsTargetVal = sanitizePromptInput(carbsTarget, "N/A");
+  const fatTargetVal = sanitizePromptInput(fatTarget, "N/A");
 
   return `You are a professional sports nutritionist and meal planner for the VORO fitness app.
 
 USER PROFILE:
-- Age: ${age} years old
-- Gender: ${gender}
-- Weight: ${weight}kg
-- Height: ${height}cm
-- Goal: ${goal}
-- Activity Level: ${activityLevel}
-- Experience: ${experienceLevel}
+- Age: ${ageVal} years old
+- Gender: ${genderVal}
+- Weight: ${weightVal}kg
+- Height: ${heightVal}cm
+- Goal: ${goalVal}
+- Activity Level: ${activityLevelVal}
+- Experience: ${experienceLevelVal}
 
 NUTRITIONAL TARGETS:
-- Daily Calories: ${tdee}
-- Protein: ${proteinTarget}g
-- Carbohydrates: ${carbsTarget}g
-- Fat: ${fatTarget}g
+- Daily Calories: ${tdeeVal}
+- Protein: ${proteinTargetVal}g
+- Carbohydrates: ${carbsTargetVal}g
+- Fat: ${fatTargetVal}g
 
 PREFERENCES & RESTRICTIONS:
 - Dietary Restrictions: ${safeJoin(dietaryRestrictions, "None")}
@@ -128,11 +237,11 @@ Format your response as a structured JSON with daily meals, total macros, and sh
 export const buildTrainingPlanPrompt = (userProfile = EMPTY_OBJECT) => {
   const profile = userProfile || EMPTY_OBJECT;
   const {
-    age = "N/A",
-    gender = "N/A",
-    weight = "N/A",
-    goal = "General Fitness",
-    experienceLevel = "Intermediate",
+    age,
+    gender,
+    weight,
+    goal,
+    experienceLevel,
     availableDays = 4,
     sessionDuration = 60,
     injuries,
@@ -141,16 +250,24 @@ export const buildTrainingPlanPrompt = (userProfile = EMPTY_OBJECT) => {
     preferences
   } = profile;
 
+  const ageVal = sanitizePromptInput(age, "N/A");
+  const genderVal = sanitizePromptInput(gender, "N/A");
+  const weightVal = sanitizePromptInput(weight, "N/A");
+  const goalVal = sanitizePromptInput(goal, "General Fitness");
+  const experienceLevelVal = sanitizePromptInput(experienceLevel, "Intermediate");
+  const availableDaysVal = sanitizePromptInput(availableDays, "4");
+  const sessionDurationVal = sanitizePromptInput(sessionDuration, "60");
+
   return `You are a certified strength and conditioning coach for the VORO fitness app.
 
 USER PROFILE:
-- Age: ${age} years old
-- Gender: ${gender}
-- Weight: ${weight}kg
-- Goal: ${goal}
-- Experience: ${experienceLevel}
-- Available Training Days: ${availableDays} per week
-- Session Duration: ${sessionDuration} minutes
+- Age: ${ageVal} years old
+- Gender: ${genderVal}
+- Weight: ${weightVal}kg
+- Goal: ${goalVal}
+- Experience: ${experienceLevelVal}
+- Available Training Days: ${availableDaysVal} per week
+- Session Duration: ${sessionDurationVal} minutes
 - Current Strength Levels: ${safeStringify(currentStrength)}
 
 CONSTRAINTS:
@@ -177,21 +294,25 @@ Format your response as a structured 4-week training block with daily workouts, 
 export const buildCoachPrompt = (userProfile = EMPTY_OBJECT) => {
   const profile = userProfile || EMPTY_OBJECT;
   const {
-    age = "N/A",
-    goal = "General Fitness",
+    age,
+    goal,
     recentChallenges,
     achievements,
     consistencyLevel = 5
   } = profile;
 
+  const ageVal = sanitizePromptInput(age, "N/A");
+  const goalVal = sanitizePromptInput(goal, "General Fitness");
+  const consistencyLevelVal = sanitizePromptInput(consistencyLevel, "5");
+
   return `You are a motivational fitness coach and accountability partner for the VORO fitness app.
 
 USER CONTEXT:
-- Age: ${age}
-- Goal: ${goal}
+- Age: ${ageVal}
+- Goal: ${goalVal}
 - Recent Achievements: ${safeJoin(achievements, "Just starting")}
 - Current Challenges: ${safeJoin(recentChallenges, "Maintaining consistency")}
-- Consistency Level: ${consistencyLevel}/10
+- Consistency Level: ${consistencyLevelVal}/10
 
 INSTRUCTIONS:
 1. Provide personalized, motivational coaching feedback
@@ -213,16 +334,19 @@ export const buildNutritionAnalysisPrompt = (userProfile = EMPTY_OBJECT) => {
   const profile = userProfile || EMPTY_OBJECT;
   const {
     recentDays,
-    tdee = "N/A",
-    goals = "General Nutrition",
+    tdee,
+    goals,
     concerns
   } = profile;
+
+  const tdeeVal = sanitizePromptInput(tdee, "N/A");
+  const goalsVal = sanitizePromptInput(goals, "General Nutrition");
 
   return `You are a registered dietitian analyzing nutrition data for the VORO fitness app.
 
 USER CONTEXT:
-- Daily Target Calories: ${tdee}
-- Fitness Goals: ${goals}
+- Daily Target Calories: ${tdeeVal}
+- Fitness Goals: ${goalsVal}
 - Health Concerns: ${safeJoin(concerns, "None")}
 
 RECENT NUTRITION DATA:
@@ -248,15 +372,18 @@ export const buildBodyCompositionPrompt = (userProfile = EMPTY_OBJECT) => {
   const profile = userProfile || EMPTY_OBJECT;
   const {
     measurements,
-    goal = "Recomposition",
-    timeline = "12 weeks"
+    goal,
+    timeline
   } = profile;
+
+  const goalVal = sanitizePromptInput(goal, "Recomposition");
+  const timelineVal = sanitizePromptInput(timeline, "12 weeks");
 
   return `You are a body composition specialist using the VORO fitness app data.
 
 USER CONTEXT:
-- Goal: ${goal}
-- Timeline: ${timeline}
+- Goal: ${goalVal}
+- Timeline: ${timelineVal}
 - Measurement History: ${safeStringify(measurements, "[]")}
 
 INSTRUCTIONS:
@@ -281,8 +408,10 @@ export const buildInjuryPreventionPrompt = (userProfile = EMPTY_OBJECT) => {
     pastInjuries,
     currentPainAreas,
     movementPatterns,
-    workloadTrend = "Stable"
+    workloadTrend
   } = profile;
+
+  const workloadTrendVal = sanitizePromptInput(workloadTrend, "Stable");
 
   return `You are a sports medicine professional advising on injury prevention for the VORO fitness app.
 
@@ -290,7 +419,7 @@ USER CONTEXT:
 - Past Injuries: ${safeJoin(pastInjuries, "None")}
 - Current Pain/Issues: ${safeJoin(currentPainAreas, "None")}
 - Movement Quality: ${safeStringify(movementPatterns)}
-- Workload Trend: ${workloadTrend}
+- Workload Trend: ${workloadTrendVal}
 
 INSTRUCTIONS:
 1. Assess injury risk based on history and current status
@@ -311,20 +440,25 @@ Prioritize athlete safety and long-term health over short-term performance.`;
 export const buildCompetitionPrepPrompt = (userProfile = EMPTY_OBJECT) => {
   const profile = userProfile || EMPTY_OBJECT;
   const {
-    competitionDate = "TBD",
-    daysUntilCompetition = 30,
-    goal = "Peak Performance",
-    currentLevel = "Intermediate",
+    competitionDate,
+    daysUntilCompetition,
+    goal,
+    currentLevel,
     previousCompetitions
   } = profile;
+
+  const competitionDateVal = sanitizePromptInput(competitionDate, "TBD");
+  const daysUntilCompetitionVal = sanitizePromptInput(daysUntilCompetition, "30");
+  const goalVal = sanitizePromptInput(goal, "Peak Performance");
+  const currentLevelVal = sanitizePromptInput(currentLevel, "Intermediate");
 
   return `You are a competition preparation specialist for the VORO fitness app.
 
 COMPETITION DETAILS:
-- Date: ${competitionDate}
-- Days Until: ${daysUntilCompetition}
-- Goal: ${goal}
-- Current Level: ${currentLevel}
+- Date: ${competitionDateVal}
+- Days Until: ${daysUntilCompetitionVal}
+- Goal: ${goalVal}
+- Current Level: ${currentLevelVal}
 - Past Competition Experience: ${safeJoin(previousCompetitions, "").length > 0 ? "Yes" : "No"}
 
 INSTRUCTIONS:
@@ -346,23 +480,30 @@ Focus on peaking at the right time, managing fatigue, and confidence building.`;
 export const buildWellnessPrompt = (userProfile = EMPTY_OBJECT) => {
   const profile = userProfile || EMPTY_OBJECT;
   const {
-    stressLevel = 5,
-    sleepQuality = 7,
-    workoutFrequency = 3,
-    nutritionConsistency = 80,
-    mentalHealth = "Good",
-    goals = "Overall Health"
+    stressLevel,
+    sleepQuality,
+    workoutFrequency,
+    nutritionConsistency,
+    mentalHealth,
+    goals
   } = profile;
+
+  const stressLevelVal = sanitizePromptInput(stressLevel, "5");
+  const sleepQualityVal = sanitizePromptInput(sleepQuality, "7");
+  const workoutFrequencyVal = sanitizePromptInput(workoutFrequency, "3");
+  const nutritionConsistencyVal = sanitizePromptInput(nutritionConsistency, "80");
+  const mentalHealthVal = sanitizePromptInput(mentalHealth, "Good");
+  const goalsVal = sanitizePromptInput(goals, "Overall Health");
 
   return `You are a wellness and holistic health advisor for the VORO fitness app.
 
 USER WELLNESS PROFILE:
-- Stress Level: ${stressLevel}/10
-- Sleep Quality: ${sleepQuality}/10
-- Workout Consistency: ${workoutFrequency}/week
-- Nutrition Consistency: ${nutritionConsistency}%
-- Mental Health Status: ${mentalHealth}
-- Wellness Goals: ${goals}
+- Stress Level: ${stressLevelVal}/10
+- Sleep Quality: ${sleepQualityVal}/10
+- Workout Consistency: ${workoutFrequencyVal}/week
+- Nutrition Consistency: ${nutritionConsistencyVal}%
+- Mental Health Status: ${mentalHealthVal}
+- Wellness Goals: ${goalsVal}
 
 INSTRUCTIONS:
 1. Assess overall wellness balance
