@@ -197,5 +197,32 @@ if (isValidWaterAmount("500ml") || isValidWaterAmount("1e3")) {
 }
 console.log("✅ Success: Strict numeric validation against trailing string injections and scientific notation verified!");
 
+// 8. Test array length upper-bound validation checks
+console.log("🛡️ Test 8: Testing array length upper-bound validation checks against client-side DoS...");
+const oversizedExercisesWorkout = {
+  date: "2026-06-15",
+  exercises: Array.from({ length: 101 }, (_, i) => ({ name: `Exercise ${i}`, sets: [{ reps: 10, weight: 50 }] }))
+};
+if (validateWorkoutEntry(oversizedExercisesWorkout).valid) {
+  throw new Error("❌ Test 8 Failed: Oversized exercises array (>100 items) passed validation!");
+}
+
+const oversizedSetsWorkout = {
+  date: "2026-06-15",
+  exercises: [{ name: "Squats", sets: Array.from({ length: 101 }, () => ({ reps: 10, weight: 100 })) }]
+};
+if (validateWorkoutEntry(oversizedSetsWorkout).valid) {
+  throw new Error("❌ Test 8 Failed: Oversized sets array (>100 items) passed validation!");
+}
+
+const oversizedIngredientsRecipe = {
+  name: "Monster Stew",
+  ingredients: Array.from({ length: 101 }, (_, i) => ({ name: `Ingredient ${i}`, portion: 10 }))
+};
+if (validateRecipe(oversizedIngredientsRecipe).valid) {
+  throw new Error("❌ Test 8 Failed: Oversized ingredients array (>100 items) passed validation!");
+}
+console.log("✅ Success: Array length upper-bound validation checks against client-side DoS verified!");
+
 console.log("\n🎉 ALL ENTRY VALIDATION SECURITY HARDENING TESTS PASSED SUCCESSFULLY!");
 console.log("=========================================");

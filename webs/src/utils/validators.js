@@ -4258,6 +4258,9 @@ export const validateWorkoutEntry = (workout) => {
   if (Array.isArray(workout.exercises)) {
     if (workout.exercises.length === 0) {
       errors.exercises = "At least one exercise is required";
+    } else if (workout.exercises.length > 100) {
+      // Security: Enforce strict array length limits to prevent client-side DoS/memory bloat
+      errors.exercises = "Maximum 100 exercises allowed per workout session";
     } else {
       workout.exercises.forEach((ex, idx) => {
         if (!isNonNullObject(ex)) {
@@ -4270,14 +4273,19 @@ export const validateWorkoutEntry = (workout) => {
           errors[`exercise_${idx}_name`] = "Exercise name must be less than 100 characters";
         }
         if (Array.isArray(ex.sets)) {
-          ex.sets.forEach((set, setIdx) => {
-            if (!isNonNullObject(set)) {
-              errors[`exercise_${idx}_set_${setIdx}`] = "Invalid set object";
-              return;
-            }
-            if (!isValidReps(set.reps)) errors[`exercise_${idx}_set_${setIdx}_reps`] = "Reps must be between 1-100";
-            if (!isValidExerciseWeight(set.weight)) errors[`exercise_${idx}_set_${setIdx}_weight`] = "Weight must be between 0-1000kg";
-          });
+          if (ex.sets.length > 100) {
+            // Security: Enforce set count array limits to prevent client-side DoS/memory bloat
+            errors[`exercise_${idx}_sets`] = "Maximum 100 sets allowed per exercise";
+          } else {
+            ex.sets.forEach((set, setIdx) => {
+              if (!isNonNullObject(set)) {
+                errors[`exercise_${idx}_set_${setIdx}`] = "Invalid set object";
+                return;
+              }
+              if (!isValidReps(set.reps)) errors[`exercise_${idx}_set_${setIdx}_reps`] = "Reps must be between 1-100";
+              if (!isValidExerciseWeight(set.weight)) errors[`exercise_${idx}_set_${setIdx}_weight`] = "Weight must be between 0-1000kg";
+            });
+          }
         }
       });
     }
@@ -4392,6 +4400,9 @@ export const validateRecipe = (recipe) => {
 
   if (!Array.isArray(recipe.ingredients) || recipe.ingredients.length === 0) {
     errors.ingredients = "At least one ingredient is required";
+  } else if (recipe.ingredients.length > 100) {
+    // Security: Enforce ingredient array length limits to prevent client-side DoS/memory bloat
+    errors.ingredients = "Maximum 100 ingredients allowed per recipe";
   } else {
     recipe.ingredients.forEach((ing, idx) => {
       if (!isNonNullObject(ing)) {
