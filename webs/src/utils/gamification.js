@@ -300,28 +300,30 @@ export const checkChallengeCompletion = (challenge, userProgress) => {
 };
 
 // Get active challenges based on duration
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Zero-allocation imperative single-pass loop.
+ * Bypasses higher-order array `.filter()` closure allocations and removes redundant `new Date()`
+ * object instantiations inside the function body.
+ */
 export const getActiveChallenges = (allChallenges, filterType = "all") => {
-  const now = new Date();
-  const dayOfWeek = now.getDay();
-  const dateOfMonth = now.getDate();
+  if (!Array.isArray(allChallenges) || allChallenges.length === 0) return [];
 
-  return allChallenges.filter(challenge => {
-    if (filterType !== "all" && challenge.duration !== filterType) return false;
+  const result = [];
+  const len = allChallenges.length;
 
-    if (challenge.duration === "daily") return true;
+  for (let i = 0; i < len; i++) {
+    const challenge = allChallenges[i];
+    if (!challenge) continue;
 
-    if (challenge.duration === "weekly") {
-      // Weekly challenges refresh on Monday (day 1)
-      return true;
+    const duration = challenge.duration;
+    if (filterType !== "all" && duration !== filterType) continue;
+
+    if (duration === "daily" || duration === "weekly" || duration === "monthly") {
+      result.push(challenge);
     }
+  }
 
-    if (challenge.duration === "monthly") {
-      // Monthly challenges refresh on 1st of month
-      return true;
-    }
-
-    return false;
-  });
+  return result;
 };
 
 // Calculate rewards for multiple achievements/challenges
