@@ -193,8 +193,9 @@ const Settings = () => {
                   <button
                     id={themeId}
                     onClick={toggleTheme}
-                    className="w-14 h-14 flex items-center justify-center bg-white/[0.02] border border-white/5 rounded-2xl hover:border-voro-primary/40 hover:bg-voro-primary/5 transition-all active:scale-90 outline-none"
+                    className="w-14 h-14 flex items-center justify-center bg-white/[0.02] border border-white/5 rounded-2xl hover:border-voro-primary/40 hover:bg-voro-primary/5 transition-all active:scale-90 outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14]"
                     aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                    title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
                   >
                     {theme === 'dark' ? (
                       <Moon size={20} className="text-voro-primary" />
