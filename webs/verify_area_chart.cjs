@@ -21,7 +21,7 @@ const checks = [
   { name: "W3C APG keyboard accessibility attributes (role=region, tabIndex=0)", pattern: /role="region"[\s\S]*tabIndex=\{0\}/ },
   { name: "W3C APG static 4.0° focus tilt fallback", pattern: /setProperty\('--tilt-x',\s*'4\.00deg'\)/ },
   { name: "CustomTooltip with Playfair Display italic serif hero typography", pattern: /font-serif italic font-medium text-white/ },
-  { name: "Multi-series linear area gradients and glow filters in SVG defs", pattern: /filter id=\{\`glow-area-/ }
+  { name: "React.memo-wrapped AreaLegend subcomponent for zero-allocation legend rendering", pattern: /AreaLegend\s*=\s*memo/ }
 ];
 
 let passed = 0;
