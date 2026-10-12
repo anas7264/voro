@@ -48,7 +48,7 @@ const ProcuredResourceCard = React.memo(({ item, index, onToggle, onDelete, node
     };
   }, []);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -67,17 +67,17 @@ const ProcuredResourceCard = React.memo(({ item, index, onToggle, onDelete, node
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
-  };
+  }, []);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     isHoveredRef.current = true;
     if (containerRef.current) {
       containerRef.current.style.transition = 'none';
       containerRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
     }
-  };
+  }, []);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
@@ -89,9 +89,9 @@ const ProcuredResourceCard = React.memo(({ item, index, onToggle, onDelete, node
         containerRef.current.style.setProperty('--tilt-y', '0deg');
       }
     }
-  };
+  }, []);
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     isFocusedRef.current = true;
     if (containerRef.current) {
       containerRef.current.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
@@ -102,9 +102,9 @@ const ProcuredResourceCard = React.memo(({ item, index, onToggle, onDelete, node
       if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     }
-  };
+  }, []);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
     if (containerRef.current && !isHoveredRef.current) {
       containerRef.current.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
@@ -117,9 +117,9 @@ const ProcuredResourceCard = React.memo(({ item, index, onToggle, onDelete, node
       setIsPurging(false);
       if (purgeTimerRef.current) clearTimeout(purgeTimerRef.current);
     }
-  };
+  }, [isPurging]);
 
-  const handlePurgeClick = (e) => {
+  const handlePurgeClick = useCallback((e) => {
     e.stopPropagation();
     if (isPurging) {
       // Confirmed delete
@@ -132,7 +132,7 @@ const ProcuredResourceCard = React.memo(({ item, index, onToggle, onDelete, node
         setIsPurging(false);
       }, 3000);
     }
-  };
+  }, [isPurging, onDelete, item.id]);
 
   return (
     <div
@@ -242,7 +242,7 @@ const ShoppingList = () => {
    * re-render cycles when unrelated keys update.
    */
   const shoppingList = useStorageKeySelector('shopping_list', selectShoppingList);
-  const { setItem } = useStorageMethods();
+  const { getItem, setItem } = useStorageMethods();
 
   const [inputValue, setInputValue] = useState('');
   const [activeLogIndex, setActiveLogIndex] = useState(0);
@@ -295,22 +295,30 @@ const ShoppingList = () => {
 
   const handleAddItem = async () => {
     if (!inputValue.trim()) return;
-    const updated = [...shoppingList, { id: Date.now(), text: inputValue.trim(), checked: false }];
+    const currentList = getItem('shopping_list') || [];
+    const updated = [...currentList, { id: Date.now(), text: inputValue.trim(), checked: false }];
     await setItem('shopping_list', updated);
     setInputValue('');
   };
 
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Synchronous Storage State Access.
+   * Reads the current 'shopping_list' array via `getItem` synchronously inside `useCallback`,
+   * removing the volatile `shoppingList` dependency to preserve referential stability.
+   */
   const handleToggleItem = useCallback(async (id) => {
-    const updated = shoppingList.map(item =>
+    const currentList = getItem('shopping_list') || [];
+    const updated = currentList.map(item =>
       item.id === id ? { ...item, checked: !item.checked } : item
     );
     await setItem('shopping_list', updated);
-  }, [shoppingList, setItem]);
+  }, [getItem, setItem]);
 
   const handleDeleteItem = useCallback(async (id) => {
-    const updated = shoppingList.filter(item => item.id !== id);
+    const currentList = getItem('shopping_list') || [];
+    const updated = currentList.filter(item => item.id !== id);
     await setItem('shopping_list', updated);
-  }, [shoppingList, setItem]);
+  }, [getItem, setItem]);
 
   // Global Purge confirmation flow
   const initiateGlobalPurge = () => {

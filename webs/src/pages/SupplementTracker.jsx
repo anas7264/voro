@@ -95,7 +95,7 @@ const CatalogItem = memo(({ supp, onAdd }) => {
   const tyRef = useRef(null);
   const isFocusedRef = useRef(false);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -115,9 +115,9 @@ const CatalogItem = memo(({ supp, onAdd }) => {
 
     if (txRef.current) txRef.current.innerText = tiltX.toFixed(1);
     if (tyRef.current) tyRef.current.innerText = tiltY.toFixed(1);
-  };
+  }, []);
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     isFocusedRef.current = true;
     if (cardRef.current) {
       cardRef.current.style.setProperty('--tilt-x', '4deg');
@@ -127,9 +127,9 @@ const CatalogItem = memo(({ supp, onAdd }) => {
       if (txRef.current) txRef.current.innerText = "4.0";
       if (tyRef.current) tyRef.current.innerText = "-4.0";
     }
-  };
+  }, []);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
     if (cardRef.current) {
       cardRef.current.style.setProperty('--tilt-x', '0deg');
@@ -137,7 +137,7 @@ const CatalogItem = memo(({ supp, onAdd }) => {
       cardRef.current.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg)';
       cardRef.current.style.transition = 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)';
     }
-  };
+  }, []);
 
   const displayDosage = supp.servingSize
     ? `${supp.servingSize} ${supp.servingSizeUnit || ''}`
@@ -231,7 +231,7 @@ const ActiveProtocolCard = memo(({ supp, index, onRemove }) => {
     };
   }, []);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -248,17 +248,17 @@ const ActiveProtocolCard = memo(({ supp, index, onRemove }) => {
 
     if (txRef.current) txRef.current.innerText = tiltX.toFixed(1);
     if (tyRef.current) tyRef.current.innerText = tiltY.toFixed(1);
-  };
+  }, []);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     isHoveredRef.current = true;
     if (cardRef.current) {
       cardRef.current.style.transition = 'none';
       cardRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
     }
-  };
+  }, []);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
     if (cardRef.current) {
       cardRef.current.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
@@ -270,9 +270,9 @@ const ActiveProtocolCard = memo(({ supp, index, onRemove }) => {
         cardRef.current.style.setProperty('--tilt-y', '0deg');
       }
     }
-  };
+  }, []);
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     isFocusedRef.current = true;
     if (cardRef.current) {
       cardRef.current.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
@@ -282,9 +282,9 @@ const ActiveProtocolCard = memo(({ supp, index, onRemove }) => {
       if (txRef.current) txRef.current.innerText = "4.0";
       if (tyRef.current) tyRef.current.innerText = "-4.0";
     }
-  };
+  }, []);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
     if (cardRef.current && !isHoveredRef.current) {
       cardRef.current.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
@@ -296,9 +296,9 @@ const ActiveProtocolCard = memo(({ supp, index, onRemove }) => {
       setIsPurging(false);
       if (purgeTimerRef.current) clearTimeout(purgeTimerRef.current);
     }
-  };
+  }, [isPurging]);
 
-  const handlePurgeClick = (e) => {
+  const handlePurgeClick = useCallback((e) => {
     e.stopPropagation();
     if (isPurging) {
       if (purgeTimerRef.current) clearTimeout(purgeTimerRef.current);
@@ -309,7 +309,7 @@ const ActiveProtocolCard = memo(({ supp, index, onRemove }) => {
         setIsPurging(false);
       }, 3000);
     }
-  };
+  }, [isPurging, onRemove, supp.id]);
 
   const displayDosage = supp.servingSize
     ? `${supp.servingSize} ${supp.servingSizeUnit || ''}`

@@ -34,8 +34,9 @@ const sortPhotosByDate = (a, b) => {
  * A masterfully detailed glassmorphic image comparison tool.
  */
 const SpectralLens = ({ before, after, onClose }) => {
-  const [sliderPos, setSliderPos] = useState(50);
   const containerRef = useRef(null);
+  const dividerRef = useRef(null);
+  const clippedLayerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
   const rIdRef = useRef(null);
@@ -54,9 +55,14 @@ const SpectralLens = ({ before, after, onClose }) => {
     }
 
     rIdRef.current = requestAnimationFrame(() => {
-      setSliderPos(clampedPos);
+      if (dividerRef.current) {
+        dividerRef.current.style.left = `${clampedPos}%`;
+      }
+      if (clippedLayerRef.current) {
+        clippedLayerRef.current.style.clipPath = `inset(0 ${100 - clampedPos}% 0 0)`;
+      }
       if (containerRef.current) {
-        // Also update local custom CSS variables for tilt coordinate telemetry based on mouse cursor position
+        // Direct DOM update for tilt coordinate telemetry based on cursor position
         const y = e.clientY || (e.touches && e.touches[0].clientY) || 0;
         const relativeX = clientX - rect.left;
         const relativeY = y - rect.top;
@@ -108,8 +114,9 @@ const SpectralLens = ({ before, after, onClose }) => {
 
       {/* Before image layer clipped dynamically */}
       <div
+        ref={clippedLayerRef}
         className="absolute inset-0 z-20 overflow-hidden select-none"
-        style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }}
+        style={{ clipPath: 'inset(0 50% 0 0)' }}
       >
         <img src={before.src} alt="Before Evolution" className="absolute inset-0 w-full h-full object-cover select-none" />
         <div className="absolute bottom-10 left-14">
@@ -122,8 +129,9 @@ const SpectralLens = ({ before, after, onClose }) => {
 
       {/* Center sliding divider handle */}
       <div
+        ref={dividerRef}
         className="absolute top-0 bottom-0 z-30 w-0.5 bg-white/20 cursor-ew-resize group-hover/lens:bg-voro-primary transition-colors duration-500"
-        style={{ left: `${sliderPos}%` }}
+        style={{ left: '50%' }}
         onMouseDown={() => {
           const up = () => {
             window.removeEventListener('mousemove', handleMove);
@@ -196,16 +204,16 @@ const KineticPhotoNode = React.memo(({ photo, isSelected, onClick, onDelete, isS
   const [showPurgeConfirm, setShowPurgeConfirm] = useState(false);
   const timeoutRef = useRef(null);
 
-  const updateTransform = () => {
+  const updateTransform = useCallback(() => {
     if (!containerRef.current) return;
     const active = isHoveredRef.current || isFocusedRef.current;
     containerRef.current.style.transform = active
       ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-6px)'
       : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
     containerRef.current.style.transition = isHoveredRef.current ? 'none' : 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s';
-  };
+  }, []);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -224,23 +232,23 @@ const KineticPhotoNode = React.memo(({ photo, isSelected, onClick, onDelete, isS
     if (isHoveredRef.current || isFocusedRef.current) {
       updateTransform();
     }
-  };
+  }, [updateTransform]);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     isHoveredRef.current = true;
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     isFocusedRef.current = true;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '4deg');
@@ -249,25 +257,25 @@ const KineticPhotoNode = React.memo(({ photo, isSelected, onClick, onDelete, isS
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = useCallback((e) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       onClick?.(e);
     }
-  };
+  }, [onClick]);
 
-  const startPurgeSequence = (e) => {
+  const startPurgeSequence = useCallback((e) => {
     e.stopPropagation();
     if (showPurgeConfirm) {
       onDelete(photo.id);
@@ -278,7 +286,7 @@ const KineticPhotoNode = React.memo(({ photo, isSelected, onClick, onDelete, isS
         setShowPurgeConfirm(false);
       }, 3000);
     }
-  };
+  }, [showPurgeConfirm, onDelete, photo.id]);
 
   useEffect(() => {
     return () => {
