@@ -53,7 +53,7 @@ const ChronoArchiveCard = React.memo(({ workout, isExpanded, onToggle, nodeId })
     onToggle(workout.date);
   }, [workout.date, onToggle]);
 
-  const updateTransform = () => {
+  const updateTransform = useCallback(() => {
     if (!containerRef.current) return;
     const active = isHoveredRef.current || isFocusedRef.current;
     if (active) {
@@ -63,9 +63,9 @@ const ChronoArchiveCard = React.memo(({ workout, isExpanded, onToggle, nodeId })
       containerRef.current.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
       containerRef.current.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
     }
-  };
+  }, []);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -83,23 +83,23 @@ const ChronoArchiveCard = React.memo(({ workout, isExpanded, onToggle, nodeId })
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     isHoveredRef.current = true;
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     isFocusedRef.current = true;
     if (containerRef.current) {
       // 4-degree static tilt on focus for accessibility compliance
@@ -109,16 +109,16 @@ const ChronoArchiveCard = React.memo(({ workout, isExpanded, onToggle, nodeId })
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
   /**
    * ⚡ PERFORMANCE OPTIMIZATION: Zero-allocation session tonnage calculation.
