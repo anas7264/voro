@@ -21,7 +21,8 @@ import {
   Shield,
   Star,
   Camera,
-  Lock
+  Lock,
+  Sparkles
 } from "lucide-react";
 
 /**
@@ -31,7 +32,7 @@ import {
 const IconMap = Object.freeze({
   Target, Zap, Sun, Droplets, Leaf, Flame, Moon, Heart, Coffee,
   Apple, Pill, Footprints, Activity, Calculator, Trophy, Gauge,
-  Utensils, TrendingUp, Shield, Star, Camera, Lock
+  Utensils, TrendingUp, Shield, Star, Camera, Lock, Sparkles
 });
 
 /**
@@ -45,28 +46,32 @@ const DIFFICULTY_STYLES = Object.freeze({
     text: "text-emerald-400",
     border: "border-emerald-500/20",
     accent: "bg-emerald-500",
-    perimeter: "rgba(16, 185, 129, 0.4)"
+    perimeter: "rgba(16, 185, 129, 0.45)",
+    badgeBg: "bg-emerald-500/10 border-emerald-500/20"
   }),
   Intermediate: Object.freeze({
     glow: "#7C3AED", // Primary (Violet)
     text: "text-voro-primary-light",
     border: "border-voro-primary/20",
     accent: "bg-voro-primary",
-    perimeter: "rgba(124, 58, 237, 0.4)"
+    perimeter: "rgba(124, 58, 237, 0.45)",
+    badgeBg: "bg-voro-primary/10 border-voro-primary/20"
   }),
   Advanced: Object.freeze({
     glow: "#F97316", // Orange
     text: "text-orange-400",
     border: "border-orange-500/20",
     accent: "bg-orange-500",
-    perimeter: "rgba(249, 115, 22, 0.4)"
+    perimeter: "rgba(249, 115, 22, 0.45)",
+    badgeBg: "bg-orange-500/10 border-orange-500/20"
   }),
   Legendary: Object.freeze({
-    glow: "#EAB308", // Yellow
+    glow: "#EAB308", // Yellow / Gold
     text: "text-yellow-400",
     border: "border-yellow-500/20",
     accent: "bg-yellow-500",
-    perimeter: "rgba(234, 179, 8, 0.4)"
+    perimeter: "rgba(234, 179, 8, 0.45)",
+    badgeBg: "bg-yellow-500/10 border-yellow-500/20"
   })
 });
 
@@ -74,15 +79,18 @@ const DIFFICULTY_STYLES = Object.freeze({
  * ⚡ MASTERCLASS REFINEMENT: ChallengeCard ('Kinetic Strategic Objective Artifact Node').
  * Re-engineered to Voro's 'Forge' luxury architecture and zero-allocation performance standards.
  * Features direct-DOM 60fps 3D volumetric rotational tilt, magnetic liquid border perimeter illumination,
- * live holographic spatial coordinate telemetry, SSR-safe deterministic sub-pixel attestation hash badging,
- * state-aware micro-UX tooltips, defensive null safety, and W3C APG compliant keyboard focus physics.
+ * prismatic refraction mix-blend overlay, holographic spatial coordinate telemetry,
+ * SSR-safe deterministic sub-pixel attestation hash badging (`0xCHL_...`), state-aware micro-UX tooltips,
+ * defensive null safety, and W3C APG compliant keyboard focus physics.
  *
- * DESIGN PHILOSOPHY:
- * 1. Authority: Charcoal box-model enclave (#0A0C14) reflecting high-value biometric objectives.
- * 2. Precision: Playfair Display italic serif headings paired with JetBrains Mono system telemetry.
- * 3. Motion: Direct-DOM 60fps 3D volumetric hover tilts bypassing React render passes.
- * 4. Spatial: Golden ratio padding and mathematical whitespace letting typography breathe.
- * 5. Accessibility: APG keyboard activation via Enter/Space and focus physics.
+ * DESIGN PHILOSOPHY & PSYCHOLOGICAL RATIONALE:
+ * 1. Authority & Visual Distinction: Charcoal box-model enclave (#0A0C14) combined with difficulty-tuned chromatic perimeter gradients
+ *    creates an immediate sense of high-value biological questing and elite performance tracking.
+ * 2. Precision & Sub-pixel Authenticity: Playfair Display italic serif headings paired with JetBrains Mono monospaced telemetry markers
+ *    convey gallery-grade authority and scientific rigor.
+ * 3. High-End Motion & Tactile Depth: Direct-DOM 60fps 3D volumetric hover tilt with internal prismatic refraction layers
+ *    delivers real-time specular feedback without React state re-render churn.
+ * 4. Spatial Architecture: Golden ratio padding (`p-8 md:p-10`) lets typography breathe, reducing cognitive load and visual noise.
  */
 export const ChallengeCard = memo(({ challenge, progress = 0, completed = false, onClaim }) => {
   const safeChallenge = challenge || {};
@@ -112,8 +120,8 @@ export const ChallengeCard = memo(({ challenge, progress = 0, completed = false,
 
   const subpixelHash = useMemo(() => {
     const cleanId = reactId.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-    return `0xCHL_${cleanId.slice(-4).padStart(4, '0')}`;
-  }, [reactId]);
+    return `0xCHL_${cleanId.slice(-4).padStart(4, '0')}_${completed ? 'MANIFESTED' : 'ACTIVE'}`;
+  }, [reactId, completed]);
 
   // Micro-UX state-aware tooltips
   const cardTitle = completed
@@ -143,6 +151,8 @@ export const ChallengeCard = memo(({ challenge, progress = 0, completed = false,
     elStyle.setProperty('--mouse-y', `${y.toFixed(1)}px`);
     elStyle.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
     elStyle.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
+    elStyle.setProperty('--refract-x', `${(tiltY * 0.3).toFixed(2)}px`);
+    elStyle.setProperty('--refract-y', `${(-tiltX * 0.3).toFixed(2)}px`);
     elStyle.setProperty('transform', `perspective(1000px) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg) translateY(-4px)`);
     elStyle.setProperty('transition', 'none');
 
@@ -162,6 +172,8 @@ export const ChallengeCard = memo(({ challenge, progress = 0, completed = false,
     if (isFocusedRef.current) {
       elStyle.setProperty('--tilt-x', '4.00deg');
       elStyle.setProperty('--tilt-y', '-4.00deg');
+      elStyle.setProperty('--refract-x', '-2px');
+      elStyle.setProperty('--refract-y', '-2px');
       elStyle.setProperty('transform', 'perspective(1000px) rotateX(4deg) rotateY(-4deg) translateY(-2px)');
       elStyle.setProperty('transition', 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)');
       if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
@@ -169,6 +181,8 @@ export const ChallengeCard = memo(({ challenge, progress = 0, completed = false,
     } else {
       elStyle.setProperty('--tilt-x', '0deg');
       elStyle.setProperty('--tilt-y', '0deg');
+      elStyle.setProperty('--refract-x', '0px');
+      elStyle.setProperty('--refract-y', '0px');
       elStyle.setProperty('transform', 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)');
       elStyle.setProperty('transition', 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)');
       if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
@@ -183,6 +197,8 @@ export const ChallengeCard = memo(({ challenge, progress = 0, completed = false,
     const elStyle = containerRef.current.style;
     elStyle.setProperty('--tilt-x', '4.00deg');
     elStyle.setProperty('--tilt-y', '-4.00deg');
+    elStyle.setProperty('--refract-x', '-2px');
+    elStyle.setProperty('--refract-y', '-2px');
     elStyle.setProperty('transform', 'perspective(1000px) rotateX(4deg) rotateY(-4deg) translateY(-2px)');
     elStyle.setProperty('transition', 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)');
     if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
@@ -197,6 +213,8 @@ export const ChallengeCard = memo(({ challenge, progress = 0, completed = false,
       const elStyle = containerRef.current.style;
       elStyle.setProperty('--tilt-x', '0deg');
       elStyle.setProperty('--tilt-y', '0deg');
+      elStyle.setProperty('--refract-x', '0px');
+      elStyle.setProperty('--refract-y', '0px');
       elStyle.setProperty('transform', 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)');
       elStyle.setProperty('transition', 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)');
       if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
@@ -236,7 +254,7 @@ export const ChallengeCard = memo(({ challenge, progress = 0, completed = false,
         hover:border-white/20 hover:shadow-[0_40px_80px_rgba(0,0,0,0.8)]
         focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408] outline-none
         group/chal flex flex-col h-full overflow-hidden cursor-pointer
-        ${completed ? "border-emerald-500/30 shadow-[0_20px_50px_rgba(16,185,129,0.1)]" : ""}
+        ${completed ? "border-emerald-500/30 shadow-[0_20px_50px_rgba(16,185,129,0.15)]" : ""}
       `}
     >
       {/* 🛰️ Liquid Border Intelligence: Reactive perimeter illumination */}
@@ -256,6 +274,15 @@ export const ChallengeCard = memo(({ challenge, progress = 0, completed = false,
       <div aria-hidden="true" className="absolute inset-0 rounded-[2.5rem] overflow-hidden pointer-events-none">
         <div className="absolute inset-0 bg-grid-white opacity-0 group-hover/chal:opacity-100 group-focus-visible/chal:opacity-100 transition-opacity duration-1000" style={{ transform: 'translateZ(10px)' }} />
         <div className="absolute inset-0 bg-boutique-grain opacity-[0.02]" />
+
+        {/* Dynamic Prismatic Refraction Layer */}
+        <div
+          className="absolute -inset-2 opacity-0 group-hover/chal:opacity-30 transition-opacity duration-700 blur-[2px] mix-blend-overlay"
+          style={{
+            background: `linear-gradient(var(--tilt-x, 0deg), transparent, ${style.glow}33, transparent)`,
+            transform: `translate3d(var(--refract-x, 0px), var(--refract-y, 0px), 15px)`
+          }}
+        />
 
         {/* Dynamic Luminous Lens Spotlight */}
         <div
@@ -308,6 +335,9 @@ export const ChallengeCard = memo(({ challenge, progress = 0, completed = false,
             `}>
               <div aria-hidden="true" className="absolute inset-0 opacity-[0.05] bg-scanline pointer-events-none" />
               <Icon size={24} className={`${completed ? "text-emerald-400" : "text-gray-400"} group-hover/chal:text-white transition-colors duration-500 relative z-10`} />
+              {completed && (
+                <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#10B981] animate-ping" />
+              )}
             </div>
 
             <div className="space-y-1">
@@ -327,15 +357,15 @@ export const ChallengeCard = memo(({ challenge, progress = 0, completed = false,
           </div>
 
           <div className="flex flex-col items-end gap-1" style={{ transform: 'translateZ(30px)' }}>
-            <div className="flex items-center gap-2 px-4 py-1.5 bg-white/[0.02] border border-white/5 rounded-full backdrop-blur-md transition-all group-hover/chal:bg-white/5">
-              <Zap size={12} className="text-voro-accent" />
+            <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full backdrop-blur-md transition-all group-hover/chal:scale-105 ${style.badgeBg}`}>
+              <Zap size={12} className={style.text} />
               <span className="text-[0.65rem] font-mono font-black text-white uppercase tracking-widest">
                 +{xpReward} <span className="text-gray-500">XP</span>
               </span>
             </div>
             {completed && (
-              <span className="text-[0.5rem] font-mono font-black text-emerald-400 uppercase tracking-[0.25em] mt-1 mr-2 animate-pulse">
-                Manifested
+              <span className="text-[0.5rem] font-mono font-black text-emerald-400 uppercase tracking-[0.25em] mt-1 mr-2 animate-pulse flex items-center gap-1">
+                <Sparkles size={10} /> Manifested
               </span>
             )}
           </div>
@@ -385,7 +415,7 @@ export const ChallengeCard = memo(({ challenge, progress = 0, completed = false,
                 }}
                 title={buttonTitle}
                 aria-label={percentage >= 100 ? `Claim reward for ${name}` : `Claim achievement for ${name}`}
-                className="flex-1 py-4 bg-white text-black rounded-2xl text-[0.6rem] font-mono font-black uppercase tracking-[0.3em] transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_40px_rgba(255,255,255,0.1)] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14] outline-none shadow-xl shadow-white/5 group/claim relative overflow-hidden"
+                className="flex-1 py-4 bg-white text-black rounded-2xl text-[0.6rem] font-mono font-black uppercase tracking-[0.3em] transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_40px_rgba(255,255,255,0.15)] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14] outline-none shadow-xl shadow-white/5 group/claim relative overflow-hidden"
               >
                 <div className="absolute inset-0 bg-gradient-to-tr from-voro-primary/20 via-transparent to-transparent opacity-0 group-hover/claim:opacity-100 transition-opacity" />
                 <span className="relative z-10">{percentage >= 100 ? 'Claim Rewards' : 'Claim Achievement'}</span>
@@ -393,9 +423,10 @@ export const ChallengeCard = memo(({ challenge, progress = 0, completed = false,
             ) : (
               <div
                 title={buttonTitle}
-                className="flex-1 py-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-[0.6rem] font-mono font-black uppercase tracking-[0.3em] text-emerald-400 text-center backdrop-blur-md"
+                className="flex-1 py-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-[0.6rem] font-mono font-black uppercase tracking-[0.3em] text-emerald-400 text-center backdrop-blur-md flex items-center justify-center gap-2"
               >
-                Protocol Success
+                <Sparkles size={12} className="animate-pulse" />
+                <span>Protocol Success</span>
               </div>
             )}
           </div>
