@@ -104,11 +104,15 @@ export const exportWeeklyReport = async (userData, workouts, nutrition) => {
   const doc = new DocClass();
   let yPosition = 10;
 
+  const safeUserData = userData && typeof userData === "object" ? userData : {};
+  const safeWorkouts = Array.isArray(workouts) ? workouts : [];
+  const safeNutrition = Array.isArray(nutrition) ? nutrition : [];
+
   // Sign report contents using SCAS (HMAC-SHA-256)
-  const serialized = JSON.stringify({ name: userData.name, workouts, nutrition });
+  const serialized = JSON.stringify({ name: safeUserData.name, workouts: safeWorkouts, nutrition: safeNutrition });
   doc.scasSignature = await generateSCAS("Weekly Report", serialized);
 
-  const sanitizedUserName = sanitizeInput(userData.name);
+  const sanitizedUserName = sanitizeInput(safeUserData.name || "User");
 
   // Header
   yPosition = addVOROHeader(doc, "Weekly Report", `${sanitizedUserName} - Week of ${new Date().toLocaleDateString()}`);
@@ -125,12 +129,19 @@ export const exportWeeklyReport = async (userData, workouts, nutrition) => {
   doc.setFontSize(11);
   doc.setTextColor(VORO_COLORS.text);
 
+  const totalDuration = safeWorkouts.reduce((a, w) => a + (w && Number.isFinite(w.duration) ? w.duration : 0), 0);
+  const totalVolume = safeWorkouts.reduce((a, w) => a + (w && Number.isFinite(w.volume) ? w.volume : 0), 0);
+  const loggedDays = safeNutrition.filter(n => n && n.logged).length;
+  const avgCalories = safeNutrition.length > 0
+    ? Math.round(safeNutrition.reduce((a, n) => a + (n && Number.isFinite(n.calories) ? n.calories : 0), 0) / safeNutrition.length)
+    : 0;
+
   const summaryData = [
-    ["Workouts Completed", workouts.length],
-    ["Total Duration", `${workouts.reduce((a, w) => a + w.duration, 0)} minutes`],
-    ["Total Volume", `${workouts.reduce((a, w) => a + (w.volume || 0), 0)} kg`],
-    ["Nutrition Days Logged", nutrition.filter(n => n.logged).length],
-    ["Average Calories", Math.round(nutrition.reduce((a, n) => a + n.calories, 0) / nutrition.length)]
+    ["Workouts Completed", safeWorkouts.length],
+    ["Total Duration", `${totalDuration} minutes`],
+    ["Total Volume", `${totalVolume} kg`],
+    ["Nutrition Days Logged", loggedDays],
+    ["Average Calories", avgCalories]
   ];
 
   summaryData.forEach(item => {
@@ -144,19 +155,19 @@ export const exportWeeklyReport = async (userData, workouts, nutrition) => {
   yPosition += 5;
 
   // Workouts Section
-  if (workouts.length > 0) {
+  if (safeWorkouts.length > 0) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
     doc.setTextColor(124, 58, 237);
     doc.text("Workouts", 15, yPosition);
     yPosition += 8;
 
-    const workoutData = workouts.map(w => [
-      new Date(w.date).toLocaleDateString(),
-      sanitizeInput(w.type),
-      w.duration,
-      w.volume || "-",
-      w.notes ? sanitizeInput(w.notes).substring(0, 20) + "..." : "-"
+    const workoutData = safeWorkouts.map(w => [
+      w && w.date ? new Date(w.date).toLocaleDateString() : "-",
+      sanitizeInput(w && w.type),
+      w && Number.isFinite(w.duration) ? w.duration : "-",
+      w && Number.isFinite(w.volume) ? w.volume : "-",
+      w && w.notes ? sanitizeInput(w.notes).substring(0, 20) + "..." : "-"
     ]);
 
     autoTable(doc, {
@@ -185,11 +196,16 @@ export const exportMonthlyReport = async (userData, allWorkouts, allNutrition, m
   const doc = new DocClass();
   let yPosition = 10;
 
+  const safeUserData = userData && typeof userData === "object" ? userData : {};
+  const safeWorkouts = Array.isArray(allWorkouts) ? allWorkouts : [];
+  const safeNutrition = Array.isArray(allNutrition) ? allNutrition : [];
+  const safeMetrics = metrics && typeof metrics === "object" ? metrics : {};
+
   // Sign report contents using SCAS (HMAC-SHA-256)
-  const serialized = JSON.stringify({ name: userData.name, allWorkouts, allNutrition, metrics });
+  const serialized = JSON.stringify({ name: safeUserData.name, allWorkouts: safeWorkouts, allNutrition: safeNutrition, metrics: safeMetrics });
   doc.scasSignature = await generateSCAS("Monthly Report", serialized);
 
-  const sanitizedUserName = sanitizeInput(userData.name);
+  const sanitizedUserName = sanitizeInput(safeUserData.name || "User");
 
   // Header
   yPosition = addVOROHeader(doc, "Monthly Report", `${sanitizedUserName} - ${new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}`);
@@ -206,13 +222,23 @@ export const exportMonthlyReport = async (userData, allWorkouts, allNutrition, m
   doc.setFontSize(11);
   doc.setTextColor(VORO_COLORS.text);
 
+  const avgDuration = safeWorkouts.length > 0
+    ? Math.round(safeWorkouts.reduce((a, w) => a + (w && Number.isFinite(w.duration) ? w.duration : 0), 0) / safeWorkouts.length)
+    : 0;
+  const totalVolume = safeWorkouts.reduce((a, w) => a + (w && Number.isFinite(w.volume) ? w.volume : 0), 0);
+  const wc = safeMetrics && Number.isFinite(safeMetrics.weightChange) ? safeMetrics.weightChange : 0;
+  const bfc = safeMetrics && Number.isFinite(safeMetrics.bodyFatChange) ? safeMetrics.bodyFatChange : 0;
+  const avgCalories = safeNutrition.length > 0
+    ? Math.round(safeNutrition.reduce((a, n) => a + (n && Number.isFinite(n.calories) ? n.calories : 0), 0) / safeNutrition.length)
+    : 0;
+
   const metricsData = [
-    ["Total Workouts", allWorkouts.length],
-    ["Average Workout Duration", Math.round(allWorkouts.reduce((a, w) => a + w.duration, 0) / allWorkouts.length) + " min"],
-    ["Total Training Volume", allWorkouts.reduce((a, w) => a + (w.volume || 0), 0) + " kg"],
-    ["Weight Change", `${metrics.weightChange > 0 ? "+" : ""}${metrics.weightChange.toFixed(1)} kg`],
-    ["Body Fat Change", `${metrics.bodyFatChange > 0 ? "+" : ""}${metrics.bodyFatChange.toFixed(1)}%`],
-    ["Average Daily Calories", Math.round(allNutrition.reduce((a, n) => a + n.calories, 0) / allNutrition.length)]
+    ["Total Workouts", safeWorkouts.length],
+    ["Average Workout Duration", `${avgDuration} min`],
+    ["Total Training Volume", `${totalVolume} kg`],
+    ["Weight Change", `${wc > 0 ? "+" : ""}${wc.toFixed(1)} kg`],
+    ["Body Fat Change", `${bfc > 0 ? "+" : ""}${bfc.toFixed(1)}%`],
+    ["Average Daily Calories", avgCalories]
   ];
 
   metricsData.forEach(item => {
@@ -235,8 +261,8 @@ export const exportMonthlyReport = async (userData, allWorkouts, allNutrition, m
   yPosition += 8;
 
   const workoutTypes = {};
-  allWorkouts.forEach(w => {
-    const type = sanitizeInput(w.type);
+  safeWorkouts.forEach(w => {
+    const type = sanitizeInput(w && w.type ? w.type : "Other");
     workoutTypes[type] = (workoutTypes[type] || 0) + 1;
   });
 

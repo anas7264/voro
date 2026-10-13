@@ -1,6 +1,6 @@
 // Security Verification Test: PDF Export & Download Lifecycle Security
 import './mock_window.js';
-import { sanitizeFilename, downloadPDF, savePDF, exportMealPlan } from './src/utils/pdfExport.js';
+import { sanitizeFilename, downloadPDF, savePDF, exportMealPlan, exportWeeklyReport, exportMonthlyReport } from './src/utils/pdfExport.js';
 
 console.log('=========================================');
 console.log('🧪 RUNNING SECURITY VERIFICATION: PDF EXPORT');
@@ -110,6 +110,31 @@ console.log('🛡️ Test 5: Verifying Blob URL revocation on exception in downl
   }
   assert(mealPlanExported, 'exportMealPlan should execute without error when sanitizing untrusted date inputs');
   console.log('✅ Success: exportMealPlan date sanitization verified.');
+
+  // Test 8: Verify exportWeeklyReport and exportMonthlyReport exception-immunity against divide-by-zero & null/missing metrics
+  console.log('🛡️ Test 8: Verifying exportWeeklyReport & exportMonthlyReport exception-immunity with empty/null parameters...');
+  let reportsGenerated = false;
+  try {
+    const weeklyDoc = await exportWeeklyReport(null, null, null);
+    assert(weeklyDoc !== null && typeof weeklyDoc === 'object', 'exportWeeklyReport should generate valid PDF with null parameters');
+
+    const monthlyDoc = await exportMonthlyReport(null, null, null, null);
+    assert(monthlyDoc !== null && typeof monthlyDoc === 'object', 'exportMonthlyReport should generate valid PDF with null parameters and missing metrics');
+
+    // Test with partial non-finite data structures
+    const weeklyDoc2 = await exportWeeklyReport({ name: "Alice" }, [{ duration: NaN, volume: undefined }], [{ calories: "invalid" }]);
+    assert(weeklyDoc2 !== null && typeof weeklyDoc2 === 'object', 'exportWeeklyReport should handle non-finite numeric properties without crashing');
+
+    const monthlyDoc2 = await exportMonthlyReport({ name: "Bob" }, [{ duration: "bad" }], [], { weightChange: undefined, bodyFatChange: null });
+    assert(monthlyDoc2 !== null && typeof monthlyDoc2 === 'object', 'exportMonthlyReport should handle missing metrics safely without crashing');
+
+    reportsGenerated = true;
+  } catch (err) {
+    console.error("Caught error in report export security test:", err);
+    reportsGenerated = false;
+  }
+  assert(reportsGenerated, 'exportWeeklyReport and exportMonthlyReport should execute without error on null, empty, or non-finite inputs');
+  console.log('✅ Success: exportWeeklyReport and exportMonthlyReport exception-immunity verified.');
 
   console.log('=========================================');
   console.log(`🎉 ALL ${testsPassed}/${testsTotal} PDF EXPORT SECURITY VERIFICATION TESTS PASSED SUCCESSFULLY!`);
