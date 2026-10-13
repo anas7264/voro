@@ -30,15 +30,20 @@ const MICRONUTRIENT_TIMING_RECOMMENDATIONS = Object.freeze({
 
 // Calculate nutrition score (0-100) based on macronutrient distribution
 export const calculateNutritionScore = (protein, carbs, fat, calories) => {
-  if (!calories || calories <= 0) return 0;
+  const cals = Number.isFinite(calories) && calories > 0 ? calories : 0;
+  if (cals <= 0) return 0;
 
-  const proteinCals = (protein || 0) * 4;
-  const carbsCals = (carbs || 0) * 4;
-  const fatCals = (fat || 0) * 9;
+  const p = Number.isFinite(protein) && protein > 0 ? protein : 0;
+  const c = Number.isFinite(carbs) && carbs > 0 ? carbs : 0;
+  const f = Number.isFinite(fat) && fat > 0 ? fat : 0;
 
-  const proteinPct = (proteinCals / calories) * 100;
-  const carbsPct = (carbsCals / calories) * 100;
-  const fatPct = (fatCals / calories) * 100;
+  const proteinCals = p * 4;
+  const carbsCals = c * 4;
+  const fatCals = f * 9;
+
+  const proteinPct = (proteinCals / cals) * 100;
+  const carbsPct = (carbsCals / cals) * 100;
+  const fatPct = (fatCals / cals) * 100;
 
   // Ideal ranges: 25-35% protein, 40-55% carbs, 20-35% fat
   const proteinScore = Math.max(0, 100 - Math.abs((proteinPct - 30) * 3));
@@ -50,12 +55,12 @@ export const calculateNutritionScore = (protein, carbs, fat, calories) => {
 
 // Analyze daily macros against targets
 export const analyzeMacros = (consumedProtein, consumedCarbs, consumedFat, targetProtein, targetCarbs, targetFat) => {
-  const cProtein = consumedProtein || 0;
-  const cCarbs = consumedCarbs || 0;
-  const cFat = consumedFat || 0;
-  const tProtein = targetProtein || 0;
-  const tCarbs = targetCarbs || 0;
-  const tFat = targetFat || 0;
+  const cProtein = Number.isFinite(consumedProtein) && consumedProtein > 0 ? consumedProtein : 0;
+  const cCarbs = Number.isFinite(consumedCarbs) && consumedCarbs > 0 ? consumedCarbs : 0;
+  const cFat = Number.isFinite(consumedFat) && consumedFat > 0 ? consumedFat : 0;
+  const tProtein = Number.isFinite(targetProtein) && targetProtein > 0 ? targetProtein : 0;
+  const tCarbs = Number.isFinite(targetCarbs) && targetCarbs > 0 ? targetCarbs : 0;
+  const tFat = Number.isFinite(targetFat) && targetFat > 0 ? targetFat : 0;
 
   const proteinDiff = cProtein - tProtein;
   const carbsDiff = cCarbs - tCarbs;
@@ -89,14 +94,20 @@ export const analyzeMacros = (consumedProtein, consumedCarbs, consumedFat, targe
 // Get macro warnings
 export const getMacroWarnings = (protein, carbs, fat, calories) => {
   const warnings = [];
+  const cals = Number.isFinite(calories) && calories > 0 ? calories : 0;
+  if (cals <= 0) return warnings;
 
-  const proteinCals = protein * 4;
-  const carbsCals = carbs * 4;
-  const fatCals = fat * 9;
+  const p = Number.isFinite(protein) && protein > 0 ? protein : 0;
+  const c = Number.isFinite(carbs) && carbs > 0 ? carbs : 0;
+  const f = Number.isFinite(fat) && fat > 0 ? fat : 0;
 
-  const proteinPct = (proteinCals / calories) * 100;
-  const carbsPct = (carbsCals / calories) * 100;
-  const fatPct = (fatCals / calories) * 100;
+  const proteinCals = p * 4;
+  const carbsCals = c * 4;
+  const fatCals = f * 9;
+
+  const proteinPct = (proteinCals / cals) * 100;
+  const carbsPct = (carbsCals / cals) * 100;
+  const fatPct = (fatCals / cals) * 100;
 
   if (proteinPct < 15) warnings.push("Protein intake is very low. Aim for at least 25-30%");
   if (proteinPct > 40) warnings.push("Protein intake is very high. Consider reducing slightly");
@@ -112,7 +123,7 @@ export const getMacroWarnings = (protein, carbs, fat, calories) => {
 
 // Calculate glycemic load of a meal
 /**
- * ⚡ PERFORMANCE OPTIMIZATION: Zero-allocation imperative loop.
+ * ⚡ PERFORMANCE OPTIMIZATION: Zero-allocation imperative loop with Number.isFinite guards.
  * Bypasses Array.prototype.forEach callback closures to eliminate temporary function allocations
  * and GC overhead in hot calculation paths.
  */
@@ -133,8 +144,8 @@ export const calculateGlycemicLoad = (foodItems) => {
   for (let i = 0; i < len; i++) {
     const item = foodItems[i];
     if (!item) continue;
-    const carbs = item.carbs || 0;
-    const gi = item.glycemicIndex || 0;
+    const carbs = Number.isFinite(item.carbs) && item.carbs > 0 ? item.carbs : 0;
+    const gi = Number.isFinite(item.glycemicIndex) && item.glycemicIndex > 0 ? item.glycemicIndex : 0;
     const gl = (gi * carbs) / 100;
     totalGL += gl;
     totalCarbs += carbs;
@@ -203,10 +214,13 @@ export const assessInflammatoryPotential = (foodItems) => {
 
 // Calculate thermic effect of food (TEF) - calories burned digesting
 export const calculateTEF = (protein, carbs, fat) => {
-  // TEF percentages: protein 20-30%, carbs 5-10%, fat 0-3%
-  const proteinTEF = protein * 4 * 0.25;
-  const carbsTEF = carbs * 4 * 0.08;
-  const fatTEF = fat * 9 * 0.02;
+  const p = Number.isFinite(protein) && protein > 0 ? protein : 0;
+  const c = Number.isFinite(carbs) && carbs > 0 ? carbs : 0;
+  const f = Number.isFinite(fat) && fat > 0 ? fat : 0;
+
+  const proteinTEF = p * 4 * 0.25;
+  const carbsTEF = c * 4 * 0.08;
+  const fatTEF = f * 9 * 0.02;
 
   return Math.round(proteinTEF + carbsTEF + fatTEF);
 };
@@ -223,9 +237,9 @@ export const findSimilarFoods = (targetFood, tolerance = 10) => {
   if (!targetFood) return [];
 
   const targetId = targetFood.id;
-  const targetProtein = targetFood.protein || 0;
-  const targetCarbs = targetFood.carbs || 0;
-  const targetFat = targetFood.fat || 0;
+  const targetProtein = Number.isFinite(targetFood.protein) && targetFood.protein > 0 ? targetFood.protein : 0;
+  const targetCarbs = Number.isFinite(targetFood.carbs) && targetFood.carbs > 0 ? targetFood.carbs : 0;
+  const targetFat = Number.isFinite(targetFood.fat) && targetFood.fat > 0 ? targetFood.fat : 0;
 
   const denomProtein = Math.max(targetProtein, 1);
   const denomCarbs = Math.max(targetCarbs, 1);
@@ -238,13 +252,17 @@ export const findSimilarFoods = (targetFood, tolerance = 10) => {
     const food = foods[i];
     if (food.id === targetId) continue;
 
-    const proteinDiff = (Math.abs(food.protein - targetProtein) / denomProtein) * 100;
+    const fProtein = Number.isFinite(food.protein) ? food.protein : 0;
+    const fCarbs = Number.isFinite(food.carbs) ? food.carbs : 0;
+    const fFat = Number.isFinite(food.fat) ? food.fat : 0;
+
+    const proteinDiff = (Math.abs(fProtein - targetProtein) / denomProtein) * 100;
     if (proteinDiff > tolerance) continue;
 
-    const carbsDiff = (Math.abs(food.carbs - targetCarbs) / denomCarbs) * 100;
+    const carbsDiff = (Math.abs(fCarbs - targetCarbs) / denomCarbs) * 100;
     if (carbsDiff > tolerance) continue;
 
-    const fatDiff = (Math.abs(food.fat - targetFat) / denomFat) * 100;
+    const fatDiff = (Math.abs(fFat - targetFat) / denomFat) * 100;
     if (fatDiff > tolerance) continue;
 
     result.push(food);
@@ -256,8 +274,8 @@ export const findSimilarFoods = (targetFood, tolerance = 10) => {
 
 // Calculate ideal meal composition for timing
 export const getIdealMealMacros = (mealTiming, goal, totalDailyCalories) => {
-  // Returns suggested macros based on meal timing
-  const mealCalories = totalDailyCalories / 4; // Assuming 4 meals/day
+  const totalCals = Number.isFinite(totalDailyCalories) && totalDailyCalories > 0 ? totalDailyCalories : 2000;
+  const mealCalories = totalCals / 4; // Assuming 4 meals/day
 
   let macroRatios = {
     protein: 0.25,
@@ -284,9 +302,17 @@ export const getIdealMealMacros = (mealTiming, goal, totalDailyCalories) => {
 
 // Water needs based on weight and activity
 export const calculateDailyWaterNeeds = (weightKg, activityLevel = "moderate") => {
-  // Base: 35ml per kg
-  let baseWater = weightKg * 0.035; // liters
+  const safeWeight = Number.isFinite(weightKg) && weightKg > 0 ? weightKg : 0;
+  if (safeWeight <= 0) {
+    return {
+      litersPerDay: 0.0,
+      cupsPerDay: 0,
+      bottlesPerDay: 0,
+      ounces: 0
+    };
+  }
 
+  const baseWater = safeWeight * 0.035; // liters
   const adjustedWater = baseWater * (WATER_ACTIVITY_MULTIPLIERS[activityLevel] || 1.5);
 
   return {
@@ -299,22 +325,21 @@ export const calculateDailyWaterNeeds = (weightKg, activityLevel = "moderate") =
 
 // Assess hydration status by various metrics
 export const assessHydrationStatus = (urineDensity, urine_color, thirstLevel) => {
-  // Urine specific gravity: 1.005-1.030 (higher = more dehydrated)
-  // Color scale: pale yellow (hydrated) to dark brown (dehydrated)
+  const density = Number.isFinite(urineDensity) && urineDensity > 0 ? urineDensity : 1.015;
 
   let status = "Optimally Hydrated";
   let score = 75;
 
-  if (urineDensity > 1.030 || urine_color === "dark_brown") {
+  if (density > 1.030 || urine_color === "dark_brown") {
     status = "Dehydrated";
     score = 25;
-  } else if (urineDensity > 1.020 || urine_color === "golden") {
+  } else if (density > 1.020 || urine_color === "golden") {
     status = "Mild Dehydration";
     score = 50;
-  } else if (urineDensity > 1.010 || urine_color === "pale_yellow") {
+  } else if (density > 1.010 || urine_color === "pale_yellow") {
     status = "Optimally Hydrated";
     score = 75;
-  } else if (urineDensity < 1.010 || urine_color === "colorless") {
+  } else if (density < 1.010 || urine_color === "colorless") {
     status = "Overhydrated";
     score = 40;
   }
@@ -337,10 +362,10 @@ export const detectNutrientDeficits = (dailyIntake, targets) => {
 
   for (let i = 0; i < len; i++) {
     const nutrient = keys[i];
-    const targetVal = targets[nutrient] || 0;
+    const targetVal = Number.isFinite(targets[nutrient]) ? targets[nutrient] : 0;
     if (targetVal <= 0) continue;
 
-    const intakeVal = intake[nutrient] || 0;
+    const intakeVal = Number.isFinite(intake[nutrient]) ? intake[nutrient] : 0;
     const percentage = (intakeVal / targetVal) * 100;
 
     if (percentage < 80) {

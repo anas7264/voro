@@ -96,8 +96,6 @@ const PERIODIZATION_PHASES = Object.freeze({
 
 // Analyze training volume across time period
 export const analyzeTrainingVolume = (workouts) => {
-  // workouts: array of { date, exercise, sets, reps, weight }
-
   let totalVolume = 0;
   const volumeByExercise = Object.create(null);
   const volumeByDay = Object.create(null);
@@ -105,18 +103,18 @@ export const analyzeTrainingVolume = (workouts) => {
   const len = workouts ? workouts.length : 0;
   for (let i = 0; i < len; i++) {
     const workout = workouts[i];
-    const volume = typeof workout.volume === 'number'
+    if (!workout) continue;
+
+    const volumeVal = typeof workout.volume === 'number' && Number.isFinite(workout.volume)
       ? workout.volume
       : calculateTrainingVolume(workout.sets, workout.reps, workout.weight);
+
+    const volume = Number.isFinite(volumeVal) && volumeVal > 0 ? volumeVal : 0;
     totalVolume += volume;
 
-    // Group by exercise
-    const exercise = workout.exercise;
+    const exercise = workout.exercise || "Unknown";
     volumeByExercise[exercise] = (volumeByExercise[exercise] || 0) + volume;
 
-    // Group by day
-    // ⚡ PERFORMANCE OPTIMIZATION: Fast-path string slicing and Date instance checking to avoid
-    // heavy dynamic Date parsing, timezone calculations, and .toISOString() serialization in hot loops.
     let day;
     const dateVal = workout.date;
     if (typeof dateVal === "string" && dateVal.length >= 10 && dateVal[4] === "-" && dateVal[7] === "-") {
@@ -124,7 +122,8 @@ export const analyzeTrainingVolume = (workouts) => {
     } else if (dateVal instanceof Date) {
       day = dateVal.toISOString().slice(0, 10);
     } else if (dateVal) {
-      day = new Date(dateVal).toISOString().slice(0, 10);
+      const parsedDate = new Date(dateVal);
+      day = !isNaN(parsedDate.getTime()) ? parsedDate.toISOString().slice(0, 10) : "UNKNOWN";
     } else {
       day = "UNKNOWN";
     }
@@ -149,26 +148,43 @@ export const analyzeTrainingVolume = (workouts) => {
 
 // Detect PRs (Personal Records)
 export const detectPersonalRecords = (currentLift, previousMaxes) => {
-  // ⚡ PERFORMANCE OPTIMIZATION: Cache dictionary lookup and current weight.
-  const prevMax = (previousMaxes && previousMaxes[currentLift.exercise]) || 0;
+  const exerciseName = currentLift?.exercise;
+  const prevMax = (previousMaxes && exerciseName && previousMaxes[exerciseName]) || 0;
   const currWeight = currentLift?.weight || 0;
-  const isNewPR = currWeight > prevMax;
-  const improvement = currWeight - prevMax;
+
+  const safePrevMax = Number.isFinite(prevMax) && prevMax > 0 ? prevMax : 0;
+  const safeCurrWeight = Number.isFinite(currWeight) && currWeight > 0 ? currWeight : 0;
+
+  const isNewPR = safeCurrWeight > safePrevMax;
+  const improvement = safeCurrWeight - safePrevMax;
+  const denominator = safePrevMax || safeCurrWeight;
+  const improvementPercentage = denominator > 0 ? ((improvement / denominator) * 100).toFixed(1) : "0.0";
 
   return {
     isNewPR,
-    currentWeight: currWeight,
-    previousMax: prevMax,
+    currentWeight: safeCurrWeight,
+    previousMax: safePrevMax,
     improvement,
-    improvementPercentage: ((improvement / (prevMax || currWeight)) * 100).toFixed(1),
+    improvementPercentage,
     celebration: isNewPR ? "🎉 NEW PR! 🎉" : ""
   };
 };
 
 // Calculate Relative Intensity (RI) based on RPE and weight
 export const calculateRelativeIntensity = (weight, oneRepMax, reps) => {
-  // Estimated effort level
-  const percentageOfMax = (weight / oneRepMax) * 100;
+  const w = Number.isFinite(weight) && weight > 0 ? weight : 0;
+  const max = Number.isFinite(oneRepMax) && oneRepMax > 0 ? oneRepMax : 0;
+  const r = Number.isFinite(reps) && reps > 0 ? reps : 0;
+
+  if (w <= 0 || max <= 0) {
+    return {
+      percentageOfMax: "0.0",
+      estimatedRPE: 0,
+      intensityLevel: "Low"
+    };
+  }
+
+  const percentageOfMax = (w / max) * 100;
 
   let rpe = 0;
   if (percentageOfMax >= 90) rpe = 9.5;
@@ -179,9 +195,8 @@ export const calculateRelativeIntensity = (weight, oneRepMax, reps) => {
   else if (percentageOfMax >= 65) rpe = 7;
   else rpe = 6.5;
 
-  // Adjust for reps (higher reps = slightly lower intensity feeling but similar muscle stimulus)
-  if (reps > 12) rpe -= 0.5;
-  if (reps > 15) rpe -= 1;
+  if (r > 12) rpe -= 0.5;
+  if (r > 15) rpe -= 1;
 
   return {
     percentageOfMax: percentageOfMax.toFixed(1),
@@ -194,11 +209,10 @@ export const calculateRelativeIntensity = (weight, oneRepMax, reps) => {
 export const analyzeFrequencyPerMuscleGroup = (workouts) => {
   const frequency = Object.create(null);
 
-  // ⚡ PERFORMANCE OPTIMIZATION: Zero-allocation imperative for loop using module-scoped
-  // EXERCISE_MUSCLE_DATABASE to eliminate callback closure allocations per workout item.
   const len = workouts ? workouts.length : 0;
   for (let i = 0; i < len; i++) {
     const workout = workouts[i];
+    if (!workout) continue;
     const muscleGroup = EXERCISE_MUSCLE_DATABASE[workout.exercise] || "Other";
     frequency[muscleGroup] = (frequency[muscleGroup] || 0) + 1;
   }
@@ -208,20 +222,35 @@ export const analyzeFrequencyPerMuscleGroup = (workouts) => {
 
 // Calculate training stress/effort
 export const calculateTrainingStress = (sets, reps, weight, oneRepMax, trainingAge = "intermediate") => {
-  // RIR (Reps In Reserve) method
-  const percentageOfMax = (weight / oneRepMax) * 100;
+  const s = Number.isFinite(sets) && sets > 0 ? sets : 0;
+  const r = Number.isFinite(reps) && reps > 0 ? reps : 0;
+  const w = Number.isFinite(weight) && weight > 0 ? weight : 0;
+  const max = Number.isFinite(oneRepMax) && oneRepMax > 0 ? oneRepMax : 0;
+
+  if (s <= 0 || r <= 0 || w <= 0 || max <= 0) {
+    return {
+      percentageOfMax: "0.0",
+      repsInReserve: 0,
+      totalReps: 0,
+      volumeLoad: 0,
+      stressScore: 0,
+      recoveryNeeded: "24 hours",
+      recommendation: "Moderate-low intensity - can train frequently"
+    };
+  }
+
+  const percentageOfMax = (w / max) * 100;
   let rir = 0;
 
   if (percentageOfMax >= 90) rir = 0;
   else if (percentageOfMax >= 85) rir = 1;
   else if (percentageOfMax >= 80) rir = 2;
   else if (percentageOfMax >= 75) rir = 3;
-  else rir = reps - 6;
+  else rir = r - 6;
 
-  const totalRepsPerformed = sets * reps;
-  const volumeLoad = sets * reps * weight;
+  const totalRepsPerformed = s * r;
+  const volumeLoad = s * r * w;
 
-  // Stress score (0-100)
   let stress = (percentageOfMax / 100) * 50 + (totalRepsPerformed / 100) * 30 + (rir === 0 ? 20 : 0);
   stress = Math.min(100, stress);
 
@@ -238,8 +267,6 @@ export const calculateTrainingStress = (sets, reps, weight, oneRepMax, trainingA
 
 // Rest period recommendations
 export const getRestPeriodRecommendation = (exercise, goal = "hypertrophy", previousRestTime = null) => {
-  // ⚡ PERFORMANCE OPTIMIZATION: Pre-formatted min/max strings on frozen REST_RECOMMENDATIONS
-  // completely bypass Math.floor, modulo arithmetic, and string padding allocations on every invocation.
   const recommendation = REST_RECOMMENDATIONS[goal] || REST_RECOMMENDATIONS.hypertrophy;
 
   return {
@@ -257,8 +284,7 @@ export const assessFormQuality = (workoutNotes, exerciseDifficulty) => {
   let formScore = 100;
   const issues = [];
 
-  // ⚡ PERFORMANCE OPTIMIZATION: Skip RED_FLAGS search loop if notes are empty.
-  const notesLower = workoutNotes?.toLowerCase() || "";
+  const notesLower = typeof workoutNotes === 'string' ? workoutNotes.toLowerCase() : "";
   if (notesLower) {
     const flagsLen = RED_FLAGS.length;
     for (let i = 0; i < flagsLen; i++) {
@@ -282,40 +308,36 @@ export const assessFormQuality = (workoutNotes, exerciseDifficulty) => {
 
 // Recovery time needed after workout
 export const calculateRecoveryTime = (volume, intensity, muscleGroups = 1) => {
-  // Based on volume, intensity, and number of muscle groups hit
-  let baseRecovery = 24; // hours
+  const safeVolume = Number.isFinite(volume) && volume > 0 ? volume : 0;
+  const safeIntensity = Number.isFinite(intensity) && intensity > 0 ? intensity : 0;
+  const safeMuscleGroups = Number.isFinite(muscleGroups) && muscleGroups > 0 ? muscleGroups : 1;
 
-  // Volume adjustments
-  if (volume > 25000) baseRecovery += 24;
-  else if (volume > 15000) baseRecovery += 12;
+  let baseRecovery = 24;
 
-  // Intensity adjustments
-  if (intensity > 80) baseRecovery += 24;
-  else if (intensity > 60) baseRecovery += 12;
+  if (safeVolume > 25000) baseRecovery += 24;
+  else if (safeVolume > 15000) baseRecovery += 12;
 
-  // Multiple muscle groups take longer to recover
-  baseRecovery += muscleGroups * 6;
+  if (safeIntensity > 80) baseRecovery += 24;
+  else if (safeIntensity > 60) baseRecovery += 12;
+
+  baseRecovery += safeMuscleGroups * 6;
 
   return {
-    hoursUntilRecovered: Math.min(baseRecovery, 96), // Max 96 hours
-    readinessPercentage: 0, // Will be updated in real time
+    hoursUntilRecovered: Math.min(baseRecovery, 96),
+    readinessPercentage: 0,
     recommendation: baseRecovery <= 24 ? "Can train again tomorrow" : (baseRecovery <= 48 ? "Train different muscle group tomorrow" : "Full rest day recommended")
   };
 };
 
 // Periodization phase recommendations
 export const getPeriodizationPhaseRecommendations = (weekNumber, totalWeeks, goal) => {
-  // Typical 4-week periodization: Accumulation → Intensification → Realization → Deload
-  // ⚡ PERFORMANCE OPTIMIZATION: Utilizes module-scoped PERIODIZATION_PHASES
-  // to avoid allocating dictionary and phase objects on every call.
-  const phase = (weekNumber % 4) || 4;
+  const week = Number.isFinite(weekNumber) && weekNumber > 0 ? weekNumber : 1;
+  const phase = (week % 4) || 4;
   return PERIODIZATION_PHASES[phase];
 };
 
 // Exercise variation suggestions for muscular adaptation
 export const suggestExerciseVariations = (exercise, previousVariations = []) => {
-  // ⚡ PERFORMANCE OPTIMIZATION: Fast-path when previousVariations is empty to bypass filter allocation.
-  // When previousVariations contains elements, use Set.has for O(1) lookup.
   const availableVariations = EXERCISE_VARIATIONS[exercise] || [];
   let unusedVariations;
   if (!previousVariations || previousVariations.length === 0) {
@@ -335,19 +357,20 @@ export const suggestExerciseVariations = (exercise, previousVariations = []) => 
 
 // Training age assessment
 export const assessTrainingAge = (monthsOfTraining) => {
+  const months = Number.isFinite(monthsOfTraining) && monthsOfTraining > 0 ? monthsOfTraining : 0;
   let level = "Beginner";
   let characteristics = [];
 
-  if (monthsOfTraining < 3) {
+  if (months < 3) {
     level = "Absolute Beginner";
     characteristics = ["Learning movement patterns", "Rapid initial strength gains", "Form priority", "Can train same muscles frequently"];
-  } else if (monthsOfTraining < 12) {
+  } else if (months < 12) {
     level = "Beginner";
     characteristics = ["Building work capacity", "Still rapid progress", "Form improving", "2-3x per muscle group weekly"];
-  } else if (monthsOfTraining < 36) {
+  } else if (months < 36) {
     level = "Intermediate";
     characteristics = ["Need progressive overload", "Slower gains", "Can specialize training", "1-2x per muscle group weekly"];
-  } else if (monthsOfTraining < 120) {
+  } else if (months < 120) {
     level = "Advanced";
     characteristics = ["Plateau management", "Slow continuous progress", "Advanced techniques", "Specialized periodization"];
   } else {
@@ -355,7 +378,7 @@ export const assessTrainingAge = (monthsOfTraining) => {
     characteristics = ["Maintenance focus", "Minimal progress", "Sport-specific training", "Years of expertise"];
   }
 
-  return { level, characteristics, monthsOfTraining };
+  return { level, characteristics, monthsOfTraining: months };
 };
 
 export default {
