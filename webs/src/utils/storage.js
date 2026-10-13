@@ -379,7 +379,7 @@ class StorageManager {
     const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
 
     // Honey-Routing: Serve synthetic decoys if compromised or provenance is unauthorized
-    if (window.VORO_COMPROMISED || !validateCallStack()) {
+    if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || !validateCallStack()) {
       return getDecoyData(baseKey);
     }
 
@@ -464,15 +464,18 @@ class StorageManager {
   /**
    * Synchronous get (returns from cache).
    * ⚡ PERFORMANCE OPTIMIZATION: Supports '*' wildcard and key arrays for bulk retrieval.
+   * Zero-allocation for loop over key array queries.
    */
   get(key) {
     if (key === '*') return this.getAllSync();
 
     if (Array.isArray(key)) {
       const result = {};
-      key.forEach(k => {
+      const len = key.length;
+      for (let i = 0; i < len; i++) {
+        const k = key[i];
         result[k] = this.get(k);
-      });
+      }
       return result;
     }
 
@@ -481,7 +484,7 @@ class StorageManager {
     const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
 
     // Honey-Routing: Serve synthetic decoys if compromised or provenance is unauthorized
-    if (window.VORO_COMPROMISED || !validateCallStack()) {
+    if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || !validateCallStack()) {
       return getDecoyData(baseKey);
     }
 
@@ -521,7 +524,7 @@ class StorageManager {
     const fullKey = key.startsWith(STORAGE_PREFIX) ? key : this.getFullKey(key);
 
     // Cyber Deception: Redirect to Ghost Vault if compromised or unauthorized provenance
-    if (window.VORO_COMPROMISED || !validateCallStack() || this._checkCanary(key)) {
+    if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || !validateCallStack() || this._checkCanary(key)) {
       this._ghostSet(fullKey, value);
       this.cache.set(baseKey, value);
       return true;
@@ -592,7 +595,7 @@ class StorageManager {
   // Delete item from storage
   async delete(key) {
     // Cyber Deception: Redirect to Ghost Vault if compromised or unauthorized provenance
-    if (window.VORO_COMPROMISED || !validateCallStack() || this._checkCanary(key)) {
+    if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || !validateCallStack() || this._checkCanary(key)) {
       const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
       const fullKey = key.startsWith(STORAGE_PREFIX) ? key : this.getFullKey(key);
       this._ghostDelete(fullKey);
@@ -640,7 +643,7 @@ class StorageManager {
   // Clear all VORO storage
   async clear() {
     // Cyber Deception: Return true (simulated success) but block physical clear if compromised
-    if (window.VORO_COMPROMISED || !validateCallStack()) {
+    if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || !validateCallStack()) {
       this.clearCache();
       return true;
     }
@@ -680,7 +683,7 @@ class StorageManager {
   // List all VORO storage keys
   list() {
     // Zero-Trust Provenance: Mask real keys if unauthorized
-    if (window.VORO_COMPROMISED || !validateCallStack()) {
+    if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || !validateCallStack()) {
       return ['user', 'profile', 'nutrition_log', 'workout_log', 'settings'];
     }
 
@@ -702,7 +705,7 @@ class StorageManager {
   // Get all VORO storage data
   async getAll() {
     // Honey-Routing for bulk data
-    if (window.VORO_COMPROMISED || !validateCallStack()) {
+    if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || !validateCallStack()) {
       const data = {};
       const keys = this.list();
       keys.forEach(key => {
@@ -733,7 +736,7 @@ class StorageManager {
   // Get all data synchronously from cache
   getAllSync() {
     // Honey-Routing for bulk data
-    if (window.VORO_COMPROMISED || !validateCallStack()) {
+    if ((typeof window !== 'undefined' && window.VORO_COMPROMISED) || !validateCallStack()) {
       if (this.memoizedDecoyData) return this.memoizedDecoyData;
 
       const data = {};
@@ -856,9 +859,21 @@ class StorageManager {
   }
 
   // Append to array in storage
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Cache-First In-Memory Fast-Path.
+   * Leverages in-memory cache if available to bypass redundant decryption and async I/O.
+   */
   async append(key, value) {
     try {
-      const existing = await this.getAsync(key) || [];
+      const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
+      let existing;
+      if (this.cache.has(baseKey)) {
+        existing = this.cache.get(baseKey);
+      } else {
+        existing = await this.getAsync(key);
+      }
+
+      existing = existing || [];
       if (!Array.isArray(existing)) {
         console.error(`Storage item ${key} is not an array`);
         return false;
@@ -873,9 +888,21 @@ class StorageManager {
   }
 
   // Update object in storage (shallow merge)
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Cache-First In-Memory Fast-Path.
+   * Leverages in-memory cache if available to bypass redundant decryption and async I/O.
+   */
   async update(key, updates) {
     try {
-      const existing = await this.getAsync(key) || {};
+      const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
+      let existing;
+      if (this.cache.has(baseKey)) {
+        existing = this.cache.get(baseKey);
+      } else {
+        existing = await this.getAsync(key);
+      }
+
+      existing = existing || {};
       const updated = { ...existing, ...updates };
       return await this.set(key, updated);
     } catch (error) {
