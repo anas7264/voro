@@ -41,3 +41,7 @@
 ## 2025-05-28 - Visible Focus Rings and Hover Tooltips for Bare Icon Toggle Buttons
 **Learning:** Bare icon buttons (such as theme or mode toggles) that rely solely on `aria-label` and reset browser focus outlines with `outline-none` hide keyboard focus indicators from keyboard users and leave mouse users without hover context. Pairing `aria-label` with a matching `title` attribute gives hover tooltips to desktop pointer users, and adding `focus-visible:ring-2` ensures keyboard users can visually identify focused icon controls.
 **Action:** When creating or refining icon-only buttons or mode switches, always complement `aria-label` with an identical `title` attribute for desktop hover tooltips, and pair `outline-none` with explicit `focus-visible:ring-2` focus rings.
+
+## 2025-05-29 - Framing Container Tooltip Inheritance on Disabled Form Inputs
+**Learning:** Native disabled form fields (`<input disabled>` or `<textarea disabled>`) often suppress pointer/hover events in desktop browsers, preventing `title` tooltips placed solely on the child input/textarea from rendering when mouse users hover over the input container. Passing computed `title` tooltips ("This field is disabled" or custom title) to the framing container `<div>` ensures hover tooltips trigger reliably across the entire component box.
+**Action:** When adding or refining disabled state tooltips on custom form components, apply the computed `title` attribute to both the interactive element and its framing container element.

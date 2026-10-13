@@ -53,6 +53,10 @@ export const Input = memo(({
     return `IN_${cleanId.slice(0, 3).toUpperCase()}`;
   }, [generatedId]);
 
+  const computedTitle = disabled
+    ? (title || props.title || "This field is disabled")
+    : (title || props.title);
+
   const currentLength = (value || "").toString().length;
   const isAtLimit = maxLength && currentLength >= maxLength;
 
@@ -180,7 +184,9 @@ export const Input = memo(({
         }}
       >
         {/* Architectural Framing: High-end charcoal box */}
-        <div className={`
+        <div
+          title={computedTitle}
+          className={`
           relative overflow-hidden rounded-[1.25rem] border transition-all duration-500
           ${error
             ? "border-red-500/40 bg-red-500/[0.02] shadow-[0_10px_30px_rgba(239,68,68,0.1)]"
@@ -220,7 +226,7 @@ export const Input = memo(({
             placeholder={placeholder}
             disabled={disabled}
             maxLength={maxLength}
-            title={disabled ? (title || props.title || "This field is disabled") : (title || props.title)}
+            title={computedTitle}
             className={`
               w-full bg-transparent px-6 py-5 text-white font-mono text-sm tracking-wide
               placeholder:font-serif placeholder:italic placeholder:text-gray-700
