@@ -2583,47 +2583,249 @@ const checkStructuralIntegrity = () => {
 };
 
 /**
- * Active Mutation Shield
- * Monitors the DOM for unauthorized script injections and attribute tampering.
+ * Active DOM & CSS Exfiltration Mutation Shield (ADCE-MS)
+ * Real-time Runtime Application Self-Protection (RASP) DOM observer.
+ * Neutralizes script injections, attribute tampering, SVG/MathML payload vectors,
+ * form hijacking, and CSS Data Exfiltration attacks (@import, external url(...) triggers, expression()).
  */
 export const startMutationShield = () => {
   if (typeof window === 'undefined' || typeof MutationObserver === 'undefined') return;
 
-  const dangerousTags = ['script', 'iframe', 'object', 'embed', 'base'];
+  const appOrigin = typeof window !== 'undefined' && window.location ? window.location.origin : null;
 
-  const checkNode = (node) => {
-    if (node.nodeType !== 1) return false;
-    const tag = node.tagName.toLowerCase();
-    if (dangerousTags.includes(tag)) return true;
+  // Comprehensive list of executable / structural injection tag vectors
+  const dangerousTags = ['script', 'iframe', 'object', 'embed', 'base', 'meta', 'form', 'applet', 'frame', 'frameset'];
 
-    if (node.attributes) {
-      for (let i = 0; i < node.attributes.length; i++) {
-        const attr = node.attributes[i].name.toLowerCase();
-        const val = node.attributes[i].value.toLowerCase();
-        if (attr.startsWith('on') || val.startsWith('javascript:')) return true;
+  // Helper to check CSS content for data exfiltration & execution payloads
+  const containsDangerousCSS = (cssText) => {
+    if (!cssText || typeof cssText !== 'string') return false;
+    const lowerCss = _call.call(_toLowerCase, cssText);
+
+    // 1. Block CSS execution triggers (expression, -moz-binding, behavior)
+    if (_call.call(_SIncludes, lowerCss, 'expression(') ||
+        _call.call(_SIncludes, lowerCss, '-moz-binding') ||
+        _call.call(_SIncludes, lowerCss, 'behavior:')) {
+      return true;
+    }
+
+    // 2. Block external @import statements (e.g. @import url("https://evil.com/..."))
+    if (_call.call(_test, /@import\s+(?:url\s*\(\s*['"]?|['"])(?:https?:|\/\/|javascript:|data:)/i, cssText)) {
+      return true;
+    }
+
+    // 3. Block external url(...) references for CSS attribute selector data exfiltration
+    const urlMatches = _call.call(_match, cssText, /url\s*\(\s*['"]?([^'")]+)['"]?\s*\)/gi) || [];
+    for (let i = 0; i < urlMatches.length; i++) {
+      const match = urlMatches[i];
+      const urlStr = _call.call(_replace, match, /^url\s*\(\s*['"]?|['"]?\s*\)$/gi, '').trim();
+      const lowerUrl = _call.call(_toLowerCase, urlStr);
+
+      // Permit safe data URIs (e.g. data:image/png;base64,...), blob URIs, and relative paths
+      if (_call.call(_startsWith, lowerUrl, 'data:image/') ||
+          _call.call(_startsWith, lowerUrl, 'data:font/') ||
+          _call.call(_startsWith, lowerUrl, 'blob:')) {
+        continue;
+      }
+
+      // Check external HTTP/HTTPS protocols and dangerous schemes
+      if (_call.call(_startsWith, lowerUrl, 'http://') ||
+          _call.call(_startsWith, lowerUrl, 'https://') ||
+          _call.call(_startsWith, lowerUrl, '//') ||
+          _call.call(_startsWith, lowerUrl, 'javascript:') ||
+          _call.call(_startsWith, lowerUrl, 'data:text/html')) {
+        try {
+          let fullUrl = urlStr;
+          if (_call.call(_startsWith, urlStr, '//')) fullUrl = 'https:' + urlStr;
+          if (appOrigin) {
+            const parsed = new URL(fullUrl, appOrigin);
+            if (_call.call(_URLOrigin, parsed) !== appOrigin) {
+              return true; // External CSS URL exfiltration vector detected!
+            }
+          } else {
+            return true;
+          }
+        } catch (e) {
+          return true; // Malformed URL in CSS is suspicious
+        }
       }
     }
+
+    return false;
+  };
+
+  const checkSingleElement = (node) => {
+    if (!node) return false;
+
+    // Handle Text Nodes inside <style> elements
+    if (node.nodeType === 3) {
+      if (node.parentNode && node.parentNode.nodeType === 1) {
+        const parentTag = _call.call(_toLowerCase, node.parentNode.tagName || '');
+        if (parentTag === 'style') {
+          if (containsDangerousCSS(node.nodeValue)) return true;
+        }
+      }
+      return false;
+    }
+
+    if (node.nodeType !== 1) return false;
+    const tag = _call.call(_toLowerCase, node.tagName || '');
+
+    // Direct dangerous tag check
+    if (_call.call(_AIncludes, dangerousTags, tag)) return true;
+
+    // SVG Vector Inspection
+    if (tag === 'svg') {
+      const innerHtml = node.innerHTML ? _call.call(_toLowerCase, node.innerHTML) : '';
+      if (_call.call(_test, /<(?:script|set|animate|animateTransform|handler|use)\b/i, innerHtml) ||
+          _call.call(_SIncludes, innerHtml, 'javascript:') ||
+          _call.call(_SIncludes, innerHtml, 'data:text/html')) {
+        return true;
+      }
+    }
+
+    // MathML Vector Inspection
+    if (tag === 'math') {
+      const innerHtml = node.innerHTML ? _call.call(_toLowerCase, node.innerHTML) : '';
+      if (_call.call(_SIncludes, innerHtml, 'annotation-xml') ||
+          _call.call(_SIncludes, innerHtml, 'javascript:')) {
+        return true;
+      }
+    }
+
+    // Style Tag Inspection
+    if (tag === 'style') {
+      const cssContent = node.textContent || node.innerHTML || '';
+      if (containsDangerousCSS(cssContent)) return true;
+    }
+
+    // Link Tag Inspection
+    if (tag === 'link') {
+      const rel = node.getAttribute('rel') ? _call.call(_toLowerCase, node.getAttribute('rel')) : '';
+      const href = node.getAttribute('href') ? _call.call(_toLowerCase, node.getAttribute('href')) : '';
+      if (rel === 'import' || _call.call(_startsWith, href, 'javascript:') || _call.call(_startsWith, href, 'data:text/html')) {
+        return true;
+      }
+      if (rel === 'stylesheet' && href) {
+        if (_call.call(_startsWith, href, 'http://') || _call.call(_startsWith, href, 'https://') || _call.call(_startsWith, href, '//')) {
+          try {
+            let fullHref = href;
+            if (_call.call(_startsWith, href, '//')) fullHref = 'https:' + href;
+            if (appOrigin) {
+              const parsed = new URL(fullHref, appOrigin);
+              if (_call.call(_URLOrigin, parsed) !== appOrigin) return true;
+            } else {
+              return true;
+            }
+          } catch (e) {
+            return true;
+          }
+        }
+      }
+    }
+
+    // Attribute inspection on element
+    if (node.attributes) {
+      for (let i = 0; i < node.attributes.length; i++) {
+        const attr = _call.call(_toLowerCase, node.attributes[i].name || '');
+        const val = node.attributes[i].value ? _call.call(_toLowerCase, node.attributes[i].value) : '';
+
+        // Inline Event Handlers (on*)
+        if (_call.call(_startsWith, attr, 'on')) return true;
+
+        // Executable URI Schemes
+        if (_call.call(_startsWith, val, 'javascript:') ||
+            _call.call(_startsWith, val, 'vbscript:') ||
+            _call.call(_startsWith, val, 'data:text/html') ||
+            _call.call(_startsWith, val, 'data:text/javascript')) {
+          return true;
+        }
+
+        // Form Hijacking & Frame Srcdoc Injection
+        if ((attr === 'action' || attr === 'formaction' || attr === 'srcdoc') && val) {
+          if (_call.call(_startsWith, val, 'javascript:') || _call.call(_startsWith, val, 'data:')) return true;
+          if (_call.call(_startsWith, val, 'http://') || _call.call(_startsWith, val, 'https://') || _call.call(_startsWith, val, '//')) {
+            try {
+              let fullVal = val;
+              if (_call.call(_startsWith, val, '//')) fullVal = 'https:' + val;
+              if (appOrigin) {
+                const parsed = new URL(fullVal, appOrigin);
+                if (_call.call(_URLOrigin, parsed) !== appOrigin) return true;
+              } else {
+                return true;
+              }
+            } catch (e) {
+              return true;
+            }
+          }
+        }
+
+        // Inline Style Exfiltration & Execution Inspection
+        if (attr === 'style' && val) {
+          if (containsDangerousCSS(val)) return true;
+        }
+      }
+    }
+
+    return false;
+  };
+
+  const checkNode = (node) => {
+    if (!node) return false;
+    if (checkSingleElement(node)) return true;
+
+    // Subtree Descendant Traversal
+    if (node.nodeType === 1) {
+      if (node.querySelectorAll) {
+        const descendants = node.querySelectorAll('*');
+        for (let i = 0; i < descendants.length; i++) {
+          if (checkSingleElement(descendants[i])) return true;
+        }
+      } else if (node.children) {
+        for (let i = 0; i < node.children.length; i++) {
+          if (checkNode(node.children[i])) return true;
+        }
+      }
+    }
+
     return false;
   };
 
   const observer = new MutationObserver((mutations) => {
     let violation = false;
 
-    for (const mutation of mutations) {
+    for (let m = 0; m < mutations.length; m++) {
+      const mutation = mutations[m];
       if (mutation.type === 'childList') {
-        for (const node of mutation.addedNodes) {
+        for (let i = 0; i < mutation.addedNodes.length; i++) {
+          const node = mutation.addedNodes[i];
           if (checkNode(node)) {
             violation = true;
-            if (_console.error) _call.call(_console.error, console, "Security Sentinel: Unauthorized DOM injection detected.");
+            if (_console.error) _call.call(_console.error, console, "Security Sentinel [ADCE-MS]: Unauthorized DOM injection or CSS exfiltration vector detected.");
             break;
           }
         }
       } else if (mutation.type === 'attributes') {
-        const attr = mutation.attributeName.toLowerCase();
-        const val = mutation.target.getAttribute(mutation.attributeName)?.toLowerCase() || '';
-        if (attr.startsWith('on') || val.startsWith('javascript:')) {
+        const attr = mutation.attributeName ? _call.call(_toLowerCase, mutation.attributeName) : '';
+        const target = mutation.target;
+        const val = target && target.getAttribute && target.getAttribute(mutation.attributeName) ? _call.call(_toLowerCase, target.getAttribute(mutation.attributeName)) : '';
+
+        if (_call.call(_startsWith, attr, 'on') ||
+            _call.call(_startsWith, val, 'javascript:') ||
+            _call.call(_startsWith, val, 'vbscript:') ||
+            _call.call(_startsWith, val, 'data:text/html')) {
           violation = true;
-          if (_console.error) _call.call(_console.error, console, `Security Sentinel: Unauthorized attribute tampering [${attr}] detected.`);
+          if (_console.error) _call.call(_console.error, console, `Security Sentinel [ADCE-MS]: Unauthorized attribute tampering [${attr}] detected.`);
+        } else if (attr === 'style' && containsDangerousCSS(val)) {
+          violation = true;
+          if (_console.error) _call.call(_console.error, console, "Security Sentinel [ADCE-MS]: CSS Exfiltration vector detected in style attribute mutation.");
+        }
+      } else if (mutation.type === 'characterData') {
+        if (mutation.target && mutation.target.parentNode) {
+          const parentTag = mutation.target.parentNode.tagName ? _call.call(_toLowerCase, mutation.target.parentNode.tagName) : '';
+          if (parentTag === 'style' && containsDangerousCSS(mutation.target.nodeValue)) {
+            violation = true;
+            if (_console.error) _call.call(_console.error, console, "Security Sentinel [ADCE-MS]: CSS Exfiltration vector detected in style text mutation.");
+          }
         }
       }
       if (violation) break;
@@ -2632,12 +2834,12 @@ export const startMutationShield = () => {
     if (violation) executeLockdown();
   });
 
-  // Observe with a wide net but optimized processing
+  // Observe child additions, attribute changes, and characterData text modifications
   observer.observe(document.documentElement, {
     childList: true,
     subtree: true,
-    attributes: true
-    // Note: No attributeFilter to ensure all on* event handlers are caught
+    attributes: true,
+    characterData: true
   });
 
   return observer;
@@ -2949,6 +3151,7 @@ const sentinelExports = {
   performIntegrityCheck,
   rotateCloakingCache,
   executeLockdown,
+  startMutationShield,
   executeSecurely: (action, callback, caps) => executeSecurely(action, callback, caps),
   registerSecureKey: (key) => registerSecureKey(key),
   getDecoyData,
