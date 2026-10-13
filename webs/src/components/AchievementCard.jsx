@@ -125,10 +125,13 @@ export const AchievementCard = memo(({ achievement, unlocked, onClick, title, cl
     const tiltY = ((x / rect.width) - 0.5) * 24;
     const tiltX = (0.5 - (y / rect.height)) * 24;
 
-    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
-    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
+    const style = containerRef.current.style;
+    style.setProperty('--mouse-x', `${x.toFixed(1)}px`);
+    style.setProperty('--mouse-y', `${y.toFixed(1)}px`);
+    style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
+    style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
     containerRef.current.style.transform = `perspective(1000px) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg) translateY(-8px)`;
-    containerRef.current.style.transition = 'none';
+    style.transition = 'none';
 
     if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
     if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
@@ -142,9 +145,12 @@ export const AchievementCard = memo(({ achievement, unlocked, onClick, title, cl
   const handleMouseLeave = () => {
     isHoveredRef.current = false;
     if (!containerRef.current || !unlocked) return;
+    const style = containerRef.current.style;
     if (!isFocusedRef.current) {
-      containerRef.current.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
-      containerRef.current.style.transition = 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)';
+      style.setProperty('--tilt-x', '0deg');
+      style.setProperty('--tilt-y', '0deg');
+      style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      style.transition = 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)';
       if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
     }
@@ -154,9 +160,12 @@ export const AchievementCard = memo(({ achievement, unlocked, onClick, title, cl
     if (!unlocked) return;
     isFocusedRef.current = true;
     if (containerRef.current) {
+      const style = containerRef.current.style;
       // Provide a subtle static tilt for keyboard focus feedback
-      containerRef.current.style.transform = 'perspective(1000px) rotateX(4deg) rotateY(-4deg) translateY(-8px)';
-      containerRef.current.style.transition = 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
+      style.setProperty('--tilt-x', '4.00deg');
+      style.setProperty('--tilt-y', '-4.00deg');
+      style.transform = 'perspective(1000px) rotateX(4deg) rotateY(-4deg) translateY(-8px)';
+      style.transition = 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
 
       if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
@@ -166,8 +175,11 @@ export const AchievementCard = memo(({ achievement, unlocked, onClick, title, cl
   const handleBlur = () => {
     isFocusedRef.current = false;
     if (containerRef.current && unlocked && !isHoveredRef.current) {
-      containerRef.current.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
-      containerRef.current.style.transition = 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)';
+      const style = containerRef.current.style;
+      style.setProperty('--tilt-x', '0deg');
+      style.setProperty('--tilt-y', '0deg');
+      style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      style.transition = 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)';
       if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
     }

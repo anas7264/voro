@@ -4,6 +4,7 @@ const path = require('path');
 console.log('⚡ Running Daily UI/UX Masterclass Refinement Verifier...\n');
 
 const componentsToVerify = [
+  { name: 'AchievementCard.jsx', path: 'webs/src/components/AchievementCard.jsx' },
   { name: 'Avatar.jsx', path: 'webs/src/components/Avatar.jsx' },
   { name: 'Badge.jsx', path: 'webs/src/components/Badge.jsx' },
   { name: 'Button.jsx', path: 'webs/src/components/Button.jsx' },
@@ -13,6 +14,8 @@ const componentsToVerify = [
   { name: 'Header.jsx', path: 'webs/src/components/Header.jsx' },
   { name: 'Progress.jsx', path: 'webs/src/components/Progress.jsx' },
   { name: 'Ring.jsx', path: 'webs/src/components/Ring.jsx' },
+  { name: 'ScreenPrivacyGuard.jsx', path: 'webs/src/components/ScreenPrivacyGuard.jsx' },
+  { name: 'SecurityLockdown.jsx', path: 'webs/src/components/SecurityLockdown.jsx' },
   { name: 'Stat.jsx', path: 'webs/src/components/Stat.jsx' },
   { name: 'Table.jsx', path: 'webs/src/components/Table.jsx' },
   { name: 'Tag.jsx', path: 'webs/src/components/Tag.jsx' },
