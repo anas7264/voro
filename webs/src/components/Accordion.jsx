@@ -286,7 +286,7 @@ const AccordionItem = memo(({ item, isOpen, onToggle, index }) => {
         onClick={handleToggleClick}
         onFocus={handleFocus}
         onBlur={handleBlur}
-        title={isOpen ? `Collapse ${itemTitle}` : `Expand ${itemTitle}`}
+        title={isOpen ? `Collapse ${item.title}` : `Expand ${item.title}`}
         className="relative z-10 w-full px-10 py-8 flex items-center justify-between outline-none focus-visible:ring-2 focus-visible:ring-voro-primary/50 focus-visible:ring-offset-4 focus-visible:ring-offset-[#0A0C14] rounded-[2.5rem]"
         aria-expanded={isOpen}
         aria-controls={regionId}
@@ -296,11 +296,11 @@ const AccordionItem = memo(({ item, isOpen, onToggle, index }) => {
              <span className="text-[0.55rem] font-mono font-black text-voro-primary uppercase tracking-[0.4em]">
                {nodeId}
              </span>
-             {itemTag && (
+             {item.tag && (
                <>
                  <div className="h-px w-3 bg-voro-primary/30" />
                  <span className="text-[0.55rem] font-mono font-bold text-gray-400 uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10">
-                   {itemTag}
+                   {item.tag}
                  </span>
                </>
              )}

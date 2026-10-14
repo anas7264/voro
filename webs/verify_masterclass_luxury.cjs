@@ -4,6 +4,7 @@ const path = require('path');
 console.log('⚡ Running Daily UI/UX Masterclass Refinement Verifier...\n');
 
 const componentsToVerify = [
+  { name: 'Accordion.jsx', path: 'webs/src/components/Accordion.jsx' },
   { name: 'AchievementCard.jsx', path: 'webs/src/components/AchievementCard.jsx' },
   { name: 'Avatar.jsx', path: 'webs/src/components/Avatar.jsx' },
   { name: 'Badge.jsx', path: 'webs/src/components/Badge.jsx' },
