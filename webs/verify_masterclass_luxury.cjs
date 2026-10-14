@@ -17,6 +17,7 @@ const componentsToVerify = [
   { name: 'Ring.jsx', path: 'webs/src/components/Ring.jsx' },
   { name: 'ScreenPrivacyGuard.jsx', path: 'webs/src/components/ScreenPrivacyGuard.jsx' },
   { name: 'SecurityLockdown.jsx', path: 'webs/src/components/SecurityLockdown.jsx' },
+  { name: 'Sidebar.jsx', path: 'webs/src/components/Sidebar.jsx' },
   { name: 'Stat.jsx', path: 'webs/src/components/Stat.jsx' },
   { name: 'Table.jsx', path: 'webs/src/components/Table.jsx' },
   { name: 'Tag.jsx', path: 'webs/src/components/Tag.jsx' },
