@@ -658,6 +658,7 @@ const decodeQuotedPrintable = (str) => {
 
 const BASE64_FORMAT_RE = /^[A-Za-z0-9+\/\-_]+={0,2}$/;
 const BASE32_FORMAT_RE = /^[A-Z2-7=]+$/i;
+const BASE32HEX_FORMAT_RE = /^[0-9A-V=]+$/i;
 const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 const BASE58_FORMAT_RE = /^[1-9A-HJ-NP-Za-km-z]{8,}$/;
 const BASE58_MATCH_RE = /[1-9A-HJ-NP-Za-km-z]{12,}/g;
@@ -1307,6 +1308,32 @@ const safeDecodeBase32 = (str) => {
     }
     const cleanStr = str.replace(/=/g, '').toUpperCase();
     const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    let bits = '';
+    for (let i = 0; i < cleanStr.length; i++) {
+      const val = alphabet.indexOf(cleanStr[i]);
+      if (val === -1) return null;
+      bits += val.toString(2).padStart(5, '0');
+    }
+    let decoded = '';
+    for (let i = 0; i + 8 <= bits.length; i += 8) {
+      const byte = parseInt(bits.substring(i, i + 8), 2);
+      if (byte < 32 || byte > 126) return null;
+      decoded += String.fromCharCode(byte);
+    }
+    return decoded.length >= 8 ? decoded : null;
+  } catch (e) {
+    return null;
+  }
+};
+
+// Helper to safely decode Base32hex strings (RFC 4648 §7 Extended Hex Alphabet) with printable-ASCII verification
+const safeDecodeBase32Hex = (str) => {
+  try {
+    if (!str || typeof str !== 'string' || str.length < 8 || !BASE32HEX_FORMAT_RE.test(str)) {
+      return null;
+    }
+    const cleanStr = str.replace(/=/g, '').toUpperCase();
+    const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUV';
     let bits = '';
     for (let i = 0; i < cleanStr.length; i++) {
       const val = alphabet.indexOf(cleanStr[i]);
@@ -2134,6 +2161,11 @@ export const isPromptInjection = (query, isNested = false) => {
 
       const base32Decoded = safeDecodeBase32(targetStr.trim());
       if (base32Decoded && hasPromptInjectionKeywords(base32Decoded)) {
+        return true;
+      }
+
+      const base32HexDecoded = safeDecodeBase32Hex(targetStr.trim());
+      if (base32HexDecoded && hasPromptInjectionKeywords(base32HexDecoded)) {
         return true;
       }
 
