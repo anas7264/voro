@@ -39,16 +39,16 @@ const KineticBlockCard = memo(({ block, onIntegrate }) => {
   const isFocusedRef = useRef(false);
   const [announcement, setAnnouncement] = useState('');
 
-  const updateTransform = () => {
+  const updateTransform = useCallback(() => {
     if (!containerRef.current) return;
     const active = isHoveredRef.current || isFocusedRef.current;
     containerRef.current.style.transform = active
       ? 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-6px)'
       : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
     containerRef.current.style.transition = isHoveredRef.current ? 'none' : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
-  };
+  }, []);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -69,23 +69,23 @@ const KineticBlockCard = memo(({ block, onIntegrate }) => {
     if (isHoveredRef.current || isFocusedRef.current) {
       updateTransform();
     }
-  };
+  }, [updateTransform]);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     isHoveredRef.current = true;
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     isFocusedRef.current = true;
     setAnnouncement(`${block.name}. Temporal duration: ${block.duration}. Focus: ${block.focus}. Currently focused.`);
     if (containerRef.current) {
@@ -95,9 +95,9 @@ const KineticBlockCard = memo(({ block, onIntegrate }) => {
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     }
     updateTransform();
-  };
+  }, [block.name, block.duration, block.focus, updateTransform]);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
     setAnnouncement('');
     if (containerRef.current) {
@@ -105,7 +105,7 @@ const KineticBlockCard = memo(({ block, onIntegrate }) => {
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
   return (
     <>
@@ -220,16 +220,16 @@ const TimelineNodeItem = memo(({ block, idx, onRemove }) => {
     };
   }, []);
 
-  const updateTransform = () => {
+  const updateTransform = useCallback(() => {
     if (!containerRef.current) return;
     const active = isHoveredRef.current || isFocusedRef.current;
     containerRef.current.style.transform = active
       ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)'
       : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
     containerRef.current.style.transition = isHoveredRef.current ? 'none' : 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
-  };
+  }, []);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -249,23 +249,23 @@ const TimelineNodeItem = memo(({ block, idx, onRemove }) => {
     if (isHoveredRef.current || isFocusedRef.current) {
       updateTransform();
     }
-  };
+  }, [updateTransform]);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     isHoveredRef.current = true;
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     isFocusedRef.current = true;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '3deg');
@@ -274,18 +274,18 @@ const TimelineNodeItem = memo(({ block, idx, onRemove }) => {
       if (tiltYRef.current) tiltYRef.current.innerText = "-3.0";
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleRemoveClick = () => {
+  const handleRemoveClick = useCallback(() => {
     if (isConfirming) {
       if (timerRef.current) clearInterval(timerRef.current);
       setIsConfirming(false);
@@ -305,7 +305,7 @@ const TimelineNodeItem = memo(({ block, idx, onRemove }) => {
         }
       }, 1000);
     }
-  };
+  }, [isConfirming, onRemove, block.id]);
 
   return (
     <div
@@ -431,14 +431,9 @@ const Periodization = () => {
   }, []);
 
   const handleAddBlock = useCallback(async (block) => {
-    // E2E Test mode bypass check
     const isTestBypass =
       typeof window !== 'undefined' &&
       (window.__VORO_TEST_BYPASS__ || localStorage.getItem('voro_test_mode') === 'true');
-
-    if (!isTestBypass) {
-      setIsAligning(true);
-    }
 
     const newBlock = {
       id: Date.now(),
@@ -451,14 +446,16 @@ const Periodization = () => {
     };
     const updated = [...blocks, newBlock];
 
+    // ⚡ OPTIMISTIC UI: Instant state propagation before visual alignment sequence completes
+    await setItem('periodization', updated);
+
     if (!isTestBypass) {
-      setTimeout(async () => {
-        await setItem('periodization', updated);
+      setIsAligning(true);
+      setTimeout(() => {
         setIsAligning(false);
         addNotification(`${block.name} integrated into timeline.`, 'success');
       }, 1200);
     } else {
-      await setItem('periodization', updated);
       addNotification(`${block.name} integrated into timeline.`, 'success');
     }
   }, [blocks, setItem, addNotification]);

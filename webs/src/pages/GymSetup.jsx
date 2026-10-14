@@ -37,16 +37,16 @@ const KineticHardwareCell = memo(({ item, isChecked, onToggle }) => {
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
 
-  const updateTransform = () => {
+  const updateTransform = useCallback(() => {
     if (!cellRef.current) return;
     const active = isHoveredRef.current || isFocusedRef.current;
     cellRef.current.style.transform = active
       ? 'perspective(1200px) rotateX(var(--cell-tilt-x, 0deg)) rotateY(var(--cell-tilt-y, 0deg)) translateY(-4px)'
       : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
     cellRef.current.style.transition = isHoveredRef.current ? 'none' : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
-  };
+  }, []);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!cellRef.current) return;
     const rect = cellRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -68,23 +68,23 @@ const KineticHardwareCell = memo(({ item, isChecked, onToggle }) => {
     if (isHoveredRef.current || isFocusedRef.current) {
       updateTransform();
     }
-  };
+  }, [updateTransform]);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     isHoveredRef.current = true;
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
     if (cellRef.current) {
       cellRef.current.style.setProperty('--cell-tilt-x', '0deg');
       cellRef.current.style.setProperty('--cell-tilt-y', '0deg');
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     isFocusedRef.current = true;
     if (cellRef.current) {
       // Accessible static tilt (4 degrees) on keyboard focus
@@ -94,23 +94,23 @@ const KineticHardwareCell = memo(({ item, isChecked, onToggle }) => {
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
     if (cellRef.current) {
       cellRef.current.style.setProperty('--cell-tilt-x', '0deg');
       cellRef.current.style.setProperty('--cell-tilt-y', '0deg');
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = useCallback((e) => {
     if (e.key === ' ' || e.key === 'Enter') {
       e.preventDefault();
       onToggle();
     }
-  };
+  }, [onToggle]);
 
   return (
     <div
@@ -221,16 +221,16 @@ const SpatialBlueprintEnclave = memo(({ equipment, commonEquipment = COMMON_EQUI
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
 
-  const updateTransform = () => {
+  const updateTransform = useCallback(() => {
     if (!containerRef.current) return;
     const active = isHoveredRef.current || isFocusedRef.current;
     containerRef.current.style.transform = active
       ? 'perspective(1500px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) scale(1.01)'
       : 'perspective(1500px) rotateX(0deg) rotateY(0deg) scale(1)';
     containerRef.current.style.transition = isHoveredRef.current ? 'none' : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
-  };
+  }, []);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -250,23 +250,23 @@ const SpatialBlueprintEnclave = memo(({ equipment, commonEquipment = COMMON_EQUI
     if (isHoveredRef.current || isFocusedRef.current) {
       updateTransform();
     }
-  };
+  }, [updateTransform]);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     isHoveredRef.current = true;
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     isFocusedRef.current = true;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '4deg');
@@ -275,16 +275,16 @@ const SpatialBlueprintEnclave = memo(({ equipment, commonEquipment = COMMON_EQUI
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
     updateTransform();
-  };
+  }, [updateTransform]);
 
   return (
     <div
