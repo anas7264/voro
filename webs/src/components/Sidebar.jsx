@@ -1,4 +1,4 @@
-import React, { useRef, memo } from 'react';
+import React, { useRef, memo, useId, useMemo, useCallback } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Utensils, Dumbbell, Activity, BarChart3,
@@ -73,7 +73,7 @@ const navSections = [
 ];
 
 /**
- * ⚡ LUXURY MASTERCLASS REFINEMENT: Kinetic Neural Nav Node.
+ * ⚡ LUXURY MASTERCLASS REFINEMENT: Kinetic Neural Navigation Node (NavItem).
  * Re-engineered into a bespoke 60fps Volumetric 3D Interactive Node featuring direct-DOM
  * mouse-tracked rotational tilt, holographic spatial coordinate telemetry (TX/TY),
  * W3C APG accessible static 4-degree focus tilt, dynamic luminous lens backglows,
@@ -87,7 +87,7 @@ const NavItem = memo(({ item, isActive, collapsed, isMobile, onClick }) => {
   const isFocusedRef = useRef(false);
   const Icon = item.icon;
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!nodeRef.current || (collapsed && !isMobile)) return;
 
     const rect = nodeRef.current.getBoundingClientRect();
@@ -98,58 +98,61 @@ const NavItem = memo(({ item, isActive, collapsed, isMobile, onClick }) => {
     const tiltY = ((x / rect.width) - 0.5) * 20;
     const tiltX = (0.5 - (y / rect.height)) * 20;
 
-    nodeRef.current.style.setProperty('--mouse-x', `${x}px`);
-    nodeRef.current.style.setProperty('--mouse-y', `${y}px`);
-    nodeRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    nodeRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
-    nodeRef.current.style.transition = 'none';
-    nodeRef.current.style.transform = 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)';
+    const style = nodeRef.current.style;
+    style.setProperty('--mouse-x', `${x.toFixed(1)}px`);
+    style.setProperty('--mouse-y', `${y.toFixed(1)}px`);
+    style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
+    style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
+    style.setProperty('transition', 'none');
+    style.setProperty('transform', `perspective(1000px) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg) translateY(-2px)`);
 
     if (txRef.current) txRef.current.innerText = tiltX.toFixed(1);
     if (tyRef.current) tyRef.current.innerText = tiltY.toFixed(1);
-  };
+  }, [collapsed, isMobile]);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     isHoveredRef.current = true;
     if (nodeRef.current && (!collapsed || isMobile)) {
-      nodeRef.current.style.transition = 'none';
-      nodeRef.current.style.transform = 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)';
+      nodeRef.current.style.setProperty('transition', 'none');
     }
-  };
+  }, [collapsed, isMobile]);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
-    if (nodeRef.current) {
-      nodeRef.current.style.setProperty('--tilt-x', '0deg');
-      nodeRef.current.style.setProperty('--tilt-y', '0deg');
-      if (!isFocusedRef.current) {
-        nodeRef.current.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
-        nodeRef.current.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
-      }
-    }
-  };
+    if (!nodeRef.current) return;
 
-  const handleFocus = () => {
+    const style = nodeRef.current.style;
+    style.setProperty('--tilt-x', '0deg');
+    style.setProperty('--tilt-y', '0deg');
+    if (!isFocusedRef.current) {
+      style.setProperty('transition', 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)');
+      style.setProperty('transform', 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)');
+    }
+  }, []);
+
+  const handleFocus = useCallback(() => {
     isFocusedRef.current = true;
-    if (nodeRef.current && (!collapsed || isMobile)) {
-      nodeRef.current.style.setProperty('--tilt-x', '4deg');
-      nodeRef.current.style.setProperty('--tilt-y', '-4deg');
-      nodeRef.current.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
-      nodeRef.current.style.transform = 'perspective(1000px) rotateX(4deg) rotateY(-4deg) translateY(-2px)';
-      if (txRef.current) txRef.current.innerText = '4.0';
-      if (tyRef.current) tyRef.current.innerText = '-4.0';
-    }
-  };
+    if (!nodeRef.current || (collapsed && !isMobile)) return;
 
-  const handleBlur = () => {
+    const style = nodeRef.current.style;
+    style.setProperty('--tilt-x', '4deg');
+    style.setProperty('--tilt-y', '-4deg');
+    style.setProperty('transition', 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)');
+    style.setProperty('transform', 'perspective(1000px) rotateX(4deg) rotateY(-4deg) translateY(-2px)');
+    if (txRef.current) txRef.current.innerText = '4.0';
+    if (tyRef.current) tyRef.current.innerText = '-4.0';
+  }, [collapsed, isMobile]);
+
+  const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
-    if (nodeRef.current) {
-      nodeRef.current.style.setProperty('--tilt-x', '0deg');
-      nodeRef.current.style.setProperty('--tilt-y', '0deg');
-      nodeRef.current.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
-      nodeRef.current.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
-    }
-  };
+    if (!nodeRef.current) return;
+
+    const style = nodeRef.current.style;
+    style.setProperty('--tilt-x', '0deg');
+    style.setProperty('--tilt-y', '0deg');
+    style.setProperty('transition', 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)');
+    style.setProperty('transform', 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)');
+  }, []);
 
   return (
     <NavLink
@@ -248,9 +251,15 @@ const NavItem = memo(({ item, isActive, collapsed, isMobile, onClick }) => {
 
 NavItem.displayName = 'NavItem';
 
-const Sidebar = ({ collapsed, setCollapsed, isMobile }) => {
+const Sidebar = memo(({ collapsed, setCollapsed, isMobile }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const generatedId = useId();
+
+  const subpixelHash = useMemo(() => {
+    const cleanId = generatedId.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    return `0xSDB_${cleanId.slice(-4).padStart(4, '0')}`;
+  }, [generatedId]);
 
   return (
     <aside
@@ -354,7 +363,7 @@ const Sidebar = ({ collapsed, setCollapsed, isMobile }) => {
         {(!collapsed || isMobile) && (
           <div className="mt-8 flex items-center justify-between border-t border-white/5 pt-6">
              <p className="text-[0.55rem] font-mono font-bold text-gray-800 tracking-[0.5em] uppercase hover:text-white transition-colors duration-700 cursor-default">
-                MMXXVI · VORO
+                MMXXVI · VORO <span className="text-voro-primary/30 text-[0.45rem] font-mono ml-2">[{subpixelHash}]</span>
              </p>
              <ShieldCheck size={12} className="text-voro-primary opacity-30 hover:opacity-100 transition-opacity" />
           </div>
@@ -362,6 +371,8 @@ const Sidebar = ({ collapsed, setCollapsed, isMobile }) => {
       </div>
     </aside>
   );
-};
+});
+
+Sidebar.displayName = 'Sidebar';
 
 export default Sidebar;
