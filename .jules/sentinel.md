@@ -479,3 +479,14 @@ CSV formula neutralization must evaluate both the start of the field string and 
 
 **Prevention:**
 Always apply line-break-aware regex replacements (`/([\r\n]+\s*)([=+\-@\t\r%|])/g`) in CSV field sanitization functions to prevent multiline formula injection attacks in exported spreadsheet files.
+
+## 2026-10-14 - Base32hex (RFC 4648 §7) Extended Hex Alphabet Prompt Injection Shield
+
+**Vulnerability:**
+Prompt injection detectors matching standard Base32 encodings (`A-Z2-7`) fail to detect prompt injection override payloads obfuscated using Base32hex with Extended Hex Alphabet (`0-9A-V` as defined in RFC 4648 §7). Because Base32hex uses digits `0-9` and letters `A-V` rather than `A-Z2-7`, standard Base32 regexes fail to match Base32hex strings containing digits like `0` or `1` or letters like `8` or `9`. Language models easily decode RFC 4648 §7 Base32hex payloads back to natural language during prompt processing, allowing obfuscated prompt injection payloads to bypass input security filters.
+
+**Learning:**
+Neutralizing Base32hex obfuscation requires adding a dedicated `BASE32HEX_FORMAT_RE` regex (`/^[0-9A-V=]+$/i`) and `safeDecodeBase32Hex` helper function to extract and convert Extended Hex Alphabet 5-bit sequences into printable ASCII strings. Evaluating decoded strings against `hasPromptInjectionKeywords` in `isPromptInjection` rejects Base32hex-encoded payloads before user input reaches downstream LLM execution contexts.
+
+**Prevention:**
+Always support both standard Base32 (`A-Z2-7`) and Base32hex (`0-9A-V`, RFC 4648 §7) decoding passes in input validation pipelines to ensure Extended Hex Alphabet encodings cannot be used to bypass system prompt boundaries.
