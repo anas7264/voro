@@ -2251,9 +2251,21 @@ export const isPromptInjection = (query, isNested = false) => {
         return true;
       }
 
+      // Security: Handle 6x6 Alphanumeric Playfair Cipher (36 characters a-z, 0-9) and evaluate recursively
+      const playfair6x6Decoded = safeDecodePlayfair6x6(targetStr);
+      if (playfair6x6Decoded) {
+        return true;
+      }
+
       // Security: Handle Bifid Cipher (5x5 grid fractionated coordinates) and evaluate recursively
       const bifidDecoded = safeDecodeBifid(targetStr);
       if (bifidDecoded) {
+        return true;
+      }
+
+      // Security: Handle 6x6 Alphanumeric Bifid Cipher (36 characters a-z, 0-9) and evaluate recursively
+      const bifid6x6Decoded = safeDecodeBifid6x6(targetStr);
+      if (bifid6x6Decoded) {
         return true;
       }
 
@@ -3450,6 +3462,107 @@ const safeDecodeTrifid = (targetStr) => {
   return null;
 };
 
+/**
+ * Helper to safely decode 6x6 Alphanumeric Playfair Cipher-encoded prompt injection payloads.
+ * Supports all 36 alphanumeric characters (a-z, 0-9) across candidate 6x6 grids (`CANDIDATE_6X6_GRIDS`).
+ */
+export const safeDecodePlayfair6x6 = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+
+  const clean = targetStr.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (clean.length < 8 || clean.length % 2 !== 0) return null;
+
+  for (let idx = 0; idx < CANDIDATE_6X6_GRIDS.length; idx++) {
+    const { matrix, posMap } = CANDIDATE_6X6_GRIDS[idx];
+    let decoded = '';
+    let isValid = true;
+
+    for (let i = 0; i < clean.length; i += 2) {
+      const c1 = clean[i];
+      const c2 = clean[i + 1];
+      const p1 = posMap[c1];
+      const p2 = posMap[c2];
+
+      if (!p1 || !p2) {
+        isValid = false;
+        break;
+      }
+
+      if (p1.row === p2.row) {
+        decoded += matrix[p1.row][(p1.col + 5) % 6];
+        decoded += matrix[p2.row][(p2.col + 5) % 6];
+      } else if (p1.col === p2.col) {
+        decoded += matrix[(p1.row + 5) % 6][p1.col];
+        decoded += matrix[(p2.row + 5) % 6][p2.col];
+      } else {
+        decoded += matrix[p1.row][p2.col];
+        decoded += matrix[p2.row][p1.col];
+      }
+    }
+
+    if (isValid && decoded.length >= 4) {
+      const candidates = [
+        decoded,
+        decoded.replace(/x/g, ''),
+        decoded.replace(/0/g, ''),
+        decoded.replace(/[x0]/g, '')
+      ];
+      for (const cand of candidates) {
+        if (cand !== targetStr && hasPromptInjectionKeywords(cand)) {
+          return cand;
+        }
+      }
+    }
+  }
+
+  return null;
+};
+
+/**
+ * Helper to safely decode 6x6 Alphanumeric Bifid Cipher-encoded prompt injection payloads.
+ * Decodes 6x6 fractionated coordinates (row 0..5, col 0..5) across candidate 6x6 grids (`CANDIDATE_6X6_GRIDS`).
+ */
+export const safeDecodeBifid6x6 = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+
+  const clean = targetStr.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const N = clean.length;
+  if (N < 8) return null;
+
+  for (let idx = 0; idx < CANDIDATE_6X6_GRIDS.length; idx++) {
+    const { matrix, posMap } = CANDIDATE_6X6_GRIDS[idx];
+
+    const T = [];
+    let isValid = true;
+    for (let i = 0; i < N; i++) {
+      const pos = posMap[clean[i]];
+      if (!pos) {
+        isValid = false;
+        break;
+      }
+      T.push(pos.row, pos.col);
+    }
+
+    if (!isValid || T.length !== 2 * N) continue;
+
+    const rowSeq = T.slice(0, N);
+    const colSeq = T.slice(N, 2 * N);
+
+    let decoded = '';
+    for (let i = 0; i < N; i++) {
+      decoded += matrix[rowSeq[i]][colSeq[i]];
+    }
+
+    if (decoded.length >= 4) {
+      if (decoded !== targetStr && hasPromptInjectionKeywords(decoded)) {
+        return decoded;
+      }
+    }
+  }
+
+  return null;
+};
+
 // Helper to safely decode Playfair Cipher-encoded payloads across common candidate keys
 const safeDecodePlayfair = (targetStr) => {
   if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
@@ -4512,6 +4625,8 @@ export default {
   isValidChatQuery,
   isValidName,
   safeDecodeBase62,
+  safeDecodePlayfair6x6,
+  safeDecodeBifid6x6,
   isPromptInjection,
   sanitizeCSVField
 };
