@@ -17,6 +17,7 @@ const checks = [
   { name: 'Semantic <section> container tag with APG live region', test: content.includes('<section') && content.includes('role="region"') && content.includes('aria-label="System Notification Matrix Stream"') && content.includes('aria-live="polite"') },
   { name: 'Responsive golden-ratio whitespace & z-index', test: content.includes('fixed top-6 right-6 sm:top-10 sm:right-10') && content.includes('z-[100]') },
   { name: 'Luxury stream telemetry header matrix badge', test: content.includes('Notification_Stream') && content.includes('[0xNTF_STREAM]') && content.includes('SIGNAL') },
+  { name: 'Clear All action button with clearAllNotifications, aria-label, and title', test: content.includes('clearAllNotifications') && content.includes('CLEAR ALL') && content.includes('aria-label="Clear all notifications"') && content.includes('title="Clear all notifications"') },
   { name: 'Renders Alert with title, message, and onClose', test: content.includes('<Alert') && content.includes('title={notification.title}') && content.includes('message={notification.message}') && content.includes('onClose=') },
   { name: 'Named and default exports', test: content.includes('export const NotificationContainer = memo(') && content.includes('export default NotificationContainer') },
   { name: 'DisplayName set', test: content.includes('NotificationContainer.displayName = "NotificationContainer"') }

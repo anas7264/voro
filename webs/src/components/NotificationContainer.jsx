@@ -42,7 +42,7 @@ NotificationItem.displayName = "NotificationItem";
  */
 export const NotificationContainer = memo(() => {
   const notifications = useNotificationState();
-  const { removeNotification } = useNotifications();
+  const { removeNotification, clearAllNotifications } = useNotifications();
 
   const count = notifications ? notifications.length : 0;
 
@@ -68,6 +68,17 @@ export const NotificationContainer = memo(() => {
           </div>
 
           <div className="flex items-center gap-2">
+            {count > 1 && (
+              <button
+                type="button"
+                onClick={clearAllNotifications}
+                aria-label="Clear all notifications"
+                title="Clear all notifications"
+                className="text-[0.5rem] font-mono font-bold text-gray-400 hover:text-voro-danger bg-white/[0.04] hover:bg-voro-danger/10 px-2 py-0.5 rounded-full border border-white/10 hover:border-voro-danger/30 tracking-widest transition-colors outline-none focus-visible:ring-2 focus-visible:ring-voro-primary/60 focus-visible:ring-offset-1 focus-visible:ring-offset-[#0A0C14]"
+              >
+                CLEAR ALL
+              </button>
+            )}
             <span className="text-[0.5rem] font-mono font-bold text-voro-primary bg-voro-primary/10 px-2 py-0.5 rounded-full border border-voro-primary/20 tracking-widest">
               {count} {count === 1 ? 'SIGNAL' : 'SIGNALS'}
             </span>
