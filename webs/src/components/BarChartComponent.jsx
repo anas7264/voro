@@ -64,6 +64,34 @@ const CustomTooltip = memo(({ active, payload, label, series, unit }) => {
 CustomTooltip.displayName = "CustomTooltip";
 
 /**
+ * ⚡ PERFORMANCE OPTIMIZATION: Memoized Legend Subcomponent.
+ * Prevents unmemoized inline render closure allocations during chart re-render passes.
+ */
+const BarLegend = memo(({ payload, series }) => {
+  if (!payload || !payload.length) return null;
+  return (
+    <div className="flex justify-center gap-6 mt-6 pt-4 border-t border-white/5">
+      {payload.map((entry, index) => {
+        const color = series?.find(s => s.key === entry.dataKey)?.color || entry.color;
+        return (
+          <div key={index} className="flex items-center gap-2.5 group/legend cursor-pointer">
+            <div
+              className="w-2 h-2 rounded-full shadow-[0_0_8px_currentColor] group-hover/legend:scale-125 transition-transform duration-300"
+              style={{ backgroundColor: color, color }}
+            />
+            <span className="text-[0.6rem] font-mono font-bold text-gray-400 group-hover/legend:text-white uppercase tracking-[0.15em] transition-colors duration-300">
+              {entry.value}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+});
+
+BarLegend.displayName = "BarLegend";
+
+/**
  * ⚡ REFINEMENT: Luxury Neural Bar Matrix Specimen (BarChartComponent).
  * Re-engineered conforming to Voro's 'Forge' luxury design architecture and zero-allocation performance standards:
  * 1. Direct-DOM 60fps 3D volumetric rotational tilt tracking (`--mouse-x`, `--mouse-y`, `--tilt-x`, `--tilt-y`).
@@ -359,24 +387,7 @@ export const BarChartComponent = memo(({
 
             {series.length > 1 && (
               <Legend
-                content={({ payload }) => (
-                  <div className="flex justify-center gap-6 mt-6 pt-4 border-t border-white/5">
-                    {payload && payload.map((entry, index) => {
-                      const color = series.find(s => s.key === entry.dataKey)?.color || entry.color;
-                      return (
-                        <div key={index} className="flex items-center gap-2.5 group/legend cursor-pointer">
-                          <div
-                            className="w-2 h-2 rounded-full shadow-[0_0_8px_currentColor] group-hover/legend:scale-125 transition-transform duration-300"
-                            style={{ backgroundColor: color, color }}
-                          />
-                          <span className="text-[0.6rem] font-mono font-bold text-gray-400 group-hover/legend:text-white uppercase tracking-[0.15em] transition-colors duration-300">
-                            {entry.value}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                content={(legendProps) => <BarLegend {...legendProps} series={series} />}
               />
             )}
 
