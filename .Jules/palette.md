@@ -45,3 +45,7 @@
 ## 2025-05-29 - Framing Container Tooltip Inheritance on Disabled Form Inputs
 **Learning:** Native disabled form fields (`<input disabled>` or `<textarea disabled>`) often suppress pointer/hover events in desktop browsers, preventing `title` tooltips placed solely on the child input/textarea from rendering when mouse users hover over the input container. Passing computed `title` tooltips ("This field is disabled" or custom title) to the framing container `<div>` ensures hover tooltips trigger reliably across the entire component box.
 **Action:** When adding or refining disabled state tooltips on custom form components, apply the computed `title` attribute to both the interactive element and its framing container element.
+
+## 2025-05-30 - Bulk Clear Actions in Floating Notification Matrix Streams
+**Learning:** When multiple toast or notification alerts accumulate in floating stream containers, forcing users to dismiss each item individually increases cognitive burden. Adding a contextual "Clear All" action in the stream header when `count > 1` provides instant batch dismissal. Ensuring explicit `aria-label`, `title`, and keyboard focus visible rings ensures screen readers and keyboard users maintain full control over floating live region streams.
+**Action:** When designing floating alert or notification stream containers that display multiple items, include a batch "Clear All" control in the stream header with explicit ARIA labels and focus ring styles.
