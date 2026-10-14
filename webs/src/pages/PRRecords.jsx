@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState, useId } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useId, useCallback } from 'react';
 import { Trophy, Zap, Shield, Cpu, Activity, TrendingUp, Sparkles, ChevronRight, Calendar } from 'lucide-react';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
