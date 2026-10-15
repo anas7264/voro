@@ -87,9 +87,11 @@ const PRE_PROCESSED_ARTICLES = Object.freeze(RAW_ARTICLES.map(a => Object.freeze
   _initials: a.author.split(' ').map(n => n[0]).join('')
 })));
 
+const DEFAULT_NON_FEATURED_ARTICLES = Object.freeze(PRE_PROCESSED_ARTICLES.filter(a => !a.featured));
+
 const CATEGORIES = Object.freeze(['All', 'Nutrition', 'Training', 'Recovery']);
 
-const FEATURED_ARTICLE = RAW_ARTICLES.find(a => a.featured);
+const FEATURED_ARTICLE = PRE_PROCESSED_ARTICLES.find(a => a.featured);
 
 const FAQ_ITEMS = Object.freeze([
   {
@@ -398,6 +400,18 @@ const EducationArticleCard = memo(({ article, idx, isBookmarked, onToggleBookmar
     updateTransform();
   }, [updateTransform]);
 
+  const handleBookmarkClick = useCallback(() => {
+    onToggleBookmark(article.id, article.title);
+  }, [article.id, article.title, onToggleBookmark]);
+
+  const handleShareClick = useCallback(() => {
+    onShare(article.title);
+  }, [article.title, onShare]);
+
+  const handleReadDossierClick = useCallback(() => {
+    onReadDossier(article.title);
+  }, [article.title, onReadDossier]);
+
   return (
     <div
       ref={containerRef}
@@ -480,7 +494,7 @@ const EducationArticleCard = memo(({ article, idx, isBookmarked, onToggleBookmar
           <div className="flex gap-3">
             <button
               type="button"
-              onClick={() => onToggleBookmark(article.id, article.title)}
+              onClick={handleBookmarkClick}
               aria-label={`${isBookmarked ? 'Remove bookmark' : 'Bookmark'}: ${article.title}`}
               title={isBookmarked ? 'Remove bookmark' : 'Bookmark article'}
               className="text-gray-500 hover:text-white focus-visible:text-white transition-colors outline-none focus-visible:ring-1 focus-visible:ring-voro-primary rounded-md p-2 bg-white/[0.02] hover:bg-white/[0.05]"
@@ -493,7 +507,7 @@ const EducationArticleCard = memo(({ article, idx, isBookmarked, onToggleBookmar
             </button>
             <button
               type="button"
-              onClick={() => onShare(article.title)}
+              onClick={handleShareClick}
               aria-label={`Copy share link for: ${article.title}`}
               title="Copy share link"
               className="text-gray-500 hover:text-white focus-visible:text-white transition-colors outline-none focus-visible:ring-1 focus-visible:ring-voro-primary rounded-md p-2 bg-white/[0.02] hover:bg-white/[0.05]"
@@ -515,7 +529,7 @@ const EducationArticleCard = memo(({ article, idx, isBookmarked, onToggleBookmar
           <span className="text-[0.55rem] font-black text-gray-500 uppercase tracking-widest font-mono">{article.author}</span>
           <button
             type="button"
-            onClick={() => onReadDossier(article.title)}
+            onClick={handleReadDossierClick}
             aria-label={`Read dossier for ${article.title}`}
             title={`Read dossier for ${article.title}`}
             className="group/rd text-voro-primary flex items-center gap-2 text-[0.55rem] font-black uppercase tracking-[0.2em] outline-none focus-visible:ring-1 focus-visible:ring-voro-primary rounded-md px-3 py-1.5 bg-white/[0.02] hover:bg-white/[0.05] transition-all"
@@ -587,6 +601,10 @@ const EducationHub = () => {
   const filteredArticles = useMemo(() => {
     const q = deferredSearchQuery.trim().toLowerCase();
     const cat = activeCategory;
+
+    if (!q && cat === 'All') {
+      return DEFAULT_NON_FEATURED_ARTICLES;
+    }
 
     return PRE_PROCESSED_ARTICLES.filter(article => {
       if (article.featured && cat === 'All' && !q) return false;
