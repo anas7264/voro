@@ -659,6 +659,8 @@ const decodeQuotedPrintable = (str) => {
 const BASE64_FORMAT_RE = /^[A-Za-z0-9+\/\-_]+={0,2}$/;
 const BASE32_FORMAT_RE = /^[A-Z2-7=]+$/i;
 const BASE32HEX_FORMAT_RE = /^[0-9A-V=]+$/i;
+const ZBASE32_ALPHABET = "ybndrfg8ejkmcpqxot1uwisza345h769";
+const ZBASE32_FORMAT_RE = /^[ybndrfg8ejkmcpqxot1uwisza345h769=]+$/i;
 const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 const BASE58_FORMAT_RE = /^[1-9A-HJ-NP-Za-km-z]{8,}$/;
 const BASE58_MATCH_RE = /[1-9A-HJ-NP-Za-km-z]{12,}/g;
@@ -1073,6 +1075,34 @@ const safeDecodeDecimal = (str) => {
       }
       if (code < 9 || (code > 13 && code < 32) || code > 126) return null;
       decoded += String.fromCharCode(code);
+    }
+    return decoded.length >= 8 ? decoded : null;
+  } catch (e) {
+    return null;
+  }
+};
+
+/**
+ * Helper to safely decode Z-base-32 (human-oriented Base32 variant by Zooko) encoded prompt injection payloads.
+ * Uses 5-bit alphabet: "ybndrfg8ejkmcpqxot1uwisza345h769".
+ */
+export const safeDecodeZBase32 = (str) => {
+  try {
+    if (!str || typeof str !== 'string' || str.length < 8 || !ZBASE32_FORMAT_RE.test(str)) {
+      return null;
+    }
+    const cleanStr = str.replace(/=/g, '').toLowerCase();
+    let bits = '';
+    for (let i = 0; i < cleanStr.length; i++) {
+      const val = ZBASE32_ALPHABET.indexOf(cleanStr[i]);
+      if (val === -1) return null;
+      bits += val.toString(2).padStart(5, '0');
+    }
+    let decoded = '';
+    for (let i = 0; i + 8 <= bits.length; i += 8) {
+      const byte = parseInt(bits.substring(i, i + 8), 2);
+      if (byte < 32 || byte > 126) return null;
+      decoded += String.fromCharCode(byte);
     }
     return decoded.length >= 8 ? decoded : null;
   } catch (e) {
@@ -2368,6 +2398,11 @@ export const isPromptInjection = (query, isNested = false) => {
 
       const base32HexDecoded = safeDecodeBase32Hex(targetStr.trim());
       if (base32HexDecoded && hasPromptInjectionKeywords(base32HexDecoded)) {
+        return true;
+      }
+
+      const zBase32Decoded = safeDecodeZBase32(targetStr.trim());
+      if (zBase32Decoded && hasPromptInjectionKeywords(zBase32Decoded)) {
         return true;
       }
 
@@ -4864,6 +4899,7 @@ export default {
   safeDecodeSolitaire,
   safeDecodePlayfair6x6,
   safeDecodeBifid6x6,
+  safeDecodeZBase32,
   isPromptInjection,
   sanitizeCSVField
 };
