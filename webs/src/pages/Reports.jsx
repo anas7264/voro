@@ -216,6 +216,13 @@ const SecureExportEnclave = memo(({ onJSONExport }) => {
     containerRef.current.style.setProperty('--mouse-y', `${y}px`);
   }, []);
 
+  const handleItemClick = useCallback((e) => {
+    const key = e.currentTarget.getAttribute('data-key');
+    if (key) {
+      onJSONExport(key);
+    }
+  }, [onJSONExport]);
+
   return (
     <div
       ref={containerRef}
@@ -253,7 +260,8 @@ const SecureExportEnclave = memo(({ onJSONExport }) => {
         {EXPORT_ITEMS.map((exportItem) => (
           <button
             key={exportItem.key}
-            onClick={() => onJSONExport(exportItem.key)}
+            data-key={exportItem.key}
+            onClick={handleItemClick}
             className="w-full p-4.5 rounded-2xl bg-white/[0.015] border border-white/5 hover:border-voro-secondary/40 hover:bg-voro-secondary/[0.04] flex items-center justify-between transition-all duration-500 group/btn text-left outline-none focus-visible:ring-2 focus-visible:ring-voro-secondary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0C14] active:scale-[0.99]"
           >
             <div className="flex items-center gap-3.5">
@@ -296,6 +304,36 @@ const Reports = () => {
   useEffect(() => {
     document.title = 'VORO | Forensic Reports';
   }, []);
+
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Storage Subscriptions.
+   * Directly subscribes to storage keys via useStorageKeySelector.
+   */
+  const workoutsObj = useStorageKeySelector('workout_log', selectWorkoutLog);
+  const nutritionObj = useStorageKeySelector('nutrition_log', selectNutritionLog);
+  const metricsObj = useStorageKeySelector('body_metrics', selectBodyMetrics);
+
+  const rawWorkouts = useMemo(() => {
+    return Object.entries(workoutsObj).map(([date, w]) => ({ date, ...w }));
+  }, [workoutsObj]);
+
+  const rawNutrition = useMemo(() => {
+    return Object.entries(nutritionObj).map(([date, n]) => ({
+      date,
+      logged: !!n.totals?.calories,
+      calories: n.totals?.calories || 0
+    }));
+  }, [nutritionObj]);
+
+  const rawMetrics = useMemo(() => {
+    const weights = metricsObj.weights || [];
+    const bodyFat = metricsObj.bodyFat || [];
+
+    const weightChange = weights.length > 1 ? (weights[weights.length - 1].value - weights[0].value) : 0;
+    const bodyFatChange = bodyFat.length > 1 ? (bodyFat[bodyFat.length - 1].value - bodyFat[0].value) : 0;
+
+    return { weightChange, bodyFatChange };
+  }, [metricsObj]);
 
   // Determine delay per step (supports E2E test bypass mode for instant verification)
   const stepDelay = useMemo(() => {
@@ -353,36 +391,6 @@ const Reports = () => {
     }
     return () => clearTimeout(timer);
   }, [activeGen, genStep, stepDelay, triggerDownload]);
-
-  /**
-   * ⚡ PERFORMANCE OPTIMIZATION: Surgical Storage Subscriptions.
-   * Directly subscribes to storage keys via useStorageKeySelector.
-   */
-  const workoutsObj = useStorageKeySelector('workout_log', selectWorkoutLog);
-  const nutritionObj = useStorageKeySelector('nutrition_log', selectNutritionLog);
-  const metricsObj = useStorageKeySelector('body_metrics', selectBodyMetrics);
-
-  const rawWorkouts = useMemo(() => {
-    return Object.entries(workoutsObj).map(([date, w]) => ({ date, ...w }));
-  }, [workoutsObj]);
-
-  const rawNutrition = useMemo(() => {
-    return Object.entries(nutritionObj).map(([date, n]) => ({
-      date,
-      logged: !!n.totals?.calories,
-      calories: n.totals?.calories || 0
-    }));
-  }, [nutritionObj]);
-
-  const rawMetrics = useMemo(() => {
-    const weights = metricsObj.weights || [];
-    const bodyFat = metricsObj.bodyFat || [];
-
-    const weightChange = weights.length > 1 ? (weights[weights.length - 1].value - weights[0].value) : 0;
-    const bodyFatChange = bodyFat.length > 1 ? (bodyFat[bodyFat.length - 1].value - bodyFat[0].value) : 0;
-
-    return { weightChange, bodyFatChange };
-  }, [metricsObj]);
 
   const handleJSONExport = useCallback(async (key) => {
     try {
