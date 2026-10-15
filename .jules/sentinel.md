@@ -490,3 +490,14 @@ Neutralizing Base32hex obfuscation requires adding a dedicated `BASE32HEX_FORMAT
 
 **Prevention:**
 Always support both standard Base32 (`A-Z2-7`) and Base32hex (`0-9A-V`, RFC 4648 §7) decoding passes in input validation pipelines to ensure Extended Hex Alphabet encodings cannot be used to bypass system prompt boundaries.
+
+## 2026-10-15 - Z-base-32 (Human-Oriented 5-Bit Encoding) Prompt Injection Shield
+
+**Vulnerability:**
+Prompt injection detectors evaluating standard RFC 4648 Base32 (`A-Z2-7`) or Base32hex (`0-9A-V`) fail to detect prompt injection override instructions obfuscated using Zooko's Z-base-32 5-bit alphabet (`ybndrfg8ejkmcpqxot1uwisza345h769`). Because Z-base-32 uses digits `8` and `9` and lowercase letters, standard Base32 regexes reject Z-base-32 formatted strings. Large language models natively decode Z-base-32 payloads back to natural language instructions during prompt processing, allowing obfuscated prompt injection payloads to bypass system input filters.
+
+**Learning:**
+Neutralizing Z-base-32 obfuscation requires adding a dedicated `ZBASE32_FORMAT_RE` regex (`/^[ybndrfg8ejkmcpqxot1uwisza345h769=]+$/i`) and `safeDecodeZBase32` helper function to decode Z-base-32 5-bit sequences into printable ASCII strings. Evaluating decoded strings against `hasPromptInjectionKeywords` in `isPromptInjection` rejects Z-base-32-encoded payloads before user text reaches downstream LLM execution contexts.
+
+**Prevention:**
+Always include human-oriented Base32 variants (such as Z-base-32) alongside standard RFC 4648 Base32 and Base32hex decoders in input validation pipelines to ensure non-standard 5-bit alphabets cannot be used to bypass system prompt boundaries.
