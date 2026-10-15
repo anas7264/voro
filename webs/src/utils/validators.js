@@ -2032,6 +2032,191 @@ const safeDecodeNihilist = (targetStr) => {
   return null;
 };
 
+const BASE92_ALPHABET = "!#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+const BASE92_MAP = Object.freeze((() => {
+  const map = new Map();
+  for (let i = 0; i < BASE92_ALPHABET.length; i++) map.set(BASE92_ALPHABET[i], i);
+  return map;
+})());
+
+/**
+ * Helper to safely decode Base92-encoded prompt injection payloads into ASCII.
+ * Uses RFC/standard 92 printable character alphabet.
+ */
+export const safeDecodeBase92 = (str) => {
+  if (!str || typeof str !== 'string' || str.length < 4 || str.length > 2000) return null;
+  try {
+    const clean = str.trim();
+    let bitLen = 0;
+    let bitBuf = 0;
+    const bytes = [];
+
+    let i = 0;
+    while (i < clean.length) {
+      if (i + 1 < clean.length && BASE92_MAP.has(clean[i]) && BASE92_MAP.has(clean[i + 1])) {
+        const v1 = BASE92_MAP.get(clean[i]);
+        const v2 = BASE92_MAP.get(clean[i + 1]);
+        const val = v1 * 92 + v2;
+        bitBuf = (bitBuf << 13) | (val & 0x1FFF);
+        bitLen += 13;
+        i += 2;
+      } else if (BASE92_MAP.has(clean[i])) {
+        const v1 = BASE92_MAP.get(clean[i]);
+        bitBuf = (bitBuf << 6) | (v1 & 0x3F);
+        bitLen += 6;
+        i += 1;
+      } else {
+        return null;
+      }
+
+      while (bitLen >= 8) {
+        const shift = bitLen - 8;
+        const byteVal = (bitBuf >> shift) & 0xFF;
+        if (byteVal < 9 || (byteVal > 13 && byteVal < 32) || byteVal > 126) return null;
+        bytes.push(byteVal);
+        bitBuf &= (1 << shift) - 1;
+        bitLen -= 8;
+      }
+    }
+
+    if (bytes.length < 4) return null;
+    return String.fromCharCode(...bytes);
+  } catch (e) {
+    return null;
+  }
+};
+
+/**
+ * Helper to safely decode Base100 (Emoji Byte Encoding) prompt injection payloads into ASCII.
+ * Maps U+1F300..U+1F3FF and U+1F400..U+1F4FF emoji code point offsets back to raw ASCII bytes.
+ */
+export const safeDecodeBase100 = (str) => {
+  if (!str || typeof str !== 'string' || str.length < 4 || str.length > 2000) return null;
+  try {
+    const bytes = [];
+    for (const char of str) {
+      const code = char.codePointAt(0);
+      if (code >= 0x1F300 && code <= 0x1F3FF) {
+        const byteVal = code - 0x1F300;
+        if (byteVal < 9 || (byteVal > 13 && byteVal < 32) || byteVal > 126) return null;
+        bytes.push(byteVal);
+      } else if (code >= 0x1F400 && code <= 0x1F4FF) {
+        const byteVal = code - 0x1F400;
+        if (byteVal < 9 || (byteVal > 13 && byteVal < 32) || byteVal > 126) return null;
+        bytes.push(byteVal);
+      }
+    }
+    if (bytes.length < 4) return null;
+    return String.fromCharCode(...bytes);
+  } catch (e) {
+    return null;
+  }
+};
+
+const solitaireKeystream = (deck, length) => {
+  const stream = [];
+  while (stream.length < length) {
+    // Step A: Move Joker A (53) down 1
+    let posA = deck.indexOf(53);
+    if (posA === 53) {
+      deck.splice(53, 1);
+      deck.splice(1, 0, 53);
+    } else {
+      [deck[posA], deck[posA + 1]] = [deck[posA + 1], deck[posA]];
+    }
+
+    // Step B: Move Joker B (54) down 2
+    for (let pass = 0; pass < 2; pass++) {
+      let posB = deck.indexOf(54);
+      if (posB === 53) {
+        deck.splice(53, 1);
+        deck.splice(1, 0, 54);
+      } else {
+        [deck[posB], deck[posB + 1]] = [deck[posB + 1], deck[posB]];
+      }
+    }
+
+    // Step C: Triple cut
+    let iA = deck.indexOf(53);
+    let iB = deck.indexOf(54);
+    let first = Math.min(iA, iB);
+    let second = Math.max(iA, iB);
+
+    const topCut = deck.slice(0, first);
+    const midCut = deck.slice(first, second + 1);
+    const botCut = deck.slice(second + 1);
+    deck.length = 0;
+    deck.push(...botCut, ...midCut, ...topCut);
+
+    // Step D: Count cut
+    let lastVal = deck[53];
+    if (lastVal === 54) lastVal = 53;
+    if (lastVal > 0 && lastVal < 53) {
+      const topPart = deck.slice(0, lastVal);
+      const midPart = deck.slice(lastVal, 53);
+      const lastCard = deck[53];
+      deck.length = 0;
+      deck.push(...midPart, ...topPart, lastCard);
+    }
+
+    // Step E: Output
+    let topVal = deck[0];
+    if (topVal === 54) topVal = 53;
+    let outCard = deck[topVal];
+    if (outCard !== 53 && outCard !== 54) {
+      let val = outCard > 26 ? outCard - 26 : outCard;
+      stream.push(val);
+    }
+  }
+  return stream;
+};
+
+/**
+ * Helper to safely decode Solitaire (Pontifex) Stream Cipher-encoded prompt injection payloads into ASCII.
+ * Evaluates unkeyed and candidate keyword-keyed 54-card deck keystreams (Bruce Schneier's algorithm).
+ */
+export const safeDecodeSolitaire = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+
+  const clean = targetStr.toLowerCase().replace(/[^a-z]/g, '');
+  if (clean.length < 8) return null;
+
+  const candidateKeys = ['', ...CIPHER_KEYWORDS];
+
+  for (const keyWord of candidateKeys) {
+    const deck = Array.from({ length: 54 }, (_, i) => i + 1);
+
+    if (keyWord) {
+      const cleanKey = keyWord.toLowerCase().replace(/[^a-z]/g, '');
+      for (let k = 0; k < cleanKey.length; k++) {
+        solitaireKeystream(deck, 1);
+        const kVal = cleanKey.charCodeAt(k) - 96;
+        const topPart = deck.slice(0, kVal);
+        const midPart = deck.slice(kVal, 53);
+        const lastCard = deck[53];
+        deck.length = 0;
+        deck.push(...midPart, ...topPart, lastCard);
+      }
+    }
+
+    const kStream = solitaireKeystream(deck, clean.length);
+
+    let decoded = '';
+    for (let i = 0; i < clean.length; i++) {
+      const cVal = clean.charCodeAt(i) - 96;
+      let pVal = (cVal - kStream[i]) % 26;
+      if (pVal <= 0) pVal += 26;
+      decoded += String.fromCharCode(pVal + 96);
+    }
+
+    if (decoded && decoded !== clean && hasPromptInjectionKeywords(decoded)) {
+      return decoded;
+    }
+  }
+
+  return null;
+};
+
 // Prompt injection / jailbreak / delimiter hijacking detection
 export const isPromptInjection = (query, isNested = false) => {
   if (!query || typeof query !== 'string') return false;
@@ -2085,6 +2270,23 @@ export const isPromptInjection = (query, isNested = false) => {
       }
     }
     for (const targetStr of targets) {
+      // Security: Handle Base92 encoded payloads
+      const base92Decoded = safeDecodeBase92(targetStr);
+      if (base92Decoded && hasPromptInjectionKeywords(base92Decoded)) {
+        return true;
+      }
+
+      // Security: Handle Base100 (Emoji Byte Encoding) payloads
+      const base100Decoded = safeDecodeBase100(targetStr);
+      if (base100Decoded && hasPromptInjectionKeywords(base100Decoded)) {
+        return true;
+      }
+
+      // Security: Handle Solitaire (Pontifex) Stream Cipher payloads
+      const solitaireDecoded = safeDecodeSolitaire(targetStr);
+      if (solitaireDecoded) {
+        return true;
+      }
       const hexMatches = targetStr.match(HEX_MATCH_RE) || [];
       const hexDecodedList = [];
       for (const match of hexMatches) {
@@ -4657,6 +4859,9 @@ export default {
   isValidChatQuery,
   isValidName,
   safeDecodeBase62,
+  safeDecodeBase92,
+  safeDecodeBase100,
+  safeDecodeSolitaire,
   safeDecodePlayfair6x6,
   safeDecodeBifid6x6,
   isPromptInjection,
