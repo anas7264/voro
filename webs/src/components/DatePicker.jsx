@@ -250,16 +250,18 @@ export const DatePicker = memo(({
               <button
                 type="button"
                 onClick={handleSetToday}
-                className="px-2 py-0.5 rounded-md bg-white/[0.04] hover:bg-voro-primary/20 hover:text-voro-primary border border-white/5 transition-all text-gray-400 font-mono text-[0.45rem] tracking-wider"
+                className="px-2 py-0.5 rounded-md bg-white/[0.04] hover:bg-voro-primary/20 hover:text-voro-primary border border-white/5 transition-all text-gray-400 font-mono text-[0.45rem] tracking-wider focus:outline-none focus-visible:ring-1 focus-visible:ring-voro-primary"
                 title="Select today's date"
+                aria-label="Select today's date"
               >
                 TODAY
               </button>
               <button
                 type="button"
                 onClick={handleSetYesterday}
-                className="px-2 py-0.5 rounded-md bg-white/[0.04] hover:bg-voro-primary/20 hover:text-voro-primary border border-white/5 transition-all text-gray-400 font-mono text-[0.45rem] tracking-wider"
+                className="px-2 py-0.5 rounded-md bg-white/[0.04] hover:bg-voro-primary/20 hover:text-voro-primary border border-white/5 transition-all text-gray-400 font-mono text-[0.45rem] tracking-wider focus:outline-none focus-visible:ring-1 focus-visible:ring-voro-primary"
                 title="Select yesterday's date"
+                aria-label="Select yesterday's date"
               >
                 YESTERDAY
               </button>
@@ -267,8 +269,9 @@ export const DatePicker = memo(({
                 <button
                   type="button"
                   onClick={handleClear}
-                  className="px-1.5 py-0.5 rounded-md bg-red-500/10 hover:bg-red-500/20 hover:text-red-400 border border-red-500/20 transition-all text-red-400/80 font-mono text-[0.45rem] tracking-wider"
+                  className="px-1.5 py-0.5 rounded-md bg-red-500/10 hover:bg-red-500/20 hover:text-red-400 border border-red-500/20 transition-all text-red-400/80 font-mono text-[0.45rem] tracking-wider focus:outline-none focus-visible:ring-1 focus-visible:ring-red-500"
                   title="Clear date selection"
+                  aria-label="Clear date selection"
                 >
                   CLEAR
                 </button>
@@ -298,7 +301,9 @@ export const DatePicker = memo(({
         }}
       >
         {/* Architectural Framing: High-end charcoal box */}
-        <div className={`
+        <div
+          title={computedTitle}
+          className={`
           relative overflow-hidden rounded-[1.25rem] border transition-all duration-500
           ${error
             ? "border-red-500/40 bg-red-500/[0.02] shadow-[0_10px_30px_rgba(239,68,68,0.1)] group-focus-within/date-container:ring-2 group-focus-within/date-container:ring-red-500/50"
@@ -377,8 +382,9 @@ export const DatePicker = memo(({
                 tabIndex={-1}
                 onClick={handleCalendarClick}
                 disabled={disabled}
-                className="pointer-events-auto text-gray-500 group-hover/date-container:text-white group-focus-within/date-container:text-voro-primary group-hover/date-container:scale-110 transition-all duration-500 cursor-pointer focus:outline-none"
+                className="pointer-events-auto text-gray-500 group-hover/date-container:text-white group-focus-within/date-container:text-voro-primary group-hover/date-container:scale-110 transition-all duration-500 cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-voro-primary rounded-md"
                 title="Open calendar picker"
+                aria-label="Open calendar picker"
               >
                 <Calendar size={18} />
               </button>
