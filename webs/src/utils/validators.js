@@ -661,6 +661,8 @@ const BASE32_FORMAT_RE = /^[A-Z2-7=]+$/i;
 const BASE32HEX_FORMAT_RE = /^[0-9A-V=]+$/i;
 const ZBASE32_ALPHABET = "ybndrfg8ejkmcpqxot1uwisza345h769";
 const ZBASE32_FORMAT_RE = /^[ybndrfg8ejkmcpqxot1uwisza345h769=]+$/i;
+const CROCKFORD_BASE32_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+const CROCKFORD_BASE32_FORMAT_RE = /^[0-9A-Z\-]+$/i;
 const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 const BASE58_FORMAT_RE = /^[1-9A-HJ-NP-Za-km-z]{8,}$/;
 const BASE58_MATCH_RE = /[1-9A-HJ-NP-Za-km-z]{12,}/g;
@@ -1075,6 +1077,43 @@ const safeDecodeDecimal = (str) => {
       }
       if (code < 9 || (code > 13 && code < 32) || code > 126) return null;
       decoded += String.fromCharCode(code);
+    }
+    return decoded.length >= 8 ? decoded : null;
+  } catch (e) {
+    return null;
+  }
+};
+
+/**
+ * Helper to safely decode Crockford's Base32 encoded prompt injection payloads.
+ * Alphabet: 0123456789ABCDEFGHJKMNPQRSTVWXYZ (32 characters).
+ * Handles aliases (I/L -> 1, O -> 0, U -> V) and hyphen stripping.
+ */
+export const safeDecodeCrockfordBase32 = (str) => {
+  try {
+    if (!str || typeof str !== 'string' || str.length < 8 || !CROCKFORD_BASE32_FORMAT_RE.test(str)) {
+      return null;
+    }
+    const cleanStr = str
+      .replace(/-/g, '')
+      .toUpperCase()
+      .replace(/[IL]/g, '1')
+      .replace(/O/g, '0')
+      .replace(/U/g, 'V');
+
+    if (cleanStr.length < 8) return null;
+
+    let bits = '';
+    for (let i = 0; i < cleanStr.length; i++) {
+      const val = CROCKFORD_BASE32_ALPHABET.indexOf(cleanStr[i]);
+      if (val === -1) return null;
+      bits += val.toString(2).padStart(5, '0');
+    }
+    let decoded = '';
+    for (let i = 0; i + 8 <= bits.length; i += 8) {
+      const byte = parseInt(bits.substring(i, i + 8), 2);
+      if (byte < 32 || byte > 126) return null;
+      decoded += String.fromCharCode(byte);
     }
     return decoded.length >= 8 ? decoded : null;
   } catch (e) {
@@ -2403,6 +2442,11 @@ export const isPromptInjection = (query, isNested = false) => {
 
       const zBase32Decoded = safeDecodeZBase32(targetStr.trim());
       if (zBase32Decoded && hasPromptInjectionKeywords(zBase32Decoded)) {
+        return true;
+      }
+
+      const crockfordBase32Decoded = safeDecodeCrockfordBase32(targetStr.trim());
+      if (crockfordBase32Decoded && hasPromptInjectionKeywords(crockfordBase32Decoded)) {
         return true;
       }
 
@@ -4900,6 +4944,7 @@ export default {
   safeDecodePlayfair6x6,
   safeDecodeBifid6x6,
   safeDecodeZBase32,
+  safeDecodeCrockfordBase32,
   isPromptInjection,
   sanitizeCSVField
 };
