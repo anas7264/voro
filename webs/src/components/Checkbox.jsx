@@ -1,4 +1,4 @@
-import React, { useId, memo, useRef } from "react";
+import React, { useId, memo, useRef, useMemo } from "react";
 import { Check } from "lucide-react";
 
 /**
@@ -62,8 +62,15 @@ export const Checkbox = memo(({
   ].filter(Boolean).join(" ") || undefined;
 
   const containerRef = useRef(null);
+  const txRef = useRef(null);
+  const tyRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
+
+  const subpixelHash = useMemo(() => {
+    const cleanId = generatedId.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    return `0xCHK_${cleanId.slice(-4).padStart(4, '0')}`;
+  }, [generatedId]);
 
   const handleMouseMove = (e) => {
     if (!containerRef.current || disabled) return;
@@ -78,10 +85,13 @@ export const Checkbox = memo(({
 
     containerRef.current.style.setProperty('--mouse-x', `${x}px`);
     containerRef.current.style.setProperty('--mouse-y', `${y}px`);
-    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    containerRef.current.style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
+    containerRef.current.style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
     containerRef.current.style.transform = 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)';
     containerRef.current.style.transition = 'none';
+
+    if (txRef.current) txRef.current.innerText = tiltX.toFixed(1);
+    if (tyRef.current) tyRef.current.innerText = tiltY.toFixed(1);
   };
 
   const handleMouseEnter = () => {
@@ -100,10 +110,14 @@ export const Checkbox = memo(({
       containerRef.current.style.setProperty('--tilt-x', '3deg');
       containerRef.current.style.setProperty('--tilt-y', '-3deg');
       containerRef.current.style.transform = 'perspective(1000px) rotateX(3deg) rotateY(-3deg) translateY(-2px)';
+      if (txRef.current) txRef.current.innerText = "3.0";
+      if (tyRef.current) tyRef.current.innerText = "-3.0";
     } else {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
       containerRef.current.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      if (txRef.current) txRef.current.innerText = "0.0";
+      if (tyRef.current) tyRef.current.innerText = "0.0";
     }
     containerRef.current.style.transition = 'transform 0.7s cubic-bezier(0.16,1,0.3,1)';
   };
@@ -115,6 +129,8 @@ export const Checkbox = memo(({
       containerRef.current.style.setProperty('--tilt-x', '3deg');
       containerRef.current.style.setProperty('--tilt-y', '-3deg');
       containerRef.current.style.transform = 'perspective(1000px) rotateX(3deg) rotateY(-3deg) translateY(-2px)';
+      if (txRef.current) txRef.current.innerText = "3.0";
+      if (tyRef.current) tyRef.current.innerText = "-3.0";
     }
     if (onFocus) onFocus(e);
   };
@@ -126,6 +142,8 @@ export const Checkbox = memo(({
       containerRef.current.style.setProperty('--tilt-y', '0deg');
       containerRef.current.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
       containerRef.current.style.transition = 'transform 0.7s cubic-bezier(0.16,1,0.3,1)';
+      if (txRef.current) txRef.current.innerText = "0.0";
+      if (tyRef.current) tyRef.current.innerText = "0.0";
     }
     if (onBlur) onBlur(e);
   };
@@ -137,6 +155,16 @@ export const Checkbox = memo(({
 
   return (
     <div className={`w-full group/checkbox-container ${className}`}>
+      {/* Holographic Telemetry & Sub-pixel Attestation Marker */}
+      <div className="flex items-center justify-between mb-2 px-1">
+        <span className="text-[0.45rem] font-mono font-bold text-gray-600 uppercase tracking-widest opacity-0 group-hover/checkbox-container:opacity-100 group-focus-within/checkbox-container:opacity-100 transition-opacity duration-500 text-voro-primary/80">
+          TX_<span ref={txRef}>0.0</span>° TY_<span ref={tyRef}>0.0</span>°
+        </span>
+        <span className="text-[0.45rem] font-mono font-bold text-gray-600 uppercase tracking-widest opacity-60 group-focus-within/checkbox-container:opacity-100 transition-opacity duration-500">
+          {subpixelHash}
+        </span>
+      </div>
+
       {/* Volumetric Bounding Container */}
       <div
         ref={containerRef}
