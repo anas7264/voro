@@ -46,6 +46,23 @@ const DURATION_TILES = Object.freeze([
   Object.freeze({ value: '2 weeks', label: '2 Weeks Megablock', desc: 'Systemic cellular evolution cycle', days: 14 }),
 ]);
 
+const EMPTY_ARRAY = Object.freeze([]);
+
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Module-scoped state selectors & equality checks.
+ * Eliminates per-render function allocations inside useStorageKeySelector.
+ */
+const selectSavedMealPlans = (state) => (state && state.savedMealPlans) || EMPTY_ARRAY;
+
+const shallowArrayEqual = (a, b) => {
+  if (a === b) return true;
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+};
+
 const generateMockMealPlan = (duration) => {
   let daysCount = 7;
   if (duration === '1 day') daysCount = 1;
@@ -275,22 +292,15 @@ const MealDayCard = React.memo(({ day, index }) => {
 MealDayCard.displayName = 'MealDayCard';
 
 const MealPlanner = () => {
-  const { updateItem } = useStorageMethods();
+  const { getItem, updateItem } = useStorageMethods();
   const { addNotification } = useNotifications();
   const { user } = useAppContext();
 
   // ⚡ PERFORMANCE OPTIMIZATION: Granular state selector with lightweight array comparison
   const savedMealPlans = useStorageKeySelector(
     'plans',
-    useCallback((state) => (state || {}).savedMealPlans || Object.freeze([]), []),
-    useCallback((a, b) => {
-      if (a === b) return true;
-      if (!a || !b || a.length !== b.length) return false;
-      for (let i = 0; i < a.length; i++) {
-        if (a[i] !== b[i]) return false;
-      }
-      return true;
-    }, [])
+    selectSavedMealPlans,
+    shallowArrayEqual
   );
 
   const [loading, setLoading] = useState(false);
@@ -385,15 +395,22 @@ const MealPlanner = () => {
     });
   }, [formData, addNotification]);
 
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Synchronous storage read inside callbacks.
+   * Reading getItem('plans') directly eliminates volatile savedMealPlans fromCallback dependencies,
+   * keeping savePlan referentially stable across saved plan list updates.
+   */
   const savePlan = useCallback(async () => {
     if (!mealPlan) return;
 
-    // ⚡ OPTIMISTIC UI: Instantly update state
     setSavingState('saved');
     setIsSaved(true);
 
+    const currentPlans = getItem('plans') || {};
+    const currentSaved = currentPlans.savedMealPlans || EMPTY_ARRAY;
+
     const updatedPlans = [
-      ...savedMealPlans,
+      ...currentSaved,
       {
         ...mealPlan,
         name: `Metabolic Protocol — ${new Date().toLocaleDateString()}`
@@ -402,7 +419,7 @@ const MealPlanner = () => {
 
     await updateItem('plans', { savedMealPlans: updatedPlans });
     addNotification('Trophic blueprint archived in secure local repository.', 'success');
-  }, [savedMealPlans, mealPlan, updateItem, addNotification]);
+  }, [getItem, mealPlan, updateItem, addNotification]);
 
   const handleExportJSON = useCallback(async () => {
     if (!mealPlan) return;

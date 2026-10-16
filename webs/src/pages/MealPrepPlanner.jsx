@@ -311,25 +311,11 @@ const MealPrepPlanner = () => {
   const [newRecipe, setNewRecipe] = useState('');
   const [tempRecipes, setTempRecipes] = useState([]);
 
+  const { getItem } = useStorageMethods();
+
   // ⚡ PERFORMANCE OPTIMIZATION: Surgical reactivity via module-scoped selectors & shallowArrayEqual
   const prepPlan = useStorageKeySelector('meal_prep', selectPrepPlan, shallowArrayEqual);
   const provisions = useStorageKeySelector('meal_prep', selectProvisions, shallowArrayEqual);
-
-  // ⚡ OPTIMISTIC UI: Fast-path updates mapped locally to completely eliminate IndexedDB write latencies
-  const [optimisticPrepPlan, setOptimisticPrepPlan] = useState(null);
-  const [optimisticProvisions, setOptimisticProvisions] = useState(null);
-
-  // Sync optimistic updates with storage when changes occur
-  useEffect(() => {
-    setOptimisticPrepPlan(null);
-  }, [prepPlan]);
-
-  useEffect(() => {
-    setOptimisticProvisions(null);
-  }, [provisions]);
-
-  const activePrepPlan = optimisticPrepPlan || prepPlan;
-  const activeProvisions = optimisticProvisions || provisions;
 
   const tickerRef = useRef(null);
 
@@ -366,15 +352,21 @@ const MealPrepPlanner = () => {
     }
   }, [confirmingPurgeProvisions]);
 
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Synchronous storage read inside callbacks.
+   * Eliminates volatile array dependencies from useCallback arrays, ensuring referential stability
+   * across render passes and preserving React.memo child isolation.
+   */
   const toggleProvision = useCallback(async (index) => {
-    // ⚡ OPTIMISTIC UI: Toggle instantly
-    const updated = [...activeProvisions];
-    updated[index] = { ...updated[index], checked: !updated[index].checked };
-    setOptimisticProvisions(updated);
-
-    await updateItem('meal_prep', { provisions: updated });
-    addNotification('Provisions matrix synchronized', 'success');
-  }, [activeProvisions, updateItem, addNotification]);
+    const currentPrep = getItem('meal_prep') || {};
+    const currentProvisions = currentPrep.provisions || DEFAULT_PROVISIONS;
+    const updated = [...currentProvisions];
+    if (index >= 0 && index < updated.length) {
+      updated[index] = { ...updated[index], checked: !updated[index].checked };
+      await updateItem('meal_prep', { provisions: updated });
+      addNotification('Provisions matrix synchronized', 'success');
+    }
+  }, [getItem, updateItem, addNotification]);
 
   const handleAddRecipeTemp = () => {
     if (!newRecipe.trim()) return;
@@ -382,7 +374,7 @@ const MealPrepPlanner = () => {
     setNewRecipe('');
   };
 
-  const handleCreateSession = async () => {
+  const handleCreateSession = useCallback(async () => {
     const recipesToUse = tempRecipes.length > 0 ? tempRecipes : [newRecipe.trim() || 'Custom Trophic Synthesis'];
     const newSession = {
       id: Date.now(),
@@ -392,9 +384,9 @@ const MealPrepPlanner = () => {
       recipes: recipesToUse
     };
 
-    // ⚡ OPTIMISTIC UI: Append instantly
-    const updated = [...activePrepPlan, newSession];
-    setOptimisticPrepPlan(updated);
+    const currentPrep = getItem('meal_prep') || {};
+    const currentPlan = currentPrep.plan || DEFAULT_PREP_PLAN;
+    const updated = [...currentPlan, newSession];
 
     await updateItem('meal_prep', { plan: updated });
 
@@ -407,30 +399,28 @@ const MealPrepPlanner = () => {
     setIsAddingSession(false);
 
     addNotification('Metabolic prep session registered', 'success');
-  };
+  }, [getItem, updateItem, addNotification, tempRecipes, newRecipe, newDay, newDuration, newCount]);
 
   /**
-   * ⚡ PERFORMANCE OPTIMIZATION: Optimistic session removal.
-   * Updates local state and persists to storage asynchronously without side effects in state setters.
+   * ⚡ PERFORMANCE OPTIMIZATION: Referentially stable session removal.
    */
   const handleDeleteSession = useCallback(async (id) => {
-    const updated = activePrepPlan.filter(s => s.id !== id);
-    setOptimisticPrepPlan(updated);
+    const currentPrep = getItem('meal_prep') || {};
+    const currentPlan = currentPrep.plan || DEFAULT_PREP_PLAN;
+    const updated = currentPlan.filter(s => s.id !== id);
     await updateItem('meal_prep', { plan: updated });
     addNotification('Prep session purged from system logs', 'error');
-  }, [activePrepPlan, updateItem, addNotification]);
+  }, [getItem, updateItem, addNotification]);
 
-  const handlePurgeProvisions = async () => {
+  const handlePurgeProvisions = useCallback(async () => {
     if (confirmingPurgeProvisions) {
-      // ⚡ OPTIMISTIC UI: Purge instantly
-      setOptimisticProvisions([]);
       await updateItem('meal_prep', { provisions: [] });
       setConfirmingPurgeProvisions(false);
       addNotification('Provisions matrix entirely cleared', 'error');
     } else {
       setConfirmingPurgeProvisions(true);
     }
-  };
+  }, [confirmingPurgeProvisions, updateItem, addNotification]);
 
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30 relative">
@@ -591,7 +581,7 @@ const MealPrepPlanner = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {activePrepPlan.map((session, idx) => (
+              {prepPlan.map((session, idx) => (
                 <PrepSessionCardWrapper
                   key={session.id}
                   session={session}
@@ -618,7 +608,7 @@ const MealPrepPlanner = () => {
                     </div>
 
                     {/* Purge Supply List Button */}
-                    {activeProvisions.length > 0 && (
+                    {provisions.length > 0 && (
                       <button
                         onClick={handlePurgeProvisions}
                         aria-label={confirmingPurgeProvisions ? "Confirm purge of all provisions" : "Purge provisions list"}
@@ -641,9 +631,9 @@ const MealPrepPlanner = () => {
                     )}
                   </div>
 
-                  {activeProvisions.length > 0 ? (
+                  {provisions.length > 0 ? (
                     <div className="space-y-4 mb-12" role="list">
-                      {activeProvisions.map((item, i) => (
+                      {provisions.map((item, i) => (
                         <ProvisionItemCard
                           key={i}
                           item={item}

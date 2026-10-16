@@ -6,11 +6,10 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 
 /**
- * ⚡ PERFORMANCE OPTIMIZATION: Module-scoped selector & stable fallback.
- * Prevents redundant object instantiation and isolates re-renders to 'plans' storage changes.
+ * ⚡ PERFORMANCE OPTIMIZATION: Module-scoped selector.
+ * Subscribes strictly to 'currentPlan' slice of 'plans' storage key to isolate component re-renders.
  */
-const EMPTY_OBJ = Object.freeze({});
-const selectPlans = (data) => data || EMPTY_OBJ;
+const selectCurrentPlan = (data) => (data && data.currentPlan) || null;
 
 const CONFIG = Object.freeze({
   duration: Object.freeze(['4 Weeks', '8 Weeks', '12 Weeks', '16 Weeks']),
@@ -135,10 +134,9 @@ BlueprintDayCard.displayName = 'BlueprintDayCard';
 const TrainingPlan = () => {
   /**
    * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity via useStorageKeySelector.
-   * Replaced useStorageKey('plans') with useStorageKeySelector('plans', selectPlans)
-   * to guarantee referential stability and isolate component re-renders.
+   * Subscribes strictly to currentPlan slice to isolate component re-renders when other plans keys change.
    */
-  const plansData = useStorageKeySelector('plans', selectPlans);
+  const currentPlan = useStorageKeySelector('plans', selectCurrentPlan);
   const { updateItem } = useStorageMethods();
   const { addNotification } = useNotifications();
   const [isGenerating, setIsGenerating] = useState(false);
@@ -153,11 +151,6 @@ const TrainingPlan = () => {
   useEffect(() => {
     document.title = 'VORO | Kinetic Blueprint';
   }, []);
-
-  /**
-   * ⚡ OPTIMIZATION: Synchronous data derivation.
-   */
-  const currentPlan = useMemo(() => plansData.currentPlan || null, [plansData.currentPlan]);
 
   const handleGeneratePlan = useCallback(async () => {
     // Check E2E test bypass hook
