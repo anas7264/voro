@@ -33,6 +33,12 @@ const STREAK_METRICS_CONFIG = Object.freeze([
 ]);
 
 /**
+ * ⚡ PERFORMANCE OPTIMIZATION: Module-scoped state selector.
+ * Eliminates per-render closure allocations in useStorageKeySelector.
+ */
+const selectStreaks = (data) => data || DEFAULT_STREAKS;
+
+/**
  * ⚡ LUXURY MOVEMENT: KineticMomentumNode.
  * Re-engineered conforming to Voro's 'Forge' design system standards.
  * Features 60fps direct-DOM volumetric 3D tilt tracking, holographic coordinate telemetry,
@@ -308,12 +314,9 @@ KineticStreakAlignmentOverlay.displayName = "KineticStreakAlignmentOverlay";
 const DailyStreak = () => {
   /**
    * ⚡ OPTIMIZATION: Surgical Reactivity.
-   * Replaced useStorageKey with useStorageKeySelector for granular reactivity.
+   * Replaced useStorageKey with useStorageKeySelector for granular reactivity using module-scoped selector.
    */
-  const streaks = useStorageKeySelector(
-    'voro_streaks',
-    useCallback((data) => data || DEFAULT_STREAKS, [])
-  );
+  const streaks = useStorageKeySelector('voro_streaks', selectStreaks);
 
   const { updateItem } = useStorageMethods();
   const { addNotification } = useNotifications();

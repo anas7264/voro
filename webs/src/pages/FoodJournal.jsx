@@ -276,7 +276,7 @@ const ArchiveVoidDeck = memo(() => (
 ArchiveVoidDeck.displayName = "ArchiveVoidDeck";
 
 const FoodJournal = () => {
-  const { setItem } = useStorageMethods();
+  const { getItem, setItem } = useStorageMethods();
   const { addNotification } = useNotifications();
   const [note, setNote] = useState('');
 
@@ -305,6 +305,11 @@ const FoodJournal = () => {
     });
   }, [foodJournalData]);
 
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Synchronous storage read inside callbacks.
+   * Reading getItem('food_journal') directly eliminates volatile entries from callback dependencies,
+   * keeping handleDeleteEntry referentially stable across journal entry additions and deletions.
+   */
   const handleAddEntry = useCallback(async () => {
     const trimmedNote = note.trim();
     if (!trimmedNote) return;
@@ -321,17 +326,19 @@ const FoodJournal = () => {
     };
 
     setNote('');
-    const updatedEntries = [newEntry, ...entries];
+    const currentJournal = getItem('food_journal') || EMPTY_ARRAY;
+    const updatedEntries = [newEntry, ...currentJournal];
 
     await setItem('food_journal', updatedEntries);
     addNotification('Qualitative reflection archived into memory.', 'success');
-  }, [note, entries, setItem, addNotification]);
+  }, [note, getItem, setItem, addNotification]);
 
   const handleDeleteEntry = useCallback(async (id) => {
-    const updatedEntries = entries.filter(e => e.id !== id);
+    const currentJournal = getItem('food_journal') || EMPTY_ARRAY;
+    const updatedEntries = currentJournal.filter(e => e.id !== id);
     await setItem('food_journal', updatedEntries);
     addNotification('Reflection entry purged from archive.', 'info');
-  }, [entries, setItem, addNotification]);
+  }, [getItem, setItem, addNotification]);
 
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] pb-32 selection:bg-voro-primary/30 relative overflow-hidden bg-boutique-grain">
