@@ -658,11 +658,15 @@ const decodeQuotedPrintable = (str) => {
 
 const BASE64_FORMAT_RE = /^[A-Za-z0-9+\/\-_]+={0,2}$/;
 const BASE32_FORMAT_RE = /^[A-Z2-7=]+$/i;
+const BASE32_MATCH_RE = /\b[A-Z2-7=]{12,}\b/g;
 const BASE32HEX_FORMAT_RE = /^[0-9A-V=]+$/i;
+const BASE32HEX_MATCH_RE = /\b[0-9A-V=]{12,}\b/g;
 const ZBASE32_ALPHABET = "ybndrfg8ejkmcpqxot1uwisza345h769";
 const ZBASE32_FORMAT_RE = /^[ybndrfg8ejkmcpqxot1uwisza345h769=]+$/i;
+const ZBASE32_MATCH_RE = /\b[ybndrfg8ejkmcpqxot1uwisza345h769=]{12,}\b/g;
 const CROCKFORD_BASE32_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 const CROCKFORD_BASE32_FORMAT_RE = /^[0-9A-Z\-]+$/i;
+const CROCKFORD_BASE32_MATCH_RE = /\b[0-9A-Z\-]{12,}\b/g;
 const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 const BASE58_FORMAT_RE = /^[1-9A-HJ-NP-Za-km-z]{8,}$/;
 const BASE58_MATCH_RE = /[1-9A-HJ-NP-Za-km-z]{12,}/g;
@@ -2430,21 +2434,41 @@ export const isPromptInjection = (query, isNested = false) => {
         if (hasPromptInjectionKeywords(base64DecodedList.join(' '))) return true;
       }
 
+      const base32Matches = targetStr.match(BASE32_MATCH_RE) || [];
+      for (const match of base32Matches) {
+        const decoded = safeDecodeBase32(match);
+        if (decoded && hasPromptInjectionKeywords(decoded)) return true;
+      }
       const base32Decoded = safeDecodeBase32(targetStr.trim());
       if (base32Decoded && hasPromptInjectionKeywords(base32Decoded)) {
         return true;
       }
 
+      const base32HexMatches = targetStr.match(BASE32HEX_MATCH_RE) || [];
+      for (const match of base32HexMatches) {
+        const decoded = safeDecodeBase32Hex(match);
+        if (decoded && hasPromptInjectionKeywords(decoded)) return true;
+      }
       const base32HexDecoded = safeDecodeBase32Hex(targetStr.trim());
       if (base32HexDecoded && hasPromptInjectionKeywords(base32HexDecoded)) {
         return true;
       }
 
+      const zBase32Matches = targetStr.match(ZBASE32_MATCH_RE) || [];
+      for (const match of zBase32Matches) {
+        const decoded = safeDecodeZBase32(match);
+        if (decoded && hasPromptInjectionKeywords(decoded)) return true;
+      }
       const zBase32Decoded = safeDecodeZBase32(targetStr.trim());
       if (zBase32Decoded && hasPromptInjectionKeywords(zBase32Decoded)) {
         return true;
       }
 
+      const crockfordBase32Matches = targetStr.match(CROCKFORD_BASE32_MATCH_RE) || [];
+      for (const match of crockfordBase32Matches) {
+        const decoded = safeDecodeCrockfordBase32(match);
+        if (decoded && hasPromptInjectionKeywords(decoded)) return true;
+      }
       const crockfordBase32Decoded = safeDecodeCrockfordBase32(targetStr.trim());
       if (crockfordBase32Decoded && hasPromptInjectionKeywords(crockfordBase32Decoded)) {
         return true;
