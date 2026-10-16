@@ -41,10 +41,36 @@ export const Spinner = memo(({
   "aria-label": ariaLabel,
   ...props
 }) => {
+  const containerRef = useRef(null);
   const telemetryRef1 = useRef(null);
   const telemetryRef2 = useRef(null);
   const lastTelemetryRef = useRef("0x0000");
   const reactId = useId();
+
+  const handleMouseMove = (e) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const tiltY = ((x / rect.width) - 0.5) * 12;
+    const tiltX = (0.5 - (y / rect.height)) * 12;
+    const style = containerRef.current.style;
+    style.setProperty('--mouse-x', `${x}px`);
+    style.setProperty('--mouse-y', `${y}px`);
+    style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
+    style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
+    style.setProperty('transform', `perspective(1000px) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg)`);
+    style.setProperty('transition', 'none');
+  };
+
+  const handleMouseLeave = () => {
+    if (!containerRef.current) return;
+    const style = containerRef.current.style;
+    style.setProperty('--tilt-x', '0deg');
+    style.setProperty('--tilt-y', '0deg');
+    style.setProperty('transform', 'perspective(1000px) rotateX(0deg) rotateY(0deg)');
+    style.setProperty('transition', 'transform 0.7s cubic-bezier(0.16,1,0.3,1)');
+  };
 
   // SSR-safe deterministic system attestation hash badge
   const subpixelHash = useMemo(() => {
@@ -85,8 +111,11 @@ export const Spinner = memo(({
     >
       {/* Neural Core Architecture */}
       <div
+        ref={containerRef}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
         aria-hidden="true"
-        className="relative flex items-center justify-center shrink-0"
+        className="relative flex items-center justify-center shrink-0 transition-transform duration-500 group"
         style={{ width: container, height: container }}
       >
         {/* Outer Kinetic Ring: Signal Pulse */}
