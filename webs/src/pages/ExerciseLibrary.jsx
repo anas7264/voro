@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useDeferredValue, useCallback, memo } from 'react';
-import { Search, Activity } from 'lucide-react';
+import { Search, Activity, X } from 'lucide-react';
 import { exercises } from '@/data/exercises';
 import { ExerciseCard } from '@/components/ExerciseCard';
 import Button from '@/components/Button';
@@ -81,6 +81,10 @@ const ExerciseLibrary = () => {
     setVisibleCount(prev => prev + PAGE_SIZE);
   }, []);
 
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery('');
+  }, []);
+
   /**
    * ⚡ OPTIMIZATION: Replace useEffect + useState pattern with useMemo for filtering.
    * This eliminates double-render cycles and provides clean, single-pass data derivation.
@@ -133,12 +137,25 @@ const ExerciseLibrary = () => {
               <Search size={20} />
             </div>
             <input
+              id="exercise-search"
               type="text"
+              aria-label="Search movement patterns"
               placeholder="Search movement patterns..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#0A0C14]/50 backdrop-blur-xl border border-white/5 rounded-[2rem] pl-16 pr-8 py-6 text-lg font-serif italic text-white placeholder:text-gray-700 focus:outline-none focus:border-voro-primary/50 focus:ring-1 focus:ring-voro-primary/20 transition-all shadow-2xl"
+              className="w-full bg-[#0A0C14]/50 backdrop-blur-xl border border-white/5 rounded-[2rem] pl-16 pr-14 py-6 text-lg font-serif italic text-white placeholder:text-gray-700 focus:outline-none focus:border-voro-primary/50 focus:ring-1 focus:ring-voro-primary/20 transition-all shadow-2xl"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={handleClearSearch}
+                aria-label="Clear search query"
+                title="Clear search query"
+                className="absolute inset-y-0 right-6 my-auto h-9 w-9 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-voro-primary"
+              >
+                <X size={18} />
+              </button>
+            )}
           </div>
 
           <div className="flex gap-3 flex-wrap items-center">
