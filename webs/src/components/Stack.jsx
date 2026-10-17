@@ -49,12 +49,6 @@ const STACK_JUSTIFIES = Object.freeze({
  * Re-engineered to Voro's 'Forge' luxury architectural system standard.
  * Features zero-allocation class resolution, pure constant dictionary lookups,
  * flexible polymorphic semantic element rendering, style forwarding, and mathematical flex rhythm.
- *
- * PSYCHOLOGICAL & AESTHETIC DESIGN PHILOSOPHY:
- * 1. Visual Hierarchy & Authority: Predictable linear flex alignment provides clean spatial hierarchy,
- *    mathematical balance, and luxury gallery elegance across complex page layouts.
- * 2. Cognitive Ease: Consistent flex rhythm eliminates alignment awkwardness, ensuring intuitive visual scans.
- * 3. Zero-Allocation Performance: Pre-mapped frozen class lookup tables guarantee zero runtime garbage collection.
  */
 export const Stack = memo(({
   children,
