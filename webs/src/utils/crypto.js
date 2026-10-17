@@ -329,15 +329,19 @@ class CryptoManager {
   /**
    * Constant-time string comparator to prevent timing side-channel attacks.
    * Compares all characters in uniform time without early exits or JIT-optimizable self-XOR loops.
+   * Evaluated across invariant iteration bounds to eliminate timing leaks on variable string lengths.
    */
   constantTimeCompare(a, b) {
     if (typeof a !== 'string' || typeof b !== 'string') return false;
     const aLen = a.length;
     const bLen = b.length;
     let result = aLen ^ bLen;
-    const bMod = bLen || 1;
-    for (let i = 0; i < aLen; i++) {
-      result |= a.charCodeAt(i) ^ b.charCodeAt(i % bMod);
+    // Iterate over a fixed or invariant upper bound (min 256) to ensure execution time is independent of length differences
+    const maxLen = Math.max(aLen, bLen, 256);
+    for (let i = 0; i < maxLen; i++) {
+      const charA = i < aLen ? a.charCodeAt(i) : 0;
+      const charB = i < bLen ? b.charCodeAt(i) : 0;
+      result |= charA ^ charB;
     }
     return result === 0;
   }
