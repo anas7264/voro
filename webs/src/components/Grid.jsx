@@ -56,13 +56,6 @@ const GRID_GAPS = Object.freeze({
  * Re-engineered to Voro's 'Forge' luxury architectural system standard.
  * Features zero-allocation class resolution, safe static class strings for PurgeCSS,
  * flexible polymorphic semantic element rendering, style forwarding, and mathematical spatial rhythm.
- *
- * PSYCHOLOGICAL & AESTHETIC DESIGN PHILOSOPHY:
- * 1. Visual Hierarchy & Authority: Structural grid alignment enforces visual rhythm and mathematical balance
- *    across device viewports, giving gallery enclaves commanding structural authority.
- * 2. Cognitive Ease: Predictable mathematical spacing reduces spatial chaos and visual fatigue, allowing
- *    users to digest telemetry matrices effortlessly.
- * 3. Zero-Allocation Performance: Module-scoped frozen lookup tables guarantee zero runtime garbage collection.
  */
 export const Grid = memo(({
   children,

@@ -16,6 +16,7 @@ const componentsToVerify = [
   { name: 'Card.jsx', path: 'webs/src/components/Card.jsx' },
   { name: 'ChallengeCard.jsx', path: 'webs/src/components/ChallengeCard.jsx' },
   { name: 'Checkbox.jsx', path: 'webs/src/components/Checkbox.jsx' },
+  { name: 'Confetti.jsx', path: 'webs/src/components/Confetti.jsx' },
   { name: 'Container.jsx', path: 'webs/src/components/Container.jsx' },
   { name: 'DatePicker.jsx', path: 'webs/src/components/DatePicker.jsx' },
   { name: 'Divider.jsx', path: 'webs/src/components/Divider.jsx' },

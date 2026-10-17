@@ -1,4 +1,4 @@
-import React, { useEffect, forwardRef, useId, useImperativeHandle, useRef, useMemo, useCallback } from 'react';
+import React, { memo, useEffect, forwardRef, useId, useImperativeHandle, useRef, useMemo, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import { X } from 'lucide-react';
 
@@ -31,7 +31,7 @@ const DEFAULT_PALETTE = BRAND_PALETTES.voro;
  * 4. Reliability & Cognitive Ease: Ref-forwarded imperative `fire()` and `reset()` trigger API allowing
  *    parent components to trigger celebrations with zero memory leaks and deterministic lifecycle cleanup.
  */
-const Confetti = forwardRef(({
+const Confetti = memo(forwardRef(({
   duration = 3000,
   variant = 'default',
   palette = 'voro',
@@ -368,7 +368,7 @@ const Confetti = forwardRef(({
             </div>
 
             {/* Holographic Telemetry & Sub-pixel Attestation Badge */}
-            <div className="relative z-10 flex items-center gap-2 font-mono text-[0.45rem] font-bold text-voro-primary/90 bg-voro-primary/10 px-2.5 py-1 rounded-full border border-voro-primary/20 tracking-widest hidden sm:flex" style={{ transform: 'translateZ(35px)' }}>
+            <div className="relative z-10 flex items-center gap-2 font-mono text-[0.4rem] font-bold text-voro-primary/90 bg-voro-primary/10 px-2.5 py-1 rounded-full border border-voro-primary/20 tracking-widest hidden sm:flex" style={{ transform: 'translateZ(35px)' }}>
               <span>TX_<span ref={txRef}>0.0</span>°</span>
               <span>TY_<span ref={tyRef}>0.0</span>°</span>
               <span className="text-white/40">{subpixelHash}</span>
@@ -393,7 +393,7 @@ const Confetti = forwardRef(({
       )}
     </>
   );
-});
+}));
 
 Confetti.displayName = 'Confetti';
 
