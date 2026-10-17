@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef, memo, useId } from 'react';
+import React, { useEffect, useState, useMemo, useRef, memo, useId, useCallback } from 'react';
 import { Calendar, Trophy, Clock, CheckCircle2, Zap, Target, TrendingDown, Sparkles, ShieldAlert, Cpu, Activity, Compass } from 'lucide-react';
 import { Card, Button, Divider, DatePicker } from '@/components';
 import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
@@ -589,7 +589,7 @@ TemporalSingularityAlignmentDeck.displayName = "TemporalSingularityAlignmentDeck
 const CompetitionPrep = () => {
   const primaryCompData = useStorageKeySelector('competition', selectCompData);
   const legacyCompetitionData = useStorageKeySelector('voro_comp_prep', selectCompData);
-  const { setItem } = useStorageMethods();
+  const { setItem, getItem } = useStorageMethods();
   const { addNotification } = useNotifications();
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [newDate, setNewDate] = useState('');
@@ -620,21 +620,22 @@ const CompetitionPrep = () => {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }, [compData.date]);
 
-  const handleSetDate = async () => {
+  const handleSetDate = useCallback(async () => {
     if (!newDate) return;
     if (!isDateInFuture(newDate)) {
       addNotification('Manifestation must be scheduled in the future.', 'error');
       return;
     }
 
-    await setItem('competition', { ...compData, date: newDate });
+    const currentData = getItem('competition') || compData;
+    await setItem('competition', { ...currentData, date: newDate });
     setShowDatePicker(false);
     addNotification('Competition timeline synchronized.', 'success');
-  };
+  }, [newDate, compData, getItem, setItem, addNotification]);
 
-  const handleDecommissionTrigger = async () => {
+  const handleDecommissionTrigger = useCallback(async () => {
     if (isDecommissioning) {
-      clearInterval(decommissionTimerRef.current);
+      if (decommissionTimerRef.current) clearInterval(decommissionTimerRef.current);
       setIsDecommissioning(false);
       setDecommissionCount(3);
 
@@ -661,16 +662,17 @@ const CompetitionPrep = () => {
         }
       }, 1000);
     }
-  };
+  }, [isDecommissioning, setItem, addNotification]);
 
-  const handleToggleChecklist = async (itemIndex) => {
-    const checklist = compData.checklist || [];
+  const handleToggleChecklist = useCallback(async (itemIndex) => {
+    const currentData = getItem('competition') || compData;
+    const checklist = currentData.checklist || [];
     const isChecked = checklist.includes(itemIndex);
     const updatedChecklist = isChecked
       ? checklist.filter(idx => idx !== itemIndex)
       : [...checklist, itemIndex];
-    await setItem('competition', { ...compData, checklist: updatedChecklist });
-  };
+    await setItem('competition', { ...currentData, checklist: updatedChecklist });
+  }, [getItem, compData, setItem]);
 
   const checklistItems = CHECKLIST_ITEMS;
   const protocolsList = PROTOCOLS_LIST;
