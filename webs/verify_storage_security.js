@@ -290,6 +290,29 @@ const runTests = async () => {
     throw new Error("❌ Failure: Valid backup payload import failed!");
   }
 
+  // --- TEST 5: Storage Array Length Bounds Enforcement ---
+  console.log("🟢 Test 5: Verifying storage array length bounds (max 1000 items) are enforced on append...");
+  await storage.set('vitals', new Array(1000).fill({ bpm: 70 }));
+  const appendResultAtMax = await storage.append('vitals', { bpm: 72 });
+  const vitalsLog = storage.get('vitals');
+
+  if (appendResultAtMax === false && vitalsLog.length === 1000) {
+    console.log("✅ Success: Storage array length upper bound successfully enforced.");
+  } else {
+    throw new Error(`❌ Failure: Append exceeded 1000 items limit! Length: ${vitalsLog?.length}`);
+  }
+
+  // --- TEST 6: Invalid Parameter Type Enforcement on Update ---
+  console.log("🟢 Test 6: Verifying invalid parameter types on update are rejected...");
+  const updateWithNull = await storage.update('profile', null);
+  const updateWithArray = await storage.update('profile', ["invalid"]);
+
+  if (updateWithNull === false && updateWithArray === false) {
+    console.log("✅ Success: Invalid update parameters successfully rejected.");
+  } else {
+    throw new Error("❌ Failure: Invalid update parameters were accepted!");
+  }
+
   console.log("\n🎉 ALL STORAGE SECURITY VERIFICATION TESTS PASSED SUCCESSFULLY!");
   console.log("=========================================");
   process.exit(0);
