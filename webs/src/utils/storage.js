@@ -879,6 +879,12 @@ class StorageManager {
         return false;
       }
 
+      // Security Shield: Enforce array length bounds (max 1000 items) to prevent Client-Side DoS and memory bloat
+      if (existing.length >= 1000) {
+        console.warn(`Security Shield: Storage array length limit (1000 items) exceeded for "${baseKey}". Append operation rejected.`);
+        return false;
+      }
+
       const updated = [...existing, value];
       return await this.set(key, updated);
     } catch (error) {
@@ -894,6 +900,11 @@ class StorageManager {
    */
   async update(key, updates) {
     try {
+      if (!updates || typeof updates !== 'object' || Array.isArray(updates)) {
+        console.error(`Storage update error: "updates" parameter must be a non-null object for "${key}".`);
+        return false;
+      }
+
       const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
       let existing;
       if (this.cache.has(baseKey)) {
@@ -903,6 +914,11 @@ class StorageManager {
       }
 
       existing = existing || {};
+      if (typeof existing !== 'object' || Array.isArray(existing)) {
+        console.error(`Storage item ${key} is not an object`);
+        return false;
+      }
+
       const updated = { ...existing, ...updates };
       return await this.set(key, updated);
     } catch (error) {
