@@ -7,6 +7,7 @@ const componentsToVerify = [
   { name: 'Accordion.jsx', path: 'webs/src/components/Accordion.jsx' },
   { name: 'AchievementCard.jsx', path: 'webs/src/components/AchievementCard.jsx' },
   { name: 'Alert.jsx', path: 'webs/src/components/Alert.jsx' },
+  { name: 'AppLayout.jsx', path: 'webs/src/components/AppLayout.jsx' },
   { name: 'AreaChartComponent.jsx', path: 'webs/src/components/AreaChartComponent.jsx' },
   { name: 'Avatar.jsx', path: 'webs/src/components/Avatar.jsx' },
   { name: 'Badge.jsx', path: 'webs/src/components/Badge.jsx' },

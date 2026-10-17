@@ -1,4 +1,4 @@
-import React, { useState, createContext, useContext, useEffect, useMemo, useRef, useId } from 'react';
+import React, { useState, createContext, useContext, useEffect, useMemo, useRef, useId, memo } from 'react';
 import Sidebar from './Sidebar';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { Menu, Activity } from 'lucide-react';
@@ -22,7 +22,7 @@ export const useSidebar = () => useContext(SidebarContext);
  * 3. Motion: 60fps direct-DOM mouse vector tracking bypassing React state churn.
  * 4. Spatial Architecture: Golden ratio spacing letting every page view breathe.
  */
-const AppLayout = ({ children }) => {
+const AppLayout = memo(({ children }) => {
   const isMobile = useMediaQuery('(max-width: 1024px)');
   const layoutRef = useRef(null);
   const mobileHeaderRef = useRef(null);
@@ -221,6 +221,8 @@ const AppLayout = ({ children }) => {
       </div>
     </SidebarContext.Provider>
   );
-};
+});
+
+AppLayout.displayName = "AppLayout";
 
 export default AppLayout;
