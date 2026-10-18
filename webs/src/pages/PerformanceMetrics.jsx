@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useCallback, memo } from 'react';
+import React, { useEffect, useMemo, useRef, useCallback, memo, useId } from 'react';
 import { Zap, TrendingUp, Activity, Scale, Dumbbell, ShieldCheck, Cpu, Target as TargetIcon } from 'lucide-react';
 import { Button, LineChartComponent, RadarChartComponent, Stat } from '@/components';
 import { useStorageKeySelector } from '@/hooks/useStorage';
@@ -22,13 +22,16 @@ const selectPerformanceData = (data) => data || DEFAULT_PERFORMANCE;
  * Features 3D volumetric tilt tracking, dynamic backglow spotlighting,
  * sub-pixel coordinate telemetry overlays, and W3C APG compliant focus tilt.
  */
-const KineticCapabilityNode = memo(({ title, subtitle, icon: Icon, badge, children, nodeId = 'NODE_KNT' }) => {
+const KineticCapabilityNode = memo(({ title, subtitle, icon: Icon, badge, children, nodeId: explicitNodeId }) => {
   const cardRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
   const rafIdRef = useRef(null);
+  const reactId = useId();
+
+  const nodeId = useMemo(() => explicitNodeId || `0xKNT_${reactId.replace(/:/g, '').slice(0, 4).toUpperCase()}`, [explicitNodeId, reactId]);
 
   const handleMouseMove = useCallback((e) => {
     if (!cardRef.current) return;
@@ -196,13 +199,16 @@ KineticCapabilityNode.displayName = 'KineticCapabilityNode';
 /**
  * ⚡ REFINEMENT: KineticInteractiveCard Component for status and goal modules.
  */
-const KineticInteractiveCard = memo(({ children, nodeId = 'NODE_CARD' }) => {
+const KineticInteractiveCard = memo(({ children, nodeId: explicitNodeId }) => {
   const cardRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
   const rafIdRef = useRef(null);
+  const reactId = useId();
+
+  const nodeId = useMemo(() => explicitNodeId || `0xCARD_${reactId.replace(/:/g, '').slice(0, 4).toUpperCase()}`, [explicitNodeId, reactId]);
 
   const handleMouseMove = useCallback((e) => {
     if (!cardRef.current) return;
