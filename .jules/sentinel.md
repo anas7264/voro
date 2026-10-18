@@ -8,3 +8,14 @@ Extracting candidate substrings with bounded word-boundary regexes (`/\b[A-Z2-7=
 
 **Prevention:**
 Always use minimum-length bounded word extraction regexes (e.g. `{12,}`) for base-encodings in input validators to catch embedded substring payloads while avoiding false positives and performance penalties on standard text inputs.
+
+## 2026-10-18 - Wildcard DNS and Internal TLD Bypasses in Client-Side SSRF Validators
+
+**Vulnerability:**
+URL validators relying exclusively on raw IP regex matching (`INTERNAL_IP_RE`, `INTERNAL_IPV6_RE`) fail to detect Server-Side Request Forgery (SSRF) and private network probe vectors targeting public wildcard DNS resolution services (`nip.io`, `sslip.io`, `xip.io`) or unroutable/internal TLDs (`.local`, `.internal`, `.lan`, `.home.arpa`). For instance, `http://127.0.0.1.nip.io` or `http://169.254.169.254.sslip.io` resolves directly to loopback or cloud metadata IPs, bypassing standard IPv4/IPv6 address regexes.
+
+**Learning:**
+Matching domain endings against known wildcard DNS rebinders and reserved internal TLDs via a dedicated regex (`INTERNAL_TLD_RE = /(?:^|\.)(?:localhost|local|internal|lan|home\.arpa|nip\.io|sslip\.io|xip\.io)$/i`) blocks domain-name based SSRF bypass vectors before URL resolution or fetching occurs.
+
+**Prevention:**
+Always pair explicit IP range checks with domain TLD/wildcard DNS blacklisting in URL validation functions (`isValidURL`).

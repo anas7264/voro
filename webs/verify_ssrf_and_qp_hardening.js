@@ -60,6 +60,26 @@ for (const url of privateIPv6s) {
 }
 if (passed) console.log("✅ Success: All internal/reserved IPv6 addresses correctly rejected!");
 
+// 2b. Verify SSRF protection on wildcard DNS resolution services and local TLDs
+console.log("\n🛡️ Test 2b: Verifying isValidURL rejects wildcard DNS rebinders & local TLDs...");
+const wildcardAndLocalTLDURLs = [
+  "http://127.0.0.1.nip.io",
+  "http://169.254.169.254.sslip.io",
+  "http://10.0.0.1.xip.io",
+  "http://service.local",
+  "http://router.lan",
+  "http://node.internal",
+  "http://printer.home.arpa"
+];
+
+for (const url of wildcardAndLocalTLDURLs) {
+  if (isValidURL(url)) {
+    console.error(`❌ FAILURE: isValidURL allowed wildcard DNS or local TLD target: ${url}`);
+    passed = false;
+  }
+}
+if (passed) console.log("✅ Success: All wildcard DNS services and local TLD targets correctly rejected!");
+
 // 3. Verify valid public URLs are accepted
 console.log("\n🛡️ Test 3: Verifying isValidURL accepts valid public URLs...");
 const publicURLs = [
