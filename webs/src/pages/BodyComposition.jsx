@@ -56,32 +56,43 @@ const SomaticSpecimenCell = memo(({ label, value, unit, change, icon: Icon, colo
   const tiltYRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
+  const rafIdRef = useRef(null);
   const reactId = useId();
 
   const nodeId = useMemo(() => explicitNodeId || `SPEC_${reactId.replace(/:/g, '').slice(0, 4).toUpperCase()}`, [explicitNodeId, reactId]);
 
   const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
 
-    // Volumetric tilt calculation (max 15 degrees)
-    const tiltY = ((x / rect.width) - 0.5) * 30;
-    const tiltX = (0.5 - (y / rect.height)) * 30;
+    if (rafIdRef.current !== null) return;
 
-    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
-    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
-    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    rafIdRef.current = requestAnimationFrame(() => {
+      rafIdRef.current = null;
+      if (!containerRef.current) return;
 
-    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
-    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
 
-    if (isHoveredRef.current || isFocusedRef.current) {
-      containerRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-6px)';
-      containerRef.current.style.transition = 'none';
-    }
+      // Volumetric tilt calculation (max 15 degrees)
+      const tiltY = ((x / rect.width) - 0.5) * 30;
+      const tiltX = (0.5 - (y / rect.height)) * 30;
+
+      containerRef.current.style.setProperty('--mouse-x', `${x}px`);
+      containerRef.current.style.setProperty('--mouse-y', `${y}px`);
+      containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+      containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+
+      if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+      if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+
+      if (isHoveredRef.current || isFocusedRef.current) {
+        containerRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-6px)';
+        containerRef.current.style.transition = 'none';
+      }
+    });
   }, []);
 
   const handleMouseEnter = useCallback(() => {
@@ -94,6 +105,10 @@ const SomaticSpecimenCell = memo(({ label, value, unit, change, icon: Icon, colo
 
   const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
@@ -227,34 +242,48 @@ SomaticSpecimenCell.displayName = "SomaticSpecimenCell";
  * ⚡ REFINEMENT: SomaticSegmentalLens Component.
  * Volumetric 3D interactive custom visualization demonstrating the muscle-to-fat clinical cross section.
  */
-const SomaticSegmentalLens = memo(({ leanMass, fatMass, bodyFat }) => {
+const SomaticSegmentalLens = memo(({ leanMass, fatMass, bodyFat, nodeId: explicitNodeId }) => {
   const containerRef = useRef(null);
   const txRef = useRef(null);
   const tyRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
+  const rafIdRef = useRef(null);
+  const reactId = useId();
+
+  const nodeId = useMemo(() => explicitNodeId || `0xLENS_${reactId.replace(/:/g, '').slice(0, 4).toUpperCase()}`, [explicitNodeId, reactId]);
 
   const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
 
-    const tiltY = ((x / rect.width) - 0.5) * 16;
-    const tiltX = (0.5 - (y / rect.height)) * 16;
+    if (rafIdRef.current !== null) return;
 
-    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
-    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
-    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    rafIdRef.current = requestAnimationFrame(() => {
+      rafIdRef.current = null;
+      if (!containerRef.current) return;
 
-    if (txRef.current) txRef.current.innerText = tiltX.toFixed(1);
-    if (tyRef.current) tyRef.current.innerText = tiltY.toFixed(1);
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
 
-    if (isHoveredRef.current || isFocusedRef.current) {
-      containerRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
-      containerRef.current.style.transition = 'none';
-    }
+      const tiltY = ((x / rect.width) - 0.5) * 16;
+      const tiltX = (0.5 - (y / rect.height)) * 16;
+
+      containerRef.current.style.setProperty('--mouse-x', `${x}px`);
+      containerRef.current.style.setProperty('--mouse-y', `${y}px`);
+      containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+      containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+
+      if (txRef.current) txRef.current.innerText = tiltX.toFixed(1);
+      if (tyRef.current) tyRef.current.innerText = tiltY.toFixed(1);
+
+      if (isHoveredRef.current || isFocusedRef.current) {
+        containerRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
+        containerRef.current.style.transition = 'none';
+      }
+    });
   }, []);
 
   const handleMouseEnter = useCallback(() => {
@@ -267,6 +296,10 @@ const SomaticSegmentalLens = memo(({ leanMass, fatMass, bodyFat }) => {
 
   const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
@@ -344,7 +377,7 @@ const SomaticSegmentalLens = memo(({ leanMass, fatMass, bodyFat }) => {
         <div className="flex flex-col items-end font-mono text-[0.45rem] font-bold text-voro-primary/80 tracking-[0.2em] space-y-0.5">
           <span>TX_<span ref={txRef}>0.0</span>°</span>
           <span>TY_<span ref={tyRef}>0.0</span>°</span>
-          <span className="text-white/20">[SEGMENTAL_LENS]</span>
+          <span className="text-white/20">[{nodeId}]</span>
         </div>
       </div>
 
