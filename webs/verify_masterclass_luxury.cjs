@@ -30,6 +30,7 @@ const componentsToVerify = [
   { name: 'Modal.jsx', path: 'webs/src/components/Modal.jsx' },
   { name: 'NotificationContainer.jsx', path: 'webs/src/components/NotificationContainer.jsx' },
   { name: 'NutritionCard.jsx', path: 'webs/src/components/NutritionCard.jsx' },
+  { name: 'OnboardingGuard.jsx', path: 'webs/src/components/OnboardingGuard.jsx' },
   { name: 'PieChartComponent.jsx', path: 'webs/src/components/PieChartComponent.jsx' },
   { name: 'Progress.jsx', path: 'webs/src/components/Progress.jsx' },
   { name: 'RadarChartComponent.jsx', path: 'webs/src/components/RadarChartComponent.jsx' },
