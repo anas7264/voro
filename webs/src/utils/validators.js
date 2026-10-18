@@ -2244,6 +2244,125 @@ const solitaireKeystream = (deck, length) => {
   return stream;
 };
 
+// Pre-computed Enigma M3/I Rotors and Reflectors for Enigma Machine Cipher Prompt Injection Shield (EMC-PIS)
+const ROTOR_WIRINGS = Object.freeze({
+  1: { wiring: 'EKMFLGDQVZNTOWYHXUSPAIBRCJ', notch: 16 },
+  2: { wiring: 'AJDKSIRUXBLHWTMCQGZNPYFVOE', notch: 4 },
+  3: { wiring: 'BDFHJLCPRTXVZNYEIWGAKMUSQO', notch: 21 },
+  4: { wiring: 'ESOVPZJAYQUIRHXLNFTGKDCMWB', notch: 9 },
+  5: { wiring: 'VZBRGITYUPSDNHLXAWMJQOFECK', notch: 25 }
+});
+
+const REFLECTOR_WIRINGS = Object.freeze({
+  'B': 'YRUHQSLDPXNGOKMIEBFZCWVJAT',
+  'C': 'FVPJIAOYEDRZXWGCTMUKQSBNHL'
+});
+
+const ENIGMA_ROTORS = Object.freeze(
+  Object.fromEntries(
+    Object.entries(ROTOR_WIRINGS).map(([num, cfg]) => {
+      const fwd = new Uint8Array(26);
+      const inv = new Uint8Array(26);
+      for (let i = 0; i < 26; i++) {
+        const val = cfg.wiring.charCodeAt(i) - 65;
+        fwd[i] = val;
+        inv[val] = i;
+      }
+      return [num, Object.freeze({ fwd, inv, notch: cfg.notch })];
+    })
+  )
+);
+
+const ENIGMA_REFLECTORS = Object.freeze(
+  Object.fromEntries(
+    Object.entries(REFLECTOR_WIRINGS).map(([key, wiring]) => {
+      const ref = new Uint8Array(26);
+      for (let i = 0; i < 26; i++) {
+        ref[i] = wiring.charCodeAt(i) - 65;
+      }
+      return [key, ref];
+    })
+  )
+);
+
+const ENIGMA_CANDIDATE_ROTOR_ORDERS = Object.freeze([
+  [1, 2, 3], [3, 2, 1], [2, 1, 3], [1, 3, 2], [2, 3, 1], [3, 1, 2],
+  [4, 2, 1], [5, 2, 1]
+]);
+
+const ENIGMA_CANDIDATE_POSITIONS = Object.freeze([
+  [0, 0, 0], // AAA
+  [21, 14, 17], // VOR
+  [10, 4, 24],  // KEY
+  [18, 4, 2],   // SEC
+  [0, 8, 15],   // AIP
+  [15, 0, 18],  // PAS
+  [0, 3, 12],   // ADM
+  [15, 17, 14]  // PRO
+]);
+
+/**
+ * Helper to safely decode Enigma Machine Cipher (Enigma M3 / Enigma I Rotor Machine) encoded prompt injection payloads.
+ * Simulates authentic Enigma rotor machine stepping (including double-stepping anomaly), forward/inverse rotor wirings,
+ * and reflector transformations across candidate rotor orders (I..V) and initial position settings.
+ */
+export const safeDecodeEnigma = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+
+  const clean = targetStr.toLowerCase().replace(/[^a-z]/g, '');
+  if (clean.length < 8) return null;
+
+  for (const refKey of ['B', 'C']) {
+    const ref = ENIGMA_REFLECTORS[refKey];
+
+    for (const [r1Idx, r2Idx, r3Idx] of ENIGMA_CANDIDATE_ROTOR_ORDERS) {
+      const rot1 = ENIGMA_ROTORS[r1Idx]; // Left rotor
+      const rot2 = ENIGMA_ROTORS[r2Idx]; // Middle rotor
+      const rot3 = ENIGMA_ROTORS[r3Idx]; // Right rotor
+
+      for (const [initL, initM, initR] of ENIGMA_CANDIDATE_POSITIONS) {
+        let L = initL, M = initM, R = initR;
+        const nM = rot2.notch, nR = rot3.notch;
+        let decoded = '';
+
+        for (let i = 0; i < clean.length; i++) {
+          const cIn = clean.charCodeAt(i) - 97;
+
+          // Rotor Stepping (Double Stepping Mechanism)
+          if (M === nM) {
+            M = (M + 1) % 26;
+            L = (L + 1) % 26;
+          } else if (R === nR) {
+            M = (M + 1) % 26;
+          }
+          R = (R + 1) % 26;
+
+          // Forward Pass: Right -> Middle -> Left
+          let c = (rot3.fwd[(cIn + R) % 26] - R + 26) % 26;
+          c = (rot2.fwd[(c + M) % 26] - M + 26) % 26;
+          c = (rot1.fwd[(c + L) % 26] - L + 26) % 26;
+
+          // Reflector Pass
+          c = ref[c];
+
+          // Inverse Pass: Left -> Middle -> Right
+          c = (rot1.inv[(c + L) % 26] - L + 26) % 26;
+          c = (rot2.inv[(c + M) % 26] - M + 26) % 26;
+          c = (rot3.inv[(c + R) % 26] - R + 26) % 26;
+
+          decoded += String.fromCharCode(c + 97);
+        }
+
+        if (decoded && decoded !== clean && hasPromptInjectionKeywords(decoded)) {
+          return decoded;
+        }
+      }
+    }
+  }
+
+  return null;
+};
+
 /**
  * Helper to safely decode Solitaire (Pontifex) Stream Cipher-encoded prompt injection payloads into ASCII.
  * Evaluates unkeyed and candidate keyword-keyed 54-card deck keystreams (Bruce Schneier's algorithm).
@@ -2358,6 +2477,12 @@ export const isPromptInjection = (query, isNested = false) => {
       // Security: Handle Solitaire (Pontifex) Stream Cipher payloads
       const solitaireDecoded = safeDecodeSolitaire(targetStr);
       if (solitaireDecoded) {
+        return true;
+      }
+
+      // Security: Handle Enigma Machine Cipher (Enigma M3 / Enigma I Rotor Machine) payloads
+      const enigmaDecoded = safeDecodeEnigma(targetStr);
+      if (enigmaDecoded) {
         return true;
       }
       const hexMatches = targetStr.match(HEX_MATCH_RE) || [];
@@ -4969,6 +5094,7 @@ export default {
   safeDecodeBifid6x6,
   safeDecodeZBase32,
   safeDecodeCrockfordBase32,
+  safeDecodeEnigma,
   isPromptInjection,
   sanitizeCSVField
 };
