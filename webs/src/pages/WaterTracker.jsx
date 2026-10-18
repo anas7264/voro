@@ -697,12 +697,19 @@ const WaterTracker = () => {
                     max="5000"
                     value={customAmount}
                     onChange={(e) => setCustomAmount(e.target.value)}
-                    placeholder="Volume intake quantity"
+                    placeholder="e.g. 350"
                     label="Volume Magnitude (ml)"
                     className="italic font-serif"
                   />
                 </div>
-                <Button type="submit" size="sm" className="h-[62px] rounded-[1.25rem] px-8 flex-shrink-0 !bg-white !text-black shadow-lg shadow-white/5 hover:scale-[1.02] active:scale-[0.98]">
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={!customAmount.trim()}
+                  aria-label="Inject custom water intake volume"
+                  title={!customAmount.trim() ? "Enter a volume between 1ml and 5000ml" : "Inject custom water intake volume"}
+                  className="h-[62px] rounded-[1.25rem] px-8 flex-shrink-0 !bg-white !text-black shadow-lg shadow-white/5 hover:scale-[1.02] active:scale-[0.98]"
+                >
                   Inject
                 </Button>
               </form>
