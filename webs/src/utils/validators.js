@@ -180,6 +180,7 @@ export const isDateInPast = (dateString) => {
 
 const INTERNAL_IP_RE = /^(?:127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+|169\.254\.\d+\.\d+|0\.\d+\.\d+\.\d+|100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.\d+\.\d+|198\.1[89]\.\d+\.\d+|192\.0\.0\.\d+|192\.0\.2\.\d+|198\.51\.100\.\d+|203\.0\.113\.\d+|192\.88\.99\.\d+|(?:22[4-9]|23\d)\.\d+\.\d+\.\d+|(?:24\d|25[0-5])\.\d+\.\d+\.\d+)$/;
 const INTERNAL_IPV6_RE = /^\[?(?:0*:0*:0*:0*:0*:0*:0*:0*1|0*:0*:0*:0*:0*:0*:0*:0*|::1|::|fe[89ab][0-9a-f]:.*|f[cd][0-9a-f]{2}:.*|::ffff:(?:127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+|169\.254\.\d+\.\d+|100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.\d+\.\d+|198\.1[89]\.\d+\.\d+|192\.0\.0\.\d+|192\.0\.2\.\d+|198\.51\.100\.\d+|203\.0\.113\.\d+|[0-9a-f]{1,4}:[0-9a-f]{1,4}))\]?$/i;
+const INTERNAL_TLD_RE = /(?:^|\.)(?:localhost|local|internal|lan|home\.arpa|nip\.io|sslip\.io|xip\.io)$/i;
 
 // URL validation
 export const isValidURL = (url) => {
@@ -205,10 +206,11 @@ export const isValidURL = (url) => {
       return false;
     }
 
-    // Security: Block SSRF / private / loopback / internal IP targets (IPv4 & IPv6) and cloud metadata endpoints
+    // Security: Block SSRF / private / loopback / internal IP targets, local TLDs, and wildcard DNS rebinders
     const isInternal = hostname === 'localhost' ||
       INTERNAL_IP_RE.test(hostname) ||
-      INTERNAL_IPV6_RE.test(hostname);
+      INTERNAL_IPV6_RE.test(hostname) ||
+      INTERNAL_TLD_RE.test(hostname);
 
     if (isInternal) {
       return false;
