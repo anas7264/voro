@@ -292,3 +292,10 @@
 **Action:**
 1. Replace `array.push()` and `.join(" ")` in text formatters with direct conditional string branching for short string combinations.
 2. Hoist and freeze static mapping dictionaries (`UNIT_MAP`) to module scope outside function bodies.
+
+## 2026-10-18 - Relative Import Integrity & Zero-Allocation ASCII Date Parsing
+**Learning:** Using Vite path aliases (`@/...`) inside hook files can fail when run in standalone Node ESM test environments without alias resolvers. Standardizing on relative imports (`../utils/...`) ensures cross-environment compatibility. Additionally, replacing `parseInt(dateStr.slice(...))` with ASCII digit math (`dateStr.charCodeAt(i) - 48`) for ISO YYYY-MM-DD strings accelerates date parsing by ~1.7x and eliminates intermediate string heap allocations.
+
+**Action:**
+1. Use relative paths (`../utils/formatters`) in hook files to maintain Node ESM compatibility for verification scripts.
+2. Use `charCodeAt(i) - 48` arithmetic for string integer parsing in hot date calculation paths.
