@@ -21,6 +21,7 @@ const componentsToVerify = [
   { name: 'Container.jsx', path: 'webs/src/components/Container.jsx' },
   { name: 'DatePicker.jsx', path: 'webs/src/components/DatePicker.jsx' },
   { name: 'Divider.jsx', path: 'webs/src/components/Divider.jsx' },
+  { name: 'ErrorBoundary.jsx', path: 'webs/src/components/ErrorBoundary.jsx' },
   { name: 'ExerciseCard.jsx', path: 'webs/src/components/ExerciseCard.jsx' },
   { name: 'Header.jsx', path: 'webs/src/components/Header.jsx' },
   { name: 'Input.jsx', path: 'webs/src/components/Input.jsx' },
