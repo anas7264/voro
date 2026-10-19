@@ -1,6 +1,6 @@
 // Security Verification Test: PDF Export & Download Lifecycle Security
 import './mock_window.js';
-import { sanitizeFilename, downloadPDF, savePDF, exportMealPlan, exportWeeklyReport, exportMonthlyReport } from './src/utils/pdfExport.js';
+import { sanitizeFilename, downloadPDF, savePDF, exportMealPlan, exportTrainingPlan, exportWeeklyReport, exportMonthlyReport } from './src/utils/pdfExport.js';
 
 console.log('=========================================');
 console.log('🧪 RUNNING SECURITY VERIFICATION: PDF EXPORT');
@@ -135,6 +135,31 @@ console.log('🛡️ Test 5: Verifying Blob URL revocation on exception in downl
   }
   assert(reportsGenerated, 'exportWeeklyReport and exportMonthlyReport should execute without error on null, empty, or non-finite inputs');
   console.log('✅ Success: exportWeeklyReport and exportMonthlyReport exception-immunity verified.');
+
+  // Test 9: Verify exportMealPlan and exportTrainingPlan exception-immunity against null/missing parameters and malformed structures
+  console.log('🛡️ Test 9: Verifying exportMealPlan & exportTrainingPlan exception-immunity with null/empty/malformed parameters...');
+  let plansGenerated = false;
+  try {
+    const mealDocNull = await exportMealPlan(null, null);
+    assert(mealDocNull !== null && typeof mealDocNull === 'object', 'exportMealPlan should generate valid PDF with null parameters');
+
+    const trainingDocNull = await exportTrainingPlan(null, null);
+    assert(trainingDocNull !== null && typeof trainingDocNull === 'object', 'exportTrainingPlan should generate valid PDF with null parameters');
+
+    // Test with malformed/partial structures
+    const mealDocMalformed = await exportMealPlan([null, { date: '2026-04-01', meals: [null, { calories: NaN, protein: 'bad' }] }], { name: null });
+    assert(mealDocMalformed !== null && typeof mealDocMalformed === 'object', 'exportMealPlan should handle malformed meals safely');
+
+    const trainingDocMalformed = await exportTrainingPlan([null, { workouts: [null, { exercises: [null, { sets: NaN, reps: undefined }] }] }], {});
+    assert(trainingDocMalformed !== null && typeof trainingDocMalformed === 'object', 'exportTrainingPlan should handle malformed workouts safely');
+
+    plansGenerated = true;
+  } catch (err) {
+    console.error("Caught error in plan export security test:", err);
+    plansGenerated = false;
+  }
+  assert(plansGenerated, 'exportMealPlan and exportTrainingPlan should execute without error on null, empty, or malformed inputs');
+  console.log('✅ Success: exportMealPlan and exportTrainingPlan exception-immunity verified.');
 
   console.log('=========================================');
   console.log(`🎉 ALL ${testsPassed}/${testsTotal} PDF EXPORT SECURITY VERIFICATION TESTS PASSED SUCCESSFULLY!`);
