@@ -70,6 +70,7 @@ const BodyMetrics = () => {
   const massLogCardRef = useRef(null);
   const adiposeLogCardRef = useRef(null);
   const dimensionsCardRef = useRef(null);
+  const volumetricRafRef = useRef(null);
 
   // Telemetry coordinate text refs
   const trajectoryTiltXRef = useRef(null);
@@ -135,24 +136,38 @@ const BodyMetrics = () => {
   // Volumetric Hover & Coordinate Telemetry Handler
   const handleVolumetricMove = useCallback((e, cardRef, tiltXRef, tiltYRef) => {
     if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
 
-    // Direct DOM manipulation of variables to sustain solid 60fps and shield React from re-renders
-    const tiltY = ((x / rect.width) - 0.5) * 16;
-    const tiltX = (0.5 - (y / rect.height)) * 16;
+    if (volumetricRafRef.current !== null) return;
 
-    cardRef.current.style.setProperty('--mouse-x', `${x}px`);
-    cardRef.current.style.setProperty('--mouse-y', `${y}px`);
-    cardRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    cardRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    volumetricRafRef.current = requestAnimationFrame(() => {
+      volumetricRafRef.current = null;
+      if (!cardRef.current) return;
 
-    if (tiltXRef?.current) tiltXRef.current.innerText = tiltX.toFixed(1);
-    if (tiltYRef?.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+      const rect = cardRef.current.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
+
+      // Direct DOM manipulation of variables to sustain solid 60fps and shield React from re-renders
+      const tiltY = ((x / rect.width) - 0.5) * 16;
+      const tiltX = (0.5 - (y / rect.height)) * 16;
+
+      cardRef.current.style.setProperty('--mouse-x', `${x}px`);
+      cardRef.current.style.setProperty('--mouse-y', `${y}px`);
+      cardRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+      cardRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+
+      if (tiltXRef?.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+      if (tiltYRef?.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+    });
   }, []);
 
   const handleVolumetricLeave = useCallback((cardRef, tiltXRef, tiltYRef) => {
+    if (volumetricRafRef.current !== null) {
+      cancelAnimationFrame(volumetricRafRef.current);
+      volumetricRafRef.current = null;
+    }
     if (!cardRef.current) return;
     cardRef.current.style.setProperty('--tilt-x', '0deg');
     cardRef.current.style.setProperty('--tilt-y', '0deg');
@@ -182,7 +197,7 @@ const BodyMetrics = () => {
     };
 
     const currentMetrics = getItem('body_metrics') || {};
-    const currentWeights = currentMetrics.weights || weights || [];
+    const currentWeights = currentMetrics.weights || [];
 
     await updateItem('body_metrics', {
       weights: [...currentWeights, newWeight]
@@ -190,7 +205,7 @@ const BodyMetrics = () => {
 
     setWeight('');
     addNotification('Mass record synchronized', 'success');
-  }, [weight, weights, getItem, updateItem, addNotification]);
+  }, [weight, getItem, updateItem, addNotification]);
 
   const addMeasurement = useCallback(async () => {
     const invalidFields = Object.entries(measurements).filter(([_, val]) => val && !isPositiveNumber(val));
@@ -210,7 +225,7 @@ const BodyMetrics = () => {
     };
 
     const currentMetrics = getItem('body_metrics') || {};
-    const currentMeasurements = currentMetrics.measurements || measurementsRecord || [];
+    const currentMeasurements = currentMetrics.measurements || [];
 
     await updateItem('body_metrics', {
       measurements: [...currentMeasurements, newMeasurement]
@@ -218,7 +233,7 @@ const BodyMetrics = () => {
 
     setMeasurements(INITIAL_MEASUREMENTS);
     addNotification('Anatomical dimensions recorded', 'success');
-  }, [measurements, measurementsRecord, getItem, updateItem, addNotification]);
+  }, [measurements, getItem, updateItem, addNotification]);
 
   const addBodyFat = useCallback(async () => {
     if (!bodyFat) return;
@@ -234,7 +249,7 @@ const BodyMetrics = () => {
     };
 
     const currentMetrics = getItem('body_metrics') || {};
-    const currentBodyFatRecords = currentMetrics.bodyFat || bodyFatRecords || [];
+    const currentBodyFatRecords = currentMetrics.bodyFat || [];
 
     await updateItem('body_metrics', {
       bodyFat: [...currentBodyFatRecords, newBodyFat]
@@ -242,7 +257,7 @@ const BodyMetrics = () => {
 
     setBodyFat('');
     addNotification('Adipose index updated', 'success');
-  }, [bodyFat, bodyFatRecords, getItem, updateItem, addNotification]);
+  }, [bodyFat, getItem, updateItem, addNotification]);
 
   /**
    * ⚡ OPTIMIZATION: Memoized derived data with surgical reactivity.
