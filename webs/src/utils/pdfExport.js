@@ -290,11 +290,14 @@ export const exportMealPlan = async (mealPlan, userData) => {
   const doc = new DocClass();
   let yPosition = 10;
 
+  const safeUserData = userData && typeof userData === "object" ? userData : {};
+  const safeMealPlan = Array.isArray(mealPlan) ? mealPlan : [];
+
   // Sign report contents using SCAS (HMAC-SHA-256)
-  const serialized = JSON.stringify({ name: userData.name, mealPlan });
+  const serialized = JSON.stringify({ name: safeUserData.name, mealPlan: safeMealPlan });
   doc.scasSignature = await generateSCAS("Meal Plan", serialized);
 
-  const sanitizedUserName = sanitizeInput(userData.name);
+  const sanitizedUserName = sanitizeInput(safeUserData.name || "User");
 
   // Header
   yPosition = addVOROHeader(doc, "Meal Plan", `${sanitizedUserName} - 7 Day Plan`);
@@ -310,11 +313,12 @@ export const exportMealPlan = async (mealPlan, userData) => {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.setTextColor(VORO_COLORS.text);
-  doc.text(`Calories: ${userData.tdee} | Protein: ${userData.proteinTarget}g | Carbs: ${userData.carbsTarget}g | Fat: ${userData.fatTarget}g`, 15, yPosition);
+  doc.text(`Calories: ${safeUserData.tdee || "-"} | Protein: ${safeUserData.proteinTarget || "-"}g | Carbs: ${safeUserData.carbsTarget || "-"}g | Fat: ${safeUserData.fatTarget || "-"}g`, 15, yPosition);
   yPosition += 10;
 
   // Daily meals
-  mealPlan.forEach((day, index) => {
+  safeMealPlan.forEach((day, index) => {
+    if (!day || typeof day !== "object") return;
     if (yPosition > 250) {
       doc.addPage();
       addVOROFooter(doc);
@@ -324,14 +328,15 @@ export const exportMealPlan = async (mealPlan, userData) => {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
     doc.setTextColor(16, 185, 129);
-    doc.text(`Day ${index + 1}: ${sanitizeInput(day.date)}`, 15, yPosition);
+    doc.text(`Day ${index + 1}: ${sanitizeInput(day.date || "")}`, 15, yPosition);
     yPosition += 7;
 
-    const mealData = day.meals.map(meal => [
-      sanitizeInput(meal.type),
-      sanitizeInput(meal.name),
-      `${meal.calories} kcal`,
-      `P:${meal.protein}g C:${meal.carbs}g F:${meal.fat}g`
+    const safeMeals = Array.isArray(day.meals) ? day.meals : [];
+    const mealData = safeMeals.map(meal => [
+      sanitizeInput(meal && meal.type ? meal.type : "-"),
+      sanitizeInput(meal && meal.name ? meal.name : "-"),
+      `${meal && Number.isFinite(meal.calories) ? meal.calories : "-"} kcal`,
+      `P:${meal && Number.isFinite(meal.protein) ? meal.protein : "-"}g C:${meal && Number.isFinite(meal.carbs) ? meal.carbs : "-"}g F:${meal && Number.isFinite(meal.fat) ? meal.fat : "-"}g`
     ]);
 
     autoTable(doc, {
@@ -359,11 +364,14 @@ export const exportTrainingPlan = async (trainingPlan, userData) => {
   let yPosition = 10;
   let pageNum = 1;
 
+  const safeUserData = userData && typeof userData === "object" ? userData : {};
+  const safeTrainingPlan = Array.isArray(trainingPlan) ? trainingPlan : [];
+
   // Sign report contents using SCAS (HMAC-SHA-256)
-  const serialized = JSON.stringify({ name: userData.name, trainingPlan });
+  const serialized = JSON.stringify({ name: safeUserData.name, trainingPlan: safeTrainingPlan });
   doc.scasSignature = await generateSCAS("Training Plan", serialized);
 
-  const sanitizedUserName = sanitizeInput(userData.name);
+  const sanitizedUserName = sanitizeInput(safeUserData.name || "User");
 
   // Header
   yPosition = addVOROHeader(doc, "Training Plan", `${sanitizedUserName} - 4 Week Periodization`);
@@ -379,11 +387,12 @@ export const exportTrainingPlan = async (trainingPlan, userData) => {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.setTextColor(VORO_COLORS.text);
-  doc.text(`Goal: ${sanitizeInput(userData.goal)} | Experience: ${sanitizeInput(userData.experienceLevel)} | Days/Week: ${userData.availableDays}`, 15, yPosition);
+  doc.text(`Goal: ${sanitizeInput(safeUserData.goal || "-")} | Experience: ${sanitizeInput(safeUserData.experienceLevel || "-")} | Days/Week: ${safeUserData.availableDays || "-"}`, 15, yPosition);
   yPosition += 10;
 
   // Weekly workouts
-  trainingPlan.forEach((week, weekIndex) => {
+  safeTrainingPlan.forEach((week, weekIndex) => {
+    if (!week || typeof week !== "object") return;
     if (yPosition > 240) {
       doc.addPage();
       pageNum++;
@@ -397,7 +406,9 @@ export const exportTrainingPlan = async (trainingPlan, userData) => {
     doc.text(`Week ${weekIndex + 1}`, 15, yPosition);
     yPosition += 7;
 
-    week.workouts.forEach(workout => {
+    const safeWorkouts = Array.isArray(week.workouts) ? week.workouts : [];
+    safeWorkouts.forEach(workout => {
+      if (!workout || typeof workout !== "object") return;
       if (yPosition > 250) {
         doc.addPage();
         pageNum++;
@@ -408,14 +419,15 @@ export const exportTrainingPlan = async (trainingPlan, userData) => {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
       doc.setTextColor(16, 185, 129);
-      doc.text(`${sanitizeInput(workout.day)}: ${sanitizeInput(workout.type)}`, 15, yPosition);
+      doc.text(`${sanitizeInput(workout.day || "-")}: ${sanitizeInput(workout.type || "-")}`, 15, yPosition);
       yPosition += 5;
 
-      const exerciseData = workout.exercises.map(ex => [
-        sanitizeInput(ex.name),
-        `${ex.sets}x${ex.reps}`,
-        ex.weight ? `${ex.weight}kg` : "Bodyweight",
-        ex.restTime ? sanitizeInput(ex.restTime) : "60s"
+      const safeExercises = Array.isArray(workout.exercises) ? workout.exercises : [];
+      const exerciseData = safeExercises.map(ex => [
+        sanitizeInput(ex && ex.name ? ex.name : "-"),
+        `${ex && ex.sets ? ex.sets : "-"}` + "x" + `${ex && ex.reps ? ex.reps : "-"}`,
+        ex && ex.weight ? `${ex.weight}kg` : "Bodyweight",
+        ex && ex.restTime ? sanitizeInput(ex.restTime) : "60s"
       ]);
 
       autoTable(doc, {
