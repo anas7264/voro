@@ -1668,6 +1668,172 @@ const safeDecodeBacon = (str) => {
   return null;
 };
 
+// Standardized M-94 / Jefferson Cylinder Disk Alphabets
+const M94_DISK_ALPHABETS = Object.freeze([
+  "zxlvwdjuyqhtefmkaorspibcgn",
+  "abcdefghijklmnopqrstuvwxyz",
+  "qwertyuiopasdfghjklzxcvbnm",
+  "mnbvcxzlkjhgfdsapoiuytrewq",
+  "zyxwvutsrqponmlkjihgfedcba",
+  "plmoknijbvygftcxdrzseawqhu",
+  "okijunhygtfrdeswaqpxzcvblm",
+  "qazwsxedcrfvtgbyhnujmikolp",
+  "pmlkjihgfedcbazyxwvutsrqon",
+  "alskdjfhgzmxncbveurytiwoqp",
+  "qpwoeirutyalskdjfhgzmxncbv",
+  "zmxncbvalskdjfhgqpwoeiruty",
+  "fghijabcdeklmnopqrstuvwxyz",
+  "nopqrstuvwxyzabcdefghijklm",
+  "uvwxyabcdefghijklmnopqrstz",
+  "rstuvwxyzabcdefghijklmnopq",
+  "efghijklmnopqrstuvwxyzabcd",
+  "ijklmnopqrstuvwxyzabcdefgh",
+  "ghijklmnopqrstuvwxyzabcdef",
+  "lmnopqrstuvwxyzabcdefghijk",
+  "opqrstuvwxyzabcdefghijklmn",
+  "stuvwxyzabcdefghijklmnopqr",
+  "vwxyzabcdefghijklmnopqrstu",
+  "yzabcdefghijklmnopqrstuvwx",
+  "cdefghijklmnopqrstuvwxyzab"
+]);
+
+/**
+ * Helper to safely decode Jefferson Cylinder / M-94 Multi-Disk Cipher encoded prompt injection payloads.
+ * Evaluates ciphertext alignment across cylinder shifts 1..25 and 25 disk alphabets.
+ */
+export const safeDecodeM94 = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+
+  const clean = targetStr.toLowerCase().replace(/[^a-z]/g, '');
+  const N = clean.length;
+  if (N < 8 || N > 25) return null;
+
+  for (let shift = 1; shift < 26; shift++) {
+    let decoded = '';
+    let isValid = true;
+
+    for (let i = 0; i < N; i++) {
+      const diskAlpha = M94_DISK_ALPHABETS[i % 25];
+      const pos = diskAlpha.indexOf(clean[i]);
+      if (pos === -1) {
+        isValid = false;
+        break;
+      }
+      const plainIdx = (pos - shift + 26) % 26;
+      decoded += diskAlpha[plainIdx];
+    }
+
+    if (isValid && decoded && decoded !== clean && hasPromptInjectionKeywords(decoded)) {
+      return decoded;
+    }
+  }
+
+  return null;
+};
+
+// Homophonic substitution frequency mapping (00..99 -> a..z)
+const HOMOPHONIC_MAP = Object.freeze((() => {
+  const map = new Map();
+  const ranges = [
+    [0, 7, 'a'], [8, 9, 'b'], [10, 12, 'c'], [13, 16, 'd'],
+    [17, 28, 'e'], [29, 30, 'f'], [31, 32, 'g'], [33, 38, 'h'],
+    [39, 45, 'i'], [46, 46, 'j'], [47, 47, 'k'], [48, 51, 'l'],
+    [52, 54, 'm'], [55, 60, 'n'], [61, 67, 'o'], [68, 69, 'p'],
+    [70, 70, 'q'], [71, 76, 'r'], [77, 82, 's'], [83, 90, 't'],
+    [91, 93, 'u'], [94, 94, 'v'], [95, 96, 'w'], [97, 97, 'x'],
+    [98, 98, 'y'], [99, 99, 'z']
+  ];
+  for (const [start, end, char] of ranges) {
+    for (let i = start; i <= end; i++) {
+      const key = i < 10 ? '0' + i : String(i);
+      map.set(key, char);
+    }
+  }
+  return map;
+})());
+
+/**
+ * Helper to safely decode Homophonic Substitution Cipher encoded prompt injection payloads into ASCII.
+ * Evaluates tokenized and 2-digit number streams (00..99) against frequency distribution maps.
+ */
+export const safeDecodeHomophonic = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 2000) return null;
+
+  // 1. Try tokenized 2-digit numbers
+  const tokens = targetStr.trim().split(/[\s,.\-_\/:;+=]+/);
+  if (tokens.length >= 4 && tokens.every(t => /^\d{2}$/.test(t))) {
+    let decoded = '';
+    for (const t of tokens) {
+      const char = HOMOPHONIC_MAP.get(t);
+      if (!char) return null;
+      decoded += char;
+    }
+    if (decoded.length >= 4 && hasPromptInjectionKeywords(decoded)) {
+      return decoded;
+    }
+  }
+
+  // 2. Try 2-digit concatenated numbers
+  const cleanDigits = targetStr.replace(/[^0-9]/g, '');
+  if (cleanDigits.length >= 8 && cleanDigits.length % 2 === 0) {
+    let decoded = '';
+    for (let i = 0; i < cleanDigits.length; i += 2) {
+      const pair = cleanDigits.slice(i, i + 2);
+      const char = HOMOPHONIC_MAP.get(pair);
+      if (!char) return null;
+      decoded += char;
+    }
+    if (decoded.length >= 4 && hasPromptInjectionKeywords(decoded)) {
+      return decoded;
+    }
+  }
+
+  return null;
+};
+
+// Candidate running text streams for Running Key Cipher
+const RUNNING_KEY_STREAMS = Object.freeze([
+  "wethepeopleoftheunitedstatesinorderformamoreperfectunionestablishjusticeinsuredomestictranquilityprovideforthecommondefensepromotethegeneralwelfareandsecuretheblessingsoflibertytoourselvesandourposteritydoordainandestablishthisconstitutionfortheunitedstatesofamerica",
+  "fourscoreandsevenyearsagoourfathersbroughtforthonthiscontinentanewnationconceivedinlibertyanddedicatedtothepropositionthatallmenarecreatedequalnowweareengagedinagreatcivilwartestingwhetherthatnationoranynationsoconceivedandsodedicatedcanlongendure",
+  "voroaihealthfitnessnutritionandperformanceoptimizationenclavesecurezerotrustarchitecturedataflow",
+  "tobeornottobethatisthequestionwhetheritisnoblerinthemindtosufferthaslingsandarrowsoffortunateresponsibilityortotakearmsagainstaseaoftroublesandbyopposingendthem",
+  "inbeginninggodcreatedtheheavenandtheearthandtheearthwaswithoutformandvoidanddarknesswasuponthefaceofthedeepandthespiritofgodmoveduponthefaceofthewaters"
+]);
+
+/**
+ * Helper to safely decode Running Key Cipher encoded prompt injection payloads into ASCII.
+ * Evaluates polyalphabetic ciphertext against running key text streams.
+ */
+export const safeDecodeRunningKey = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+
+  const clean = targetStr.toLowerCase().replace(/[^a-z]/g, '');
+  const N = clean.length;
+  if (N < 8) return null;
+
+  for (const stream of RUNNING_KEY_STREAMS) {
+    if (stream.length < N) continue;
+    const maxOffset = Math.min(stream.length - N, 100);
+
+    for (let offset = 0; offset <= maxOffset; offset++) {
+      let decoded = '';
+      for (let i = 0; i < N; i++) {
+        const cVal = clean.charCodeAt(i) - 97;
+        const kVal = stream.charCodeAt(offset + i) - 97;
+        let pVal = (cVal - kVal) % 26;
+        if (pVal < 0) pVal += 26;
+        decoded += String.fromCharCode(pVal + 97);
+      }
+
+      if (decoded && decoded !== clean && hasPromptInjectionKeywords(decoded)) {
+        return decoded;
+      }
+    }
+  }
+
+  return null;
+};
+
 /**
  * Helper to safely decode VIC Cipher (Soviet Espionage Cipher) encoded prompt injection payloads.
  * Evaluates digit streams against straddling checkerboard candidates both directly and after
@@ -2873,6 +3039,24 @@ export const isPromptInjection = (query, isNested = false) => {
       // Security: Handle VIC Cipher (Soviet espionage straddling checkerboard + columnar transposition)
       const vicDecoded = safeDecodeVICCipher(targetStr);
       if (vicDecoded) {
+        return true;
+      }
+
+      // Security: Handle Jefferson Cylinder / M-94 Multi-Disk Cipher payloads
+      const m94Decoded = safeDecodeM94(targetStr);
+      if (m94Decoded) {
+        return true;
+      }
+
+      // Security: Handle Homophonic Substitution Cipher payloads
+      const homophonicDecoded = safeDecodeHomophonic(targetStr);
+      if (homophonicDecoded) {
+        return true;
+      }
+
+      // Security: Handle Running Key Cipher payloads
+      const runningKeyDecoded = safeDecodeRunningKey(targetStr);
+      if (runningKeyDecoded) {
         return true;
       }
     }
@@ -5097,6 +5281,9 @@ export default {
   safeDecodeZBase32,
   safeDecodeCrockfordBase32,
   safeDecodeEnigma,
+  safeDecodeM94,
+  safeDecodeHomophonic,
+  safeDecodeRunningKey,
   isPromptInjection,
   sanitizeCSVField
 };
