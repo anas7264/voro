@@ -240,6 +240,7 @@ const HabitItem = memo(({ habit, isDone, onToggle, onRemove }) => {
         {/* Neural Synapse Core Toggle Button */}
         <button
           onClick={() => onToggle(habit.id)}
+          title={`Mark ${habit.name} as ${isDone ? 'incomplete' : 'complete'}`}
           aria-label={`Mark ${habit.name} as ${isDone ? 'incomplete' : 'complete'}`}
           className={`
             relative flex items-center justify-center w-16 h-16 rounded-[1.5rem] border-2 transition-all duration-500 shadow-2xl
@@ -281,6 +282,11 @@ const HabitItem = memo(({ habit, isDone, onToggle, onRemove }) => {
       <div className="flex items-center gap-4 z-10" style={{ transform: 'translateZ(50px)' }}>
         <button
           onClick={handleDeleteClick}
+          title={
+            isDeleting
+              ? `Confirm deletion of ${habit.name}`
+              : `Remove ${habit.name} pattern`
+          }
           aria-label={
             isDeleting
               ? `Confirm deletion of ${habit.name}. Action cannot be undone. Click again to purge.`
