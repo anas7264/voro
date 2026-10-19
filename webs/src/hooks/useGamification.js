@@ -189,29 +189,24 @@ export const useGamification = () => {
   }, [getItem]);
 
   // Reset gamification (debug only)
+  // ⚡ PERFORMANCE OPTIMIZATION: Reuses frozen DEFAULT_GAMIFICATION_DATA to avoid object heap allocations.
   const resetGamification = useCallback(() => {
-    const initialState = {
-      totalXP: 0,
-      level: 1,
-      currentStreak: 0,
-      bestStreak: 0,
-      achievements: [],
-      completedChallenges: [],
-      leaderboardPosition: 0,
-      totalWorkouts: 0,
-      totalNutritionDays: 0,
-      milestones: []
-    };
-
-    setItem("gamification", initialState);
+    setItem("gamification", DEFAULT_GAMIFICATION_DATA);
   }, [setItem]);
 
   // Deprecated: initializeGamification is now handled by reactive useMemo
+  // ⚡ PERFORMANCE OPTIMIZATION: Reads storage synchronously via getItem to avoid closing over gameState,
+  // making function identity 100% stable across re-renders.
   const initializeGamification = useCallback(() => {
-    return gameState;
-  }, [gameState]);
+    return selectGamification(getItem("gamification"));
+  }, [getItem]);
 
-  return {
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Memoized Hook Return Interface.
+   * Wrapping the returned object in useMemo ensures referential stability,
+   * preventing unnecessary re-renders in consumer components when parent components re-render.
+   */
+  return useMemo(() => ({
     gameState,
     initializeGamification,
     awardXP,
@@ -223,7 +218,19 @@ export const useGamification = () => {
     getGameStats,
     predictNextAchievement,
     resetGamification
-  };
+  }), [
+    gameState,
+    initializeGamification,
+    awardXP,
+    unlockAchievement,
+    completeChallenge,
+    updateStreak,
+    getLevelInfo,
+    getRankTier,
+    getGameStats,
+    predictNextAchievement,
+    resetGamification
+  ]);
 };
 
 export default useGamification;
