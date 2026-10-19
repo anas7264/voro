@@ -689,6 +689,7 @@ const PurgeResetButton = memo(({ onReset }) => {
   return (
     <button
       onClick={initiateResetSequence}
+      title={confirmReset ? `Confirm cycle purge (${resetCountdown.toFixed(1)}s)` : "Reset metabolic cycle"}
       aria-label={confirmReset ? `Confirm cycle purge. Countdown ${resetCountdown.toFixed(1)} seconds.` : "Reset metabolic cycle"}
       className={`p-6 rounded-[1.5rem] border outline-none transition-all duration-500 flex items-center justify-center gap-2 ${
         confirmReset
