@@ -800,6 +800,7 @@ const VolumetricComputationNode = memo(({ children, nodeId }) => {
   const tiltYRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
+  const rafIdRef = useRef(null);
 
   const reactId = useId();
 
@@ -809,33 +810,47 @@ const VolumetricComputationNode = memo(({ children, nodeId }) => {
     return `0xCALC_${cleanId.slice(-4).padStart(4, '0')}_ATTESTED_MATRIX`;
   }, [reactId]);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
 
-    const tiltY = ((x / rect.width) - 0.5) * 16;
-    const tiltX = (0.5 - (y / rect.height)) * 16;
+    if (rafIdRef.current !== null) return;
 
-    const style = containerRef.current.style;
-    style.setProperty('--mouse-x', `${x.toFixed(1)}px`);
-    style.setProperty('--mouse-y', `${y.toFixed(1)}px`);
-    style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
-    style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
-    style.setProperty('transform', `perspective(1500px) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg) translateY(-4px)`);
-    style.setProperty('transition', 'none');
+    rafIdRef.current = requestAnimationFrame(() => {
+      rafIdRef.current = null;
+      if (!containerRef.current) return;
 
-    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
-    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
-  };
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
 
-  const handleMouseEnter = () => {
+      const tiltY = ((x / rect.width) - 0.5) * 16;
+      const tiltX = (0.5 - (y / rect.height)) * 16;
+
+      const style = containerRef.current.style;
+      style.setProperty('--mouse-x', `${x.toFixed(1)}px`);
+      style.setProperty('--mouse-y', `${y.toFixed(1)}px`);
+      style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
+      style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
+      style.setProperty('transform', `perspective(1500px) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg) translateY(-4px)`);
+      style.setProperty('transition', 'none');
+
+      if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+      if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+    });
+  }, []);
+
+  const handleMouseEnter = useCallback(() => {
     isHoveredRef.current = true;
-  };
+  }, []);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
     if (!containerRef.current) return;
 
     if (isFocusedRef.current) {
@@ -850,7 +865,7 @@ const VolumetricComputationNode = memo(({ children, nodeId }) => {
       if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
     }
-  };
+  }, []);
 
   const handleFocus = () => {
     isFocusedRef.current = true;
