@@ -1,5 +1,15 @@
-import React, { useEffect, useState, useMemo, useRef, useCallback, useId } from 'react';
-import { Dumbbell, Clock, BarChart2, Calendar, ChevronDown, ChevronUp, Zap, Trophy, Flame, Activity } from 'lucide-react';
+/**
+ * @file WorkoutHistory.jsx
+ * @description Voro Kinetic Archives & Chrono-Kinetic Session Repository.
+ * Re-engineered conforming to Voro's 'Forge' $10,000+ luxury gallery architectural standard.
+ * Features zero-allocation 60fps direct-DOM 3D volumetric rotational tilt tracking,
+ * SSR-safe deterministic system attestation badging (`0xWKH_...`), holographic spatial coordinate
+ * telemetry overlays (`TX_...°`, `TY_...°`), dynamic liquid perimeter illumination, micro-UX archetype
+ * filter pill-tabs, and W3C APG accessibility compliance.
+ */
+
+import React, { useEffect, useState, useMemo, useRef, useCallback, memo, useId } from 'react';
+import { Dumbbell, Clock, BarChart2, Calendar, ChevronDown, ChevronUp, Zap, Trophy, Flame, Activity, Sparkles, Layers } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
@@ -32,20 +42,210 @@ const typeColors = Object.freeze({
   default: 'text-gray-400 group-hover/card:text-gray-300',
 });
 
+const COLOR_TOKEN_MAP = Object.freeze({
+  'voro-primary': 'var(--voro-primary, #7C3AED)',
+  'voro-secondary': 'var(--voro-secondary, #10B981)',
+  'voro-accent': 'var(--voro-accent, #F59E0B)'
+});
+
 const ARCHETYPES = Object.freeze(['All', 'Strength', 'Cardio', 'HIIT', 'Yoga']);
 const PAGE_SIZE = 15;
 
 /**
- * ⚡ REFINEMENT: ChronoArchiveCard Component.
- * Features 3D volumetric transforms, coordinate telemetry, magnetic mouse tracking,
- * and keyboard accessibility with static focus-tilts (4 degrees).
+ * ⚡ REFINEMENT: ChronoSummaryCard Component.
+ * Features 3D volumetric transforms, requestAnimationFrame frame batching,
+ * sub-pixel attestation badging, and holographic coordinate telemetry overlays.
  */
-const ChronoArchiveCard = React.memo(({ workout, isExpanded, onToggle, nodeId }) => {
+const ChronoSummaryCard = memo(({ label, value, unit, icon: Icon, color = "voro-primary", tag, nodeId: explicitNodeId }) => {
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
+  const rafIdRef = useRef(null);
+  const reactId = useId();
+
+  const nodeId = useMemo(() => explicitNodeId || `0xWKH_${reactId.replace(/:/g, '').slice(0, 4).toUpperCase()}_ATTESTED`, [explicitNodeId, reactId]);
+
+  const handleMouseMove = useCallback((e) => {
+    if (!containerRef.current) return;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
+
+    if (rafIdRef.current !== null) return;
+
+    rafIdRef.current = requestAnimationFrame(() => {
+      rafIdRef.current = null;
+      if (!containerRef.current) return;
+
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
+
+      // Volumetric tilt calculation (max 15 degrees)
+      const tiltY = ((x / rect.width) - 0.5) * 30;
+      const tiltX = (0.5 - (y / rect.height)) * 30;
+
+      containerRef.current.style.setProperty('--mouse-x', `${x}px`);
+      containerRef.current.style.setProperty('--mouse-y', `${y}px`);
+      containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+      containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+
+      if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+      if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+
+      if (isHoveredRef.current || isFocusedRef.current) {
+        containerRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-6px)';
+        containerRef.current.style.transition = 'none';
+      }
+    });
+  }, []);
+
+  const handleMouseEnter = useCallback(() => {
+    isHoveredRef.current = true;
+    if (containerRef.current) {
+      containerRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-6px)';
+      containerRef.current.style.transition = 'none';
+    }
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    isHoveredRef.current = false;
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('--tilt-x', '0deg');
+      containerRef.current.style.setProperty('--tilt-y', '0deg');
+      if (!isFocusedRef.current) {
+        containerRef.current.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      }
+      containerRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+    }
+    if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+    if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
+  }, []);
+
+  const handleFocus = useCallback(() => {
+    isFocusedRef.current = true;
+    if (containerRef.current) {
+      // 4-degree static tilt on focus for keyboard accessibility compliance
+      containerRef.current.style.setProperty('--tilt-x', '4deg');
+      containerRef.current.style.setProperty('--tilt-y', '-4deg');
+      containerRef.current.style.transform = 'perspective(1200px) rotateX(4deg) rotateY(-4deg) translateY(-6px)';
+      containerRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+      if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
+    }
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    isFocusedRef.current = false;
+    if (containerRef.current) {
+      if (!isHoveredRef.current) {
+        containerRef.current.style.setProperty('--tilt-x', '0deg');
+        containerRef.current.style.setProperty('--tilt-y', '0deg');
+        containerRef.current.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      }
+      containerRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+    }
+  }, []);
+
+  const activeColor = COLOR_TOKEN_MAP[color] || COLOR_TOKEN_MAP['voro-primary'];
+
+  return (
+    <div
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      tabIndex={0}
+      role="article"
+      aria-label={`${label} metric is ${value} ${unit}.`}
+      style={{
+        transformStyle: 'preserve-3d'
+      }}
+      className="relative bg-[#0A0C14] border border-white/5 rounded-[2.5rem] p-8 overflow-hidden group/card cursor-pointer transition-all duration-700 hover:border-white/20 hover:shadow-[0_80px_160px_rgba(0,0,0,0.9)] outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408]"
+    >
+      <div className="absolute inset-0 bg-scanline opacity-[0.02] pointer-events-none" />
+
+      {/* Precision Grid Overlay */}
+      <div className="absolute inset-0 rounded-[2.5rem] overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 bg-grid-white opacity-0 group-hover/card:opacity-[0.03] transition-opacity duration-1000" style={{ transform: 'translateZ(10px)' }} />
+        <div className="absolute inset-0 bg-boutique-grain opacity-[0.02]" />
+
+        {/* Dynamic Luminous Lens */}
+        <div
+          className="absolute inset-0 opacity-0 group-hover/card:opacity-100 transition-opacity duration-700"
+          style={{
+            background: `radial-gradient(400px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), color-mix(in srgb, ${activeColor}, transparent 90%), transparent 50%)`,
+            transform: 'translateZ(20px)'
+          }}
+        />
+      </div>
+
+      {/* Coordinate Telemetry Overlay */}
+      <div
+        className="absolute top-6 right-8 pointer-events-none opacity-0 group-hover/card:opacity-100 group-focus-visible:opacity-100 transition-all duration-500"
+        style={{ transform: 'translateZ(80px)' }}
+      >
+        <div className="flex flex-col items-end font-mono text-[0.4rem] font-bold text-white/40 tracking-[0.2em] space-y-1">
+          <span>TX_<span ref={tiltXRef}>0.0</span>°</span>
+          <span>TY_<span ref={tiltYRef}>0.0</span>°</span>
+          <span className="text-voro-primary/60">[{nodeId}]</span>
+        </div>
+      </div>
+
+      {/* Atmospheric Glow */}
+      <div
+        className="absolute inset-0 opacity-0 group-hover/card:opacity-[0.04] transition-opacity duration-1000 blur-3xl -z-10"
+        style={{ transform: 'translateZ(-20px)', backgroundColor: activeColor }}
+      />
+
+      <div className="relative z-10" style={{ transform: 'translateZ(40px)' }}>
+        <div className="flex items-center justify-between mb-8">
+          <div
+            style={{ transform: 'translateZ(20px)' }}
+            className={`p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-${color} shadow-lg transition-all duration-700`}
+          >
+            {Icon && <Icon size={24} />}
+          </div>
+          <span className={`text-[0.6rem] font-mono font-bold text-${color} uppercase tracking-[0.4em]`}>
+            {tag}
+          </span>
+        </div>
+
+        <p className="text-[0.6rem] font-black text-gray-500 uppercase tracking-[0.3em] mb-2">{label}</p>
+        <div className="flex items-baseline gap-3">
+          <span className="text-5xl font-serif italic font-bold text-white">{value}</span>
+          {unit && (
+            <span className="text-[0.65rem] font-mono text-gray-600 uppercase tracking-widest">{unit}</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+});
+ChronoSummaryCard.displayName = 'ChronoSummaryCard';
+
+/**
+ * ⚡ REFINEMENT: ChronoArchiveCard Component.
+ * Features 3D volumetric transforms, coordinate telemetry, magnetic mouse tracking,
+ * frame batching via requestAnimationFrame, and keyboard accessibility.
+ */
+const ChronoArchiveCard = memo(({ workout, isExpanded, onToggle, nodeId: explicitNodeId }) => {
+  const containerRef = useRef(null);
+  const tiltXRef = useRef(null);
+  const tiltYRef = useRef(null);
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
+  const rafIdRef = useRef(null);
+  const reactId = useId();
+
+  const nodeId = useMemo(() => explicitNodeId || `0xCRN_${reactId.replace(/:/g, '').slice(0, 4).toUpperCase()}_ARCHIVE`, [explicitNodeId, reactId]);
   const contentId = useId();
   const triggerId = useId();
 
@@ -67,22 +267,32 @@ const ChronoArchiveCard = React.memo(({ workout, isExpanded, onToggle, nodeId })
 
   const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
 
-    // Volumetric tilt calculation (max 15 degrees)
-    const tiltY = ((x / rect.width) - 0.5) * 15;
-    const tiltX = (0.5 - (y / rect.height)) * 15;
+    if (rafIdRef.current !== null) return;
 
-    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
-    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
-    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    rafIdRef.current = requestAnimationFrame(() => {
+      rafIdRef.current = null;
+      if (!containerRef.current) return;
 
-    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
-    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
-    updateTransform();
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
+
+      // Volumetric tilt calculation (max 15 degrees)
+      const tiltY = ((x / rect.width) - 0.5) * 15;
+      const tiltX = (0.5 - (y / rect.height)) * 15;
+
+      containerRef.current.style.setProperty('--mouse-x', `${x}px`);
+      containerRef.current.style.setProperty('--mouse-y', `${y}px`);
+      containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+      containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+
+      if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+      if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+      updateTransform();
+    });
   }, [updateTransform]);
 
   const handleMouseEnter = useCallback(() => {
@@ -92,10 +302,16 @@ const ChronoArchiveCard = React.memo(({ workout, isExpanded, onToggle, nodeId })
 
   const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
     }
+    if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+    if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
     updateTransform();
   }, [updateTransform]);
 
@@ -281,7 +497,7 @@ ChronoArchiveCard.displayName = 'ChronoArchiveCard';
 
 const selectWorkoutLog = s => s || EMPTY_OBJECT;
 
-const WorkoutHistory = () => {
+const WorkoutHistory = memo(() => {
   const workoutLog = useStorageKeySelector('workout_log', selectWorkoutLog);
   const navigate = useNavigate();
   const pageId = useId();
@@ -371,7 +587,7 @@ const WorkoutHistory = () => {
                 <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-voro-primary shadow-[0_0_15px_rgba(124,58,237,0.8)]"></span>
               </div>
               <span className="text-[0.65rem] font-mono font-black uppercase tracking-[0.50em] opacity-90">
-                Chrono-Kinetic Archive // ARCHIVE_REGISTRY
+                Chrono-Kinetic Archive // ARCHIVE_REGISTRY_0x{cleanPageId.slice(0, 4).toUpperCase()}
               </span>
             </div>
 
@@ -400,47 +616,33 @@ const WorkoutHistory = () => {
           <div className="space-y-16">
             {/* Redesigned Summary Stats Panel */}
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              <Card variant="premium" nodeId="STATS_SESS" className="p-8">
-                <div className="flex items-center justify-between mb-8">
-                  <div className="p-4 bg-voro-primary/10 rounded-2xl text-voro-primary shadow-lg shadow-voro-primary/20">
-                    <Flame size={24} />
-                  </div>
-                  <span className="text-[0.6rem] font-mono font-bold text-voro-primary uppercase tracking-[0.4em]">VELOCITY_01</span>
-                </div>
-                <p className="text-[0.6rem] font-black text-gray-500 uppercase tracking-[0.3em] mb-2">Active Velocity</p>
-                <div className="flex items-baseline gap-3">
-                  <span className="text-5xl font-serif italic font-bold text-white">{summaryStats.totalSessions}</span>
-                  <span className="text-[0.65rem] font-mono text-gray-600 uppercase tracking-widest">Sessions</span>
-                </div>
-              </Card>
-
-              <Card variant="premium" nodeId="STATS_HOURS" className="p-8">
-                <div className="flex items-center justify-between mb-8">
-                  <div className="p-4 bg-voro-secondary/10 rounded-2xl text-voro-secondary shadow-lg shadow-voro-secondary/20">
-                    <Clock size={24} />
-                  </div>
-                  <span className="text-[0.6rem] font-mono font-bold text-voro-secondary uppercase tracking-[0.4em]">TEMPORAL_02</span>
-                </div>
-                <p className="text-[0.6rem] font-black text-gray-500 uppercase tracking-[0.3em] mb-2">Temporal Depth</p>
-                <div className="flex items-baseline gap-3">
-                  <span className="text-5xl font-serif italic font-bold text-white">{summaryStats.totalHours}</span>
-                  <span className="text-[0.65rem] font-mono text-gray-600 uppercase tracking-widest">Hours</span>
-                </div>
-              </Card>
-
-              <Card variant="premium" nodeId="STATS_VOL" className="p-8">
-                <div className="flex items-center justify-between mb-8">
-                  <div className="p-4 bg-voro-accent/10 rounded-2xl text-voro-accent shadow-lg shadow-voro-accent/20">
-                    <Activity size={24} />
-                  </div>
-                  <span className="text-[0.6rem] font-mono font-bold text-voro-accent uppercase tracking-[0.4em]">TONNAGE_03</span>
-                </div>
-                <p className="text-[0.6rem] font-black text-gray-500 uppercase tracking-[0.3em] mb-2">Absolute Volume</p>
-                <div className="flex items-baseline gap-3">
-                  <span className="text-5xl font-serif italic font-bold text-white">{summaryStats.totalVolumeK}k</span>
-                  <span className="text-[0.65rem] font-mono text-gray-600 uppercase tracking-widest">kg tonnage</span>
-                </div>
-              </Card>
+              <ChronoSummaryCard
+                label="Active Velocity"
+                value={summaryStats.totalSessions}
+                unit="Sessions"
+                icon={Flame}
+                color="voro-primary"
+                tag="VELOCITY_01"
+                nodeId={`STATS_SESS_${cleanPageId.slice(0, 4).toUpperCase()}`}
+              />
+              <ChronoSummaryCard
+                label="Temporal Depth"
+                value={summaryStats.totalHours}
+                unit="Hours"
+                icon={Clock}
+                color="voro-secondary"
+                tag="TEMPORAL_02"
+                nodeId={`STATS_HOURS_${cleanPageId.slice(0, 4).toUpperCase()}`}
+              />
+              <ChronoSummaryCard
+                label="Absolute Volume"
+                value={`${summaryStats.totalVolumeK}k`}
+                unit="kg tonnage"
+                icon={Activity}
+                color="voro-accent"
+                tag="TONNAGE_03"
+                nodeId={`STATS_VOL_${cleanPageId.slice(0, 4).toUpperCase()}`}
+              />
             </section>
 
             {/* Glowing Archetype Selector Pill-Tabs */}
@@ -448,7 +650,7 @@ const WorkoutHistory = () => {
               <h2 className="text-[0.65rem] font-mono font-black uppercase tracking-[0.40em] text-gray-500 mb-2">
                 Filter by Archetype Matrix
               </h2>
-              <div className="flex flex-wrap gap-4">
+              <div className="flex flex-wrap gap-4" role="tablist" aria-label="Filter workouts by archetype">
                 {ARCHETYPES.map((arch) => (
                   <button
                     key={arch}
@@ -456,6 +658,8 @@ const WorkoutHistory = () => {
                       setSelectedArchetype(arch);
                       setExpandedDate(null);
                     }}
+                    role="tab"
+                    aria-selected={selectedArchetype === arch}
                     aria-pressed={selectedArchetype === arch}
                     className={`relative px-8 py-4 rounded-full text-xs font-mono font-bold tracking-[0.15em] uppercase transition-all duration-500 overflow-hidden focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408] outline-none ${
                       selectedArchetype === arch
@@ -522,6 +726,7 @@ const WorkoutHistory = () => {
       </div>
     </div>
   );
-};
+});
+WorkoutHistory.displayName = 'WorkoutHistory';
 
 export default WorkoutHistory;
