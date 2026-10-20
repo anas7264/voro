@@ -293,13 +293,18 @@ const ShoppingList = () => {
     return { total, secured, rate, isOptimal };
   }, [shoppingList]);
 
-  const handleAddItem = async () => {
-    if (!inputValue.trim()) return;
-    const currentList = getItem('shopping_list') || [];
-    const updated = [...currentList, { id: Date.now(), text: inputValue.trim(), checked: false }];
-    await setItem('shopping_list', updated);
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Optimistic Input Reset & Synchronous Storage Access.
+   * Clears `inputValue` immediately before async storage persistence for zero-latency UI response.
+   */
+  const handleAddItem = useCallback(async () => {
+    const text = inputValue.trim();
+    if (!text) return;
     setInputValue('');
-  };
+    const currentList = getItem('shopping_list') || [];
+    const updated = [...currentList, { id: Date.now(), text, checked: false }];
+    await setItem('shopping_list', updated);
+  }, [inputValue, getItem, setItem]);
 
   /**
    * ⚡ PERFORMANCE OPTIMIZATION: Synchronous Storage State Access.
@@ -320,8 +325,22 @@ const ShoppingList = () => {
     await setItem('shopping_list', updated);
   }, [getItem, setItem]);
 
+  const resetGlobalPurgeState = useCallback(() => {
+    setGlobalPurging(false);
+    setGlobalCountdown(3);
+    if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+    if (autoCancelTimerRef.current) clearTimeout(autoCancelTimerRef.current);
+  }, []);
+
+  const executeGlobalPurge = useCallback(async () => {
+    if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+    if (autoCancelTimerRef.current) clearTimeout(autoCancelTimerRef.current);
+    await setItem('shopping_list', []);
+    resetGlobalPurgeState();
+  }, [setItem, resetGlobalPurgeState]);
+
   // Global Purge confirmation flow
-  const initiateGlobalPurge = () => {
+  const initiateGlobalPurge = useCallback(() => {
     if (globalPurging) {
       // Direct second press during countdown -> wipe list instantly
       executeGlobalPurge();
@@ -345,21 +364,7 @@ const ShoppingList = () => {
         resetGlobalPurgeState();
       }, 3000);
     }
-  };
-
-  const executeGlobalPurge = async () => {
-    if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
-    if (autoCancelTimerRef.current) clearTimeout(autoCancelTimerRef.current);
-    await setItem('shopping_list', []);
-    resetGlobalPurgeState();
-  };
-
-  const resetGlobalPurgeState = () => {
-    setGlobalPurging(false);
-    setGlobalCountdown(3);
-    if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
-    if (autoCancelTimerRef.current) clearTimeout(autoCancelTimerRef.current);
-  };
+  }, [globalPurging, executeGlobalPurge, resetGlobalPurgeState]);
 
   return (
     <div className="min-h-screen bg-[#020408] text-[#F0F4FF] pb-32 selection:bg-voro-primary/30 relative overflow-hidden">

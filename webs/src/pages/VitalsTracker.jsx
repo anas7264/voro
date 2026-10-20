@@ -503,6 +503,11 @@ const VitalsTracker = () => {
       });
   }, [history]);
 
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Synchronous Storage Access.
+   * Reads current vitals history directly via `getItem('vitals')` inside callback,
+   * decoupling `handleSaveVitals` from volatile history state changes.
+   */
   const handleSaveVitals = useCallback(async () => {
     const { valid, errors } = validateVitals(vitals);
 
@@ -519,14 +524,37 @@ const VitalsTracker = () => {
         ...vitals,
       };
 
-      const currentHistory = getItem('vitals') || history || [];
+      const currentHistory = getItem('vitals') || [];
       const updated = [...currentHistory, entry];
       await setItem('vitals', updated);
       addNotification('Biometric data synchronized', 'success');
     } finally {
       setIsSaving(false);
     }
-  }, [vitals, history, getItem, setItem, addNotification]);
+  }, [vitals, getItem, setItem, addNotification]);
+
+  const handleHeartRateChange = useCallback((e) => {
+    const val = Number(e.target.value);
+    setVitals(prev => ({ ...prev, heartRate: val }));
+  }, []);
+
+  const handleBloodPressureChange = useCallback((e) => {
+    const val = e.target.value;
+    setVitals(prev => ({ ...prev, bloodPressure: val }));
+  }, []);
+
+  const handleSleepChange = useCallback((e) => {
+    const val = Number(e.target.value);
+    setVitals(prev => ({ ...prev, sleep: val }));
+  }, []);
+
+  const handleMoodChange = useCallback((val) => {
+    setVitals(prev => ({ ...prev, mood: val }));
+  }, []);
+
+  const handleEnergyChange = useCallback((val) => {
+    setVitals(prev => ({ ...prev, energy: val }));
+  }, []);
 
   const heartRateStatus = useMemo(() => getHeartRateStatus(vitals.heartRate), [vitals.heartRate]);
   const bpStatus = useMemo(() => getBloodPressureStatus(vitals.bloodPressure), [vitals.bloodPressure]);
@@ -687,7 +715,7 @@ const VitalsTracker = () => {
                         label="Metabolic Pulse (bpm)"
                         type="number"
                         value={vitals.heartRate}
-                        onChange={(e) => setVitals({ ...vitals, heartRate: Number(e.target.value) })}
+                        onChange={handleHeartRateChange}
                         className="bg-white/[0.02] border-white/5 italic font-serif text-lg"
                         aria-describedby="heart-rate-desc"
                       />
@@ -703,7 +731,7 @@ const VitalsTracker = () => {
                       <Input
                         label="Pressure Gradient (mmHg)"
                         value={vitals.bloodPressure}
-                        onChange={(e) => setVitals({ ...vitals, bloodPressure: e.target.value })}
+                        onChange={handleBloodPressureChange}
                         placeholder="120/80"
                         className="bg-white/[0.02] border-white/5 italic font-serif text-lg"
                         aria-describedby="bp-desc"
@@ -721,7 +749,7 @@ const VitalsTracker = () => {
                         label="Recovery Duration (hours)"
                         type="number"
                         value={vitals.sleep}
-                        onChange={(e) => setVitals({ ...vitals, sleep: Number(e.target.value) })}
+                        onChange={handleSleepChange}
                         className="bg-white/[0.02] border-white/5 italic font-serif text-lg"
                         aria-describedby="sleep-desc"
                       />
@@ -737,7 +765,7 @@ const VitalsTracker = () => {
                       value={vitals.mood}
                       min={1}
                       max={10}
-                      onChange={(val) => setVitals({ ...vitals, mood: val })}
+                      onChange={handleMoodChange}
                       color="primary"
                       stateLabel={getMoodStatus}
                     />
@@ -748,7 +776,7 @@ const VitalsTracker = () => {
                       value={vitals.energy}
                       min={1}
                       max={10}
-                      onChange={(val) => setVitals({ ...vitals, energy: val })}
+                      onChange={handleEnergyChange}
                       color="secondary"
                       stateLabel={getEnergyStatus}
                     />

@@ -568,11 +568,17 @@ const SupplementTracker = () => {
     setShowForm(false);
   }, []);
 
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Synchronous Storage Access.
+   * Reads current supplement list directly via `getItem('supplements')` inside callback,
+   * preserving referential callback stability without intermediate ref syncing.
+   */
   const handleRemove = useCallback(async (id) => {
-    const updated = activeSupplementsRef.current.filter(s => s.id !== id);
+    const current = getItem('supplements') || EMPTY_ARRAY;
+    const updated = current.filter(s => s.id !== id);
     await setItem('supplements', updated);
     addNotification('Supplement removed from protocol.', 'info');
-  }, [setItem, addNotification]);
+  }, [getItem, setItem, addNotification]);
 
   const filteredCatalog = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();

@@ -6,6 +6,7 @@ import Card from '@/components/Card';
 import Input from '@/components/Input';
 import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useNotifications } from '@/hooks/useNotifications';
+import { getFastDateStr } from '@/utils/formatters';
 
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Module-scoped selector & stable fallback.
@@ -445,8 +446,12 @@ const RecipeLibrary = () => {
     addNotification(`Formula "${name}" decommissioned from codex.`, 'info');
   }, [getItem, setItem, addNotification]);
 
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Zero-Allocation UTC ISO Date Extraction.
+   * Uses `getFastDateStr` to construct YYYY-MM-DD date key without heap string slicing.
+   */
   const handleLogRecipe = useCallback(async (recipe) => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getFastDateStr(new Date());
     const log = { ...(getItem('nutrition_log') || {}) };
     const dayData = log[todayStr] || { meals: {}, water: 0, totals: { calories: 0, protein: 0, carbs: 0, fat: 0 } };
     const mealId = `recipe_${recipe.id}_${Date.now()}`;
