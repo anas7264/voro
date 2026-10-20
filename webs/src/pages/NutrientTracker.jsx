@@ -429,7 +429,7 @@ const NutrientTracker = () => {
     useCallback((data) => data || DEFAULT_TRACKER, [])
   );
 
-  const { updateItem } = useStorageMethods();
+  const { updateItem, getItem } = useStorageMethods();
   const { addNotification } = useNotifications();
 
   const [selectedNutrientId, setSelectedNutrientId] = useState('vitamin_d');
@@ -468,6 +468,11 @@ const NutrientTracker = () => {
     };
   }, [tracker, selectedNutrientId]);
 
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: Synchronous Storage State Access.
+   * Reads current tracker state directly via `getItem('nutrient_tracker')` inside callback,
+   * decoupling `handleLogIntake` from volatile context re-renders.
+   */
   const handleLogIntake = useCallback(async () => {
     const val = parseFloat(logValue);
     if (isNaN(val) || val <= 0) {
@@ -475,9 +480,12 @@ const NutrientTracker = () => {
       return;
     }
 
+    const currentTracker = getItem('nutrient_tracker') || DEFAULT_TRACKER;
+    const status = currentTracker[selectedNutrientId] || DEFAULT_STATUS;
+
     const updatedStatus = {
-      ...currentStatus,
-      intake: (currentStatus.intake || 0) + val
+      ...status,
+      intake: (status.intake || 0) + val
     };
 
     await updateItem('nutrient_tracker', {
@@ -487,7 +495,7 @@ const NutrientTracker = () => {
     setLogValue('');
     setShowLogModal(false);
     addNotification(`${currentNutrient.name} molecular synthesis committed.`, 'success');
-  }, [logValue, currentStatus, selectedNutrientId, currentNutrient, updateItem, addNotification]);
+  }, [logValue, selectedNutrientId, currentNutrient, getItem, updateItem, addNotification]);
 
   const handleResetTrigger = useCallback(async (id) => {
     const targetNutrient = NUTRIENT_MAP[id] || NUTRIENTS[0];
