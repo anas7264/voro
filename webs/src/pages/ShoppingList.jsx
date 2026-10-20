@@ -187,6 +187,7 @@ const ProcuredResourceCard = React.memo(({ item, index, onToggle, onDelete, node
           role="checkbox"
           aria-checked={item.checked}
           aria-label={`Secure resource signature ${item.text}`}
+          title={item.checked ? `Unsecure ${item.text}` : `Secure ${item.text}`}
           onClick={() => onToggle(item.id)}
           className={`relative w-7 h-7 rounded-xl border flex items-center justify-center transition-all duration-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-voro-primary ${
             item.checked
@@ -214,6 +215,7 @@ const ProcuredResourceCard = React.memo(({ item, index, onToggle, onDelete, node
         <button
           onClick={handlePurgeClick}
           aria-label={isPurging ? `CONFIRM PURGE FOR ${item.text}` : `Request decommission of ${item.text}`}
+          title={isPurging ? `Confirm purge for ${item.text}` : `Purge ${item.text}`}
           className={`p-3.5 rounded-xl transition-all duration-500 border ${
             isPurging
               ? 'bg-amber-500/10 text-amber-500 border-amber-500/20 shadow-lg shadow-amber-500/20'
@@ -469,6 +471,7 @@ const ShoppingList = () => {
               <button
                 onClick={initiateGlobalPurge}
                 aria-label={globalPurging ? `CONFIRM MASS PURGE COUNTDOWN ${globalCountdown} SECONDS` : "Purge complete resource manifest"}
+                title={globalPurging ? `Confirm mass purge (${globalCountdown}s)` : "Purge complete resource manifest"}
                 className={`flex items-center gap-3 px-6 py-3 border rounded-full text-[0.65rem] font-mono font-black uppercase tracking-[0.2em] transition-all duration-500 ${
                   globalPurging
                     ? 'bg-red-500/10 border-red-500/30 text-red-500 shadow-lg shadow-red-500/20'

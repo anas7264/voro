@@ -202,6 +202,7 @@ const FoodArtifactCard = memo(({ food, idx, isFavorite, onToggleFavorite, onInsp
           <button
             onClick={() => onToggleFavorite(food)}
             aria-label={isFavorite ? `Remove ${food.name} from vault` : `Archive ${food.name} in favorites`}
+            title={isFavorite ? `Remove ${food.name} from vault` : `Archive ${food.name} in favorites`}
             className={`p-3 rounded-2xl transition-all duration-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-voro-primary ${
               isFavorite
                 ? 'bg-voro-danger/10 text-voro-danger shadow-[0_0_15px_rgba(239,68,68,0.2)]'
