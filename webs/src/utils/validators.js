@@ -676,6 +676,14 @@ const BASE36_FORMAT_RE = /^[0-9a-zA-Z]{12,}$/;
 const BASE36_MATCH_RE = /\b[0-9a-zA-Z]{12,}\b/g;
 const BASE62_FORMAT_RE = /^[0-9a-zA-Z]{8,}$/;
 const BASE62_MATCH_RE = /\b[0-9a-zA-Z]{8,}\b/g;
+const BASE91_MATCH_RE = /[A-Za-z0-9!#$%&()*+,.\/:;<=>?@\[\]^_`{|}~"]{12,}/g;
+const BASE92_MATCH_RE = /[!#$%&'()*+,\-.\/0-9:;<=>?@A-Z\[\]^_`a-z{|}~]{12,}/g;
+const BASE45_MATCH_RE = /[0-9A-Z$%*+./:=\-]{8,}(?:\s+[0-9A-Z$%*+./:=\-]{2,})*/g;
+const BASE100_MATCH_RE = /[\u{1F300}-\u{1F3FF}\u{1F400}-\u{1F4FF}]{6,}/gu;
+const ASCII85_DELIM_RE = /<~[!-u\s]+~>/g;
+const ASCII85_MATCH_RE = /[!-u]{12,}/g;
+const Z85_MATCH_RE = /\b[0-9a-zA-Z.\-:+=^!\/*?&<>()\[\]{}@%$#]{10,}\b/g;
+const BAUDOT_MATCH_RE = /(?:(?:0b)?[01]{5}(?:[\s,-/]+|$)){4,}|(?:\d{1,2}(?:[\s,-/]+|$)){4,}/gi;
 const NON_PRINTABLE_ASCII_RE = /[\x00-\x09\x0B\x0C\x0E-\x1F\x7F-\xFF]/;
 const HEX_FORMAT_RE = /^[0-9a-fA-F]{8,}$/;
 const BINARY_MATCH_RE = /(?:(?:0b)?[01]{7,8}(?:[\s,.\-_\/:;+=]+|$)){2,}|(?:0b[01]{7,8}){2,}/gi;
@@ -2630,14 +2638,24 @@ export const isPromptInjection = (query, isNested = false) => {
       }
     }
     for (const targetStr of targets) {
-      // Security: Handle Base92 encoded payloads
-      const base92Decoded = safeDecodeBase92(targetStr);
+      // Security: Handle Base92 encoded payloads (standalone and embedded substrings)
+      const base92Matches = targetStr.match(BASE92_MATCH_RE) || [];
+      for (const match of base92Matches) {
+        const decoded = safeDecodeBase92(match.trim());
+        if (decoded && hasPromptInjectionKeywords(decoded)) return true;
+      }
+      const base92Decoded = safeDecodeBase92(targetStr.trim());
       if (base92Decoded && hasPromptInjectionKeywords(base92Decoded)) {
         return true;
       }
 
-      // Security: Handle Base100 (Emoji Byte Encoding) payloads
-      const base100Decoded = safeDecodeBase100(targetStr);
+      // Security: Handle Base100 (Emoji Byte Encoding) payloads (standalone and embedded substrings)
+      const base100Matches = targetStr.match(BASE100_MATCH_RE) || [];
+      for (const match of base100Matches) {
+        const decoded = safeDecodeBase100(match.trim());
+        if (decoded && hasPromptInjectionKeywords(decoded)) return true;
+      }
+      const base100Decoded = safeDecodeBase100(targetStr.trim());
       if (base100Decoded && hasPromptInjectionKeywords(base100Decoded)) {
         return true;
       }
@@ -2978,18 +2996,33 @@ export const isPromptInjection = (query, isNested = false) => {
       }
 
       // Security: Handle Adobe Ascii85 (<~...~>) and raw Base85 encoded payloads and evaluate recursively
+      const ascii85Matches = targetStr.match(ASCII85_DELIM_RE) || targetStr.match(ASCII85_MATCH_RE) || [];
+      for (const match of ascii85Matches) {
+        const decoded = safeDecodeAscii85(match.trim());
+        if (decoded && hasPromptInjectionKeywords(decoded)) return true;
+      }
       const ascii85Decoded = safeDecodeAscii85(targetStr);
       if (ascii85Decoded) {
         return true;
       }
 
       // Security: Handle ZeroMQ Z85 encoded payloads and evaluate recursively
+      const z85Matches = targetStr.match(Z85_MATCH_RE) || [];
+      for (const match of z85Matches) {
+        const decoded = safeDecodeZ85(match.trim());
+        if (decoded && hasPromptInjectionKeywords(decoded)) return true;
+      }
       const z85Decoded = safeDecodeZ85(targetStr);
       if (z85Decoded) {
         return true;
       }
 
       // Security: Handle Base45 (RFC 9285) encoded payloads and evaluate recursively
+      const base45Matches = targetStr.match(BASE45_MATCH_RE) || [];
+      for (const match of base45Matches) {
+        const decoded = safeDecodeBase45(match.trim());
+        if (decoded && hasPromptInjectionKeywords(decoded)) return true;
+      }
       const base45Decoded = safeDecodeBase45(targetStr);
       if (base45Decoded) {
         return true;
@@ -3002,6 +3035,11 @@ export const isPromptInjection = (query, isNested = false) => {
       }
 
       // Security: Handle Baudot Code (ITA2 5-bit teleprinter encoding) and evaluate recursively
+      const baudotMatches = targetStr.match(BAUDOT_MATCH_RE) || [];
+      for (const match of baudotMatches) {
+        const decoded = safeDecodeBaudot(match.trim());
+        if (decoded && hasPromptInjectionKeywords(decoded)) return true;
+      }
       const baudotDecoded = safeDecodeBaudot(targetStr);
       if (baudotDecoded) {
         return true;
@@ -3014,6 +3052,11 @@ export const isPromptInjection = (query, isNested = false) => {
       }
 
       // Security: Handle Base91 encoded payloads and evaluate recursively
+      const base91Matches = targetStr.match(BASE91_MATCH_RE) || [];
+      for (const match of base91Matches) {
+        const decoded = safeDecodeBase91(match.trim());
+        if (decoded && hasPromptInjectionKeywords(decoded)) return true;
+      }
       const base91Decoded = safeDecodeBase91(targetStr);
       if (base91Decoded) {
         return true;
@@ -3101,8 +3144,8 @@ const safeDecodeBaudot = (targetStr) => {
         let num = NaN;
         if (/^0x[0-9a-fA-F]+$/i.test(tok)) {
           num = parseInt(tok, 16);
-        } else if (/^[0-1]{5}$/.test(tok)) {
-          num = parseInt(tok, 2);
+        } else if (/^(?:0b)?[01]{5}$/i.test(tok)) {
+          num = parseInt(tok.replace(/^0b/i, ''), 2);
         } else if (/^\d+$/.test(tok)) {
           num = parseInt(tok, 10);
         } else {
