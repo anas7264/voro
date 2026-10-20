@@ -6,6 +6,7 @@ const {
   redactData, validateAIResponse, generateSecurityNonce, maskBiometrics,
   validateCallStack, isDeceptionActive, getDecoyData, executeSecurely,
   performIntegrityCheck, getPulseMetadata, checkUserPresence, registerSecureKey,
+  safeJSONParse,
   _TEncoderEncode, _TDecoderDecode, _Uint8Fill, _Uint8Set, _Uint8Slice,
   _call, _reverse, _forEach
 } = sentinel;
@@ -384,19 +385,22 @@ class VoroAIClient {
         for (const line of lines) {
           if (line.startsWith("data: ")) {
             try {
-              const data = JSON.parse(line.slice(6));
+              // Security: Use safeJSONParse to neutralize prototype pollution vectors (__proto__, constructor, prototype) in AI stream chunks
+              const data = safeJSONParse(line.slice(6));
 
-              if (data.type === "content_block_delta") {
-                if (data.delta.type === "text_delta") {
+              if (data && data.type === "content_block_delta") {
+                if (data.delta && data.delta.type === "text_delta") {
                   content += data.delta.text;
                 }
-              } else if (data.type === "message_delta") {
+              } else if (data && data.type === "message_delta") {
                 // At the end of streaming, record output tokens
                 if (data.usage) {
                   outputTokens = data.usage.output_tokens || 0;
                 }
-              } else if (data.type === "message_start") {
-                inputTokens = data.message.usage?.input_tokens || 0;
+              } else if (data && data.type === "message_start") {
+                if (data.message && data.message.usage) {
+                  inputTokens = data.message.usage.input_tokens || 0;
+                }
               }
             } catch (e) {
               // Ignore JSON parse errors for stream data
