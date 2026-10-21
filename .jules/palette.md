@@ -65,3 +65,7 @@
 ## 2026-08-02 - Complete W3C APG Keyboard Navigation in Custom Tablists
 **Learning:** Custom tablist components often implement arrow key navigation (`ArrowRight`/`ArrowLeft`) but omit boundary shortcuts (`Home`/`End`) and neglect calling `e.preventDefault()`. Without `e.preventDefault()`, pressing navigation keys causes unwanted container or window scrolling. Without `Home`/`End` shortcuts, keyboard users must tab sequentially through long tablists.
 **Action:** Always include `Home` and `End` key handling in tablist keydown handlers to jump focus directly to the first and last tabs, call `e.preventDefault()` on handled keys, and declare `aria-orientation="horizontal"` on the `role="tablist"` container.
+
+## 2026-08-03 - Mouse and Keyboard Interaction Parity on Interactive Cards
+**Learning:** Interactive card components that implement keydown listeners (`Enter`/`Space`) for keyboard navigators often lack card-level `onClick` handlers and `cursor-pointer` affordances for mouse users. This creates a jarring UX disconnect where keyboard users can focus and activate the card body, but clicking the card body as a mouse user fails to respond.
+**Action:** When an action callback (like `onSelect`) is provided to a focusable card, bind an `onClick` handler on the container guarded with `if (e.target.closest('button')) return;` to allow mouse clicks anywhere on the card body while preventing event bubbling conflicts with child action triggers, and apply `cursor-pointer` styling conditionally.

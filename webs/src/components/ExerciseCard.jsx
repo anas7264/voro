@@ -119,6 +119,11 @@ export const ExerciseCard = memo(({
     onSelect?.(exercise);
   }, [onSelect, exercise]);
 
+  const handleCardClick = useCallback((e) => {
+    if (e.target.closest('button')) return;
+    onSelect?.(exercise);
+  }, [onSelect, exercise]);
+
   const handleKeyDown = useCallback((e) => {
     if (onSelect && (e.key === "Enter" || e.key === " ") && e.target === containerRef.current) {
       e.preventDefault();
@@ -145,6 +150,7 @@ export const ExerciseCard = memo(({
   return (
     <div
       ref={containerRef}
+      onClick={onSelect ? handleCardClick : undefined}
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -165,6 +171,7 @@ export const ExerciseCard = memo(({
         hover:border-white/20 hover:shadow-[0_40px_80px_rgba(0,0,0,0.8)]
         focus:outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408]
         flex flex-col justify-between group/ex h-full overflow-hidden
+        ${onSelect ? "cursor-pointer" : ""}
         ${className}
       `}
     >
