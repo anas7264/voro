@@ -405,17 +405,19 @@ const Reports = () => {
         return URL.createObjectURL(blob);
       }, ["sink:URL.createObjectURL"]);
 
-      const link = document.createElement("a");
-      link.download = `voro_${key}_dossier_${new Date().toISOString().split('T')[0]}.json`;
-      link.href = url;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      addNotification("Data stream compiled & secure export initiated.", "success");
-
-      await executeSecurely("Cleanup Dossier URL", () => {
-        URL.revokeObjectURL(url);
-      }, ["sink:URL.revokeObjectURL"]);
+      try {
+        const link = document.createElement("a");
+        link.download = `voro_${key}_dossier_${new Date().toISOString().split('T')[0]}.json`;
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        addNotification("Data stream compiled & secure export initiated.", "success");
+      } finally {
+        await executeSecurely("Cleanup Dossier URL", () => {
+          URL.revokeObjectURL(url);
+        }, ["sink:URL.revokeObjectURL"]);
+      }
     } catch (e) {
       addNotification("Cryptographic packaging failed.", "error");
     }
