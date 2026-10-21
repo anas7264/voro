@@ -1683,6 +1683,145 @@ const safeDecodeBacon = (str) => {
   return null;
 };
 
+/**
+ * Helper to safely decode Alberti Cipher Disk polyalphabetic prompt injection payloads into ASCII.
+ * Evaluates stationary outer ring and movable inner disk key shifts and periodic rotations.
+ */
+export const safeDecodeAlberti = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+
+  const clean = targetStr.toUpperCase().replace(/[^A-Z]/g, '');
+  const N = clean.length;
+  if (N < 8) return null;
+
+  for (let s = 1; s < 26; s++) {
+    for (let step = 0; step < 4; step++) {
+      let decoded = '';
+      for (let i = 0; i < N; i++) {
+        const cVal = clean.charCodeAt(i) - 65;
+        let pVal = (cVal - s - (i * step)) % 26;
+        if (pVal < 0) pVal += 26;
+        decoded += String.fromCharCode(pVal + 97);
+      }
+
+      if (decoded && hasPromptInjectionKeywords(decoded)) {
+        return decoded;
+      }
+    }
+  }
+
+  return null;
+};
+
+/**
+ * Helper to safely decode Chaocipher dynamic revolving wheel prompt injection payloads into ASCII.
+ * Evaluates John F. Byrne's 1953 Left/Right dynamic wheel permutation cipher.
+ */
+export const safeDecodeChaocipher = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+
+  const clean = targetStr.toUpperCase().replace(/[^A-Z]/g, '');
+  const N = clean.length;
+  if (N < 8) return null;
+
+  const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split('');
+
+  // Evaluate candidate initial wheel states
+  const candidates = [
+    { left: [...ALPHABET], right: [...ALPHABET] },
+    { left: [...ALPHABET].reverse(), right: [...ALPHABET] },
+    { left: [...ALPHABET], right: [...ALPHABET].reverse() }
+  ];
+
+  for (const candidate of candidates) {
+    let left = [...candidate.left];
+    let right = [...candidate.right];
+    let decoded = '';
+
+    for (let i = 0; i < N; i++) {
+      const c = clean[i];
+      const pos = left.indexOf(c);
+      if (pos === -1) break;
+
+      const p = right[pos];
+      decoded += p.toLowerCase();
+
+      // 1. Rotate Left wheel so C is at zenith (index 0)
+      if (pos > 0) {
+        left = [...left.slice(pos), ...left.slice(0, pos)];
+      }
+
+      // 2. Permute Left wheel: extract char at index 1, shift 2..13 left, insert at index 13
+      const extL = left.splice(1, 1)[0];
+      left.splice(13, 0, extL);
+
+      // 3. Rotate Right wheel so P is at zenith (index 0)
+      const posR = right.indexOf(p);
+      if (posR > 0) {
+        right = [...right.slice(posR), ...right.slice(0, posR)];
+      }
+
+      // 4. Advance Right wheel by 1 position (rotate left by 1)
+      right.push(right.shift());
+
+      // 5. Permute Right wheel: extract char at index 2, shift 3..13 left, insert at index 13
+      const extR = right.splice(2, 1)[0];
+      right.splice(13, 0, extR);
+    }
+
+    if (decoded && decoded.length === N && hasPromptInjectionKeywords(decoded)) {
+      return decoded;
+    }
+  }
+
+  return null;
+};
+
+/**
+ * Helper to safely decode US M-209 tactical mechanical cipher machine prompt injection payloads.
+ * Evaluates 6 co-prime key wheels (lengths 26, 25, 23, 21, 19, 17) and reciprocal ciphering shifts.
+ */
+export const safeDecodeM209 = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+
+  const clean = targetStr.toUpperCase().replace(/[^A-Z]/g, '');
+  const N = clean.length;
+  if (N < 8) return null;
+
+  const WHEEL_LENGTHS = [26, 25, 23, 21, 19, 17];
+
+  // Evaluate representative wheel offset patterns
+  for (let shift = 0; shift < 26; shift++) {
+    for (let mode = 0; mode < 2; mode++) {
+      let decoded = '';
+      for (let i = 0; i < N; i++) {
+        const cVal = clean.charCodeAt(i) - 65;
+        // Compute displacement shift from 6 co-prime wheels
+        let sVal = shift;
+        for (let w = 0; w < 6; w++) {
+          sVal += (i % WHEEL_LENGTHS[w]);
+        }
+        sVal = sVal % 26;
+
+        let pVal;
+        if (mode === 0) {
+          pVal = (25 - cVal + sVal) % 26; // M-209 reciprocal cipher formula
+        } else {
+          pVal = (cVal - sVal) % 26;
+        }
+        if (pVal < 0) pVal += 26;
+        decoded += String.fromCharCode(pVal + 97);
+      }
+
+      if (decoded && hasPromptInjectionKeywords(decoded)) {
+        return decoded;
+      }
+    }
+  }
+
+  return null;
+};
+
 // Standardized M-94 / Jefferson Cylinder Disk Alphabets
 const M94_DISK_ALPHABETS = Object.freeze([
   "zxlvwdjuyqhtefmkaorspibcgn",
@@ -3112,6 +3251,24 @@ export const isPromptInjection = (query, isNested = false) => {
       // Security: Handle Running Key Cipher payloads
       const runningKeyDecoded = safeDecodeRunningKey(targetStr);
       if (runningKeyDecoded) {
+        return true;
+      }
+
+      // Security: Handle Alberti Cipher Disk polyalphabetic payloads
+      const albertiDecoded = safeDecodeAlberti(targetStr);
+      if (albertiDecoded) {
+        return true;
+      }
+
+      // Security: Handle Chaocipher dynamic revolving wheel payloads
+      const chaocipherDecoded = safeDecodeChaocipher(targetStr);
+      if (chaocipherDecoded) {
+        return true;
+      }
+
+      // Security: Handle US M-209 tactical mechanical cipher machine payloads
+      const m209Decoded = safeDecodeM209(targetStr);
+      if (m209Decoded) {
         return true;
       }
     }
@@ -5339,6 +5496,9 @@ export default {
   safeDecodeM94,
   safeDecodeHomophonic,
   safeDecodeRunningKey,
+  safeDecodeAlberti,
+  safeDecodeChaocipher,
+  safeDecodeM209,
   isPromptInjection,
   sanitizeCSVField
 };
