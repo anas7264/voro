@@ -1,49 +1,54 @@
 const fs = require('fs');
 const path = require('path');
 
-console.log('--- VERIFYING WORKOUT LOG PERFORMANCE OPTIMIZATION ---');
+console.log('⚡ Running WorkoutLog Performance & Luxury Architecture Verification...\n');
 
-const filePath = path.join(__dirname, 'src', 'pages', 'WorkoutLog.jsx');
-const content = fs.readFileSync(filePath, 'utf8');
+const filePath = path.resolve(__dirname, 'src/pages/WorkoutLog.jsx');
+const code = fs.readFileSync(filePath, 'utf8');
 
-// 1. Check that useState for isHovered/isFocused was removed from KineticExerciseCard
-const hasHoveredState = /const\s*\[isHovered,\s*setIsHovered\]\s*=\s*useState/.test(content);
-const hasFocusedState = /const\s*\[isFocused,\s*setIsFocused\]\s*=\s*useState/.test(content);
+let totalChecks = 0;
+let passedChecks = 0;
 
-if (hasHoveredState || hasFocusedState) {
-  console.error('❌ FAIL: KineticExerciseCard still uses useState for hover or focus state!');
-  process.exit(1);
-} else {
-  console.log('✓ PASS: KineticExerciseCard has no React useState hover/focus state churn.');
+function check(description, condition) {
+  totalChecks++;
+  if (condition) {
+    passedChecks++;
+    console.log(`  ✓ ${description}`);
+  } else {
+    console.error(`  ✕ FAIL: ${description}`);
+  }
 }
 
-// 2. Check that useRef flags are used
-const hasHoveredRef = /isHoveredRef\s*=\s*useRef\(false\)/.test(content);
-const hasFocusedRef = /isFocusedRef\s*=\s*useRef\(false\)/.test(content);
+// 1. React.memo optimization for WorkoutLog page & subcomponents
+check('WorkoutLog page is wrapped in React.memo', code.includes('const WorkoutLog = memo('));
+check('KineticSetRow subcomponent is wrapped in React.memo', code.includes('const KineticSetRow = memo('));
+check('KineticExerciseCard subcomponent is wrapped in React.memo', code.includes('const KineticExerciseCard = memo('));
 
-if (!hasHoveredRef || !hasFocusedRef) {
-  console.error('❌ FAIL: KineticExerciseCard does not instantiate isHoveredRef or isFocusedRef!');
-  process.exit(1);
+// 2. Static displayName exports for DevTools & Masterclass standards
+check('WorkoutLog exports displayName = "WorkoutLog"', code.includes("WorkoutLog.displayName = 'WorkoutLog'"));
+check('KineticExerciseCard exports displayName = "KineticExerciseCard"', code.includes("KineticExerciseCard.displayName = 'KineticExerciseCard'"));
+check('KineticSetRow exports displayName = "KineticSetRow"', code.includes("KineticSetRow.displayName = 'KineticSetRow'"));
+
+// 3. Frame-batched 60fps rotational tilt tracking
+check('KineticExerciseCard utilizes requestAnimationFrame for mousemove tracking', code.includes('requestAnimationFrame') && code.includes('rafIdRef'));
+check('KineticExerciseCard cancels animation frame on unmount/leave', code.includes('cancelAnimationFrame'));
+
+// 4. Sub-pixel attestation hash badging
+check('KineticExerciseCard generates 0xWKL_..._ATTESTED_NODE attestation hash', code.includes('0xWKL_') && code.includes('_ATTESTED_NODE'));
+
+// 5. Callback stabilization
+check('KineticSetRow stabilizes input handlers with useCallback', code.includes('useCallback') && code.includes('handleWeightChange'));
+
+// 6. Zero-allocation volume loop
+check('Total volume calculation uses single-pass imperative loop', code.includes('for (let i = 0;') && code.includes('for (let j = 0;'));
+
+console.log('\n--------------------------------------------------');
+console.log(`WorkoutLog Verification Results: ${passedChecks}/${totalChecks} checks passed.`);
+
+if (passedChecks === totalChecks) {
+  console.log('🎉 ALL WORKOUT LOG PERFORMANCE & LUXURY CHECKS PASSED!\n');
+  process.exit(0);
 } else {
-  console.log('✓ PASS: KineticExerciseCard properly instantiates isHoveredRef and isFocusedRef.');
-}
-
-// 3. Check for direct DOM transform updates
-const hasDirectTransform = /cardRef\.current\.style\.transform/.test(content);
-if (!hasDirectTransform) {
-  console.error('❌ FAIL: Direct DOM style transform update missing from KineticExerciseCard.');
+  console.error('❌ SOME CHECKS FAILED!\n');
   process.exit(1);
-} else {
-  console.log('✓ PASS: KineticExerciseCard performs zero-allocation 60fps direct-DOM transform updates.');
 }
-
-// 4. Check for W3C APG focus handling
-const hasFocusHandling = /handleFocus/.test(content) && /handleBlur/.test(content);
-if (!hasFocusHandling) {
-  console.error('❌ FAIL: W3C APG keyboard focus handling missing.');
-  process.exit(1);
-} else {
-  console.log('✓ PASS: W3C APG keyboard focus handlers present.');
-}
-
-console.log('\nALL WORKOUT LOG PERFORMANCE VERIFICATIONS PASSED SUCCESSFULLY!');
