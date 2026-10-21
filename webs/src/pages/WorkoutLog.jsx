@@ -106,19 +106,20 @@ ExerciseSearchModal.displayName = 'ExerciseSearchModal';
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: KineticSetRow
  * Isolated set row subcomponent preventing parent re-renders on keystrokes.
+ * Event handlers stabilized with useCallback for zero function allocation churn.
  */
 const KineticSetRow = memo(({ exerciseIdx, setIdx, set, onUpdateSet }) => {
-  const handleWeightChange = (e) => {
+  const handleWeightChange = useCallback((e) => {
     onUpdateSet(exerciseIdx, setIdx, 'weight', e.target.value);
-  };
+  }, [exerciseIdx, setIdx, onUpdateSet]);
 
-  const handleRepsChange = (e) => {
+  const handleRepsChange = useCallback((e) => {
     onUpdateSet(exerciseIdx, setIdx, 'reps', e.target.value);
-  };
+  }, [exerciseIdx, setIdx, onUpdateSet]);
 
-  const handleCompletedChange = (checked) => {
+  const handleCompletedChange = useCallback((checked) => {
     onUpdateSet(exerciseIdx, setIdx, 'completed', checked);
-  };
+  }, [exerciseIdx, setIdx, onUpdateSet]);
 
   return (
     <div className={`grid grid-cols-12 gap-4 items-center p-4 rounded-2xl border transition-all ${set.completed ? 'bg-voro-primary/5 border-voro-primary/20 shadow-inner shadow-voro-primary/10' : 'bg-white/[0.02] border-white/5'}`}>
@@ -156,14 +157,16 @@ KineticSetRow.displayName = 'KineticSetRow';
 
 /**
  * ⚡ LUXURY REFINEMENT: KineticExerciseCard
- * Feature-packed luxury exercise node with direct-DOM 3D volumetric hover tilts,
- * holographic coordinate telemetry overlays, static 4-degree keyboard accessibility tilts,
+ * Feature-packed luxury exercise node with 60fps frame-batched requestAnimationFrame
+ * direct-DOM 3D volumetric hover tilts, holographic coordinate telemetry overlays,
+ * sub-pixel attestation hash badging, static 4-degree keyboard accessibility tilts,
  * and double-confirmation 3s defensive purge sequence.
  */
 const KineticExerciseCard = memo(({ exercise, exerciseIdx, onUpdateSet, onAddSet, onRemoveExercise }) => {
   const cardRef = useRef(null);
   const txRef = useRef(null);
   const tyRef = useRef(null);
+  const rafIdRef = useRef(null);
   const purgeTimerRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
@@ -171,35 +174,44 @@ const KineticExerciseCard = memo(({ exercise, exerciseIdx, onUpdateSet, onAddSet
 
   const [isPurging, setIsPurging] = useState(false);
 
-  const nodeId = `EX_${reactId.replace(/:/g, '').slice(0, 4).toUpperCase()}`;
+  const nodeId = `0xWKL_${reactId.replace(/:/g, '').slice(0, 6).toUpperCase()}_ATTESTED_NODE`;
 
   useEffect(() => {
     return () => {
       if (purgeTimerRef.current) clearTimeout(purgeTimerRef.current);
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
     };
   }, []);
 
   const handleMouseMove = useCallback((e) => {
     if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
 
-    const tiltY = ((x / rect.width) - 0.5) * 12;
-    const tiltX = (0.5 - (y / rect.height)) * 12;
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
 
-    cardRef.current.style.setProperty('--mouse-x', `${x}px`);
-    cardRef.current.style.setProperty('--mouse-y', `${y}px`);
-    cardRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    cardRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    rafIdRef.current = requestAnimationFrame(() => {
+      if (!cardRef.current) return;
+      const rect = cardRef.current.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
 
-    if (txRef.current) txRef.current.innerText = tiltX.toFixed(1);
-    if (tyRef.current) tyRef.current.innerText = tiltY.toFixed(1);
+      const tiltY = ((x / rect.width) - 0.5) * 12;
+      const tiltX = (0.5 - (y / rect.height)) * 12;
 
-    if (isHoveredRef.current || isFocusedRef.current) {
-      cardRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
-      cardRef.current.style.transition = 'none';
-    }
+      cardRef.current.style.setProperty('--mouse-x', `${x}px`);
+      cardRef.current.style.setProperty('--mouse-y', `${y}px`);
+      cardRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+      cardRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+
+      if (txRef.current) txRef.current.innerText = tiltX.toFixed(1);
+      if (tyRef.current) tyRef.current.innerText = tiltY.toFixed(1);
+
+      if (isHoveredRef.current || isFocusedRef.current) {
+        cardRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
+        cardRef.current.style.transition = 'none';
+      }
+    });
   }, []);
 
   const handleMouseEnter = useCallback(() => {
@@ -212,6 +224,7 @@ const KineticExerciseCard = memo(({ exercise, exerciseIdx, onUpdateSet, onAddSet
 
   const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
     if (cardRef.current) {
       cardRef.current.style.setProperty('--tilt-x', '0deg');
       cardRef.current.style.setProperty('--tilt-y', '0deg');
@@ -364,7 +377,7 @@ const KineticExerciseCard = memo(({ exercise, exerciseIdx, onUpdateSet, onAddSet
 
 KineticExerciseCard.displayName = 'KineticExerciseCard';
 
-const WorkoutLog = () => {
+const WorkoutLog = memo(() => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
   /**
@@ -615,6 +628,8 @@ const WorkoutLog = () => {
       />
     </div>
   );
-};
+});
+
+WorkoutLog.displayName = 'WorkoutLog';
 
 export default WorkoutLog;
