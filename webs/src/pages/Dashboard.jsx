@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef, useId, memo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Activity,
@@ -27,7 +27,6 @@ import Stat from '@/components/Stat';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import Breadcrumb from '@/components/Breadcrumb';
-import Card from '@/components/Card';
 
 const MACRO_CONFIG = Object.freeze([
   Object.freeze({ label: 'Protein Density', macro: 'protein', color: 'voro-primary', icon: '🍗' }),
@@ -81,15 +80,14 @@ const STREAK_KEYS = Object.freeze(['nutrition_log', 'workout_log']);
 
 /**
  * ⚡ LUXURY REFINEMENT: Volumetric 3D Interactive Telemetry Node
- * Re-engineered conforming to Voro's 'Forge' design system. Features direct DOM 60fps tilt tracking,
- * holographic coordinate overlays, static 4-degree keyboard focus tilts, and liquid border illumination.
+ * Re-engineered conforming to Voro's boutique gallery design aesthetic.
+ * Features zero-jank 60fps requestAnimationFrame tilt physics, subtle specular glow lens,
+ * dynamic liquid perimeter illumination, and accessible focus states.
  */
-const VolumetricTelemetryNode = memo(({ children, className = '', nodeId = "NODE_01", ...props }) => {
+const VolumetricTelemetryNode = memo(({ children, className = '', title, ariaLabel, ...props }) => {
   const nodeRef = useRef(null);
-  const tiltXRef = useRef(null);
-  const tiltYRef = useRef(null);
-  const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
+  const rafIdRef = useRef(null);
 
   const handleMouseMove = (e) => {
     if (!nodeRef.current) return;
@@ -97,36 +95,36 @@ const VolumetricTelemetryNode = memo(({ children, className = '', nodeId = "NODE
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    // Volumetric 3D tilt calculations (max 15 degrees)
-    const tiltY = ((x / rect.width) - 0.5) * 24;
-    const tiltX = (0.5 - (y / rect.height)) * 24;
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = requestAnimationFrame(() => {
+      if (!nodeRef.current) return;
 
-    nodeRef.current.style.setProperty('--mouse-x', `${x}px`);
-    nodeRef.current.style.setProperty('--mouse-y', `${y}px`);
-    nodeRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    nodeRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
-    nodeRef.current.style.transition = 'none';
-    nodeRef.current.style.transform = 'perspective(1500px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
+      // Volumetric 3D tilt calculations (restrained max 10 degrees for spatial luxury)
+      const tiltY = ((x / rect.width) - 0.5) * 16;
+      const tiltX = (0.5 - (y / rect.height)) * 16;
 
-    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
-    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+      nodeRef.current.style.setProperty('--mouse-x', `${x.toFixed(1)}px`);
+      nodeRef.current.style.setProperty('--mouse-y', `${y.toFixed(1)}px`);
+      nodeRef.current.style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
+      nodeRef.current.style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
+      nodeRef.current.style.transition = 'none';
+      nodeRef.current.style.transform = 'perspective(1500px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-3px)';
+    });
   };
 
   const handleMouseEnter = () => {
-    isHoveredRef.current = true;
     if (nodeRef.current) {
       nodeRef.current.style.transition = 'none';
-      nodeRef.current.style.transform = 'perspective(1500px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
     }
   };
 
   const handleMouseLeave = () => {
-    isHoveredRef.current = false;
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
     if (nodeRef.current) {
       nodeRef.current.style.setProperty('--tilt-x', '0deg');
       nodeRef.current.style.setProperty('--tilt-y', '0deg');
       if (!isFocusedRef.current) {
-        nodeRef.current.style.transition = 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
+        nodeRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
         nodeRef.current.style.transform = 'perspective(1500px) rotateX(0deg) rotateY(0deg) translateY(0px)';
       }
     }
@@ -135,22 +133,20 @@ const VolumetricTelemetryNode = memo(({ children, className = '', nodeId = "NODE
   const handleFocus = () => {
     isFocusedRef.current = true;
     if (nodeRef.current) {
-      // Accessible static 4-degree tilt on focus
-      nodeRef.current.style.setProperty('--tilt-x', '4deg');
-      nodeRef.current.style.setProperty('--tilt-y', '-4deg');
-      nodeRef.current.style.transition = 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
-      nodeRef.current.style.transform = 'perspective(1500px) rotateX(4deg) rotateY(-4deg) translateY(-4px)';
-      if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
-      if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
+      nodeRef.current.style.setProperty('--tilt-x', '3deg');
+      nodeRef.current.style.setProperty('--tilt-y', '-3deg');
+      nodeRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+      nodeRef.current.style.transform = 'perspective(1500px) rotateX(3deg) rotateY(-3deg) translateY(-3px)';
     }
   };
 
   const handleBlur = () => {
     isFocusedRef.current = false;
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
     if (nodeRef.current) {
       nodeRef.current.style.setProperty('--tilt-x', '0deg');
       nodeRef.current.style.setProperty('--tilt-y', '0deg');
-      nodeRef.current.style.transition = 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
+      nodeRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
       nodeRef.current.style.transform = 'perspective(1500px) rotateX(0deg) rotateY(0deg) translateY(0px)';
     }
   };
@@ -158,6 +154,8 @@ const VolumetricTelemetryNode = memo(({ children, className = '', nodeId = "NODE
   return (
     <div
       ref={nodeRef}
+      title={title}
+      aria-label={ariaLabel || title}
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -166,10 +164,10 @@ const VolumetricTelemetryNode = memo(({ children, className = '', nodeId = "NODE
       tabIndex={0}
       style={{
         transform: 'perspective(1500px) rotateX(0deg) rotateY(0deg) translateY(0px)',
-        transition: 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)',
+        transition: 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
         transformStyle: 'preserve-3d'
       }}
-      className={`relative bg-[#0A0C14] border border-white/5 rounded-[3rem] p-10 overflow-hidden group/vnode outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408] transition-all duration-700 hover:border-white/10 hover:shadow-[0_80px_160px_rgba(0,0,0,0.9)] ${className}`}
+      className={`relative bg-[#0A0C14]/90 border border-white/5 rounded-[3rem] p-10 overflow-hidden group/vnode outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408] transition-all duration-700 hover:border-white/10 hover:shadow-[0_40px_100px_rgba(0,0,0,0.8)] ${className}`}
       {...props}
     >
       {/* Precision Grid & Boutique Grain Overlay */}
@@ -181,7 +179,7 @@ const VolumetricTelemetryNode = memo(({ children, className = '', nodeId = "NODE
         <div
           className="absolute inset-0 opacity-0 group-hover/vnode:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-700"
           style={{
-            background: `radial-gradient(600px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(124, 58, 237, 0.08), transparent 45%)`,
+            background: `radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(124, 58, 237, 0.08), transparent 45%)`,
             transform: 'translateZ(20px)'
           }}
         />
@@ -192,26 +190,14 @@ const VolumetricTelemetryNode = memo(({ children, className = '', nodeId = "NODE
         className="absolute inset-0 rounded-[3rem] opacity-0 group-hover/vnode:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-700 pointer-events-none"
         style={{
           padding: '1px',
-          background: `radial-gradient(400px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(124, 58, 237, 0.3), transparent 80%)`,
+          background: `radial-gradient(400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(124, 58, 237, 0.3), transparent 80%)`,
           WebkitMask: 'linear-gradient(#fff, #fff) content-box, linear-gradient(#fff, #fff)',
           WebkitMaskComposite: 'xor',
           maskComposite: 'exclude',
         }}
       />
 
-      {/* Holographic Coordinate Telemetry Overlay */}
-      <div
-        className="absolute top-6 right-8 pointer-events-none opacity-0 group-hover/vnode:opacity-100 group-focus-visible:opacity-100 transition-all duration-500"
-        style={{ transform: 'translateZ(80px)' }}
-      >
-        <div className="flex flex-col items-end font-mono text-[0.4rem] font-bold text-voro-primary/60 tracking-[0.2em] space-y-1">
-          <span>TX_<span ref={tiltXRef}>0.0</span>°</span>
-          <span>TY_<span ref={tiltYRef}>0.0</span>°</span>
-          <span className="text-white/20">[{nodeId}]</span>
-        </div>
-      </div>
-
-      <div className="relative z-10" style={{ transform: 'translateZ(50px)' }}>
+      <div className="relative z-10" style={{ transform: 'translateZ(30px)' }}>
         {children}
       </div>
     </div>
@@ -219,7 +205,7 @@ const VolumetricTelemetryNode = memo(({ children, className = '', nodeId = "NODE
 });
 VolumetricTelemetryNode.displayName = "VolumetricTelemetryNode";
 
-const Dashboard = () => {
+const Dashboard = memo(() => {
   const navigate = useNavigate();
   const { user } = useAppContext();
 
@@ -296,10 +282,8 @@ const Dashboard = () => {
 
   const [showQuickLog, setShowQuickLog] = useState(false);
   const metabolicCardRef = useRef(null);
-  const tiltXRef = useRef(null);
-  const tiltYRef = useRef(null);
-  const heroHoveredRef = useRef(false);
   const heroFocusedRef = useRef(false);
+  const heroRafIdRef = useRef(null);
 
   const handleHeroMouseMove = useCallback((e) => {
     if (!metabolicCardRef.current) return;
@@ -307,36 +291,35 @@ const Dashboard = () => {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    // Volumetric 3D tilt calculation
-    const tiltY = ((x / rect.width) - 0.5) * 20;
-    const tiltX = (0.5 - (y / rect.height)) * 20;
+    if (heroRafIdRef.current) cancelAnimationFrame(heroRafIdRef.current);
+    heroRafIdRef.current = requestAnimationFrame(() => {
+      if (!metabolicCardRef.current) return;
 
-    metabolicCardRef.current.style.setProperty('--mouse-x', `${x}px`);
-    metabolicCardRef.current.style.setProperty('--mouse-y', `${y}px`);
-    metabolicCardRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    metabolicCardRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
-    metabolicCardRef.current.style.transition = 'none';
-    metabolicCardRef.current.style.transform = 'perspective(2000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
+      const tiltY = ((x / rect.width) - 0.5) * 16;
+      const tiltX = (0.5 - (y / rect.height)) * 16;
 
-    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
-    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+      metabolicCardRef.current.style.setProperty('--mouse-x', `${x.toFixed(1)}px`);
+      metabolicCardRef.current.style.setProperty('--mouse-y', `${y.toFixed(1)}px`);
+      metabolicCardRef.current.style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
+      metabolicCardRef.current.style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
+      metabolicCardRef.current.style.transition = 'none';
+      metabolicCardRef.current.style.transform = 'perspective(2000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
+    });
   }, []);
 
   const handleHeroMouseEnter = useCallback(() => {
-    heroHoveredRef.current = true;
     if (metabolicCardRef.current) {
       metabolicCardRef.current.style.transition = 'none';
-      metabolicCardRef.current.style.transform = 'perspective(2000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
     }
   }, []);
 
   const handleHeroMouseLeave = useCallback(() => {
-    heroHoveredRef.current = false;
+    if (heroRafIdRef.current) cancelAnimationFrame(heroRafIdRef.current);
     if (metabolicCardRef.current) {
       metabolicCardRef.current.style.setProperty('--tilt-x', '0deg');
       metabolicCardRef.current.style.setProperty('--tilt-y', '0deg');
       if (!heroFocusedRef.current) {
-        metabolicCardRef.current.style.transition = 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
+        metabolicCardRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
         metabolicCardRef.current.style.transform = 'perspective(2000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
       }
     }
@@ -345,21 +328,20 @@ const Dashboard = () => {
   const handleHeroFocus = useCallback(() => {
     heroFocusedRef.current = true;
     if (metabolicCardRef.current) {
-      metabolicCardRef.current.style.setProperty('--tilt-x', '4deg');
-      metabolicCardRef.current.style.setProperty('--tilt-y', '-4deg');
-      metabolicCardRef.current.style.transition = 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
-      metabolicCardRef.current.style.transform = 'perspective(2000px) rotateX(4deg) rotateY(-4deg) translateY(-4px)';
-      if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
-      if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
+      metabolicCardRef.current.style.setProperty('--tilt-x', '3deg');
+      metabolicCardRef.current.style.setProperty('--tilt-y', '-3deg');
+      metabolicCardRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+      metabolicCardRef.current.style.transform = 'perspective(2000px) rotateX(3deg) rotateY(-3deg) translateY(-3px)';
     }
   }, []);
 
   const handleHeroBlur = useCallback(() => {
     heroFocusedRef.current = false;
+    if (heroRafIdRef.current) cancelAnimationFrame(heroRafIdRef.current);
     if (metabolicCardRef.current) {
       metabolicCardRef.current.style.setProperty('--tilt-x', '0deg');
       metabolicCardRef.current.style.setProperty('--tilt-y', '0deg');
-      metabolicCardRef.current.style.transition = 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
+      metabolicCardRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
       metabolicCardRef.current.style.transform = 'perspective(2000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
     }
   }, []);
@@ -538,14 +520,14 @@ const Dashboard = () => {
                     <span className="text-[0.55rem] font-mono text-gray-600 uppercase tracking-[0.5em] block">Integrity</span>
                     <div className="flex items-center gap-3">
                       <div className="w-1.5 h-1.5 rounded-full bg-voro-secondary shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                      <span className="text-[0.7rem] font-mono text-white font-bold tracking-[0.2em]">0x99_NOMINAL</span>
+                      <span className="text-[0.7rem] font-mono text-white font-bold tracking-[0.2em]">NOMINAL</span>
                     </div>
                   </div>
                   <div className="space-y-2">
                     <span className="text-[0.55rem] font-mono text-gray-600 uppercase tracking-[0.5em] block">Sync Node</span>
                     <div className="flex items-center gap-3">
                       <div className="w-1.5 h-1.5 rounded-full bg-voro-primary animate-pulse" />
-                      <span className="text-[0.7rem] font-mono text-voro-primary font-bold tracking-[0.2em]">ACTIVE_v2.0</span>
+                      <span className="text-[0.7rem] font-mono text-voro-primary font-bold tracking-[0.2em]">ACTIVE v2.0</span>
                     </div>
                   </div>
                 </div>
@@ -585,6 +567,7 @@ const Dashboard = () => {
             {/* Primary Hero 3D Volumetric Card: Metabolic Velocity */}
             <section
               ref={metabolicCardRef}
+              title="Metabolic Velocity Energy Balance Matrix"
               onMouseMove={handleHeroMouseMove}
               onMouseEnter={handleHeroMouseEnter}
               onMouseLeave={handleHeroMouseLeave}
@@ -596,7 +579,7 @@ const Dashboard = () => {
               style={{
                 transform: 'perspective(2000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
                 transformStyle: 'preserve-3d',
-                transition: 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                transition: 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)'
               }}
               className="relative overflow-hidden rounded-[4rem] bg-[#0A0C14] border border-white/5 p-16 md:p-20 shadow-[0_80px_160px_-40px_rgba(0,0,0,0.9),inset_0_1px_1px_0_rgba(255,255,255,0.05)] hover:border-white/10 group/card bg-boutique-grain outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408]"
             >
@@ -607,7 +590,7 @@ const Dashboard = () => {
               <div
                 className="absolute inset-0 pointer-events-none opacity-0 group-hover/card:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-700"
                 style={{
-                  background: `radial-gradient(1200px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(124, 58, 237, 0.08), transparent 45%)`,
+                  background: `radial-gradient(1200px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(124, 58, 237, 0.08), transparent 45%)`,
                 }}
               />
 
@@ -616,29 +599,17 @@ const Dashboard = () => {
                 className="absolute inset-0 rounded-[4rem] opacity-0 group-hover/card:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-700 pointer-events-none"
                 style={{
                   padding: '1px',
-                  background: `radial-gradient(500px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(124, 58, 237, 0.35), transparent 80%)`,
+                  background: `radial-gradient(500px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(124, 58, 237, 0.35), transparent 80%)`,
                   WebkitMask: 'linear-gradient(#fff, #fff) content-box, linear-gradient(#fff, #fff)',
                   WebkitMaskComposite: 'xor',
                   maskComposite: 'exclude',
                 }}
               />
 
-              {/* Holographic Coordinate Telemetry Overlay */}
-              <div
-                className="absolute top-8 right-12 pointer-events-none opacity-0 group-hover/card:opacity-100 group-focus-visible:opacity-100 transition-all duration-500 z-30"
-                style={{ transform: 'translateZ(90px)' }}
-              >
-                <div className="flex flex-col items-end font-mono text-[0.45rem] font-bold text-voro-primary/60 tracking-[0.2em] space-y-0.5">
-                  <span>TX_<span ref={tiltXRef}>0.0</span>°</span>
-                  <span>TY_<span ref={tiltYRef}>0.0</span>°</span>
-                  <span className="text-white/20">[METABOLIC_APEX]</span>
-                </div>
-              </div>
-
               <div className="kinetic-sweep opacity-30 group-hover/card:opacity-50 transition-opacity duration-1000" />
 
               <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-24 items-center" style={{ transformStyle: 'preserve-3d' }}>
-                <div className="lg:col-span-5 flex justify-center" style={{ transform: 'translateZ(100px)' }}>
+                <div className="lg:col-span-5 flex justify-center" style={{ transform: 'translateZ(60px)' }}>
                   <div className="relative p-4 rounded-full bg-black/40 backdrop-blur-3xl border border-white/10 shadow-[0_40px_80px_rgba(0,0,0,0.6),inset_0_2px_2px_0_rgba(255,255,255,0.05)]">
                     <div className="absolute inset-[-20px] rounded-full bg-voro-primary/10 animate-pulse-slow blur-3xl pointer-events-none" />
                     <Ring
@@ -655,7 +626,7 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                <div className="lg:col-span-7 space-y-12" style={{ transform: 'translateZ(60px)' }}>
+                <div className="lg:col-span-7 space-y-12" style={{ transform: 'translateZ(40px)' }}>
                   <div>
                     <div className="flex items-center gap-3 mb-4">
                       <div className="h-px w-8 bg-voro-primary" />
@@ -670,7 +641,7 @@ const Dashboard = () => {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div className="flex flex-col gap-4 p-8 rounded-[2rem] bg-white/[0.03] border border-white/5 backdrop-blur-xl transition-all hover:bg-white/[0.05]" style={{ transform: 'translateZ(30px)' }}>
+                    <div className="flex flex-col gap-4 p-8 rounded-[2rem] bg-white/[0.03] border border-white/5 backdrop-blur-xl transition-all hover:bg-white/[0.05]" style={{ transform: 'translateZ(20px)' }}>
                       <div className="flex items-center justify-between">
                          <span className="text-[0.6rem] font-mono font-black uppercase tracking-[0.4em] text-gray-500">Allowance</span>
                          <div className={`p-2 rounded-lg ${calorieStatus.status === 'under' ? 'text-voro-secondary bg-voro-secondary/10' : 'text-voro-danger bg-voro-danger/10'}`}>
@@ -685,7 +656,7 @@ const Dashboard = () => {
 
                     <button
                       onClick={() => navigate('/nutrition/diary')}
-                      style={{ transform: 'translateZ(40px)' }}
+                      style={{ transform: 'translateZ(30px)' }}
                       className="relative h-full flex flex-col justify-center items-center gap-4 px-10 py-8 rounded-[2rem] bg-voro-primary text-white font-black uppercase tracking-[0.4em] text-[0.7rem] transition-all duration-700 hover:scale-[1.02] active:scale-[0.98] group/btn shadow-[0_30px_60px_rgba(124,58,237,0.3)] hover:shadow-[0_40px_80px_rgba(124,58,237,0.5)] overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-white"
                     >
                       <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity duration-700" />
@@ -700,7 +671,7 @@ const Dashboard = () => {
             </section>
 
             <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-              {macroStats.map((item, idx) => (
+              {macroStats.map((item) => (
                 <Stat
                   key={item.macro}
                   label={item.label}
@@ -709,13 +680,12 @@ const Dashboard = () => {
                   progress={item.progress}
                   color={item.color}
                   className="p-8"
-                  nodeId={`MACRO_NODE_0${idx + 1}`}
                 />
               ))}
             </section>
 
             {weightTrend.length > 0 && (
-              <VolumetricTelemetryNode nodeId="TREND_NODE_01" className="p-10">
+              <VolumetricTelemetryNode className="p-10">
                 <div className="flex items-center justify-between mb-10">
                   <div>
                     <h3 className="text-[0.65rem] font-mono font-black text-voro-primary uppercase tracking-[0.4em] mb-2">Biometric Timeline</h3>
@@ -744,7 +714,7 @@ const Dashboard = () => {
 
           <div className="col-span-12 lg:col-span-4 space-y-10">
             {/* Neural Synthesis AI Intelligence Box */}
-            <VolumetricTelemetryNode nodeId="AI_SYNTH_01" className="!p-10 border-voro-primary/20">
+            <VolumetricTelemetryNode className="!p-10 border-voro-primary/20">
               <div className="absolute -right-20 -top-20 w-64 h-64 bg-voro-primary/10 rounded-full blur-[100px] animate-pulse group-hover/vnode:bg-voro-primary/20 transition-colors duration-1000 pointer-events-none" />
 
               <div className="relative">
@@ -769,7 +739,7 @@ const Dashboard = () => {
             </VolumetricTelemetryNode>
 
             {/* Consistency Matrix */}
-            <VolumetricTelemetryNode nodeId="CNS_MTX_01" className="!p-10 space-y-8">
+            <VolumetricTelemetryNode className="!p-10 space-y-8">
               <h3 className="text-[0.65rem] font-mono font-black text-gray-500 uppercase tracking-[0.4em]">Consistency Matrix</h3>
 
               <div className="space-y-4">
@@ -791,7 +761,7 @@ const Dashboard = () => {
             </VolumetricTelemetryNode>
 
             {/* Daily Engagement Session Card */}
-            <VolumetricTelemetryNode nodeId="DLY_ENG_01" className="!p-10">
+            <VolumetricTelemetryNode className="!p-10">
               <div className="flex items-center justify-between mb-8">
                 <h3 className="text-[0.65rem] font-mono font-black text-gray-500 uppercase tracking-[0.4em]">Daily Engagement</h3>
                 <Calendar size={18} className="text-gray-600" />
@@ -867,7 +837,9 @@ const Dashboard = () => {
       )}
     </div>
   );
-};
+});
+
+Dashboard.displayName = 'Dashboard';
 
 const QUICK_LOG_ICONS = Object.freeze({
   meal: Utensils,
@@ -876,7 +848,6 @@ const QUICK_LOG_ICONS = Object.freeze({
 });
 
 const QuickLogModal = memo(({ isOpen, onClose, onSubmit }) => {
-  const magnitudeId = useId();
   const [type, setType] = useState('meal');
   const [value, setValue] = useState('');
 
@@ -922,7 +893,7 @@ const QuickLogModal = memo(({ isOpen, onClose, onSubmit }) => {
           <div className="flex items-center gap-3">
             <div className="h-px w-6 bg-voro-primary/40" />
             <label
-              htmlFor={magnitudeId}
+              htmlFor="quicklog-magnitude-entry"
               className="text-[0.6rem] font-mono font-black uppercase tracking-[0.4em] text-gray-500 cursor-pointer"
             >
               Magnitude Entry
@@ -930,7 +901,7 @@ const QuickLogModal = memo(({ isOpen, onClose, onSubmit }) => {
           </div>
           <div className="relative">
             <Input
-              id={magnitudeId}
+              id="quicklog-magnitude-entry"
               type="number"
               value={value}
               onChange={(e) => setValue(e.target.value)}
