@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, memo, useId } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Trash2, Droplets, Target, Utensils, Zap, Sparkles, ShieldCheck, Activity } from 'lucide-react';
 import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
 import { useAppContext as useApp } from '@/hooks/useAppContext';
@@ -106,9 +106,11 @@ const shallowNutritionLogEqual = (a, b) => {
  * and direct DOM style property updates to eliminate React component re-renders during 60fps tilt tracking.
  */
 const KineticMealSlotCard = memo(({ slot, sIdx, slotMeal, totalKcal, onOpenSearch, onRemoveFood }) => {
+  const nodeUid = useId();
   const cardRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
+  const rafIdRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
 
@@ -116,7 +118,7 @@ const KineticMealSlotCard = memo(({ slot, sIdx, slotMeal, totalKcal, onOpenSearc
     onOpenSearch(slot);
   }, [slot, onOpenSearch]);
 
-  const nodeId = useMemo(() => `0xMEAL_SLOT_0${sIdx + 1}`, [sIdx]);
+  const nodeId = useMemo(() => `0xFDY_${nodeUid.replace(/:/g, '')}_SLOT_0${sIdx + 1}`, [nodeUid, sIdx]);
 
   const handleMouseMove = useCallback((e) => {
     if (!cardRef.current) return;
@@ -127,15 +129,19 @@ const KineticMealSlotCard = memo(({ slot, sIdx, slotMeal, totalKcal, onOpenSearc
     const tiltY = ((x / rect.width) - 0.5) * 10;
     const tiltX = (0.5 - (y / rect.height)) * 10;
 
-    const style = cardRef.current.style;
-    style.setProperty('--mouse-x', `${x}px`);
-    style.setProperty('--mouse-y', `${y}px`);
-    style.setProperty('--tilt-x', `${tiltX}deg`);
-    style.setProperty('--tilt-y', `${tiltY}deg`);
-    style.setProperty('transform', 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)');
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = requestAnimationFrame(() => {
+      if (!cardRef.current) return;
+      const style = cardRef.current.style;
+      style.setProperty('--mouse-x', `${x}px`);
+      style.setProperty('--mouse-y', `${y}px`);
+      style.setProperty('--tilt-x', `${tiltX}deg`);
+      style.setProperty('--tilt-y', `${tiltY}deg`);
+      style.setProperty('transform', 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)');
 
-    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
-    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+      if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+      if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+    });
   }, []);
 
   const handleMouseEnter = useCallback(() => {
@@ -304,6 +310,7 @@ KineticMealSlotCard.displayName = 'KineticMealSlotCard';
  */
 const KineticMacroCard = memo(({ label, value, goal, color, unit }) => {
   const cardRef = useRef(null);
+  const rafIdRef = useRef(null);
   const isHoveredRef = useRef(false);
 
   const handleMouseMove = useCallback((e) => {
@@ -315,12 +322,16 @@ const KineticMacroCard = memo(({ label, value, goal, color, unit }) => {
     const tiltY = ((x / rect.width) - 0.5) * 8;
     const tiltX = (0.5 - (y / rect.height)) * 8;
 
-    const style = cardRef.current.style;
-    style.setProperty('--mouse-x', `${x}px`);
-    style.setProperty('--mouse-y', `${y}px`);
-    style.setProperty('--tilt-x', `${tiltX}deg`);
-    style.setProperty('--tilt-y', `${tiltY}deg`);
-    style.setProperty('transform', 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)');
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = requestAnimationFrame(() => {
+      if (!cardRef.current) return;
+      const style = cardRef.current.style;
+      style.setProperty('--mouse-x', `${x}px`);
+      style.setProperty('--mouse-y', `${y}px`);
+      style.setProperty('--tilt-x', `${tiltX}deg`);
+      style.setProperty('--tilt-y', `${tiltY}deg`);
+      style.setProperty('transform', 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)');
+    });
   }, []);
 
   const handleMouseEnter = useCallback(() => {
@@ -379,7 +390,7 @@ const KineticMacroCard = memo(({ label, value, goal, color, unit }) => {
 
 KineticMacroCard.displayName = 'KineticMacroCard';
 
-const FoodDiary = () => {
+const FoodDiary = memo(() => {
   const { user } = useApp();
   const { addNotification } = useNotifications();
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -692,7 +703,7 @@ const FoodDiary = () => {
       )}
     </div>
   );
-};
+});
 
 const FoodSearchModal = memo(({ isOpen, onClose, onSelectFood }) => {
   const [search, setSearch] = useState('');
@@ -796,5 +807,7 @@ const FoodSearchModal = memo(({ isOpen, onClose, onSelectFood }) => {
 });
 
 FoodSearchModal.displayName = 'FoodSearchModal';
+
+FoodDiary.displayName = 'FoodDiary';
 
 export default FoodDiary;

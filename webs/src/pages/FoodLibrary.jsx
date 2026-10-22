@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useDeferredValue, useRef, useCallback, memo } from 'react';
+import React, { useState, useEffect, useMemo, useDeferredValue, useRef, useCallback, memo, useId } from 'react';
 import { Search, Filter, Heart, Utensils, ChevronRight, Sparkles, Zap, Info, ShieldCheck, Leaf, Wheat } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
@@ -9,17 +9,21 @@ const EMPTY_FAVORITES = Object.freeze([]);
 const selectFoodFavorites = (val) => val || EMPTY_FAVORITES;
 
 /**
- * ⚡ PERFORMANCE OPTIMIZATION: Pre-calculate lowercase properties and freeze static foods dataset.
- * Avoids string lowercasing conversions on every search keystroke and prevents GC pressure.
+ * ⚡ PERFORMANCE OPTIMIZATION: Pre-calculate lowercase properties and macro distribution percentages at module scope.
+ * Avoids string lowercasing conversions and per-card useMemo hooks or object allocations during scrolling.
  */
 const FOODS_LOWERCASE = Object.freeze(
-  foods.map(f =>
-    Object.freeze({
+  foods.map(f => {
+    const cals = f.calories && f.calories > 0 ? f.calories : 0;
+    return Object.freeze({
       ...f,
       _nameLower: f.name.toLowerCase(),
       _subCategoryLower: f.subCategory ? f.subCategory.toLowerCase() : '',
-    })
-  )
+      _proteinPct: cals > 0 ? (f.protein * 4 / cals) * 100 : 0,
+      _carbsPct: cals > 0 ? (f.carbs * 4 / cals) * 100 : 0,
+      _fatPct: cals > 0 ? (f.fat * 9 / cals) * 100 : 0
+    });
+  })
 );
 
 /**
@@ -58,14 +62,16 @@ const { CATEGORIES, FOOD_BY_CATEGORY } = (() => {
  * - Full ARIA keyboard accessibility and semantic structure.
  */
 const FoodArtifactCard = memo(({ food, idx, isFavorite, onToggleFavorite, onInspect }) => {
+  const nodeUid = useId();
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
+  const rafIdRef = useRef(null);
 
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
 
-  const nodeId = `FOOD_NODE_0${idx}`;
+  const nodeId = useMemo(() => `0xFLD_${nodeUid.replace(/:/g, '')}_ATTESTED_NODE`, [nodeUid]);
 
   const updateTransform = () => {
     if (!containerRef.current) return;
@@ -89,15 +95,18 @@ const FoodArtifactCard = memo(({ food, idx, isFavorite, onToggleFavorite, onInsp
     const tiltY = ((x / rect.width) - 0.5) * 30;
     const tiltX = (0.5 - (y / rect.height)) * 30;
 
-    // Direct DOM mutation for buttery smooth 60fps tracking
-    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
-    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
-    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = requestAnimationFrame(() => {
+      if (!containerRef.current) return;
+      containerRef.current.style.setProperty('--mouse-x', `${x}px`);
+      containerRef.current.style.setProperty('--mouse-y', `${y}px`);
+      containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+      containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
 
-    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
-    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
-    updateTransform();
+      if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+      if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+      updateTransform();
+    });
   };
 
   const handleMouseEnter = () => {
@@ -135,16 +144,9 @@ const FoodArtifactCard = memo(({ food, idx, isFavorite, onToggleFavorite, onInsp
     updateTransform();
   };
 
-  const { proteinPct, carbsPct, fatPct } = useMemo(() => {
-    if (!food.calories || food.calories <= 0) {
-      return { proteinPct: 0, carbsPct: 0, fatPct: 0 };
-    }
-    return {
-      proteinPct: (food.protein * 4 / food.calories) * 100,
-      carbsPct: (food.carbs * 4 / food.calories) * 100,
-      fatPct: (food.fat * 9 / food.calories) * 100,
-    };
-  }, [food.calories, food.protein, food.carbs, food.fat]);
+  const proteinPct = food._proteinPct || 0;
+  const carbsPct = food._carbsPct || 0;
+  const fatPct = food._fatPct || 0;
 
   return (
     <div
@@ -325,7 +327,7 @@ const FoodArtifactItemWrapper = memo(({ food, idx, isFavorite, onToggleFavorite,
 
 FoodArtifactItemWrapper.displayName = 'FoodArtifactItemWrapper';
 
-const FoodLibrary = () => {
+const FoodLibrary = memo(() => {
   const { addNotification } = useNotifications();
   const { updateStorageKey } = useStorageMethods();
   const favorites = useStorageKeySelector('food_favorites', selectFoodFavorites);
@@ -502,6 +504,8 @@ const FoodLibrary = () => {
       </div>
     </div>
   );
-};
+});
+
+FoodLibrary.displayName = 'FoodLibrary';
 
 export default FoodLibrary;

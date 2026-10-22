@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef, memo, useCallback, useDeferredValue } from 'react';
+import React, { useState, useMemo, useEffect, useRef, memo, useCallback, useDeferredValue, useId } from 'react';
 import { Plus, Trash2, BookOpen, Sparkles, Flame, Scale, Target, Activity, ShieldCheck, Search, ChevronRight, AlertTriangle, RotateCcw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Button from '@/components/Button';
@@ -41,15 +41,17 @@ const selectRecipes = (val) => val || EMPTY_ARRAY;
  * Wrapped in React.memo to shield against parent re-renders.
  */
 const IngredientItem = memo(({ ing, idx, confirmingPurgeId, onPortionChange, onRemove }) => {
+  const nodeUid = useId();
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
+  const rafIdRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
 
   const nodeId = useMemo(() => {
-    return `ING_NODE_${(ing.instanceId || idx).toString().slice(-4).toUpperCase()}`;
-  }, [ing.instanceId, idx]);
+    return `0xRCP_${nodeUid.replace(/:/g, '')}_ING_${(ing.instanceId || idx).toString().slice(-4).toUpperCase()}`;
+  }, [nodeUid, ing.instanceId, idx]);
 
   const updateTransform = () => {
     if (!containerRef.current) return;
@@ -69,13 +71,17 @@ const IngredientItem = memo(({ ing, idx, confirmingPurgeId, onPortionChange, onR
     const tiltY = ((x / rect.width) - 0.5) * 16;
     const tiltX = (0.5 - (y / rect.height)) * 16;
 
-    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
-    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
-    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = requestAnimationFrame(() => {
+      if (!containerRef.current) return;
+      containerRef.current.style.setProperty('--mouse-x', `${x}px`);
+      containerRef.current.style.setProperty('--mouse-y', `${y}px`);
+      containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+      containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
 
-    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
-    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+      if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+      if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+    });
   };
 
   const handleMouseEnter = () => {
@@ -208,11 +214,15 @@ IngredientItem.displayName = 'IngredientItem';
  * Memoized subcomponent to isolate 3D hover/focus tilt effects and prevent parent re-renders.
  */
 const SavedRecipeCard = memo(({ recipe, idx }) => {
+  const nodeUid = useId();
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
+  const rafIdRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
+
+  const nodeId = useMemo(() => `0xRCP_${nodeUid.replace(/:/g, '')}_REC_${recipe.id?.toString().slice(-4).toUpperCase() || 'FORM'}`, [nodeUid, recipe.id]);
 
   const updateTransform = () => {
     if (!containerRef.current) return;
@@ -232,13 +242,17 @@ const SavedRecipeCard = memo(({ recipe, idx }) => {
     const tiltY = ((x / rect.width) - 0.5) * 12;
     const tiltX = (0.5 - (y / rect.height)) * 12;
 
-    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
-    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
-    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = requestAnimationFrame(() => {
+      if (!containerRef.current) return;
+      containerRef.current.style.setProperty('--mouse-x', `${x}px`);
+      containerRef.current.style.setProperty('--mouse-y', `${y}px`);
+      containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+      containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
 
-    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
-    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+      if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+      if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+    });
   };
 
   const handleMouseEnter = () => {
@@ -315,7 +329,7 @@ const SavedRecipeCard = memo(({ recipe, idx }) => {
       <div className="space-y-6 z-10" style={{ transform: 'translateZ(30px)' }}>
         <div className="flex justify-between items-start">
           <span className="text-[0.55rem] font-mono font-black text-gray-500 uppercase tracking-widest">
-            SYN_NODE // 0x{nodeHex}
+            SYN_NODE // [{nodeId}]
           </span>
           <div className="w-2 h-2 rounded-full bg-voro-primary animate-pulse shadow-[0_0_8px_#7C3AED]" />
         </div>
@@ -349,7 +363,7 @@ const SavedRecipeCard = memo(({ recipe, idx }) => {
 
 SavedRecipeCard.displayName = 'SavedRecipeCard';
 
-const RecipeBuilder = () => {
+const RecipeBuilder = memo(() => {
   const navigate = useNavigate();
   const { setItem } = useStorageMethods();
   const { addNotification } = useNotifications();
@@ -741,6 +755,8 @@ const RecipeBuilder = () => {
       </div>
     </div>
   );
-};
+});
+
+RecipeBuilder.displayName = 'RecipeBuilder';
 
 export default RecipeBuilder;
