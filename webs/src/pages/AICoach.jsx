@@ -50,8 +50,8 @@ const timeFormatter = new CachedDateTimeFormat('en-US', { hour: '2-digit', minut
 /**
  * ⚡ LUXURY REFINEMENT: MessageItem Dialogue Bubble
  * Re-engineered into a "Neural Synthesis Manifest" featuring custom backglows,
- * 60fps direct-DOM 3D volumetric hover tilts, W3C APG focus states,
- * custom scanline/grain borders, editorial italics, and precise metadata.
+ * 60fps frame-batched direct-DOM 3D volumetric hover tilts, W3C APG focus states,
+ * scanline/grain borders, editorial italics, and precise metadata.
  */
 const MessageItem = memo(({ msg }) => {
   const isAssistant = msg.role === 'assistant';
@@ -60,6 +60,7 @@ const MessageItem = memo(({ msg }) => {
   const tiltYRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
+  const rafIdRef = useRef(null);
   const reactId = useId();
 
   const nodeId = useMemo(() => `MSG_${reactId.replace(/:/g, '').slice(0, 4).toUpperCase()}`, [reactId]);
@@ -72,14 +73,11 @@ const MessageItem = memo(({ msg }) => {
     }
   }, [msg.timestamp]);
 
-  const updateTransform = useCallback(() => {
-    if (!nodeRef.current || !isAssistant) return;
-    const active = isHoveredRef.current || isFocusedRef.current;
-    nodeRef.current.style.transform = active
-      ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)'
-      : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
-    nodeRef.current.style.transition = isHoveredRef.current ? 'none' : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
-  }, [isAssistant]);
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    };
+  }, []);
 
   const handleMouseMove = useCallback((e) => {
     if (!nodeRef.current || !isAssistant) return;
@@ -90,34 +88,48 @@ const MessageItem = memo(({ msg }) => {
     const tiltY = ((x / rect.width) - 0.5) * 8;
     const tiltX = (0.5 - (y / rect.height)) * 8;
 
-    nodeRef.current.style.setProperty('--mouse-x', `${x}px`);
-    nodeRef.current.style.setProperty('--mouse-y', `${y}px`);
-    nodeRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    nodeRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = requestAnimationFrame(() => {
+      if (!nodeRef.current) return;
+      nodeRef.current.style.setProperty('--mouse-x', `${x.toFixed(1)}px`);
+      nodeRef.current.style.setProperty('--mouse-y', `${y.toFixed(1)}px`);
+      nodeRef.current.style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
+      nodeRef.current.style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
 
-    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
-    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+      if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+      if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
 
-    if (isHoveredRef.current || isFocusedRef.current) {
-      updateTransform();
-    }
-  }, [isAssistant, updateTransform]);
+      if (isHoveredRef.current || isFocusedRef.current) {
+        nodeRef.current.style.transform = 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)';
+        nodeRef.current.style.transition = 'none';
+      }
+    });
+  }, [isAssistant]);
 
   const handleMouseEnter = useCallback(() => {
     if (!isAssistant) return;
     isHoveredRef.current = true;
-    updateTransform();
-  }, [isAssistant, updateTransform]);
+    if (nodeRef.current) {
+      nodeRef.current.style.transform = 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)';
+      nodeRef.current.style.transition = 'none';
+    }
+  }, [isAssistant]);
 
   const handleMouseLeave = useCallback(() => {
     if (!isAssistant) return;
     isHoveredRef.current = false;
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
     if (nodeRef.current) {
       nodeRef.current.style.setProperty('--tilt-x', '0deg');
       nodeRef.current.style.setProperty('--tilt-y', '0deg');
+      if (!isFocusedRef.current) {
+        nodeRef.current.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+        nodeRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+      }
     }
-    updateTransform();
-  }, [isAssistant, updateTransform]);
+    if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+    if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
+  }, [isAssistant]);
 
   const handleFocus = useCallback(() => {
     if (!isAssistant) return;
@@ -125,21 +137,25 @@ const MessageItem = memo(({ msg }) => {
     if (nodeRef.current) {
       nodeRef.current.style.setProperty('--tilt-x', '3deg');
       nodeRef.current.style.setProperty('--tilt-y', '-3deg');
+      nodeRef.current.style.transform = 'perspective(1000px) rotateX(3deg) rotateY(-3deg) translateY(-2px)';
+      nodeRef.current.style.transition = 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
       if (tiltXRef.current) tiltXRef.current.innerText = "3.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-3.0";
     }
-    updateTransform();
-  }, [isAssistant, updateTransform]);
+  }, [isAssistant]);
 
   const handleBlur = useCallback(() => {
     if (!isAssistant) return;
     isFocusedRef.current = false;
-    if (nodeRef.current) {
+    if (nodeRef.current && !isHoveredRef.current) {
       nodeRef.current.style.setProperty('--tilt-x', '0deg');
       nodeRef.current.style.setProperty('--tilt-y', '0deg');
+      nodeRef.current.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      nodeRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+      if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
     }
-    updateTransform();
-  }, [isAssistant, updateTransform]);
+  }, [isAssistant]);
 
   return (
     <div className={`flex ${isAssistant ? 'justify-start' : 'justify-end'} group/msg animate-fade-in relative z-10 w-full`}>
@@ -158,16 +174,15 @@ const MessageItem = memo(({ msg }) => {
             : 'bg-white/[0.02] border border-white/5 text-white shadow-[0_20px_50px_rgba(0,0,0,0.5)] hover:bg-white/[0.03] hover:border-white/10'
           }
         `}
-        style={isAssistant ? {
-          transformStyle: 'preserve-3d',
-        } : {}}
+        style={isAssistant ? { transformStyle: 'preserve-3d' } : {}}
       >
         {/* Subtle Ambient Backplate Glow for Assistant */}
         {isAssistant && (
-          <div className="absolute inset-0 opacity-0 group-hover/msg:opacity-100 transition-opacity duration-1000 pointer-events-none"
-               style={{
-                 background: `radial-gradient(400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(124, 58, 237, 0.08), transparent 70%)`
-               }}
+          <div
+            className="absolute inset-0 opacity-0 group-hover/msg:opacity-100 transition-opacity duration-1000 pointer-events-none"
+            style={{
+              background: `radial-gradient(400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(124, 58, 237, 0.08), transparent 70%)`
+            }}
           />
         )}
 
@@ -176,8 +191,10 @@ const MessageItem = memo(({ msg }) => {
 
         {/* Cyber-telemetry readout for Assistant */}
         {isAssistant && (
-          <div className="absolute top-4 right-6 pointer-events-none opacity-0 group-hover/msg:opacity-100 transition-opacity duration-500"
-               style={{ transform: 'translateZ(40px)' }}>
+          <div
+            className="absolute top-4 right-6 pointer-events-none opacity-0 group-hover/msg:opacity-100 transition-opacity duration-500"
+            style={{ transform: 'translateZ(40px)' }}
+          >
             <div className="flex items-center gap-2 font-mono text-[0.45rem] font-bold text-voro-primary/60 tracking-widest uppercase">
               <span>TX_<span ref={tiltXRef}>0.0</span>°</span>
               <span>TY_<span ref={tiltYRef}>0.0</span>°</span>
@@ -196,30 +213,33 @@ const MessageItem = memo(({ msg }) => {
           </span>
         </div>
 
-        <div className={`
-          leading-relaxed tracking-tight whitespace-pre-wrap relative z-10
-          ${isAssistant
-            ? 'font-serif italic text-xl text-gray-100 font-medium md:text-2xl'
-            : 'font-mono text-[0.85rem] text-gray-300'
-          }
-        `}
-        style={{ transform: isAssistant ? 'translateZ(30px)' : undefined }}
+        <div
+          className={`
+            leading-relaxed tracking-tight whitespace-pre-wrap relative z-10
+            ${isAssistant
+              ? 'font-serif italic text-xl text-gray-100 font-medium md:text-2xl'
+              : 'font-mono text-[0.85rem] text-gray-300'
+            }
+          `}
+          style={{ transform: isAssistant ? 'translateZ(30px)' : undefined }}
         >
           {msg.content}
         </div>
 
         {isAssistant && (
-           <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between opacity-40 group-hover/msg:opacity-100 transition-opacity duration-500 relative z-10"
-                style={{ transform: 'translateZ(20px)' }}>
-              <span className="text-[0.55rem] font-mono font-black uppercase tracking-[0.3em] text-voro-primary flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-voro-primary animate-pulse" />
-                Accuracy Verified & Attested
-              </span>
-              <div className="flex items-center gap-2 font-mono text-[0.55rem] text-gray-600">
-                <ShieldCheck size={12} className="text-voro-primary/70" />
-                <span className="tracking-widest">0xATTST_E92F</span>
-              </div>
-           </div>
+          <div
+            className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between opacity-40 group-hover/msg:opacity-100 transition-opacity duration-500 relative z-10"
+            style={{ transform: 'translateZ(20px)' }}
+          >
+            <span className="text-[0.55rem] font-mono font-black uppercase tracking-[0.3em] text-voro-primary flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-voro-primary animate-pulse" />
+              Accuracy Verified & Attested
+            </span>
+            <div className="flex items-center gap-2 font-mono text-[0.55rem] text-gray-600">
+              <ShieldCheck size={12} className="text-voro-primary/70" />
+              <span className="tracking-widest">0xATTST_E92F</span>
+            </div>
+          </div>
         )}
       </div>
     </div>
@@ -230,8 +250,9 @@ MessageItem.displayName = 'MessageItem';
 
 /**
  * ⚡ LUXURY REFINEMENT: Volumetric Interactive Tile Prompt
- * Implements mouse-tracking, coordinate telemetry, Accessible 3D Interaction Pattern
- * (Focus applying a 4-degree static tilt), and Golden Ratio proportions.
+ * Implements frame-batched mouse-tracking, coordinate telemetry,
+ * Accessible 3D Interaction Pattern (Focus applying a 4-degree static tilt),
+ * and Golden Ratio proportions.
  */
 const QuickPromptCard = memo(({ prompt, onSelect }) => {
   const containerRef = useRef(null);
@@ -239,6 +260,7 @@ const QuickPromptCard = memo(({ prompt, onSelect }) => {
   const tiltYRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
+  const rafIdRef = useRef(null);
   const reactId = useId();
 
   const handleClick = useCallback(() => {
@@ -247,13 +269,10 @@ const QuickPromptCard = memo(({ prompt, onSelect }) => {
 
   const nodeId = useMemo(() => `PRMPT_${reactId.replace(/:/g, '').slice(0, 4).toUpperCase()}`, [reactId]);
 
-  const updateTransform = useCallback(() => {
-    if (!containerRef.current) return;
-    const active = isHoveredRef.current || isFocusedRef.current;
-    containerRef.current.style.transform = active
-      ? 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)'
-      : 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
-    containerRef.current.style.transition = isHoveredRef.current ? 'none' : 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    };
   }, []);
 
   const handleMouseMove = useCallback((e) => {
@@ -265,52 +284,70 @@ const QuickPromptCard = memo(({ prompt, onSelect }) => {
     const tiltY = ((x / rect.width) - 0.5) * 20;
     const tiltX = (0.5 - (y / rect.height)) * 20;
 
-    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
-    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
-    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = requestAnimationFrame(() => {
+      if (!containerRef.current) return;
+      containerRef.current.style.setProperty('--mouse-x', `${x.toFixed(1)}px`);
+      containerRef.current.style.setProperty('--mouse-y', `${y.toFixed(1)}px`);
+      containerRef.current.style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
+      containerRef.current.style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
 
-    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
-    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+      if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+      if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
 
-    if (isHoveredRef.current || isFocusedRef.current) {
-      updateTransform();
-    }
-  }, [updateTransform]);
+      if (isHoveredRef.current || isFocusedRef.current) {
+        containerRef.current.style.transform = 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
+        containerRef.current.style.transition = 'none';
+      }
+    });
+  }, []);
 
   const handleMouseEnter = useCallback(() => {
     isHoveredRef.current = true;
-    updateTransform();
-  }, [updateTransform]);
+    if (containerRef.current) {
+      containerRef.current.style.transform = 'perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
+      containerRef.current.style.transition = 'none';
+    }
+  }, []);
 
   const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
+      if (!isFocusedRef.current) {
+        containerRef.current.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+        containerRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+      }
     }
-    updateTransform();
-  }, [updateTransform]);
+    if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+    if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
+  }, []);
 
   const handleFocus = useCallback(() => {
     isFocusedRef.current = true;
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '4deg');
       containerRef.current.style.setProperty('--tilt-y', '-4deg');
+      containerRef.current.style.transform = 'perspective(1000px) rotateX(4deg) rotateY(-4deg) translateY(-4px)';
+      containerRef.current.style.transition = 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
       if (tiltXRef.current) tiltXRef.current.innerText = "4.0";
       if (tiltYRef.current) tiltYRef.current.innerText = "-4.0";
     }
-    updateTransform();
-  }, [updateTransform]);
+  }, []);
 
   const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
-    if (containerRef.current) {
+    if (containerRef.current && !isHoveredRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
+      containerRef.current.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      containerRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+      if (tiltXRef.current) tiltXRef.current.innerText = "0.0";
+      if (tiltYRef.current) tiltYRef.current.innerText = "0.0";
     }
-    updateTransform();
-  }, [updateTransform]);
+  }, []);
 
   return (
     <button
@@ -321,9 +358,7 @@ const QuickPromptCard = memo(({ prompt, onSelect }) => {
       onFocus={handleFocus}
       onBlur={handleBlur}
       onClick={handleClick}
-      style={{
-        transformStyle: 'preserve-3d'
-      }}
+      style={{ transformStyle: 'preserve-3d' }}
       className="group relative p-8 rounded-[2rem] bg-white/[0.02] border border-white/5 hover:border-voro-primary/30 transition-all duration-700 text-left overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#020408] h-full flex flex-col justify-between"
     >
       {/* Dynamic Luminous Lens */}
@@ -338,8 +373,10 @@ const QuickPromptCard = memo(({ prompt, onSelect }) => {
       <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-voro-primary/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
 
       {/* Cyber-telemetry */}
-      <div className="absolute top-4 right-6 pointer-events-none opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-all duration-500"
-           style={{ transform: 'translateZ(50px)' }}>
+      <div
+        className="absolute top-4 right-6 pointer-events-none opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-all duration-500"
+        style={{ transform: 'translateZ(50px)' }}
+      >
         <div className="flex items-center gap-3 font-mono text-[0.45rem] font-bold text-voro-primary/60 tracking-widest">
           <span>TX_<span ref={tiltXRef}>0.0</span>°</span>
           <span>TY_<span ref={tiltYRef}>0.0</span>°</span>
@@ -365,7 +402,30 @@ const QuickPromptCard = memo(({ prompt, onSelect }) => {
 
 QuickPromptCard.displayName = "QuickPromptCard";
 
-const AICoach = () => {
+/**
+ * ⚡ REFINEMENT: AICoach re-engineered into Voro's 'Forge' luxury gallery architecture.
+ * Features 60fps frame-batched direct-DOM 3D rotational tilt tracking, SSR-safe useId
+ * attestation hashes, dynamic liquid perimeter illumination, holographic spatial coordinate
+ * telemetry, sub-pixel attestation badging, and full W3C APG accessibility compliance.
+ */
+export const AICoach = memo(() => {
+  const pageReactId = useId();
+  const enclaveId = useMemo(() => `0xORACLE_${pageReactId.replace(/:/g, '').slice(0, 6).toUpperCase()}_ATTESTED_ENCLAVE`, [pageReactId]);
+
+  const heroRef = useRef(null);
+  const heroTiltXRef = useRef(null);
+  const heroTiltYRef = useRef(null);
+  const heroRafRef = useRef(null);
+  const isHeroHoveredRef = useRef(false);
+  const isHeroFocusedRef = useRef(false);
+
+  const consoleRef = useRef(null);
+  const consoleTiltXRef = useRef(null);
+  const consoleTiltYRef = useRef(null);
+  const consoleRafRef = useRef(null);
+  const isConsoleHoveredRef = useRef(false);
+  const isConsoleFocusedRef = useRef(false);
+
   const savedHistory = useStorageKeySelector('chat_history', selectChatHistory);
   const { setItem } = useStorageMethods();
   const { chat, loading: aiLoading } = useAI();
@@ -393,7 +453,140 @@ const AICoach = () => {
   }, [savedHistory, messages.length]);
 
   useEffect(() => {
-    document.title = 'VORO | Neural Oracle';
+    document.title = 'VORO | Neural Oracle Enclave';
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (heroRafRef.current) cancelAnimationFrame(heroRafRef.current);
+      if (consoleRafRef.current) cancelAnimationFrame(consoleRafRef.current);
+    };
+  }, []);
+
+  // Hero direct-DOM 60fps rotational tilt tracking
+  const handleHeroMouseMove = useCallback((e) => {
+    if (!heroRef.current) return;
+    const rect = heroRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const tiltY = ((x / rect.width) - 0.5) * 12;
+    const tiltX = (0.5 - (y / rect.height)) * 12;
+
+    if (heroRafRef.current) cancelAnimationFrame(heroRafRef.current);
+    heroRafRef.current = requestAnimationFrame(() => {
+      if (!heroRef.current) return;
+      heroRef.current.style.setProperty('--mouse-x', `${x.toFixed(1)}px`);
+      heroRef.current.style.setProperty('--mouse-y', `${y.toFixed(1)}px`);
+      heroRef.current.style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
+      heroRef.current.style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
+
+      if (heroTiltXRef.current) heroTiltXRef.current.innerText = tiltX.toFixed(1);
+      if (heroTiltYRef.current) heroTiltYRef.current.innerText = tiltY.toFixed(1);
+
+      if (isHeroHoveredRef.current || isHeroFocusedRef.current) {
+        heroRef.current.style.transform = 'perspective(2000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
+        heroRef.current.style.transition = 'none';
+      }
+    });
+  }, []);
+
+  const handleHeroMouseEnter = useCallback(() => {
+    isHeroHoveredRef.current = true;
+    if (heroRef.current) {
+      heroRef.current.style.transform = 'perspective(2000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
+      heroRef.current.style.transition = 'none';
+    }
+  }, []);
+
+  const handleHeroMouseLeave = useCallback(() => {
+    isHeroHoveredRef.current = false;
+    if (heroRafRef.current) cancelAnimationFrame(heroRafRef.current);
+    if (heroRef.current) {
+      heroRef.current.style.setProperty('--tilt-x', '0deg');
+      heroRef.current.style.setProperty('--tilt-y', '0deg');
+      if (!isHeroFocusedRef.current) {
+        heroRef.current.style.transform = 'perspective(2000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+        heroRef.current.style.transition = 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)';
+      }
+    }
+    if (heroTiltXRef.current) heroTiltXRef.current.innerText = "0.0";
+    if (heroTiltYRef.current) heroTiltYRef.current.innerText = "0.0";
+  }, []);
+
+  const handleHeroFocus = useCallback(() => {
+    isHeroFocusedRef.current = true;
+    if (heroRef.current) {
+      heroRef.current.style.setProperty('--tilt-x', '3deg');
+      heroRef.current.style.setProperty('--tilt-y', '-3deg');
+      heroRef.current.style.transform = 'perspective(2000px) rotateX(3deg) rotateY(-3deg) translateY(-4px)';
+      heroRef.current.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+      if (heroTiltXRef.current) heroTiltXRef.current.innerText = "3.0";
+      if (heroTiltYRef.current) heroTiltYRef.current.innerText = "-3.0";
+    }
+  }, []);
+
+  const handleHeroBlur = useCallback(() => {
+    isHeroFocusedRef.current = false;
+    if (heroRef.current && !isHeroHoveredRef.current) {
+      heroRef.current.style.setProperty('--tilt-x', '0deg');
+      heroRef.current.style.setProperty('--tilt-y', '0deg');
+      heroRef.current.style.transform = 'perspective(2000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+      heroRef.current.style.transition = 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)';
+      if (heroTiltXRef.current) heroTiltXRef.current.innerText = "0.0";
+      if (heroTiltYRef.current) heroTiltYRef.current.innerText = "0.0";
+    }
+  }, []);
+
+  // Console direct-DOM 60fps rotational tilt tracking
+  const handleConsoleMouseMove = useCallback((e) => {
+    if (!consoleRef.current) return;
+    const rect = consoleRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const tiltY = ((x / rect.width) - 0.5) * 8;
+    const tiltX = (0.5 - (y / rect.height)) * 8;
+
+    if (consoleRafRef.current) cancelAnimationFrame(consoleRafRef.current);
+    consoleRafRef.current = requestAnimationFrame(() => {
+      if (!consoleRef.current) return;
+      consoleRef.current.style.setProperty('--mouse-x', `${x.toFixed(1)}px`);
+      consoleRef.current.style.setProperty('--mouse-y', `${y.toFixed(1)}px`);
+      consoleRef.current.style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
+      consoleRef.current.style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
+
+      if (consoleTiltXRef.current) consoleTiltXRef.current.innerText = tiltX.toFixed(1);
+      if (consoleTiltYRef.current) consoleTiltYRef.current.innerText = tiltY.toFixed(1);
+
+      if (isConsoleHoveredRef.current || isConsoleFocusedRef.current) {
+        consoleRef.current.style.transform = 'perspective(1500px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)';
+        consoleRef.current.style.transition = 'none';
+      }
+    });
+  }, []);
+
+  const handleConsoleMouseEnter = useCallback(() => {
+    isConsoleHoveredRef.current = true;
+    if (consoleRef.current) {
+      consoleRef.current.style.transform = 'perspective(1500px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-2px)';
+      consoleRef.current.style.transition = 'none';
+    }
+  }, []);
+
+  const handleConsoleMouseLeave = useCallback(() => {
+    isConsoleHoveredRef.current = false;
+    if (consoleRafRef.current) cancelAnimationFrame(consoleRafRef.current);
+    if (consoleRef.current) {
+      consoleRef.current.style.setProperty('--tilt-x', '0deg');
+      consoleRef.current.style.setProperty('--tilt-y', '0deg');
+      if (!isConsoleFocusedRef.current) {
+        consoleRef.current.style.transform = 'perspective(1500px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+        consoleRef.current.style.transition = 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)';
+      }
+    }
+    if (consoleTiltXRef.current) consoleTiltXRef.current.innerText = "0.0";
+    if (consoleTiltYRef.current) consoleTiltYRef.current.innerText = "0.0";
   }, []);
 
   const handleSendMessage = useCallback(async (text = input) => {
@@ -430,7 +623,7 @@ const AICoach = () => {
         setMessages(finalMessages);
         await setItem('chat_history', finalMessages);
       } else {
-        // Fallback to offline local biological synthesis engine if API return null
+        // Fallback to offline local biological synthesis engine if API returns null
         const aiResponse = {
           role: 'assistant',
           content: generateLocalFallback(text),
@@ -461,7 +654,7 @@ const AICoach = () => {
   const currentCharsCount = input.length;
 
   return (
-    <div className="min-h-screen bg-[#020408] text-[#F0F4FF] pb-24 relative overflow-x-hidden flex flex-col">
+    <div className="min-h-screen bg-[#020408] text-[#F0F4FF] pb-24 relative overflow-x-hidden flex flex-col selection:bg-voro-primary/30">
       {/* Cybernetic Grid & Environmental Ambient Backplates */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-voro-primary/5 rounded-full blur-[150px]" />
@@ -470,33 +663,77 @@ const AICoach = () => {
         <div className="absolute inset-0 bg-boutique-grain opacity-[0.02]" />
       </div>
 
-      <div className="relative max-w-5xl mx-auto w-full flex-1 flex flex-col px-6 md:px-12 lg:px-16 pt-20">
-        <header className="mb-16 md:mb-20">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4 text-voro-primary">
-              <div className="p-2.5 bg-voro-primary/10 rounded-xl border border-voro-primary/20 shadow-[0_0_15px_rgba(124,58,237,0.2)]">
-                <Bot size={20} className="animate-pulse" />
-              </div>
-              <span className="text-[0.65rem] font-mono font-black uppercase tracking-[0.4em] text-gray-400">
-                Neural Intelligence Terminal
-              </span>
-            </div>
+      <div className="relative max-w-5xl mx-auto w-full flex-1 flex flex-col px-6 md:px-12 lg:px-16 pt-16">
+        {/* Gallery Terminal Hero Banner */}
+        <header
+          ref={heroRef}
+          onMouseMove={handleHeroMouseMove}
+          onMouseEnter={handleHeroMouseEnter}
+          onMouseLeave={handleHeroMouseLeave}
+          onFocus={handleHeroFocus}
+          onBlur={handleHeroBlur}
+          tabIndex={0}
+          role="region"
+          aria-label="Neural Oracle Terminal Header"
+          style={{ transformStyle: 'preserve-3d' }}
+          className="mb-12 p-10 md:p-14 rounded-[3rem] bg-[#0A0C14]/90 border border-white/5 shadow-[0_50px_100px_rgba(0,0,0,0.8)] hover:border-voro-primary/30 transition-all duration-1000 relative overflow-hidden group/hero outline-none focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-4 focus-visible:ring-offset-[#020408]"
+        >
+          {/* Liquid border perimeter illumination */}
+          <div
+            className="absolute inset-0 rounded-[3rem] opacity-0 group-hover/hero:opacity-100 transition-opacity duration-1000 pointer-events-none"
+            style={{
+              padding: '1px',
+              background: `radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(124, 58, 237, 0.25), transparent 70%)`,
+              WebkitMask: 'linear-gradient(#fff, #fff) content-box, linear-gradient(#fff, #fff)',
+              WebkitMaskComposite: 'xor',
+              maskComposite: 'exclude',
+            }}
+          />
 
-            <div className="hidden sm:flex items-center gap-3 font-mono text-[0.55rem] text-gray-500 bg-white/[0.02] border border-white/5 px-4 py-1.5 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="tracking-widest">0xORACLE_NODE_v4.2</span>
+          {/* Holographic Coordinate Telemetry Overlay */}
+          <div
+            className="absolute top-6 right-8 pointer-events-none opacity-0 group-hover/hero:opacity-100 group-focus-visible/hero:opacity-100 transition-all duration-500 z-20"
+            style={{ transform: 'translateZ(60px)' }}
+          >
+            <div className="flex flex-col items-end font-mono text-[0.45rem] font-bold text-voro-primary/60 tracking-[0.2em] space-y-1">
+              <span>TX_<span ref={heroTiltXRef}>0.0</span>°</span>
+              <span>TY_<span ref={heroTiltYRef}>0.0</span>°</span>
+              <span className="text-white/20">[{enclaveId}]</span>
             </div>
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-serif italic font-medium tracking-tight text-white mb-6 leading-normal pt-2">
-            Neural <span className="text-voro-primary not-italic font-black">Oracle</span>
-          </h1>
+          {/* Sub-pixel System Attestation Hash */}
+          <div className="absolute bottom-4 left-8 pointer-events-none text-[0.4rem] font-mono font-black text-white/10 group-hover/hero:text-white/30 transition-colors duration-700 tracking-[0.25em] uppercase select-none z-20">
+            {enclaveId}
+          </div>
 
-          <div className="flex items-center gap-6 pt-2">
-            <div className="h-0.5 w-32 bg-gradient-to-r from-voro-primary via-voro-primary/40 to-transparent shadow-[0_0_10px_rgba(124,58,237,0.5)]" />
-            <p className="text-gray-500 font-mono font-bold tracking-[0.4em] text-[0.55rem] uppercase opacity-75">
-              Direct biological telemetry & structural optimization active
-            </p>
+          <div className="relative z-10" style={{ transform: 'translateZ(40px)' }}>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-4 text-voro-primary">
+                <div className="p-3 bg-voro-primary/10 rounded-2xl border border-voro-primary/20 shadow-[0_0_20px_rgba(124,58,237,0.3)]">
+                  <Bot size={22} className="animate-pulse" />
+                </div>
+                <span className="text-[0.65rem] font-mono font-black uppercase tracking-[0.4em] text-gray-400">
+                  Neural Intelligence Terminal
+                </span>
+              </div>
+
+              <div className="hidden sm:flex items-center gap-3 font-mono text-[0.55rem] text-gray-400 bg-white/[0.02] border border-white/5 px-4 py-1.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="tracking-widest">0xORACLE_NODE_v4.2</span>
+              </div>
+            </div>
+
+            <h1 className="text-5xl md:text-7xl font-serif italic font-medium tracking-tight text-white mb-6 leading-none pt-2">
+              Neural <span className="text-voro-primary not-italic font-black">Oracle</span>
+            </h1>
+
+            <div className="flex items-center gap-6 pt-2">
+              <div className="h-0.5 w-32 bg-gradient-to-r from-voro-primary via-voro-primary/40 to-transparent shadow-[0_0_10px_rgba(124,58,237,0.5)]" />
+              <p className="text-gray-500 font-mono font-bold tracking-[0.4em] text-[0.55rem] uppercase opacity-85">
+                Direct biological telemetry & structural optimization active
+              </p>
+            </div>
           </div>
         </header>
 
@@ -559,19 +796,39 @@ const AICoach = () => {
         </div>
 
         {/* Input Control Console */}
-        <Card className="p-6 bg-[#0A0C14]/90 border border-white/5 backdrop-blur-2xl shadow-[0_50px_100px_rgba(0,0,0,0.8)] rounded-[3rem] relative overflow-hidden group/console">
+        <Card
+          ref={consoleRef}
+          onMouseMove={handleConsoleMouseMove}
+          onMouseEnter={handleConsoleMouseEnter}
+          onMouseLeave={handleConsoleMouseLeave}
+          style={{ transformStyle: 'preserve-3d' }}
+          className="p-6 bg-[#0A0C14]/90 border border-white/5 backdrop-blur-2xl shadow-[0_50px_100px_rgba(0,0,0,0.8)] rounded-[3rem] relative overflow-hidden group/console transition-all duration-1000"
+        >
           {/* Active outline aura glow */}
-          <div className="absolute inset-0 rounded-[3rem] opacity-0 group-focus-within/console:opacity-100 transition-opacity duration-1000 pointer-events-none"
-               style={{
-                 padding: '1px',
-                 background: `radial-gradient(600px circle at 50% 50%, rgba(124, 58, 237, 0.25), transparent 70%)`,
-                 WebkitMask: 'linear-gradient(#fff, #fff) content-box, linear-gradient(#fff, #fff)',
-                 WebkitMaskComposite: 'xor',
-                 maskComposite: 'exclude',
-               }}
+          <div
+            className="absolute inset-0 rounded-[3rem] opacity-0 group-focus-within/console:opacity-100 group-hover/console:opacity-100 transition-opacity duration-1000 pointer-events-none"
+            style={{
+              padding: '1px',
+              background: `radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(124, 58, 237, 0.25), transparent 70%)`,
+              WebkitMask: 'linear-gradient(#fff, #fff) content-box, linear-gradient(#fff, #fff)',
+              WebkitMaskComposite: 'xor',
+              maskComposite: 'exclude',
+            }}
           />
 
-          <div className="flex gap-4 items-end relative z-10">
+          {/* Coordinate Telemetry Overlay */}
+          <div
+            className="absolute top-3 right-6 pointer-events-none opacity-0 group-hover/console:opacity-100 transition-all duration-500 z-20"
+            style={{ transform: 'translateZ(50px)' }}
+          >
+            <div className="flex items-center gap-2 font-mono text-[0.45rem] font-bold text-voro-primary/60 tracking-widest uppercase">
+              <span>TX_<span ref={consoleTiltXRef}>0.0</span>°</span>
+              <span>TY_<span ref={consoleTiltYRef}>0.0</span>°</span>
+              <span>[0xCONSOLE_NODE]</span>
+            </div>
+          </div>
+
+          <div className="flex gap-4 items-end relative z-10" style={{ transform: 'translateZ(30px)' }}>
             <div className="flex-1 relative">
               <Input
                 placeholder="Submit neural biometric query..."
@@ -607,6 +864,8 @@ const AICoach = () => {
       </div>
     </div>
   );
-};
+});
+
+AICoach.displayName = "AICoach";
 
 export default AICoach;

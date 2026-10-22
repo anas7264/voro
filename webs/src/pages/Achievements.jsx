@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback, memo, useId } from 'react';
 import { Trophy, Award, Flame, Target, Layers } from 'lucide-react';
 import { AchievementCard } from '@/components/AchievementCard';
 import { Header } from '@/components/Header';
@@ -34,7 +34,10 @@ const ACHIEVEMENTS_BY_CATEGORY = achievements.reduce((acc, achievement) => {
  * sliding glass matrix navigation tabs, double concentric counter-rotating orbital rings,
  * sub-pixel attestation badging, and W3C APG compliant keyboard accessibility.
  */
-const Achievements = () => {
+export const Achievements = memo(() => {
+  const reactId = useId();
+  const pageNodeId = useMemo(() => `0xACH_MAT_${reactId.replace(/:/g, '').slice(0, 6).toUpperCase()}`, [reactId]);
+
   /**
    * ⚡ PERFORMANCE OPTIMIZATION: Granular Reactivity via useStorageKeySelector.
    * Subscribes independently to earned achievements, level, and XP slices
@@ -240,13 +243,13 @@ const Achievements = () => {
             <div className="flex flex-col items-end font-mono text-[0.45rem] font-bold text-voro-primary/60 tracking-[0.2em] space-y-1">
               <span>TX_<span ref={heroTiltXRef}>0.0</span>°</span>
               <span>TY_<span ref={heroTiltYRef}>0.0</span>°</span>
-              <span className="text-white/20">[0xASC_CORE_V3]</span>
+              <span className="text-white/20">[{pageNodeId}]</span>
             </div>
           </div>
 
           {/* Sub-pixel System Attestation Hash */}
           <div className="absolute bottom-4 left-8 pointer-events-none text-[0.4rem] font-mono font-black text-white/10 group-hover/hero:text-white/30 transition-colors duration-700 tracking-[0.25em] uppercase select-none z-20">
-            0xASC_CORE_ATTESTED_MATRIX
+            0xASC_CORE_ATTESTED_MATRIX // {pageNodeId}
           </div>
 
           <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-16 items-center" style={{ transformStyle: 'preserve-3d' }}>
@@ -392,6 +395,8 @@ const Achievements = () => {
       </div>
     </div>
   );
-};
+});
+
+Achievements.displayName = "Achievements";
 
 export default Achievements;
