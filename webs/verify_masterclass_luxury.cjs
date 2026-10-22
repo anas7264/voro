@@ -53,6 +53,9 @@ const componentsToVerify = [
   { name: 'Textarea.jsx', path: 'webs/src/components/Textarea.jsx' },
   { name: 'Toggle.jsx', path: 'webs/src/components/Toggle.jsx' },
   { name: 'VoroLogo.jsx', path: 'webs/src/components/VoroLogo.jsx' },
+  { name: 'FoodDiary.jsx', path: 'webs/src/pages/FoodDiary.jsx' },
+  { name: 'FoodLibrary.jsx', path: 'webs/src/pages/FoodLibrary.jsx' },
+  { name: 'RecipeBuilder.jsx', path: 'webs/src/pages/RecipeBuilder.jsx' },
   { name: 'WorkoutHistory.jsx', path: 'webs/src/pages/WorkoutHistory.jsx' },
   { name: 'WorkoutLog.jsx', path: 'webs/src/pages/WorkoutLog.jsx' }
 ];
