@@ -15,8 +15,9 @@ const SPECIAL_CHAR_RE = /[@$!%*?&]/;
  * ⚡ PERFORMANCE OPTIMIZATION: Module-scoped pre-compiled encoding marker detector.
  * Fast-path guard to bypass 12-pass string decoding pipelines for plain ASCII inputs.
  * Uses `[^\x00-\x7F]` to correctly detect non-ASCII characters without matching valid ASCII letters.
+ * Includes `=` to ensure Quoted-Printable encoded payloads (`=XX`) trigger decoding.
  */
-const ENCODING_MARKERS_RE = /[&%\\]|[^\x00-\x7F]/;
+const ENCODING_MARKERS_RE = /[&%=\\]|[^\x00-\x7F]/;
 
 // Email validation
 export const isValidEmail = (email) => {

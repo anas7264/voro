@@ -19,3 +19,14 @@ Matching domain endings against known wildcard DNS rebinders and reserved intern
 
 **Prevention:**
 Always pair explicit IP range checks with domain TLD/wildcard DNS blacklisting in URL validation functions (`isValidURL`).
+
+## 2026-10-20 - Fast-Path Marker Regex Omissions in Multi-Decoder Validators
+
+**Vulnerability:**
+Fast-path optimization guards (`ENCODING_MARKERS_RE = /[&%\\]|[^\x00-\x7F]/`) designed to bypass multi-pass decoding pipelines for plain ASCII text fail when an encoding scheme uses standard printable ASCII symbols not present in the marker set. Quoted-Printable encodings reliance on `=XX` hex escapes allows ASCII payloads like `ig=0A=6E=6F=72=65 =70=72=65=76=69=6F=75=73...` to fail the fast-path check, completely bypassing `decodeQuotedPrintable` inspection.
+
+**Learning:**
+Fast-path pre-filters must include all delimiter and marker symbols (`=`, `%`, `&`, `\`, `+`, `-`, `/`, `<~`, `0x`, `0b`, `0o`) utilized by downstream decoders in the validation pipeline.
+
+**Prevention:**
+Ensure fast-path regex guards cover all encoding indicators, or test fast-path guards against test vectors for every active decoder in the validation suite.
