@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback, useRef, memo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef, memo, useId } from 'react';
 import { Activity, Target, Zap, Shield, Sparkles, Award, TrendingUp, CheckCircle2 } from 'lucide-react';
 import { ChallengeCard } from '@/components/ChallengeCard';
 import Tabs from '@/components/Tabs';
@@ -182,7 +182,10 @@ TelemetryCard.displayName = "TelemetryCard";
  * Features bespoke luxury spatial architecture, 3D volumetric cards, liquid border intelligence,
  * and high-contrast ARIA accessibility conformance.
  */
-const Challenges = () => {
+export const Challenges = memo(() => {
+  const reactId = useId();
+  const enclaveId = useMemo(() => `0xCHL_${reactId.replace(/:/g, '').slice(0, 6).toUpperCase()}_ENCLAVE`, [reactId]);
+
   /**
    * ⚡ OPTIMIZATION: Surgical Reactivity via useStorageKeySelector.
    * Subscribe strictly to 'gamification.completedChallenges' to isolate re-renders
@@ -307,7 +310,7 @@ const Challenges = () => {
             {/* Architectural Datum Line */}
             <div className="flex items-center gap-6 pt-2">
               <div className="h-px w-24 bg-gradient-to-r from-voro-primary to-transparent opacity-40 group-hover/header:w-48 transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)]" />
-              <p className="text-gray-600 font-mono font-bold tracking-[0.4em] text-[0.55rem] uppercase opacity-50 whitespace-nowrap">Node Ref: 0xOBJ_MATRIX</p>
+              <p className="text-gray-600 font-mono font-bold tracking-[0.4em] text-[0.55rem] uppercase opacity-50 whitespace-nowrap">Node Ref: {enclaveId}</p>
             </div>
           </div>
 
@@ -342,6 +345,8 @@ const Challenges = () => {
       </div>
     </div>
   );
-};
+});
+
+Challenges.displayName = "Challenges";
 
 export default Challenges;
