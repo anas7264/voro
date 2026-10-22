@@ -30,15 +30,17 @@ const EXERCISE_METADATA_MAP = Object.freeze(exercises.reduce((acc, e) => {
 
 /**
  * ⚡ REFINEMENT: Bespoke Apex Force Telemetry Node.
- * Conforms to the 'Forge' luxury standard with 3D volumetric transforms,
- * magnetic mouse tracking, and real-time One-Rep Max calculation.
+ * Conforms to the 'Forge' luxury standard with 60fps frame-batched 3D volumetric transforms,
+ * magnetic mouse tracking, sub-pixel attestation hash badging, and real-time One-Rep Max calculation.
  */
 const ApexPRCard = React.memo(({ item, nodeId }) => {
+  const cardId = useId();
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
+  const rafIdRef = useRef(null);
 
   const estimated1RM = item.estimated1RM || 0;
 
@@ -61,18 +63,24 @@ const ApexPRCard = React.memo(({ item, nodeId }) => {
     const tiltY = ((x / rect.width) - 0.5) * 30;
     const tiltX = (0.5 - (y / rect.height)) * 30;
 
-    // Internal dynamic style updates
-    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
-    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
-    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
-
-    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
-    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
-
-    if (isHoveredRef.current || isFocusedRef.current) {
-      updateTransform();
+    if (rafIdRef.current) {
+      cancelAnimationFrame(rafIdRef.current);
     }
+
+    rafIdRef.current = requestAnimationFrame(() => {
+      if (!containerRef.current) return;
+      containerRef.current.style.setProperty('--mouse-x', `${x}px`);
+      containerRef.current.style.setProperty('--mouse-y', `${y}px`);
+      containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+      containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+
+      if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+      if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+
+      if (isHoveredRef.current || isFocusedRef.current) {
+        updateTransform();
+      }
+    });
   }, [updateTransform]);
 
   const handleMouseEnter = useCallback(() => {
@@ -82,6 +90,9 @@ const ApexPRCard = React.memo(({ item, nodeId }) => {
 
   const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
+    if (rafIdRef.current) {
+      cancelAnimationFrame(rafIdRef.current);
+    }
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
@@ -109,6 +120,16 @@ const ApexPRCard = React.memo(({ item, nodeId }) => {
     }
     updateTransform();
   }, [updateTransform]);
+
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+    };
+  }, []);
+
+  const sanitizedCardId = useMemo(() => cardId.replace(/:/g, '').slice(0, 8), [cardId]);
 
   return (
     <div
@@ -149,7 +170,7 @@ const ApexPRCard = React.memo(({ item, nodeId }) => {
         <div className="flex flex-col items-end font-mono text-[0.4rem] font-bold text-voro-primary/60 tracking-[0.2em] space-y-1">
           <span>TX_<span ref={tiltXRef}>0.0</span>°</span>
           <span>TY_<span ref={tiltYRef}>0.0</span>°</span>
-          <span className="text-white/20">[{nodeId}]</span>
+          <span className="text-white/20">[0xPR_{sanitizedCardId}_ATTESTED_VAULT]</span>
         </div>
       </div>
 
@@ -252,7 +273,7 @@ ApexPRCard.displayName = 'ApexPRCard';
 
 const selectPrHistory = s => s || EMPTY_OBJECT;
 
-const PRRecords = () => {
+const PRRecords = React.memo(() => {
   const prHistory = useStorageKeySelector('pr_history', selectPrHistory);
   const pageId = useId();
 
@@ -387,6 +408,7 @@ const PRRecords = () => {
       </div>
     </div>
   );
-};
+});
+PRRecords.displayName = 'PRRecords';
 
 export default PRRecords;

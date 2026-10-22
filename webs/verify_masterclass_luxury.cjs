@@ -58,6 +58,7 @@ const componentsToVerify = [
   { name: 'Challenges.jsx', path: 'webs/src/pages/Challenges.jsx' },
   { name: 'FoodDiary.jsx', path: 'webs/src/pages/FoodDiary.jsx' },
   { name: 'FoodLibrary.jsx', path: 'webs/src/pages/FoodLibrary.jsx' },
+  { name: 'PRRecords.jsx', path: 'webs/src/pages/PRRecords.jsx' },
   { name: 'RecipeBuilder.jsx', path: 'webs/src/pages/RecipeBuilder.jsx' },
   { name: 'WorkoutHistory.jsx', path: 'webs/src/pages/WorkoutHistory.jsx' },
   { name: 'WorkoutLog.jsx', path: 'webs/src/pages/WorkoutLog.jsx' }
