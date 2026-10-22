@@ -42,6 +42,25 @@ const QUICK_LOG_TABS = Object.freeze([
   Object.freeze({ id: 'water', label: 'Hydration', icon: <Droplets size={16} /> }),
 ]);
 
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Module-scoped O(1) Food Lookup Maps.
+ * Pre-building frozen lookup maps for foods and express foods eliminates O(N) array scans
+ * on every quick food log action.
+ */
+const FOODS_MAP_BY_NAME = Object.freeze(
+  foods.reduce((acc, food) => {
+    acc[food.name] = food;
+    return acc;
+  }, {})
+);
+
+const EXPRESS_FOODS_MAP_BY_NAME = Object.freeze(
+  EXPRESS_FOODS.reduce((acc, food) => {
+    acc[food.name] = food;
+    return acc;
+  }, {})
+);
+
 const QuickLogNutritionTab = memo(({ onQuickFoodLog }) => (
   <div className="animate-slide-up space-y-6">
     <div>
@@ -422,7 +441,7 @@ const QuickLog = () => {
       totals: { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }
     };
 
-    const foodData = foods.find(f => f.name === foodName) || EXPRESS_FOODS.find(f => f.name === foodName) || {
+    const foodData = FOODS_MAP_BY_NAME[foodName] || EXPRESS_FOODS_MAP_BY_NAME[foodName] || {
       name: foodName,
       calories: 250,
       protein: 20,

@@ -11,6 +11,20 @@ const DEFAULT_TICK_Y = Object.freeze({ fill: "#6B7280", fontSize: 10, fontFamily
 const DEFAULT_CURSOR = Object.freeze({ fill: 'rgba(255, 255, 255, 0.03)' });
 
 const CustomTooltip = memo(({ active, payload, label, series, unit }) => {
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: O(1) Series Lookup Map.
+   * Replaces per-entry `.find()` array scans during 60fps hover tooltip render frames.
+   */
+  const seriesMap = useMemo(() => {
+    const map = new Map();
+    if (Array.isArray(series)) {
+      for (let i = 0; i < series.length; i++) {
+        if (series[i]?.key) map.set(series[i].key, series[i]);
+      }
+    }
+    return map;
+  }, [series]);
+
   if (active && payload && payload.length) {
     return (
       <div className="bg-[#0A0C14]/95 backdrop-blur-3xl border border-white/10 p-5 rounded-2xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)] relative overflow-hidden min-w-[200px] select-none z-50">
@@ -28,7 +42,7 @@ const CustomTooltip = memo(({ active, payload, label, series, unit }) => {
           </div>
 
           {payload.map((entry, index) => {
-            const color = series?.find(s => s.key === entry.dataKey)?.color || entry.color;
+            const color = seriesMap.get(entry.dataKey)?.color || entry.color;
             const val = Number(entry.value) || 0;
             return (
               <div key={index} className="flex items-center justify-between gap-4">
@@ -68,11 +82,25 @@ CustomTooltip.displayName = "CustomTooltip";
  * Prevents unmemoized inline render closure allocations during chart re-render passes.
  */
 const BarLegend = memo(({ payload, series }) => {
+  /**
+   * ⚡ PERFORMANCE OPTIMIZATION: O(1) Series Lookup Map.
+   * Replaces per-entry `.find()` array scans during legend render cycles.
+   */
+  const seriesMap = useMemo(() => {
+    const map = new Map();
+    if (Array.isArray(series)) {
+      for (let i = 0; i < series.length; i++) {
+        if (series[i]?.key) map.set(series[i].key, series[i]);
+      }
+    }
+    return map;
+  }, [series]);
+
   if (!payload || !payload.length) return null;
   return (
     <div className="flex justify-center gap-6 mt-6 pt-4 border-t border-white/5">
       {payload.map((entry, index) => {
-        const color = series?.find(s => s.key === entry.dataKey)?.color || entry.color;
+        const color = seriesMap.get(entry.dataKey)?.color || entry.color;
         return (
           <div key={index} className="flex items-center gap-2.5 group/legend cursor-pointer">
             <div
