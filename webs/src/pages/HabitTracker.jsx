@@ -515,6 +515,7 @@ const HabitTracker = () => {
                           key={c}
                           onClick={() => setNewHabit(prev => ({ ...prev, color: c }))}
                           aria-label={`Select ${c.replace('voro-', '')} theme`}
+                          title={`Select ${c.replace('voro-', '')} theme`}
                           className={`flex-1 h-12 rounded-xl transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white ${c === 'voro-primary' ? 'bg-voro-primary shadow-[0_0_10px_rgba(124,58,237,0.3)]' : c === 'voro-secondary' ? 'bg-voro-secondary shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'bg-voro-accent shadow-[0_0_10px_rgba(245,158,11,0.3)]'} ${newHabit.color === c ? 'ring-2 ring-white ring-offset-2 ring-offset-black scale-90' : 'opacity-40 hover:opacity-100'}`}
                         />
                       ))}
