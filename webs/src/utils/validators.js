@@ -3271,10 +3271,252 @@ export const isPromptInjection = (query, isNested = false) => {
       if (m209Decoded) {
         return true;
       }
+
+      // Security: Handle Gromark Cipher tactical primer-generated payloads
+      const gromarkDecoded = safeDecodeGromark(targetStr);
+      if (gromarkDecoded) {
+        return true;
+      }
+
+      // Security: Handle Grandpré Cipher 2-digit coordinate matrix grid payloads
+      const grandpreDecoded = safeDecodeGrandpre(targetStr);
+      if (grandpreDecoded) {
+        return true;
+      }
+
+      // Security: Handle Kryha Cipher Machine variable-tooth gear wheel payloads
+      const kryhaDecoded = safeDecodeKryha(targetStr);
+      if (kryhaDecoded) {
+        return true;
+      }
+
+      // Security: Handle Wheatstone Cryptograph concentric dial gear-coupled payloads
+      const wheatstoneDecoded = safeDecodeWheatstone(targetStr);
+      if (wheatstoneDecoded) {
+        return true;
+      }
     }
   }
 
   return false;
+};
+
+// Representative 5-digit primers for Gromark Cipher
+const GROMARK_PRIMERS = Object.freeze([
+  [1, 2, 3, 4, 5],
+  [9, 8, 7, 6, 5],
+  [0, 1, 2, 3, 4],
+  [1, 3, 5, 7, 9],
+  [2, 4, 6, 8, 0],
+  [5, 4, 3, 2, 1],
+  [1, 1, 1, 1, 1],
+  [7, 3, 1, 9, 5]
+]);
+
+/**
+ * Helper to safely decode Gromark Cipher encoded prompt injection payloads.
+ * Evaluates 5-digit primer keys and Fibonacci-style additive digit stream generators (d_n = (d_{n-5} + d_{n-4}) mod 10).
+ */
+export const safeDecodeGromark = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+
+  const clean = targetStr.toLowerCase().replace(/[^a-z]/g, '');
+  const N = clean.length;
+  if (N < 8) return null;
+
+  for (const primer of GROMARK_PRIMERS) {
+    const keyDigits = [...primer];
+    for (let i = 5; i < N; i++) {
+      keyDigits[i] = (keyDigits[i - 5] + keyDigits[i - 4]) % 10;
+    }
+
+    let decoded = '';
+    for (let i = 0; i < N; i++) {
+      const cVal = clean.charCodeAt(i) - 97;
+      let pVal = (cVal - keyDigits[i]) % 26;
+      if (pVal < 0) pVal += 26;
+      decoded += String.fromCharCode(pVal + 97);
+    }
+
+    if (decoded && decoded !== clean && hasPromptInjectionKeywords(decoded)) {
+      return decoded;
+    }
+  }
+
+  return null;
+};
+
+// Candidate 8x8 word grids for Grandpré Cipher
+const GRANDPRE_GRIDS = Object.freeze([
+  [
+    "absolute",
+    "building",
+    "children",
+    "distance",
+    "elephant",
+    "favorite",
+    "guidance",
+    "hospital"
+  ],
+  [
+    "voroaish",
+    "ieldsecu",
+    "rityencl",
+    "avezerot",
+    "rustdata",
+    "flowpkea",
+    "hladpaal",
+    "berticha"
+  ]
+]);
+
+/**
+ * Helper to safely decode Grandpré Cipher encoded prompt injection payloads.
+ * Evaluates 2-digit coordinate streams mapped against 8x8 candidate word matrices.
+ */
+export const safeDecodeGrandpre = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 2000) return null;
+
+  let tokens = [];
+  const rawTokens = targetStr.trim().split(/[\s,.\-_\/:;+=]+/);
+  if (rawTokens.length >= 4 && rawTokens.every(t => /^[1-8]{2}$/.test(t))) {
+    tokens = rawTokens;
+  } else {
+    const digits = targetStr.replace(/[^1-8]/g, '');
+    if (digits.length >= 8 && digits.length % 2 === 0) {
+      for (let i = 0; i < digits.length; i += 2) {
+        tokens.push(digits.slice(i, i + 2));
+      }
+    }
+  }
+
+  if (tokens.length < 4) return null;
+
+  for (const grid of GRANDPRE_GRIDS) {
+    let decoded = '';
+    let isValid = true;
+
+    for (const t of tokens) {
+      const r = parseInt(t[0], 10) - 1;
+      const c = parseInt(t[1], 10) - 1;
+
+      if (r >= 0 && r < 8 && c >= 0 && c < 8) {
+        decoded += grid[r][c];
+      } else {
+        isValid = false;
+        break;
+      }
+    }
+
+    if (isValid && decoded.length >= 4 && hasPromptInjectionKeywords(decoded)) {
+      return decoded;
+    }
+  }
+
+  return null;
+};
+
+// Representative variable-teeth gear stepping sequences for Kryha Cipher Machine
+const KRYHA_STEPS = Object.freeze([
+  [1, 3, 2, 5, 4, 2, 6, 1, 3],
+  [1, 2, 3, 4, 5, 6],
+  [2, 4, 1, 5, 3],
+  [3, 1, 4, 2, 5],
+  [1, 1, 2, 3, 5, 4]
+]);
+
+/**
+ * Helper to safely decode Kryha Cipher Machine encoded prompt injection payloads.
+ * Evaluates non-periodic stepped wheel shifts driven by variable-tooth gear wheels.
+ */
+export const safeDecodeKryha = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+
+  const clean = targetStr.toLowerCase().replace(/[^a-z]/g, '');
+  const N = clean.length;
+  if (N < 8) return null;
+
+  for (const stepSeq of KRYHA_STEPS) {
+    const L = stepSeq.length;
+
+    for (let initOffset = 0; initOffset < 26; initOffset++) {
+      let shift = initOffset;
+      let decoded = '';
+
+      for (let i = 0; i < N; i++) {
+        shift = (shift + stepSeq[i % L]) % 26;
+        const cVal = clean.charCodeAt(i) - 97;
+        let pVal = (cVal - shift) % 26;
+        if (pVal < 0) pVal += 26;
+        decoded += String.fromCharCode(pVal + 97);
+      }
+
+      if (decoded && decoded !== clean && hasPromptInjectionKeywords(decoded)) {
+        return decoded;
+      }
+    }
+  }
+
+  return null;
+};
+
+// Outer dial alphabet (27 positions: A-Z + space)
+const WHEATSTONE_OUTER = "abcdefghijklmnopqrstuvwxyz ";
+
+/**
+ * Helper to safely decode Wheatstone Cryptograph encoded prompt injection payloads.
+ * Evaluates 27-position outer dial / 26-position inner dial concentric gear-coupled disc mechanics.
+ */
+export const safeDecodeWheatstone = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 500) return null;
+
+  const clean = targetStr.toLowerCase();
+
+  const innerAlphabets = [
+    "abcdefghijklmnopqrstuvwxyz",
+    "zyxwvutsrqponmlkjihgfedcba",
+    "qwertyuiopasdfghjklzxcvbnm"
+  ];
+
+  for (const innerAlpha of innerAlphabets) {
+    for (let initPos = 0; initPos < 26; initPos++) {
+      let outerPointer = 0;
+      let totalSteps = initPos;
+      let decoded = '';
+      let isValid = true;
+
+      for (let i = 0; i < clean.length; i++) {
+        const cChar = clean[i];
+        if (cChar === ' ' || cChar === '\n' || cChar === '\r') {
+          decoded += ' ';
+          continue;
+        }
+
+        const cipherInnerIdx = innerAlpha.indexOf(cChar);
+        if (cipherInnerIdx === -1) {
+          isValid = false;
+          break;
+        }
+
+        let targetTotalSteps = totalSteps;
+        while ((targetTotalSteps % 26) !== cipherInnerIdx) {
+          targetTotalSteps++;
+        }
+
+        const delta = targetTotalSteps - totalSteps;
+        outerPointer = (outerPointer + delta) % 27;
+        totalSteps = targetTotalSteps;
+
+        decoded += WHEATSTONE_OUTER[outerPointer];
+      }
+
+      if (isValid && decoded && decoded !== clean && hasPromptInjectionKeywords(decoded)) {
+        return decoded;
+      }
+    }
+  }
+
+  return null;
 };
 
 
@@ -5499,6 +5741,10 @@ export default {
   safeDecodeAlberti,
   safeDecodeChaocipher,
   safeDecodeM209,
+  safeDecodeGromark,
+  safeDecodeGrandpre,
+  safeDecodeKryha,
+  safeDecodeWheatstone,
   isPromptInjection,
   sanitizeCSVField
 };
