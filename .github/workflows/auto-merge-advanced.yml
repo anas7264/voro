@@ -7,18 +7,14 @@ on:
     types: [submitted]
 
 permissions:
-  contents: write
-  pull-requests: write
-  checks: read
-  statuses: read
+  contents: read
+  pull-requests: read
 
 jobs:
   # ✅ المرحلة 1: فحص البناء
   build-verification:
     name: 🔨 Build Verification
     runs-on: ubuntu-latest
-    outputs:
-      build-status: ${{ steps.build.outcome }}
     
     steps:
       - name: 📥 Checkout Code
@@ -27,9 +23,9 @@ jobs:
           fetch-depth: 0
       
       - name: 📦 Install pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v4
         with:
-          version: 8
+          version: 10
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
@@ -41,39 +37,28 @@ jobs:
       - name: 🔍 Install Dependencies
         working-directory: webs
         run: pnpm install --frozen-lockfile
-        continue-on-error: true
       
       - name: 🏗️ Build Application
-        id: build
         working-directory: webs
         run: pnpm run build
-        continue-on-error: true
       
-      - name: 📊 Build Status Report
-        if: always()
-        run: |
-          echo "### 🏗️ Build Status"
-          if [ "${{ steps.build.outcome }}" = "success" ]; then
-            echo "✅ Build passed successfully" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "⚠️ Build had warnings or non-critical errors" >> $GITHUB_STEP_SUMMARY
-          fi
+      - name: 🧪 Masterclass Verification Suite
+        working-directory: webs
+        run: node verify_masterclass_luxury.cjs
 
   # ✅ المرحلة 2: فحص الاختبارات
   test-verification:
     name: 🧪 Test Suite
     runs-on: ubuntu-latest
-    outputs:
-      tests-status: ${{ steps.tests.outcome }}
     
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
       
       - name: 📦 Install pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v4
         with:
-          version: 8
+          version: 10
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
@@ -85,73 +70,77 @@ jobs:
       - name: 🔍 Install Dependencies
         working-directory: webs
         run: pnpm install --frozen-lockfile
-        continue-on-error: true
       
-      - name: 🧪 Run Playwright Tests
-        id: tests
+      - name: 🧪 Run Verification & Test Suites
         working-directory: webs
         run: |
-          if pnpm list @playwright/test > /dev/null 2>&1; then
-            pnpm exec playwright install
-            pnpm exec playwright test --reporter=json > test-results.json 2>&1 || true
-            echo "✅ Playwright tests executed"
+          echo "Running repository verification scripts..."
+          node verify_storage_security.js
+          node verify_security_headers.js
+          node verify_formatters_hardening.js
+
+          if pnpm list @playwright/test > /dev/null 2>&1 && [ -f "playwright.config.js" -o -f "playwright.config.ts" ]; then
+            pnpm exec playwright install --with-deps
+            pnpm exec playwright test --reporter=json > test-results.json
+            echo "✅ Playwright tests executed successfully"
           else
-            echo "⚠️ No Playwright tests found, skipping..."
+            echo "ℹ️ No Playwright test configuration file found, verification scripts passed."
           fi
-        continue-on-error: true
-      
-      - name: 📤 Upload Test Results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-results
-          path: webs/test-results.json
-        continue-on-error: true
 
   # ✅ المرحلة 3: فحص الأمان والـ Code Quality
   security-checks:
     name: 🔒 Security & Code Quality
     runs-on: ubuntu-latest
-    outputs:
-      security-status: ${{ steps.security.outcome }}
     
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
       
-      - name: 🔒 Run Security Scan
-        id: security
+      - name: 📦 Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+          cache-dependency-path: 'webs/pnpm-lock.yaml'
+
+      - name: 🔍 Install Dependencies
+        working-directory: webs
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔒 Run Security & Injection Shield Verification
+        working-directory: webs
         run: |
-          echo "🔍 Checking for security issues..."
-          
-          # التحقق من ملفات حساسة
-          if grep -r "password\|secret\|api.?key" --include="*.js" --include="*.jsx" --include="*.ts" --include="*.tsx" webs/src/ 2>/dev/null; then
-            echo "⚠️ Found potential exposed credentials"
+          echo "🔍 Checking for credential leakage in source code..."
+          if grep -r -i "password\s*=\s*['\"][^'\"]\+['\"]\|secret\s*=\s*['\"][^'\"]\+['\"]\|api_key\s*=\s*['\"][^'\"]\+['\"]" --include="*.js" --include="*.jsx" --include="*.ts" --include="*.tsx" src/ 2>/dev/null; then
+            echo "❌ Hardcoded credentials found in source code!"
+            exit 1
           else
-            echo "✅ No obvious credentials exposure"
+            echo "✅ No hardcoded credentials detected"
           fi
           
-          # التحقق من الـ dependencies المكسورة
-          if [ -f "webs/pnpm-lock.yaml" ]; then
-            echo "✅ Lockfile is present and verified"
-          fi
-        continue-on-error: true
+          node verify_prompt_injection_shield.js
+          node verify_ssrf_and_qp_hardening.js
       
       - name: 📋 ESLint Check
         working-directory: webs
         run: |
-          if pnpm list eslint > /dev/null 2>&1; then
-            pnpm exec eslint src/ --max-warnings=0 || echo "⚠️ ESLint warnings found"
+          if node -e "const pkg = require('./package.json'); if ((pkg.devDependencies && pkg.devDependencies.eslint) || (pkg.dependencies && pkg.dependencies.eslint)) process.exit(0); else process.exit(1);"; then
+            pnpm exec eslint src/ --max-warnings=0
           else
-            echo "ℹ️ ESLint not configured"
+            echo "ℹ️ ESLint not configured in package.json devDependencies"
           fi
-        continue-on-error: true
 
-  # ✅ المرحلة 4: التحليل الذكي
+  # ✅ المرحلة 4: التحليل الذكي والتحقق التجميعي الصارم
   smart-analysis:
     name: 🧠 Smart Analysis
     runs-on: ubuntu-latest
     needs: [build-verification, test-verification, security-checks]
+    if: always()
     outputs:
       should-merge: ${{ steps.decision.outputs.should-merge }}
       merge-reason: ${{ steps.decision.outputs.reason }}
@@ -162,42 +151,48 @@ jobs:
         with:
           fetch-depth: 0
       
-      - name: 📊 Analyze PR Details
+      - name: 📊 Analyze PR Quality & Required Status Checks
         id: decision
         run: |
-          echo "Analyzing PR quality metrics..."
+          echo "Analyzing PR quality metrics and status checks..."
           
-          # معايير الـ Merge
+          BUILD_RES="${{ needs.build-verification.result }}"
+          TEST_RES="${{ needs.test-verification.result }}"
+          SEC_RES="${{ needs.security-checks.result }}"
+          
+          echo "Build result: $BUILD_RES"
+          echo "Test result: $TEST_RES"
+          echo "Security result: $SEC_RES"
+          
           SHOULD_MERGE="true"
-          REASON="✅ All checks passed - Safe to merge"
+          REASON="✅ All strict status checks passed - Safe to merge"
           
-          # التحقق من حجم الـ PR (يجب ألا يكون ضخماً جداً)
-          CHANGED_FILES=$(git diff --name-only origin/main... | wc -l)
-          CHANGED_LINES=$(git diff --shortstat origin/main... | awk '{print $4}' | tr -d '+')
-          
-          if [ "$CHANGED_FILES" -gt 100 ]; then
-            REASON="⚠️ Large PR ($CHANGED_FILES files changed) - Review required"
-            SHOULD_MERGE="false"
-          elif [ "$CHANGED_LINES" -gt 5000 ]; then
-            REASON="⚠️ Too many lines changed ($CHANGED_LINES+) - Manual review needed"
+          if [ "$BUILD_RES" != "success" ] || [ "$TEST_RES" != "success" ] || [ "$SEC_RES" != "success" ]; then
+            REASON="❌ Required status checks failed (Build: $BUILD_RES, Tests: $TEST_RES, Security: $SEC_RES) - Auto-merge blocked"
             SHOULD_MERGE="false"
           fi
           
-          # التحقق من الـ labels
-          if [[ "${{ github.event.pull_request.labels.*.name }}" == *"blocked"* ]]; then
-            REASON="🚫 PR is blocked - Cannot merge"
-            SHOULD_MERGE="false"
-          fi
-          
-          if [[ "${{ github.event.pull_request.labels.*.name }}" == *"do-not-merge"* ]]; then
-            REASON="🚫 PR marked as do-not-merge"
-            SHOULD_MERGE="false"
-          fi
-          
-          # التحقق من حالة الـ base branch
-          if [ "${{ github.base_ref }}" != "main" ] && [ "${{ github.base_ref }}" != "develop" ]; then
-            REASON="ℹ️ PR targets non-standard branch - Review recommended"
-            SHOULD_MERGE="false"
+          if [ "$SHOULD_MERGE" = "true" ]; then
+            CHANGED_FILES=$(git diff --name-only origin/main... | wc -l)
+            CHANGED_LINES=$(git diff --shortstat origin/main... | awk '{print $4}' | tr -d '+' || echo "0")
+
+            if [ "$CHANGED_FILES" -gt 100 ]; then
+              REASON="⚠️ Large PR ($CHANGED_FILES files changed) - Manual review required"
+              SHOULD_MERGE="false"
+            elif [ "${CHANGED_LINES:-0}" -gt 5000 ]; then
+              REASON="⚠️ Too many lines changed ($CHANGED_LINES+) - Manual review needed"
+              SHOULD_MERGE="false"
+            fi
+
+            if [[ "${{ github.event.pull_request.labels.*.name }}" == *"blocked"* ]]; then
+              REASON="🚫 PR is marked as blocked - Cannot merge"
+              SHOULD_MERGE="false"
+            fi
+
+            if [[ "${{ github.event.pull_request.labels.*.name }}" == *"do-not-merge"* ]]; then
+              REASON="🚫 PR marked as do-not-merge"
+              SHOULD_MERGE="false"
+            fi
           fi
           
           echo "should-merge=$SHOULD_MERGE" >> $GITHUB_OUTPUT
@@ -206,12 +201,15 @@ jobs:
           echo "### 🧠 Smart Analysis Results" >> $GITHUB_STEP_SUMMARY
           echo "$REASON" >> $GITHUB_STEP_SUMMARY
 
-  # ✅ المرحلة 5: الموافقة التلقائية
+  # ✅ المرحلة 5: الموافقة التلقائية المقترنة باجتياز الفحوصات
   auto-approve:
     name: ✅ Auto Approve
     runs-on: ubuntu-latest
     needs: [smart-analysis]
-    if: needs.smart-analysis.outputs.should-merge == 'true'
+    if: needs.smart-analysis.outputs.should-merge == 'true' && github.event.pull_request.draft == false
+
+    permissions:
+      pull-requests: write
     
     steps:
       - name: 📥 Checkout Code
@@ -230,29 +228,16 @@ jobs:
                 repo: context.repo.repo,
                 pull_number: pr.number,
                 event: 'APPROVE',
-                body: '🤖 Auto-approved by VORO Auto-Merge Bot\n\n✅ All checks passed:\n- Build verification\n- Test suite\n- Security checks\n- Code quality\n\n*This approval is automated.*'
+                body: '🤖 Auto-approved by VORO Auto-Merge Bot\n\n✅ All required status checks passed:\n- Build verification\n- Test suite\n- Security & injection checks\n- PR size constraints\n\n*Automated approval.*'
               });
               console.log(`✅ PR #${pr.number} approved successfully`);
             } catch (error) {
-              console.log(`⚠️ Approval skipped or failed gracefully (e.g. self-approval restriction): ${error.message}`);
+              console.log(`⚠️ Approval skipped or failed gracefully: ${error.message}`);
             }
-        continue-on-error: true
-      
-      - name: 💬 Add Success Comment
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const pr = context.payload.pull_request;
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: pr.number,
-              body: '🚀 **Auto-Merge Pipeline Status: PASSED**\n\n| Check | Status |\n|-------|--------|\n| 🔨 Build | ✅ Passed |\n| 🧪 Tests | ✅ Passed |\n| 🔒 Security | ✅ Passed |\n| 🧠 Analysis | ✅ Approved |\n\n⏱️ Preparing for auto-merge...'
-            });
 
-  # ✅ المرحلة 6: الـ Merge التلقائي
+  # ✅ المرحلة 6: الـ Merge التلقائي المشروط صراحة
   auto-merge:
-    name: 🎯 Auto-Merge
+    name: 🎯 Conditional Auto-Merge
     runs-on: ubuntu-latest
     needs: [auto-approve, smart-analysis]
     if: needs.smart-analysis.outputs.should-merge == 'true'
@@ -267,10 +252,7 @@ jobs:
         with:
           fetch-depth: 0
       
-      - name: ⏳ Wait for Approval
-        run: sleep 5
-      
-      - name: 🎯 Enable Auto-Merge
+      - name: 🎯 Execute Merge
         uses: actions/github-script@v7
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -279,43 +261,30 @@ jobs:
             const pr = context.payload.pull_request;
             const number = pr.number;
             
-            console.log(`🎯 Attempting auto-merge for PR #${number}...`);
+            console.log(`🎯 Executing squash merge for PR #${number}...`);
             
             try {
-              // محاولة enable auto-merge
-              await github.rest.pulls.enableAutoMerge({
+              await github.rest.pulls.merge({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: number,
-                merge_method: 'squash'
+                merge_method: 'squash',
+                commit_title: pr.title,
+                commit_message: `🤖 Auto-Merged PR #${number}: ${pr.title}`
               });
-              
-              console.log(`✅ Auto-merge enabled for PR #${number}`);
-            } catch (error) {
-              console.log(`⚠️ Auto-merge couldn't be enabled: ${error.message}`);
-              console.log('Attempting direct merge...');
-              
-              // محاولة merge مباشر إذا فشل auto-merge
-              try {
-                await github.rest.pulls.merge({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  pull_number: number,
-                  merge_method: 'squash'
-                });
-                
-                console.log(`✅ PR #${number} merged successfully!`);
-              } catch (mergeError) {
-                console.log(`❌ Merge failed: ${mergeError.message}`);
-              }
+              console.log(`✅ PR #${number} merged successfully!`);
+            } catch (mergeError) {
+              console.error(`❌ Direct merge failed: ${mergeError.message}`);
+              core.setFailed(`Merge failed: ${mergeError.message}`);
             }
       
       - name: 🗑️ Delete Branch
+        if: success()
         uses: actions/github-script@v7
         with:
           script: |
             const pr = context.payload.pull_request;
-            if (pr.head.ref) {
+            if (pr.head && pr.head.ref) {
               try {
                 await github.rest.git.deleteRef({
                   owner: context.repo.owner,
@@ -327,26 +296,18 @@ jobs:
                 console.log(`⚠️ Could not delete branch: ${error.message}`);
               }
             }
-      
-      - name: 🎉 Success Notification
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const pr = context.payload.pull_request;
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: pr.number,
-              body: '🎉 **PR Auto-Merged Successfully!**\n\n✅ Status: MERGED\n⏱️ Time: ~30 seconds\n🤖 Method: Squash Merge\n\nThank you for your contribution! 🚀'
-            });
 
-  # ❌ المرحلة 7: إذا لم تنجح العملية
+  # ❌ المرحلة 7: معالجة الرفض وإضافة التنبيهات عند الفشل
   merge-failed:
     name: ❌ Handle Merge Failures
     runs-on: ubuntu-latest
-    needs: [smart-analysis, auto-approve]
+    needs: [smart-analysis]
     if: needs.smart-analysis.outputs.should-merge == 'false'
     
+    permissions:
+      pull-requests: write
+      issues: write
+
     steps:
       - name: 📝 Add Warning Comment
         uses: actions/github-script@v7
@@ -359,7 +320,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: pr.number,
-              body: `⚠️ **Auto-Merge Skipped**\n\n**Reason:** ${reason}\n\n**Action Required:** This PR requires manual review before merging.\n\n📋 Please ensure all checks pass and review the code manually.`
+              body: `⚠️ **Auto-Merge Skipped / Blocked**\n\n**Reason:** ${reason}\n\n**Action Required:** Manual engineering review required before merging.\n\n📋 Please inspect failing status checks and resolve issues.`
             });
       
       - name: 🏷️ Add Review Label
@@ -367,9 +328,13 @@ jobs:
         with:
           script: |
             const pr = context.payload.pull_request;
-            await github.rest.issues.addLabels({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: pr.number,
-              labels: ['needs-review']
-            });
+            try {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                labels: ['needs-review']
+              });
+            } catch (err) {
+              console.log(`Labeling notice: ${err.message}`);
+            }
