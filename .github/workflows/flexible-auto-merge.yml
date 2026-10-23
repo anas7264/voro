@@ -1,4 +1,4 @@
-name: 🚀 Flexible Auto-Merge Bot - No Strict Requirements
+name: 🚀 Flexible Auto-Merge Bot
 
 on:
   pull_request:
@@ -7,62 +7,65 @@ on:
     types: [submitted]
 
 permissions:
-  contents: write
-  pull-requests: write
-  checks: read
-  statuses: read
+  contents: read
+  pull-requests: read
 
 jobs:
-  # المرحلة 1: فحص سريع (اختياري - بدون إيقاف)
-  quick-checks:
-    name: 🏃 Quick Checks (Non-Blocking)
+  # المرحلة 1: فحص البناء والتحقق الصارم
+  build-and-verify:
+    name: 🔨 Build & Verification Check
     runs-on: ubuntu-latest
     
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
-        continue-on-error: true
+        with:
+          fetch-depth: 0
       
-      - name: 🏗️ Quick Build Test
-        run: |
-          echo "🔨 Attempting quick build..."
-          if [ -d "webs" ]; then
-            cd webs
-            if [ -f "package.json" ]; then
-              echo "✅ Build configured"
-            fi
-          fi
-        continue-on-error: true
-      
-      - name: 📊 Generate Summary
-        run: |
-          echo "### ✅ Quick Health Check Completed"
-          echo "- Build configuration: ✅"
-          echo "- Lockfile present: ✅"
-          echo "- Ready for merge: ✅"
-        continue-on-error: true
+      - name: 📦 Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
 
-  # المرحلة 2: قبول تلقائي بدون شروط
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+          cache-dependency-path: 'webs/pnpm-lock.yaml'
+      
+      - name: 🔍 Install Dependencies
+        working-directory: webs
+        run: pnpm install --frozen-lockfile
+
+      - name: 🏗️ Production Build Test
+        working-directory: webs
+        run: pnpm run build
+
+      - name: 🧪 Masterclass Verification Suite
+        working-directory: webs
+        run: node verify_masterclass_luxury.cjs
+
+  # المرحلة 2: قبول تلقائي مقترن بنجاح الفحوصات
   auto-approve-flexible:
-    name: ✅ Auto-Approve (Flexible)
+    name: ✅ Auto-Approve (Post-Verification)
     runs-on: ubuntu-latest
-    needs: [quick-checks]
-    if: always()
+    needs: [build-and-verify]
+    if: github.event.pull_request.draft == false
+
+    permissions:
+      pull-requests: write
     
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
       
-      - name: ✅ Approve PR Automatically
+      - name: ✅ Approve PR
         uses: actions/github-script@v7
         with:
           script: |
             const pr = context.payload.pull_request;
-            
-            if (!pr) {
-              console.log('❌ No PR found in payload');
-              return;
-            }
+            if (!pr) return;
             
             try {
               await github.rest.pulls.createReview({
@@ -70,21 +73,18 @@ jobs:
                 repo: context.repo.repo,
                 pull_number: pr.number,
                 event: 'APPROVE',
-                body: '🤖 **تمت الموافقة التلقائية من VORO Bot**\n\n✅ سيتم الـ merge تلقائياً في ثوانٍ معدودة...\n\n*تحذير: هذه الموافقة آلية بدون فحوصات صارمة*'
+                body: '🤖 **تأكيد الموافقة التلقائية من VORO Bot**\n\n✅ تم اجتياز جميع فحوصات البناء والتحقق الصارم بنجاح.'
               });
-              
               console.log(`✅ PR #${pr.number} approved successfully`);
             } catch (error) {
-              console.log(`⚠️ Approval already exists or error: ${error.message}`);
+              console.log(`⚠️ Approval skipped or already present: ${error.message}`);
             }
-        continue-on-error: true
 
-  # المرحلة 3: الـ Merge التلقائي الفوري
+  # المرحلة 3: الـ Merge التلقائي المشروط بنجاح الفحوصات والموافقة
   auto-merge-instant:
-    name: 🎯 Instant Auto-Merge
+    name: 🎯 Conditional Auto-Merge
     runs-on: ubuntu-latest
-    needs: [auto-approve-flexible]
-    if: always()
+    needs: [build-and-verify, auto-approve-flexible]
     
     permissions:
       contents: write
@@ -96,9 +96,6 @@ jobs:
         with:
           fetch-depth: 0
       
-      - name: ⏳ Brief Wait
-        run: sleep 3
-      
       - name: 🎯 Execute Merge
         uses: actions/github-script@v7
         env:
@@ -106,17 +103,13 @@ jobs:
         with:
           script: |
             const pr = context.payload.pull_request;
-            
-            if (!pr) {
-              console.log('❌ No PR data available');
-              return;
-            }
+            if (!pr) return;
             
             const prNumber = pr.number;
-            console.log(`🎯 Starting merge for PR #${prNumber}...`);
+            console.log(`🎯 Attempting safe merge for PR #${prNumber}...`);
             
             try {
-              const mergeResult = await github.rest.pulls.merge({
+              await github.rest.pulls.merge({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: prNumber,
@@ -124,32 +117,18 @@ jobs:
                 commit_message: `🤖 Auto-Merged: ${pr.title}`,
                 commit_title: pr.title
               });
-              
-              console.log('✅ Merge successful!');
-              console.log(mergeResult.data);
+              console.log('✅ Squash merge successful!');
             } catch (error) {
-              console.log(`⚠️ Merge attempt: ${error.message}`);
-              
-              try {
-                await github.rest.pulls.merge({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  pull_number: prNumber,
-                  merge_method: 'rebase'
-                });
-                console.log('✅ Rebase merge successful');
-              } catch (rebaseError) {
-                console.log(`⚠️ Rebase also failed: ${rebaseError.message}`);
-              }
+              console.error(`❌ Merge attempt failed: ${error.message}`);
+              core.setFailed(`Merge failed: ${error.message}`);
             }
-        continue-on-error: true
       
       - name: 🗑️ Delete Branch
+        if: success()
         uses: actions/github-script@v7
         with:
           script: |
             const pr = context.payload.pull_request;
-            
             if (!pr || !pr.head.ref) return;
             
             try {
@@ -162,14 +141,13 @@ jobs:
             } catch (error) {
               console.log(`⚠️ Could not delete branch: ${error.message}`);
             }
-        continue-on-error: true
 
-  # المرحلة 4: إرسال بريد تأكيد
+  # المرحلة 4: إرسال بريد تأكيد عند نجاح الـ Merge
   send-confirmation-email:
     name: 📧 Send Confirmation Email
     runs-on: ubuntu-latest
     needs: [auto-merge-instant]
-    if: always()
+    if: success()
     
     steps:
       - name: 📥 Checkout Code
@@ -181,20 +159,17 @@ jobs:
         with:
           script: |
             const pr = context.payload.pull_request;
+            if (!pr) return;
             
-            if (!pr) {
-              core.setOutput('author', 'Unknown');
-              core.setOutput('email', '');
-              return;
-            }
-            
-            const author = pr.user.login;
-            core.setOutput('author', author);
+            core.setOutput('author', pr.user.login);
             core.setOutput('pr-number', pr.number);
             core.setOutput('pr-title', pr.title);
             core.setOutput('pr-url', pr.html_url);
       
-      - name: 📧 Send Email via SendGrid
+      - name: 📧 Send Email via SendGrid/SMTP
+        if: env.HAS_EMAIL_SECRETS == 'true'
+        env:
+          HAS_EMAIL_SECRETS: ${{ secrets.EMAIL_USERNAME != '' && secrets.EMAIL_PASSWORD != '' }}
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
@@ -207,7 +182,7 @@ jobs:
           body: |
             🎉 تأكيد نجاح الـ Merge
             
-            تم دمج التعديلات بنجاح في مشروع VORO
+            تم دمج التعديلات بنجاح في مشروع VORO بعد اجتياز كافة فحوصات الأمان والتحقق.
             
             📋 تفاصيل الـ PR:
             - رقم الـ PR: #${{ steps.email-info.outputs.pr-number }}
@@ -217,53 +192,17 @@ jobs:
             🔗 الرابط: ${{ steps.email-info.outputs.pr-url }}
             
             هذا بريد تلقائي من نظام VORO Auto-Merge Bot
-          html_body: |
-            <html>
-              <head>
-                <meta charset="UTF-8">
-                <style>
-                  body { font-family: Arial, sans-serif; direction: rtl; background: #f5f5f5; }
-                  .container { max-width: 600px; margin: 0 auto; padding: 20px; background: white; border-radius: 8px; }
-                  .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; }
-                  .content { background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; }
-                  .success { color: #28a745; font-size: 18px; }
-                  .details { background: white; padding: 15px; border-left: 4px solid #667eea; margin: 10px 0; }
-                  .footer { color: #666; font-size: 12px; margin-top: 20px; text-align: center; }
-                  a { color: #667eea; text-decoration: none; }
-                </style>
-              </head>
-              <body>
-                <div class="container">
-                  <div class="header">
-                    <h1>🎉 تأكيد نجاح الـ Merge</h1>
-                    <p>تم دمج التعديلات بنجاح</p>
-                  </div>
-                  
-                  <div class="content">
-                    <h2 class="success">✅ تم الـ Merge بنجاح!</h2>
-                    
-                    <div class="details">
-                      <p><strong>📌 رقم الـ PR:</strong> #${{ steps.email-info.outputs.pr-number }}</p>
-                      <p><strong>📝 العنوان:</strong> ${{ steps.email-info.outputs.pr-title }}</p>
-                      <p><strong>👤 المؤلف:</strong> ${{ steps.email-info.outputs.author }}</p>
-                      <p><strong>✅ الحالة:</strong> مكتمل</p>
-                    </div>
-                  </div>
-                  
-                  <div class="footer">
-                    <p>هذا بريد تلقائي من VORO Auto-Merge Bot</p>
-                  </div>
-                </div>
-              </body>
-            </html>
-        continue-on-error: true
 
   # المرحلة 5: تعليق النجاح
   success-comment:
     name: 💬 Post Success Comment
     runs-on: ubuntu-latest
-    needs: [send-confirmation-email]
-    if: always()
+    needs: [auto-merge-instant]
+    if: success()
+
+    permissions:
+      pull-requests: write
+      issues: write
     
     steps:
       - name: 📥 Checkout Code
@@ -274,7 +213,6 @@ jobs:
         with:
           script: |
             const pr = context.payload.pull_request;
-            
             if (!pr) return;
             
             try {
@@ -286,36 +224,13 @@ jobs:
 
 | المعلومة | القيمة |
 |---------|--------|
-| 🤖 الطريقة | Automatic Merge |
-| ⏱️ الوقت | ~10 ثوانٍ |
+| 🤖 الطريقة | Verified Automatic Merge |
+| 🏗️ البناء | ✅ PASSED |
 | 📊 نوع الـ Merge | Squash |
 | ✅ الحالة | مكتمل |
-| 📧 البريد | تم إرسال تأكيد |
 
-✅ تم دمج الفرع في \`main\`
-✅ تم حذف فرع التطوير
-✅ تم إرسال بريد تأكيد
-
-شكراً على مساهمتك! 🚀`
+✅ تم الفحص والدمج بنجاح في \`main\`.`
               });
-              
-              console.log('✅ Comment posted successfully');
             } catch (error) {
               console.log(`⚠️ Comment failed: ${error.message}`);
             }
-        continue-on-error: true
-
-  # المرحلة 6: تحديث السجل
-  log-merge-event:
-    name: 📋 Log Merge Event
-    runs-on: ubuntu-latest
-    needs: [success-comment]
-    if: always()
-    
-    steps:
-      - name: 📥 Checkout Code
-        uses: actions/checkout@v4
-      
-      - name: 📝 Create Merge Log
-        run: |
-          echo "Merge Log Entry Created"
