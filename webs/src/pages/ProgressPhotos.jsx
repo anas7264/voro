@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, memo, useId } from 'react';
 import { Camera, Trash2, X, Layers, Maximize2, Sparkles, ShieldCheck, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/Button';
 import Badge from '@/components/Badge';
@@ -21,11 +21,11 @@ const shortDateFormatter = new CachedDateTimeFormat('en-US', {
 });
 
 const EMPTY_PHOTOS = Object.freeze([]);
-const selectProgressPhotos = (val) => val || EMPTY_PHOTOS;
+const selectProgressPhotos = (val) => (Array.isArray(val) ? val : EMPTY_PHOTOS);
 
 const sortPhotosByDate = (a, b) => {
-  const dA = a.date || '';
-  const dB = b.date || '';
+  const dA = a?.date || '';
+  const dB = b?.date || '';
   return dA < dB ? -1 : dA > dB ? 1 : 0;
 };
 
@@ -33,7 +33,7 @@ const sortPhotosByDate = (a, b) => {
  * 🛰️ CHRONO-SPECTRAL EVOLUTION LENS COMPONENT
  * A masterfully detailed glassmorphic image comparison tool.
  */
-const SpectralLens = ({ before, after, onClose }) => {
+const SpectralLens = memo(({ before, after, onClose }) => {
   const containerRef = useRef(null);
   const dividerRef = useRef(null);
   const clippedLayerRef = useRef(null);
@@ -77,10 +77,11 @@ const SpectralLens = ({ before, after, onClose }) => {
   }, []);
 
   const daysDiff = useMemo(() => {
+    if (!before?.date || !after?.date) return 0;
     const start = Date.parse(before.date);
     const end = Date.parse(after.date);
     return Math.round((end - start) / (1000 * 60 * 60 * 24));
-  }, [before.date, after.date]);
+  }, [before?.date, after?.date]);
 
   useEffect(() => {
     return () => {
@@ -104,11 +105,11 @@ const SpectralLens = ({ before, after, onClose }) => {
       <div className="absolute inset-0 bg-grid-white opacity-40 pointer-events-none" />
 
       {/* After image layer */}
-      <img src={after.src} alt="After Evolution" className="absolute inset-0 w-full h-full object-cover select-none" />
+      <img src={after?.src} alt="After Evolution" className="absolute inset-0 w-full h-full object-cover select-none" />
       <div className="absolute bottom-10 right-14 z-10 pointer-events-none">
          <div className="flex flex-col items-end bg-black/60 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10">
             <span className="text-[0.55rem] font-mono text-voro-secondary uppercase tracking-[0.3em] mb-1 font-bold">Spectrum_B // After</span>
-            <span className="text-2xl font-serif italic text-white font-bold tracking-tight">{shortDateFormatter.format(after.date)}</span>
+            <span className="text-2xl font-serif italic text-white font-bold tracking-tight">{after?.date ? shortDateFormatter.format(after.date) : 'N/A'}</span>
          </div>
       </div>
 
@@ -118,11 +119,11 @@ const SpectralLens = ({ before, after, onClose }) => {
         className="absolute inset-0 z-20 overflow-hidden select-none"
         style={{ clipPath: 'inset(0 50% 0 0)' }}
       >
-        <img src={before.src} alt="Before Evolution" className="absolute inset-0 w-full h-full object-cover select-none" />
+        <img src={before?.src} alt="Before Evolution" className="absolute inset-0 w-full h-full object-cover select-none" />
         <div className="absolute bottom-10 left-14">
           <div className="flex flex-col bg-black/60 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10">
             <span className="text-[0.55rem] font-mono text-voro-primary uppercase tracking-[0.3em] mb-1 font-bold">Spectrum_A // Before</span>
-            <span className="text-2xl font-serif italic text-white font-bold tracking-tight">{shortDateFormatter.format(before.date)}</span>
+            <span className="text-2xl font-serif italic text-white font-bold tracking-tight">{before?.date ? shortDateFormatter.format(before.date) : 'N/A'}</span>
           </div>
         </div>
       </div>
@@ -188,17 +189,20 @@ const SpectralLens = ({ before, after, onClose }) => {
       <div className="absolute inset-0 bg-boutique-grain opacity-[0.025] pointer-events-none z-50" />
     </div>
   );
-};
+});
+SpectralLens.displayName = "SpectralLens";
 
 /**
  * 🛰️ KINETIC PHOTO NODE (Biometric Specimen Cell)
- * Highly optimized with direct DOM updates to avoid React state re-renders,
+ * Highly optimized with direct DOM updates batched via requestAnimationFrame to avoid React state re-renders,
  * featuring premium volumetric tilts, keyboard-focus states, and defensive purges.
  */
-const KineticPhotoNode = React.memo(({ photo, isSelected, onClick, onDelete, isStart, isLatest }) => {
+const KineticPhotoNode = memo(({ photo, isSelected, onClick, onDelete, isStart, isLatest }) => {
+  const nodeUid = useId();
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
+  const rafIdRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
   const [showPurgeConfirm, setShowPurgeConfirm] = useState(false);
@@ -215,23 +219,30 @@ const KineticPhotoNode = React.memo(({ photo, isSelected, onClick, onDelete, isS
 
   const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
 
-    // Volumetric tilt calculation
-    const tiltY = ((x / rect.width) - 0.5) * 16;
-    const tiltX = (0.5 - (y / rect.height)) * 16;
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = requestAnimationFrame(() => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
 
-    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+      // Volumetric tilt calculation
+      const tiltY = ((x / rect.width) - 0.5) * 16;
+      const tiltX = (0.5 - (y / rect.height)) * 16;
 
-    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
-    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+      containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+      containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
 
-    if (isHoveredRef.current || isFocusedRef.current) {
-      updateTransform();
-    }
+      if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+      if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+
+      if (isHoveredRef.current || isFocusedRef.current) {
+        updateTransform();
+      }
+    });
   }, [updateTransform]);
 
   const handleMouseEnter = useCallback(() => {
@@ -241,6 +252,7 @@ const KineticPhotoNode = React.memo(({ photo, isSelected, onClick, onDelete, isS
 
   const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
@@ -291,10 +303,11 @@ const KineticPhotoNode = React.memo(({ photo, isSelected, onClick, onDelete, isS
   useEffect(() => {
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
     };
   }, []);
 
-  const nodeId = useMemo(() => `BIOMETRIC_NODE_0x${photo.id.slice(-4).toUpperCase()}`, [photo.id]);
+  const nodeId = useMemo(() => `BIOMETRIC_NODE_0x${photo.id ? photo.id.slice(-4).toUpperCase() : 'UNKN'}`, [photo.id]);
 
   return (
     <div
@@ -308,20 +321,20 @@ const KineticPhotoNode = React.memo(({ photo, isSelected, onClick, onDelete, isS
       onClick={onClick}
       tabIndex={0}
       role="button"
-      aria-label={`Visual Biometric Node logged on ${progressDateFormatter.format(photo.date)}. ${isStart ? 'First logged baseline.' : ''} ${isLatest ? 'Latest logged state.' : ''} Click to view detail.`}
+      aria-label={`Visual Biometric Node logged on ${photo.date ? progressDateFormatter.format(photo.date) : 'N/A'}. ${isStart ? 'First logged baseline.' : ''} ${isLatest ? 'Latest logged state.' : ''} Click to view detail.`}
+      data-attestation={`0xPHO_${nodeUid.replace(/:/g, '')}_PHOTO_NODE`}
       style={{
         transformStyle: 'preserve-3d'
       }}
       className={`
         relative group rounded-[2.5rem] overflow-hidden cursor-pointer border bg-[#0A0C14] transition-all duration-500
         ${isSelected ? 'border-voro-primary shadow-[0_40px_80px_rgba(124,58,237,0.3)] ring-2 ring-voro-primary/50' : 'border-white/10 shadow-xl hover:border-white/20'}
-        ${isFocused ? 'ring-2 ring-voro-primary ring-offset-4 ring-offset-[#080B14]' : ''}
       `}
     >
       <div className="aspect-[4/5] relative">
         <img
           src={photo.src}
-          alt={photo.label}
+          alt={photo.label || 'Progress Photo'}
           className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
         />
         {/* Luminous gradient shadows */}
@@ -347,7 +360,7 @@ const KineticPhotoNode = React.memo(({ photo, isSelected, onClick, onDelete, isS
           <p className="text-[0.55rem] font-mono text-gray-400 uppercase tracking-[0.25em] mb-1 font-semibold">Log_Sequence</p>
           <div className="flex items-center justify-between">
             <span className="text-xl font-serif italic text-white font-semibold">
-              {progressDateFormatter.format(photo.date)}
+              {photo.date ? progressDateFormatter.format(photo.date) : 'N/A'}
             </span>
             {isSelected && (
                <div className="w-2.5 h-2.5 rounded-full bg-voro-primary shadow-[0_0_12px_rgba(124,58,237,0.9)] animate-pulse" />
@@ -425,7 +438,8 @@ const verifyImageHeader = (file) => {
   });
 };
 
-const ProgressPhotos = () => {
+const ProgressPhotos = memo(() => {
+  const pageUid = useId();
   const photos = useStorageKeySelector('voro_progress_photos', selectProgressPhotos);
   const { setItem } = useStorageMethods();
   const { addNotification } = useNotifications();
@@ -466,7 +480,7 @@ const ProgressPhotos = () => {
   }, []);
 
   const sortedPhotos = useMemo(() => {
-    return [...photos].sort(sortPhotosByDate);
+    return (Array.isArray(photos) ? [...photos] : []).sort(sortPhotosByDate);
   }, [photos]);
 
   const handleFileUpload = async (e) => {
@@ -538,9 +552,9 @@ const ProgressPhotos = () => {
             id: `photo-${Date.now()}`,
             src: sanitizedDataUrl,
             date: new Date().toISOString(),
-            label: `Photo ${photos.length + 1}`
+            label: `Photo ${(photos?.length || 0) + 1}`
           };
-          setItem('voro_progress_photos', [...photos, newPhoto]);
+          setItem('voro_progress_photos', [...(Array.isArray(photos) ? photos : []), newPhoto]);
           addNotification('Biometric visual record synthesized, sanitized, and optimized.', 'success');
         } catch (err) {
           console.error("Image sanitization failed:", err);
@@ -556,7 +570,7 @@ const ProgressPhotos = () => {
   };
 
   const deletePhoto = (id) => {
-    setItem('voro_progress_photos', photos.filter(p => p.id !== id));
+    setItem('voro_progress_photos', (Array.isArray(photos) ? photos : []).filter(p => p.id !== id));
     if (compareA?.id === id) setCompareA(null);
     if (compareB?.id === id) setCompareB(null);
     if (selectedPhoto?.id === id) setSelectedPhoto(null);
@@ -604,7 +618,10 @@ const ProgressPhotos = () => {
   }
 
   return (
-    <div className="min-h-screen bg-transparent text-[#F0F4FF] selection:bg-voro-primary/30 relative">
+    <div
+      data-attestation={`0xPHO_PAGE_${pageUid.replace(/:/g, '')}_GALLERY`}
+      className="min-h-screen bg-transparent text-[#F0F4FF] selection:bg-voro-primary/30 relative"
+    >
       {/* Structural Ambient Background Detail */}
       <div className="absolute top-0 right-0 w-full h-[600px] bg-gradient-to-b from-voro-primary/[0.03] to-transparent pointer-events-none" />
 
@@ -653,7 +670,7 @@ const ProgressPhotos = () => {
                 <div className="flex items-center gap-2.5">
                   <div className="w-2 h-2 rounded-full bg-voro-primary shadow-[0_0_8px_rgba(124,58,237,0.8)]" />
                   <span className="text-xs font-mono text-gray-400 font-medium">Archived:</span>
-                  <span className="text-xs font-mono text-white font-bold tracking-wider">{photos.length} NODES</span>
+                  <span className="text-xs font-mono text-white font-bold tracking-wider">{sortedPhotos.length} NODES</span>
                 </div>
                 <div className="h-3 w-px bg-white/10" />
                 <div className="flex items-center gap-2.5">
@@ -711,10 +728,10 @@ const ProgressPhotos = () => {
 
                  <div className="flex flex-col sm:flex-row gap-4">
                     <div className={`px-6 py-3 rounded-2xl border font-mono text-xs tracking-wider font-bold transition-all ${compareA ? 'bg-voro-primary/15 border-voro-primary text-voro-primary' : 'bg-white/5 border-white/10 text-gray-500'}`}>
-                      [NODE_A: {compareA ? `READY (${shortDateFormatter.format(compareA.date)})` : 'EMPTY'}]
+                      [NODE_A: {compareA ? `READY (${compareA.date ? shortDateFormatter.format(compareA.date) : 'N/A'})` : 'EMPTY'}]
                     </div>
                     <div className={`px-6 py-3 rounded-2xl border font-mono text-xs tracking-wider font-bold transition-all ${compareB ? 'bg-voro-secondary/15 border-voro-secondary text-voro-secondary' : 'bg-white/5 border-white/10 text-gray-500'}`}>
-                      [NODE_B: {compareB ? `READY (${shortDateFormatter.format(compareB.date)})` : 'EMPTY'}]
+                      [NODE_B: {compareB ? `READY (${compareB.date ? shortDateFormatter.format(compareB.date) : 'N/A'})` : 'EMPTY'}]
                     </div>
                  </div>
               </div>
@@ -722,7 +739,7 @@ const ProgressPhotos = () => {
           </section>
         )}
 
-        {photos.length === 0 ? (
+        {sortedPhotos.length === 0 ? (
           <div className="py-36 flex flex-col items-center justify-center text-center relative rounded-[3.5rem] bg-[#0A0C14] border border-white/5 overflow-hidden">
             {/* Ambient Background Glow */}
             <div className="absolute inset-0 bg-grid-white opacity-10 pointer-events-none" />
@@ -780,7 +797,7 @@ const ProgressPhotos = () => {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pt-4 border-t border-white/10">
               <div className="space-y-1">
                 <p className="text-[0.55rem] font-mono text-gray-400 uppercase tracking-[0.3em] font-semibold">Temporal_Reference_Point</p>
-                <p className="text-2xl font-serif italic font-bold text-white tracking-tight">{progressDateFormatter.format(selectedPhoto.date)}</p>
+                <p className="text-2xl font-serif italic font-bold text-white tracking-tight">{selectedPhoto.date ? progressDateFormatter.format(selectedPhoto.date) : 'N/A'}</p>
               </div>
               <div className="flex gap-4">
                 <Button
@@ -800,6 +817,7 @@ const ProgressPhotos = () => {
       <div className="fixed inset-0 bg-boutique-grain opacity-[0.015] pointer-events-none z-[100]" />
     </div>
   );
-};
+});
+ProgressPhotos.displayName = "ProgressPhotos";
 
 export default ProgressPhotos;

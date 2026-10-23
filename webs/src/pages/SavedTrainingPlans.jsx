@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback, useRef, memo } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef, memo, useId } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus,
@@ -36,13 +36,15 @@ const dateStrFormatter = new CachedDateTimeFormat('en-US', {
 /**
  * ⚡ LUXURY REFINEMENT: KineticBlueprintCard.
  * Conforms to the 'Forge' luxury standard with GPU-accelerated 60fps direct-DOM
- * volumetric 3D tilts, coordinate telemetry overlays, static 4-degree focus offsets,
+ * volumetric 3D tilts batched via requestAnimationFrame, coordinate telemetry overlays, static 4-degree focus offsets,
  * liquid border perimeter glows, and double-confirmation defensive purge sequence.
  */
 const KineticBlueprintCard = memo(({ plan, index, onDelete, onAnalyze, onExport }) => {
+  const nodeUid = useId();
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
+  const rafIdRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
   const [purgeState, setPurgeState] = useState(false);
@@ -50,23 +52,30 @@ const KineticBlueprintCard = memo(({ plan, index, onDelete, onAnalyze, onExport 
 
   const handleMouseMove = (e) => {
     if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
 
-    // Volumetric 3D tilt calculation (max 12 degrees)
-    const tiltY = ((x / rect.width) - 0.5) * 24;
-    const tiltX = (0.5 - (y / rect.height)) * 24;
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = requestAnimationFrame(() => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
 
-    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
-    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
-    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
-    containerRef.current.style.transition = 'none';
-    containerRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-6px)';
+      // Volumetric 3D tilt calculation (max 12 degrees)
+      const tiltY = ((x / rect.width) - 0.5) * 24;
+      const tiltX = (0.5 - (y / rect.height)) * 24;
 
-    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
-    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+      containerRef.current.style.setProperty('--mouse-x', `${x}px`);
+      containerRef.current.style.setProperty('--mouse-y', `${y}px`);
+      containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+      containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+      containerRef.current.style.transition = 'none';
+      containerRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-6px)';
+
+      if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+      if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+    });
   };
 
   const handleMouseEnter = () => {
@@ -79,6 +88,7 @@ const KineticBlueprintCard = memo(({ plan, index, onDelete, onAnalyze, onExport 
 
   const handleMouseLeave = () => {
     isHoveredRef.current = false;
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
@@ -129,6 +139,7 @@ const KineticBlueprintCard = memo(({ plan, index, onDelete, onAnalyze, onExport 
   useEffect(() => {
     return () => {
       if (purgeTimerRef.current) clearTimeout(purgeTimerRef.current);
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
     };
   }, []);
 
@@ -143,6 +154,7 @@ const KineticBlueprintCard = memo(({ plan, index, onDelete, onAnalyze, onExport 
       tabIndex="0"
       role="article"
       aria-label={`Kinetic Blueprint: ${plan.name}. Schedule: ${plan.days || 3} days per week. Level: ${plan.level || 'Advanced'}. Node ID: ${plan._nodeId}. ${purgeState ? 'Pending deletion confirmation.' : ''}`}
+      data-attestation={`0xSTP_${nodeUid.replace(/:/g, '')}_BLUEPRINT`}
       style={{
         transform: 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
         transition: 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
@@ -301,7 +313,8 @@ KineticBlueprintCard.displayName = 'KineticBlueprintCard';
 
 const selectPlans = s => s || EMPTY_OBJECT;
 
-const SavedTrainingPlans = () => {
+const SavedTrainingPlans = memo(() => {
+  const pageUid = useId();
   const navigate = useNavigate();
   const { addNotification } = useNotifications();
 
@@ -414,7 +427,10 @@ const SavedTrainingPlans = () => {
   }, [addNotification]);
 
   return (
-    <div className="min-h-screen bg-[#020408] text-[#F0F4FF] pb-32 selection:bg-voro-primary/30 relative overflow-hidden">
+    <div
+      data-attestation={`0xSTP_PAGE_${pageUid.replace(/:/g, '')}_VAULT`}
+      className="min-h-screen bg-[#020408] text-[#F0F4FF] pb-32 selection:bg-voro-primary/30 relative overflow-hidden"
+    >
       {/* Cinematic Orbital Alignment Loader Sequence */}
       {isLoading && (
         <div className="fixed inset-0 z-50 bg-[#020408] flex flex-col items-center justify-center p-6 animate-fade-in">
@@ -520,6 +536,7 @@ const SavedTrainingPlans = () => {
       </div>
     </div>
   );
-};
+});
+SavedTrainingPlans.displayName = "SavedTrainingPlans";
 
 export default SavedTrainingPlans;

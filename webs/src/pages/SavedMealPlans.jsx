@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef, memo, useId } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Download, Clipboard, Calendar, Zap, Layout, Trash2, ShieldAlert } from 'lucide-react';
 import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
@@ -24,10 +24,10 @@ const dateStrFormatter = new CachedDateTimeFormat('en-US', {
 
 /**
  * ⚡ LUXURY REFINEMENT: SavedMealPlanCard Subcomponent.
- * Extracted memoized component with 60fps direct-DOM 3D volumetric hover tilt tracking,
+ * Extracted memoized component with 60fps direct-DOM 3D volumetric hover tilt tracking batched via requestAnimationFrame,
  * holographic telemetry overlays, and static focus tilts for accessibility.
  */
-const SavedMealPlanCard = React.memo(({
+const SavedMealPlanCard = memo(({
   plan,
   idx,
   isConfirming,
@@ -35,30 +35,39 @@ const SavedMealPlanCard = React.memo(({
   onAnalyze,
   onExport
 }) => {
+  const nodeUid = useId();
   const cardRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
+  const rafIdRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
 
   const handleMouseMove = (e) => {
     if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
 
-    const tiltY = ((x / rect.width) - 0.5) * 16;
-    const tiltX = (0.5 - (y / rect.height)) * 16;
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = requestAnimationFrame(() => {
+      if (!cardRef.current) return;
+      const rect = cardRef.current.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
 
-    cardRef.current.style.setProperty('--mouse-x', `${x}px`);
-    cardRef.current.style.setProperty('--mouse-y', `${y}px`);
-    cardRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    cardRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
-    cardRef.current.style.transition = 'none';
-    cardRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
+      const tiltY = ((x / rect.width) - 0.5) * 16;
+      const tiltX = (0.5 - (y / rect.height)) * 16;
 
-    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
-    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+      cardRef.current.style.setProperty('--mouse-x', `${x}px`);
+      cardRef.current.style.setProperty('--mouse-y', `${y}px`);
+      cardRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+      cardRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+      cardRef.current.style.transition = 'none';
+      cardRef.current.style.transform = 'perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px)';
+
+      if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+      if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+    });
   };
 
   const handleMouseEnter = () => {
@@ -71,6 +80,7 @@ const SavedMealPlanCard = React.memo(({
 
   const handleMouseLeave = () => {
     isHoveredRef.current = false;
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
     if (cardRef.current) {
       cardRef.current.style.setProperty('--tilt-x', '0deg');
       cardRef.current.style.setProperty('--tilt-y', '0deg');
@@ -103,6 +113,12 @@ const SavedMealPlanCard = React.memo(({
     }
   };
 
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    };
+  }, []);
+
   return (
     <div
       ref={cardRef}
@@ -114,6 +130,7 @@ const SavedMealPlanCard = React.memo(({
       tabIndex={0}
       role="article"
       aria-label={`Trophic Blueprint: ${plan.name}. Days: ${plan.days?.length || 0}. Average Calories: ${plan._avgCalories} kcal.`}
+      data-attestation={`0xSMP_${nodeUid.replace(/:/g, '')}_PLAN_CARD`}
       style={{
         transform: 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
         transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
@@ -213,7 +230,8 @@ SavedMealPlanCard.displayName = 'SavedMealPlanCard';
 
 const selectPlans = s => s || EMPTY_OBJECT;
 
-const SavedMealPlans = () => {
+const SavedMealPlans = memo(() => {
+  const pageUid = useId();
   const navigate = useNavigate();
   const { addNotification } = useNotifications();
 
@@ -328,7 +346,10 @@ const SavedMealPlans = () => {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-[#020408] text-[#F0F4FF] pb-32 selection:bg-voro-primary/30">
+    <div
+      data-attestation={`0xSMP_PAGE_${pageUid.replace(/:/g, '')}_VAULT`}
+      className="min-h-screen bg-[#020408] text-[#F0F4FF] pb-32 selection:bg-voro-primary/30"
+    >
       {/* Ambient Architectural Lighting */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-voro-primary/5 rounded-full blur-[150px]" />
@@ -394,6 +415,7 @@ const SavedMealPlans = () => {
       </div>
     </div>
   );
-};
+});
+SavedMealPlans.displayName = "SavedMealPlans";
 
 export default SavedMealPlans;
