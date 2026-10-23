@@ -176,8 +176,9 @@ const SpectralLens = ({ before, after, onClose }) => {
 
         <button
           onClick={onClose}
-          className="p-4 rounded-2xl bg-black/70 backdrop-blur-2xl border border-white/10 text-white/50 hover:text-white transition-all hover:bg-black/90 hover:border-white/20 active:scale-95"
+          className="p-4 rounded-2xl bg-black/70 backdrop-blur-2xl border border-white/10 text-white/50 hover:text-white transition-all hover:bg-black/90 hover:border-white/20 active:scale-95 focus-visible:ring-2 focus-visible:ring-voro-primary focus-visible:ring-offset-2 outline-none"
           aria-label="Close Comparison"
+          title="Close Comparison"
         >
           <X size={18} />
         </button>
