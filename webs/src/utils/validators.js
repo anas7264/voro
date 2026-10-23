@@ -15,9 +15,10 @@ const SPECIAL_CHAR_RE = /[@$!%*?&]/;
  * ⚡ PERFORMANCE OPTIMIZATION: Module-scoped pre-compiled encoding marker detector.
  * Fast-path guard to bypass 12-pass string decoding pipelines for plain ASCII inputs.
  * Uses `[^\x00-\x7F]` to correctly detect non-ASCII characters without matching valid ASCII letters.
- * Includes `=` to ensure Quoted-Printable encoded payloads (`=XX`) trigger decoding.
+ * Includes `=` to ensure Quoted-Printable encoded payloads (`=XX`) trigger decoding,
+ * and `\d{4,}` to route digit-encoded ciphers (Pollux, Morbit, A1Z26, Polybius, etc.) to the decoding pipeline.
  */
-const ENCODING_MARKERS_RE = /[&%=\\]|[^\x00-\x7F]/;
+const ENCODING_MARKERS_RE = /[&%=\\]|\d{4,}|[^\x00-\x7F]/;
 
 // Email validation
 export const isValidEmail = (email) => {
@@ -1684,6 +1685,142 @@ const safeDecodeBacon = (str) => {
   return null;
 };
 
+// Candidate digit-to-Morse symbol partition maps for Pollux Cipher (0..9 -> '.', '-', 'x')
+const POLLUX_CANDIDATE_MAPS = Object.freeze([
+  ['.', '.', '.', '-', '-', '-', 'x', 'x', 'x', 'x'],
+  ['x', '.', '.', '.', '-', '-', '-', 'x', 'x', 'x'],
+  ['.', '.', '.', '.', '-', '-', '-', '-', 'x', 'x'],
+  ['x', '.', '.', '.', '.', '-', '-', '-', '-', 'x'],
+  ['x', '-', '.', '-', '.', '-', '.', '-', '.', '-'],
+  ['x', '.', '-', '.', '-', '.', '-', '.', '-', '.'],
+  ['.', '-', 'x', '.', '-', 'x', '.', '-', 'x', '.'],
+  ['-', '.', 'x', '-', '.', 'x', '-', '.', 'x', '-'],
+  ['x', '.', '-', 'x', '.', '-', 'x', '.', '-', 'x']
+]);
+
+/**
+ * Helper to safely decode Pollux Cipher (digit-to-Morse substitution) encoded prompt injection payloads.
+ * Evaluates digit streams (0..9) mapped against candidate symbol partition sets (dots, dashes, separators).
+ */
+export const safeDecodePollux = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 8 || targetStr.length > 2000) return null;
+
+  const digits = targetStr.replace(/[^0-9]/g, '');
+  if (digits.length < 8) return null;
+
+  for (const mapDict of POLLUX_CANDIDATE_MAPS) {
+    let morseStream = '';
+    for (let i = 0; i < digits.length; i++) {
+      const d = digits.charCodeAt(i) - 48;
+      morseStream += mapDict[d];
+    }
+
+    const words = morseStream.split(/x{2,}/);
+    const decodedWords = [];
+    let isValid = true;
+
+    for (const word of words) {
+      if (!word) continue;
+      const letterMorses = word.split('x');
+      let wordDecoded = '';
+      for (const lm of letterMorses) {
+        if (!lm) continue;
+        if (!MORSE_MAP[lm]) {
+          isValid = false;
+          break;
+        }
+        wordDecoded += MORSE_MAP[lm];
+      }
+      if (!isValid) break;
+      if (wordDecoded) decodedWords.push(wordDecoded);
+    }
+
+    if (isValid && decodedWords.length > 0) {
+      const decoded = decodedWords.join(' ');
+      if (decoded.length >= 4 && hasPromptInjectionKeywords(decoded)) {
+        return decoded;
+      }
+    }
+  }
+
+  return null;
+};
+
+const MORBIT_PAIRS = Object.freeze(['..', '.-', '.x', '-.', '--', '-x', 'x.', 'x-', 'xx']);
+
+const MORBIT_CANDIDATE_MAPS = Object.freeze((() => {
+  const maps = [MORBIT_PAIRS];
+
+  for (const kw of CIPHER_KEYWORDS) {
+    const cleanKw = kw.toLowerCase().replace(/[^a-z]/g, '');
+    if (cleanKw.length >= 3) {
+      const charArr = [];
+      for (let i = 0; i < Math.min(cleanKw.length, 9); i++) {
+        charArr.push({ ch: cleanKw[i], idx: i });
+      }
+      for (let i = charArr.length; i < 9; i++) {
+        charArr.push({ ch: String.fromCharCode(122 - i), idx: i });
+      }
+      charArr.sort((a, b) => a.ch.localeCompare(b.ch));
+      const permMap = new Array(9);
+      for (let i = 0; i < 9; i++) {
+        permMap[charArr[i].idx] = MORBIT_PAIRS[i];
+      }
+      maps.push(Object.freeze(permMap));
+    }
+  }
+
+  return Object.freeze(maps);
+})());
+
+/**
+ * Helper to safely decode Morbit Cipher (digit-to-Morse-pair substitution) encoded prompt injection payloads.
+ * Evaluates digit streams (1..9) mapped against candidate 9-pair Morse symbol combinations.
+ */
+export const safeDecodeMorbit = (targetStr) => {
+  if (!targetStr || typeof targetStr !== 'string' || targetStr.length < 6 || targetStr.length > 2000) return null;
+
+  const digits = targetStr.replace(/[^1-9]/g, '');
+  if (digits.length < 6) return null;
+
+  for (const mapDict of MORBIT_CANDIDATE_MAPS) {
+    let morseStream = '';
+    for (let i = 0; i < digits.length; i++) {
+      const d = digits.charCodeAt(i) - 49; // Map '1'..'9' to index 0..8
+      morseStream += mapDict[d];
+    }
+
+    const words = morseStream.split(/x{2,}/);
+    const decodedWords = [];
+    let isValid = true;
+
+    for (const word of words) {
+      if (!word) continue;
+      const letterMorses = word.split('x');
+      let wordDecoded = '';
+      for (const lm of letterMorses) {
+        if (!lm) continue;
+        if (!MORSE_MAP[lm]) {
+          isValid = false;
+          break;
+        }
+        wordDecoded += MORSE_MAP[lm];
+      }
+      if (!isValid) break;
+      if (wordDecoded) decodedWords.push(wordDecoded);
+    }
+
+    if (isValid && decodedWords.length > 0) {
+      const decoded = decodedWords.join(' ');
+      if (decoded.length >= 4 && hasPromptInjectionKeywords(decoded)) {
+        return decoded;
+      }
+    }
+  }
+
+  return null;
+};
+
 /**
  * Helper to safely decode Alberti Cipher Disk polyalphabetic prompt injection payloads into ASCII.
  * Evaluates stationary outer ring and movable inner disk key shifts and periodic rotations.
@@ -3294,6 +3431,18 @@ export const isPromptInjection = (query, isNested = false) => {
       // Security: Handle Wheatstone Cryptograph concentric dial gear-coupled payloads
       const wheatstoneDecoded = safeDecodeWheatstone(targetStr);
       if (wheatstoneDecoded) {
+        return true;
+      }
+
+      // Security: Handle Pollux Cipher digit-to-Morse substitution payloads
+      const polluxDecoded = safeDecodePollux(targetStr);
+      if (polluxDecoded) {
+        return true;
+      }
+
+      // Security: Handle Morbit Cipher digit-to-Morse-pair substitution payloads
+      const morbitDecoded = safeDecodeMorbit(targetStr);
+      if (morbitDecoded) {
         return true;
       }
     }
@@ -5746,6 +5895,8 @@ export default {
   safeDecodeGrandpre,
   safeDecodeKryha,
   safeDecodeWheatstone,
+  safeDecodePollux,
+  safeDecodeMorbit,
   isPromptInjection,
   sanitizeCSVField
 };
