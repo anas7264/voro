@@ -148,6 +148,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [auto-merge-instant]
     if: success()
+    env:
+      HAS_EMAIL_SECRETS: ${{ secrets.EMAIL_USERNAME != '' && secrets.EMAIL_PASSWORD != '' }}
     
     steps:
       - name: 📥 Checkout Code
@@ -168,8 +170,6 @@ jobs:
       
       - name: 📧 Send Email via SendGrid/SMTP
         if: env.HAS_EMAIL_SECRETS == 'true'
-        env:
-          HAS_EMAIL_SECRETS: ${{ secrets.EMAIL_USERNAME != '' && secrets.EMAIL_PASSWORD != '' }}
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com

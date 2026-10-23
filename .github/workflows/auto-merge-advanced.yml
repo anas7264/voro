@@ -129,7 +129,7 @@ jobs:
       - name: 📋 ESLint Check
         working-directory: webs
         run: |
-          if pnpm list eslint > /dev/null 2>&1; then
+          if node -e "const pkg = require('./package.json'); if ((pkg.devDependencies && pkg.devDependencies.eslint) || (pkg.dependencies && pkg.dependencies.eslint)) process.exit(0); else process.exit(1);"; then
             pnpm exec eslint src/ --max-warnings=0
           else
             echo "ℹ️ ESLint not configured in package.json devDependencies"
