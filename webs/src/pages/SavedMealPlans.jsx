@@ -162,6 +162,7 @@ const SavedMealPlanCard = React.memo(({
           <button
             onClick={() => onDelete(plan.id)}
             aria-label={isConfirming ? `Confirm removal of plan: ${plan.name}` : `Remove plan: ${plan.name} from protocol`}
+            title={isConfirming ? `Confirm removal of plan: ${plan.name}` : `Remove plan: ${plan.name} from protocol`}
             className={`p-3 rounded-2xl transition-all duration-500 outline-none focus-visible:ring-2 focus-visible:ring-red-500 border relative ${
               isConfirming
                 ? 'bg-red-500/20 text-red-400 border-red-500/30 animate-pulse opacity-100'
@@ -202,6 +203,7 @@ const SavedMealPlanCard = React.memo(({
           onClick={() => onExport(plan)}
           className="w-14 h-14 flex items-center justify-center rounded-2xl bg-white/[0.03] border border-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-voro-primary"
           aria-label={`Export plan ${plan.name} as JSON`}
+          title={`Export plan ${plan.name} as JSON`}
         >
           <Download size={18} />
         </button>

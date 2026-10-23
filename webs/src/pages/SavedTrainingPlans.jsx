@@ -228,6 +228,7 @@ const KineticBlueprintCard = memo(({ plan, index, onDelete, onAnalyze, onExport 
           <button
             onClick={triggerDelete}
             aria-label={purgeState ? `Confirm deletion of blueprint: ${plan.name}` : `Delete blueprint: ${plan.name}`}
+            title={purgeState ? `Confirm deletion of blueprint: ${plan.name}` : `Delete blueprint: ${plan.name}`}
             className={`
               p-3.5 rounded-2xl transition-all duration-500 flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider outline-none focus-visible:ring-2 focus-visible:ring-red-500 border
               ${purgeState
@@ -286,6 +287,7 @@ const KineticBlueprintCard = memo(({ plan, index, onDelete, onAnalyze, onExport 
           onClick={() => onExport(plan)}
           className="w-14 h-14 flex items-center justify-center rounded-2xl bg-white/[0.03] border border-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-voro-primary"
           aria-label={`Export ${plan.name} as JSON`}
+          title={`Export ${plan.name} as JSON`}
         >
           <Download size={18} />
         </button>
