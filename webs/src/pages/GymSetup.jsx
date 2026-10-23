@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useMemo, useState, useRef, memo } from 'react';
+import React, { useEffect, useCallback, useMemo, useState, useRef, memo, useId } from 'react';
 import { Check, Layers, Compass, Cpu, Wrench, Shield, Zap, Sparkles, Activity } from 'lucide-react';
 import Card from '@/components/Card';
 import { useStorageKeySelector, useStorageMethods } from '@/hooks/useStorage';
@@ -26,14 +26,16 @@ const CATEGORIES = Object.freeze(['Free Weights', 'Equipment', 'Machines', 'Card
 
 /**
  * ⚡ LUXURY REFINEMENT: KineticHardwareCell Terminal.
- * Features 60fps direct-DOM 3D volumetric hover tilts, dynamic radial laser lens spotlighting,
+ * Features 60fps direct-DOM 3D volumetric hover tilts batched via requestAnimationFrame, dynamic radial laser lens spotlighting,
  * liquid border perimeter illumination, holographic coordinate telemetry overlays, and
  * static 4-degree focus tilts for screen-reader and keyboard accessibility.
  */
 const KineticHardwareCell = memo(({ item, isChecked, onToggle }) => {
+  const nodeUid = useId();
   const cellRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
+  const cellRafIdRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
 
@@ -48,26 +50,33 @@ const KineticHardwareCell = memo(({ item, isChecked, onToggle }) => {
 
   const handleMouseMove = useCallback((e) => {
     if (!cellRef.current) return;
-    const rect = cellRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
 
-    // Volumetric tilt calculation (max 12 degrees)
-    const tiltY = ((x / rect.width) - 0.5) * 24;
-    const tiltX = (0.5 - (y / rect.height)) * 24;
+    if (cellRafIdRef.current) cancelAnimationFrame(cellRafIdRef.current);
+    cellRafIdRef.current = requestAnimationFrame(() => {
+      if (!cellRef.current) return;
+      const rect = cellRef.current.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
 
-    // Direct DOM property updates to bypass React virtual DOM reconciliation
-    cellRef.current.style.setProperty('--cell-mouse-x', `${x}px`);
-    cellRef.current.style.setProperty('--cell-mouse-y', `${y}px`);
-    cellRef.current.style.setProperty('--cell-tilt-x', `${tiltX}deg`);
-    cellRef.current.style.setProperty('--cell-tilt-y', `${tiltY}deg`);
+      // Volumetric tilt calculation (max 12 degrees)
+      const tiltY = ((x / rect.width) - 0.5) * 24;
+      const tiltX = (0.5 - (y / rect.height)) * 24;
 
-    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
-    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+      // Direct DOM property updates to bypass React virtual DOM reconciliation
+      cellRef.current.style.setProperty('--cell-mouse-x', `${x}px`);
+      cellRef.current.style.setProperty('--cell-mouse-y', `${y}px`);
+      cellRef.current.style.setProperty('--cell-tilt-x', `${tiltX}deg`);
+      cellRef.current.style.setProperty('--cell-tilt-y', `${tiltY}deg`);
 
-    if (isHoveredRef.current || isFocusedRef.current) {
-      updateTransform();
-    }
+      if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+      if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+
+      if (isHoveredRef.current || isFocusedRef.current) {
+        updateTransform();
+      }
+    });
   }, [updateTransform]);
 
   const handleMouseEnter = useCallback(() => {
@@ -77,6 +86,7 @@ const KineticHardwareCell = memo(({ item, isChecked, onToggle }) => {
 
   const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
+    if (cellRafIdRef.current) cancelAnimationFrame(cellRafIdRef.current);
     if (cellRef.current) {
       cellRef.current.style.setProperty('--cell-tilt-x', '0deg');
       cellRef.current.style.setProperty('--cell-tilt-y', '0deg');
@@ -112,6 +122,12 @@ const KineticHardwareCell = memo(({ item, isChecked, onToggle }) => {
     }
   }, [onToggle]);
 
+  useEffect(() => {
+    return () => {
+      if (cellRafIdRef.current) cancelAnimationFrame(cellRafIdRef.current);
+    };
+  }, []);
+
   return (
     <div
       ref={cellRef}
@@ -126,6 +142,7 @@ const KineticHardwareCell = memo(({ item, isChecked, onToggle }) => {
       role="checkbox"
       aria-checked={isChecked}
       aria-label={`Calibrate hardware node ${item.name} (${item.category}). Status: ${isChecked ? 'Integrated' : 'Decommissioned'}`}
+      data-attestation={`0xHW_${nodeUid.replace(/:/g, '')}_NODE`}
       style={{
         transformStyle: 'preserve-3d'
       }}
@@ -212,12 +229,14 @@ KineticHardwareCell.displayName = 'KineticHardwareCell';
 
 /**
  * ⚡ LUXURY REFINEMENT: Spatial Blueprint Enclave Container.
- * Features 3D direct-DOM mouse tilt, real-time spatial matrix plotting, and coordinate telemetry.
+ * Features 3D direct-DOM mouse tilt batched via requestAnimationFrame, real-time spatial matrix plotting, and coordinate telemetry.
  */
 const SpatialBlueprintEnclave = memo(({ equipment, commonEquipment = COMMON_EQUIPMENT }) => {
+  const enclaveUid = useId();
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
+  const enclaveRafIdRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
 
@@ -232,24 +251,31 @@ const SpatialBlueprintEnclave = memo(({ equipment, commonEquipment = COMMON_EQUI
 
   const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
 
-    const tiltY = ((x / rect.width) - 0.5) * 16;
-    const tiltX = (0.5 - (y / rect.height)) * 16;
+    if (enclaveRafIdRef.current) cancelAnimationFrame(enclaveRafIdRef.current);
+    enclaveRafIdRef.current = requestAnimationFrame(() => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
 
-    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
-    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
-    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+      const tiltY = ((x / rect.width) - 0.5) * 16;
+      const tiltX = (0.5 - (y / rect.height)) * 16;
 
-    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
-    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+      containerRef.current.style.setProperty('--mouse-x', `${x}px`);
+      containerRef.current.style.setProperty('--mouse-y', `${y}px`);
+      containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+      containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
 
-    if (isHoveredRef.current || isFocusedRef.current) {
-      updateTransform();
-    }
+      if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+      if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+
+      if (isHoveredRef.current || isFocusedRef.current) {
+        updateTransform();
+      }
+    });
   }, [updateTransform]);
 
   const handleMouseEnter = useCallback(() => {
@@ -259,6 +285,7 @@ const SpatialBlueprintEnclave = memo(({ equipment, commonEquipment = COMMON_EQUI
 
   const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
+    if (enclaveRafIdRef.current) cancelAnimationFrame(enclaveRafIdRef.current);
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
@@ -286,6 +313,12 @@ const SpatialBlueprintEnclave = memo(({ equipment, commonEquipment = COMMON_EQUI
     updateTransform();
   }, [updateTransform]);
 
+  useEffect(() => {
+    return () => {
+      if (enclaveRafIdRef.current) cancelAnimationFrame(enclaveRafIdRef.current);
+    };
+  }, []);
+
   return (
     <div
       ref={containerRef}
@@ -297,6 +330,7 @@ const SpatialBlueprintEnclave = memo(({ equipment, commonEquipment = COMMON_EQUI
       tabIndex={0}
       role="region"
       aria-label="Active Hardware Environment Blueprint Enclave"
+      data-attestation={`0xBLU_${enclaveUid.replace(/:/g, '')}_ENCLAVE`}
       style={{
         transformStyle: 'preserve-3d'
       }}
@@ -438,7 +472,8 @@ SpatialBlueprintEnclave.displayName = 'SpatialBlueprintEnclave';
 
 const selectGymSetup = s => s || EMPTY_ARRAY;
 
-const GymSetup = () => {
+const GymSetup = memo(() => {
+  const pageUid = useId();
   const equipment = useStorageKeySelector('gym_setup', selectGymSetup);
   const { setItem } = useStorageMethods();
   const { addNotification } = useNotifications();
@@ -548,7 +583,10 @@ const GymSetup = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30 relative overflow-hidden pb-32">
+    <div
+      data-attestation={`0xGYM_${pageUid.replace(/:/g, '')}_PAGE`}
+      className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30 relative overflow-hidden pb-32"
+    >
       {/* Precision Blueprint Grid Overlay */}
       <div className="absolute inset-0 pointer-events-none opacity-[0.02] bg-grid-white" />
 
@@ -660,6 +698,7 @@ const GymSetup = () => {
       </div>
     </div>
   );
-};
+});
+GymSetup.displayName = "GymSetup";
 
 export default GymSetup;

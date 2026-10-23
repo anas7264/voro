@@ -56,10 +56,17 @@ const componentsToVerify = [
   { name: 'AICoach.jsx', path: 'webs/src/pages/AICoach.jsx' },
   { name: 'Achievements.jsx', path: 'webs/src/pages/Achievements.jsx' },
   { name: 'Challenges.jsx', path: 'webs/src/pages/Challenges.jsx' },
+  { name: 'Dashboard2.jsx', path: 'webs/src/pages/Dashboard2.jsx' },
   { name: 'FoodDiary.jsx', path: 'webs/src/pages/FoodDiary.jsx' },
   { name: 'FoodLibrary.jsx', path: 'webs/src/pages/FoodLibrary.jsx' },
+  { name: 'GymSetup.jsx', path: 'webs/src/pages/GymSetup.jsx' },
   { name: 'PRRecords.jsx', path: 'webs/src/pages/PRRecords.jsx' },
+  { name: 'Periodization.jsx', path: 'webs/src/pages/Periodization.jsx' },
+  { name: 'ProgressPhotos.jsx', path: 'webs/src/pages/ProgressPhotos.jsx' },
   { name: 'RecipeBuilder.jsx', path: 'webs/src/pages/RecipeBuilder.jsx' },
+  { name: 'SavedMealPlans.jsx', path: 'webs/src/pages/SavedMealPlans.jsx' },
+  { name: 'SavedTrainingPlans.jsx', path: 'webs/src/pages/SavedTrainingPlans.jsx' },
+  { name: 'Statistics.jsx', path: 'webs/src/pages/Statistics.jsx' },
   { name: 'WorkoutHistory.jsx', path: 'webs/src/pages/WorkoutHistory.jsx' },
   { name: 'WorkoutLog.jsx', path: 'webs/src/pages/WorkoutLog.jsx' }
 ];
@@ -90,7 +97,7 @@ componentsToVerify.forEach(comp => {
 });
 
 console.log(`\n--------------------------------------------------`);
-console.log(`Masterclass UI/UX Refinement Results: ${passedChecks}/${totalChecks} checks passed.`);
+console.log(`Masterclass UI/UX Refinement Results: ${passedChecks}/${totalChecks} checks passed across ${componentsToVerify.length} component modules.`);
 
 if (passedChecks === totalChecks) {
   console.log('🎉 ALL LUXURY MASTERCLASS REFINEMENT CHECKS PASSED PERFECTLY!\n');

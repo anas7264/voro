@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
-import { BarChart3, TrendingUp, Calendar, Zap, Activity, Target, Weight } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, memo, useId } from 'react';
+import { BarChart3, TrendingUp, Calendar, Zap, Target, Weight } from 'lucide-react';
 import { Card, Button, Tabs, LineChartComponent, BarChartComponent, PieChartComponent, Stat } from '@/components';
 import { useStorageKeySelector } from '@/hooks/useStorage';
 import { useApp } from '@/hooks/useAppContext';
@@ -24,36 +24,45 @@ const STORAGE_KEYS = ['nutrition_log', 'workout_log'];
 /**
  * ⚡ LUXURY MOVEMENT: InteractiveChartCard.
  * Custom re-engineered 3D Card for charts implementing the Accessible 3D Interaction Pattern:
- * - Dynamic mouse tracking for real-time 3D tilt at 60fps.
+ * - Dynamic mouse tracking for real-time 3D tilt at 60fps with requestAnimationFrame frame-batching.
  * - Static 4-degree volumetric tilt on focus for keyboard accessibility.
  * - Zero-allocation interaction tracking via useRef flags (isHoveredRef, isFocusedRef)
  *   and direct-DOM style manipulation to eliminate 100% of React component re-renders.
  */
 const InteractiveChartCard = memo(({ children, title, subtitle, badge, icon: Icon, color = "voro-primary", nodeId = "NODE_01" }) => {
+  const nodeUid = useId();
   const cardRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
+  const rafIdRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
 
   const handleMouseMove = (e) => {
     if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
 
-    // Calculate volumetric tilt (max 10 degrees)
-    const tiltY = ((x / rect.width) - 0.5) * 20;
-    const tiltX = (0.5 - (y / rect.height)) * 20;
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = requestAnimationFrame(() => {
+      if (!cardRef.current) return;
+      const rect = cardRef.current.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
 
-    const style = cardRef.current.style;
-    style.setProperty('--mouse-x', `${x}px`);
-    style.setProperty('--mouse-y', `${y}px`);
-    style.setProperty('--tilt-x', `${tiltX}deg`);
-    style.setProperty('--tilt-y', `${tiltY}deg`);
+      // Calculate volumetric tilt (max 10 degrees)
+      const tiltY = ((x / rect.width) - 0.5) * 20;
+      const tiltX = (0.5 - (y / rect.height)) * 20;
 
-    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
-    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+      const style = cardRef.current.style;
+      style.setProperty('--mouse-x', `${x}px`);
+      style.setProperty('--mouse-y', `${y}px`);
+      style.setProperty('--tilt-x', `${tiltX}deg`);
+      style.setProperty('--tilt-y', `${tiltY}deg`);
+
+      if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+      if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+    });
   };
 
   const handleMouseEnter = () => {
@@ -66,6 +75,7 @@ const InteractiveChartCard = memo(({ children, title, subtitle, badge, icon: Ico
 
   const handleMouseLeave = () => {
     isHoveredRef.current = false;
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
     if (!cardRef.current) return;
 
     cardRef.current.style.transition = 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
@@ -110,6 +120,12 @@ const InteractiveChartCard = memo(({ children, title, subtitle, badge, icon: Ico
     }
   };
 
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    };
+  }, []);
+
   const activeColor = color === "voro-primary" ? "var(--voro-primary)" : "var(--voro-secondary)";
 
   return (
@@ -123,6 +139,7 @@ const InteractiveChartCard = memo(({ children, title, subtitle, badge, icon: Ico
       tabIndex="0"
       role="region"
       aria-label={`${title} chart container`}
+      data-attestation={`0xANA_${nodeUid.replace(/:/g, '')}_ATTESTED_NODE`}
       style={{
         transform: 'perspective(2000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
         transition: 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)',
@@ -193,32 +210,41 @@ InteractiveChartCard.displayName = "InteractiveChartCard";
  * Specialized 3D card layout for pie chart distribution statistics.
  * Incorporates custom scanline meshes, glow plates, and precise typography.
  * Zero-allocation interaction tracking via useRef flags (isHoveredRef, isFocusedRef)
- * and direct-DOM style manipulation to eliminate 100% of React component re-renders.
+ * and direct-DOM style manipulation with requestAnimationFrame frame-batching.
  */
 const MacroSynthesisMatrixEnclave = memo(({ children, title, subtitle, description, macroDistribution }) => {
+  const nodeUid = useId();
   const cardRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
+  const rafIdRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
 
   const handleMouseMove = (e) => {
     if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
 
-    const tiltY = ((x / rect.width) - 0.5) * 12;
-    const tiltX = (0.5 - (y / rect.height)) * 12;
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = requestAnimationFrame(() => {
+      if (!cardRef.current) return;
+      const rect = cardRef.current.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
 
-    const style = cardRef.current.style;
-    style.setProperty('--mouse-x', `${x}px`);
-    style.setProperty('--mouse-y', `${y}px`);
-    style.setProperty('--tilt-x', `${tiltX}deg`);
-    style.setProperty('--tilt-y', `${tiltY}deg`);
+      const tiltY = ((x / rect.width) - 0.5) * 12;
+      const tiltX = (0.5 - (y / rect.height)) * 12;
 
-    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
-    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+      const style = cardRef.current.style;
+      style.setProperty('--mouse-x', `${x}px`);
+      style.setProperty('--mouse-y', `${y}px`);
+      style.setProperty('--tilt-x', `${tiltX}deg`);
+      style.setProperty('--tilt-y', `${tiltY}deg`);
+
+      if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+      if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+    });
   };
 
   const handleMouseEnter = () => {
@@ -231,6 +257,7 @@ const MacroSynthesisMatrixEnclave = memo(({ children, title, subtitle, descripti
 
   const handleMouseLeave = () => {
     isHoveredRef.current = false;
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
     if (!cardRef.current) return;
 
     cardRef.current.style.transition = 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
@@ -275,6 +302,12 @@ const MacroSynthesisMatrixEnclave = memo(({ children, title, subtitle, descripti
     }
   };
 
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    };
+  }, []);
+
   return (
     <div
       ref={cardRef}
@@ -286,6 +319,7 @@ const MacroSynthesisMatrixEnclave = memo(({ children, title, subtitle, descripti
       tabIndex="0"
       role="region"
       aria-label="Macronutrient allocation analysis"
+      data-attestation={`0xMAC_${nodeUid.replace(/:/g, '')}_MACRO_MATRIX`}
       style={{
         transform: 'perspective(2000px) rotateX(0deg) rotateY(0deg) translateY(0px)',
         transition: 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)',
@@ -371,7 +405,8 @@ const MacroSynthesisMatrixEnclave = memo(({ children, title, subtitle, descripti
 });
 MacroSynthesisMatrixEnclave.displayName = "MacroSynthesisMatrixEnclave";
 
-const Statistics = () => {
+const Statistics = memo(() => {
+  const pageUid = useId();
   const { user } = useApp();
   const { exportNutritionLogCSV, exportMonthlyReportPDF } = useExport();
   const [period, setPeriod] = useState('30D');
@@ -570,7 +605,10 @@ const Statistics = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30 pb-24 relative overflow-hidden">
+    <div
+      data-attestation={`0xANA_SYS_${pageUid.replace(/:/g, '')}_PAGE`}
+      className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30 pb-24 relative overflow-hidden"
+    >
        {/* Premium Ambient Background Lighting */}
        <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[5%] right-[5%] w-[40%] h-[40%] bg-voro-primary/5 rounded-full blur-[120px]" />
@@ -740,6 +778,7 @@ const Statistics = () => {
       </div>
     </div>
   );
-};
+});
+Statistics.displayName = "Statistics";
 
 export default Statistics;

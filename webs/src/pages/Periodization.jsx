@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef, memo } from 'react';
+import React, { useEffect, useState, useCallback, useRef, memo, useId } from 'react';
 import { Trash2, Calendar, Zap, Target, Activity, AlertCircle, Compass, Cpu, Sparkles } from 'lucide-react';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
@@ -26,15 +26,17 @@ const BLOCK_TYPES = Object.freeze([
 
 /**
  * ⚡ SUBCOMPONENT: KineticBlockCard
- * 60fps direct-DOM 3D Volumetric Mouse Tilt Tracking,
+ * 60fps direct-DOM 3D Volumetric Mouse Tilt Tracking batched via requestAnimationFrame,
  * dynamic luminous lens spotlighting, reactive liquid border illumination,
  * holographic coordinate telemetry overlays, sub-pixel node hash badges,
  * and W3C APG compliant static 4-degree keyboard focus tilts.
  */
 const KineticBlockCard = memo(({ block, onIntegrate }) => {
+  const nodeUid = useId();
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
+  const rafIdRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
   const [announcement, setAnnouncement] = useState('');
@@ -50,25 +52,32 @@ const KineticBlockCard = memo(({ block, onIntegrate }) => {
 
   const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
 
-    // Volumetric tilt calculation (max 15 degrees)
-    const tiltY = ((x / rect.width) - 0.5) * 30;
-    const tiltX = (0.5 - (y / rect.height)) * 30;
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = requestAnimationFrame(() => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
 
-    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
-    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
-    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+      // Volumetric tilt calculation (max 15 degrees)
+      const tiltY = ((x / rect.width) - 0.5) * 30;
+      const tiltX = (0.5 - (y / rect.height)) * 30;
 
-    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
-    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+      containerRef.current.style.setProperty('--mouse-x', `${x}px`);
+      containerRef.current.style.setProperty('--mouse-y', `${y}px`);
+      containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+      containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
 
-    if (isHoveredRef.current || isFocusedRef.current) {
-      updateTransform();
-    }
+      if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+      if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+
+      if (isHoveredRef.current || isFocusedRef.current) {
+        updateTransform();
+      }
+    });
   }, [updateTransform]);
 
   const handleMouseEnter = useCallback(() => {
@@ -78,6 +87,7 @@ const KineticBlockCard = memo(({ block, onIntegrate }) => {
 
   const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
@@ -107,6 +117,12 @@ const KineticBlockCard = memo(({ block, onIntegrate }) => {
     updateTransform();
   }, [updateTransform]);
 
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    };
+  }, []);
+
   return (
     <>
       {announcement && (
@@ -124,6 +140,7 @@ const KineticBlockCard = memo(({ block, onIntegrate }) => {
         tabIndex="0"
         role="article"
         aria-label={`Periodization Block: ${block.name}. Focus: ${block.focus}. Duration: ${block.duration}`}
+        data-attestation={`0xPRD_${nodeUid.replace(/:/g, '')}_CARD`}
         style={{
           transformStyle: 'preserve-3d'
         }}
@@ -199,13 +216,15 @@ KineticBlockCard.displayName = 'KineticBlockCard';
 
 /**
  * ⚡ SUBCOMPONENT: TimelineNodeItem
- * Individual periodization timeline block with 60fps direct-DOM hover tilts,
+ * Individual periodization timeline block with 60fps direct-DOM hover tilts batched via requestAnimationFrame,
  * live spatial telemetry, and a defensive self-canceling double-confirmation decommission safeguard.
  */
 const TimelineNodeItem = memo(({ block, idx, onRemove }) => {
+  const nodeUid = useId();
   const containerRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
+  const rafIdRef = useRef(null);
   const isHoveredRef = useRef(false);
   const isFocusedRef = useRef(false);
 
@@ -217,6 +236,7 @@ const TimelineNodeItem = memo(({ block, idx, onRemove }) => {
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
     };
   }, []);
 
@@ -231,24 +251,31 @@ const TimelineNodeItem = memo(({ block, idx, onRemove }) => {
 
   const handleMouseMove = useCallback((e) => {
     if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
 
-    const tiltY = ((x / rect.width) - 0.5) * 16;
-    const tiltX = (0.5 - (y / rect.height)) * 16;
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = requestAnimationFrame(() => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
 
-    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
-    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
-    containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+      const tiltY = ((x / rect.width) - 0.5) * 16;
+      const tiltX = (0.5 - (y / rect.height)) * 16;
 
-    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
-    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+      containerRef.current.style.setProperty('--mouse-x', `${x}px`);
+      containerRef.current.style.setProperty('--mouse-y', `${y}px`);
+      containerRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+      containerRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
 
-    if (isHoveredRef.current || isFocusedRef.current) {
-      updateTransform();
-    }
+      if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+      if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+
+      if (isHoveredRef.current || isFocusedRef.current) {
+        updateTransform();
+      }
+    });
   }, [updateTransform]);
 
   const handleMouseEnter = useCallback(() => {
@@ -258,6 +285,7 @@ const TimelineNodeItem = memo(({ block, idx, onRemove }) => {
 
   const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
     if (containerRef.current) {
       containerRef.current.style.setProperty('--tilt-x', '0deg');
       containerRef.current.style.setProperty('--tilt-y', '0deg');
@@ -318,6 +346,7 @@ const TimelineNodeItem = memo(({ block, idx, onRemove }) => {
       tabIndex="0"
       role="article"
       aria-label={`Timeline Node ${idx + 1}: ${block.name}. Focus: ${block.focus}. Duration: ${block.duration}`}
+      data-attestation={`0xTNL_${nodeUid.replace(/:/g, '')}_NODE`}
       style={{
         transformStyle: 'preserve-3d'
       }}
@@ -415,7 +444,8 @@ KineticAlignmentOverlay.displayName = 'KineticAlignmentOverlay';
  * ⚡ MAIN COMPONENT: Periodization
  * 'Temporal Blueprint & Kinetic Periodization Matrix Enclave'
  */
-const Periodization = () => {
+const Periodization = memo(() => {
+  const pageUid = useId();
   /**
    * ⚡ PERFORMANCE OPTIMIZATION: Surgical Reactivity via useStorageKeySelector.
    * Replaced useStorageKey with useStorageKeySelector('periodization', selectPeriodizationBlocks)
@@ -467,7 +497,10 @@ const Periodization = () => {
   }, [blocks, setItem, addNotification]);
 
   return (
-    <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30 pb-24 relative overflow-hidden bg-boutique-grain">
+    <div
+      data-attestation={`0xPRD_PAGE_${pageUid.replace(/:/g, '')}_MATRIX`}
+      className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30 pb-24 relative overflow-hidden bg-boutique-grain"
+    >
       {/* Cinematic Ambient Background Blurs */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none select-none">
         <div className="absolute top-[-10%] left-[-10%] w-[45%] h-[45%] bg-voro-primary/5 rounded-full blur-[140px]" />
@@ -562,6 +595,7 @@ const Periodization = () => {
       </div>
     </div>
   );
-};
+});
+Periodization.displayName = "Periodization";
 
 export default Periodization;

@@ -1,4 +1,4 @@
-import React, { useEffect, memo, useRef, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, memo, useRef, useState, useCallback, useMemo, useId } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart3, Dumbbell, TrendingDown, TrendingUp, ArrowRight, Shield, Sparkles, Zap } from 'lucide-react';
 import Card from '@/components/Card';
@@ -50,31 +50,40 @@ const selectWeights = (metrics) => metrics?.weights || [];
 
 /**
  * ⚡ LUXURY REFINEMENT: Volumetric 3D Matrix Node Card
- * Direct-DOM 60fps tilt tracking, holographic coordinate telemetry, sub-pixel node hash,
- * zero React state re-allocation during hover, and W3C APG compliant static 4-degree keyboard focus tilts.
+ * Direct-DOM 60fps tilt tracking batched via requestAnimationFrame, holographic coordinate telemetry,
+ * sub-pixel node hash, zero React state re-allocation during hover, and W3C APG compliant static 4-degree keyboard focus tilts.
  */
 const KineticMatrixCard = memo(({ item }) => {
+  const nodeUid = useId();
   const cardRef = useRef(null);
   const tiltXRef = useRef(null);
   const tiltYRef = useRef(null);
+  const rafIdRef = useRef(null);
   const IconComponent = item.icon;
 
   const handleMouseMove = useCallback((e) => {
     if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
 
-    const tiltY = ((x / rect.width) - 0.5) * 20;
-    const tiltX = (0.5 - (y / rect.height)) * 20;
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = requestAnimationFrame(() => {
+      if (!cardRef.current) return;
+      const rect = cardRef.current.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
 
-    cardRef.current.style.setProperty('--mouse-x', `${x}px`);
-    cardRef.current.style.setProperty('--mouse-y', `${y}px`);
-    cardRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
-    cardRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+      const tiltY = ((x / rect.width) - 0.5) * 20;
+      const tiltX = (0.5 - (y / rect.height)) * 20;
 
-    if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
-    if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+      cardRef.current.style.setProperty('--mouse-x', `${x}px`);
+      cardRef.current.style.setProperty('--mouse-y', `${y}px`);
+      cardRef.current.style.setProperty('--tilt-x', `${tiltX}deg`);
+      cardRef.current.style.setProperty('--tilt-y', `${tiltY}deg`);
+
+      if (tiltXRef.current) tiltXRef.current.innerText = tiltX.toFixed(1);
+      if (tiltYRef.current) tiltYRef.current.innerText = tiltY.toFixed(1);
+    });
   }, []);
 
   const handleMouseEnter = useCallback(() => {
@@ -85,6 +94,7 @@ const KineticMatrixCard = memo(({ item }) => {
   }, []);
 
   const handleMouseLeave = useCallback(() => {
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
     if (cardRef.current) {
       cardRef.current.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)';
       cardRef.current.style.transition = 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)';
@@ -111,6 +121,12 @@ const KineticMatrixCard = memo(({ item }) => {
     }
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    };
+  }, []);
+
   return (
     <div
       ref={cardRef}
@@ -120,6 +136,7 @@ const KineticMatrixCard = memo(({ item }) => {
       onFocus={handleFocus}
       onBlur={handleBlur}
       tabIndex={0}
+      data-attestation={`0xDB2_${nodeUid.replace(/:/g, '')}_MATRIX_CELL`}
       style={{
         transform: 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px)',
         transition: 'transform 1s cubic-bezier(0.16, 1, 0.3, 1)',
@@ -250,7 +267,8 @@ const KineticCommandButton = memo(({ config, onNavigate }) => {
 });
 KineticCommandButton.displayName = "KineticCommandButton";
 
-const Dashboard2 = () => {
+const Dashboard2 = memo(() => {
+  const pageUid = useId();
   const navigate = useNavigate();
   const { user } = useAppContext();
 
@@ -359,7 +377,10 @@ const Dashboard2 = () => {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30 pb-24 relative overflow-hidden">
+    <div
+      data-attestation={`0xDB2_SYS_${pageUid.replace(/:/g, '')}_PAGE`}
+      className="min-h-screen bg-[#020408] text-[#F0F4FF] selection:bg-voro-primary/30 pb-24 relative overflow-hidden"
+    >
       {/* Ambient Background Architectural Lighting */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute top-[-15%] right-[-10%] w-[55%] h-[55%] bg-voro-primary/5 rounded-full blur-[160px] animate-pulse-slow" />
@@ -478,6 +499,7 @@ const Dashboard2 = () => {
       </div>
     </div>
   );
-};
+});
+Dashboard2.displayName = "Dashboard2";
 
 export default Dashboard2;
