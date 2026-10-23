@@ -306,3 +306,10 @@
 **Action:**
 1. Always use `[^\x00-\x7F]` rather than `[^-]` when matching non-ASCII characters in JS regular expressions.
 2. Pre-compile encoding marker detection regexes (`ENCODING_MARKERS_RE`) at module scope to avoid RegExp allocation overhead inside hot validation paths.
+
+## 2026-10-20 - Static Characteristics Hoisting & Zero-Allocation Fast-Paths in Training Utilities
+**Learning:** In utility functions evaluated repeatedly during render cycles (`assessTrainingAge`, `assessFormQuality`, `suggestExerciseVariations`), instantiating literal arrays/objects or invoking `new Set` and `.filter()` creates heap allocation churn and garbage collection thrashing. Hoisting frozen characteristic arrays (`TRAINING_CHARACTERISTICS`) and returning a frozen `PERFECT_FORM_ASSESSMENT` object on a fast path eliminates object/array instantiations entirely. For small arrays, replacing `new Set()` and `.filter()` with a single-pass loop and early `break` avoids `Set` allocation and closure overhead.
+
+**Action:**
+1. Hoist static lookup arrays and fallback result objects outside utility functions as frozen module-level constants.
+2. For small arrays (<= 10 items), prefer imperative loops with early termination (`break`) over `new Set(...)` and `.filter(...)` closures to achieve zero-allocation evaluation.

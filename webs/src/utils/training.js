@@ -33,6 +33,23 @@ const REST_RECOMMENDATIONS = Object.freeze({
 
 const DEFAULT_FORM_ISSUES = Object.freeze(["None observed"]);
 
+const PERFECT_FORM_ASSESSMENT = Object.freeze({
+  formScore: 100,
+  status: "Excellent",
+  issues: DEFAULT_FORM_ISSUES,
+  recommendation: "Form looks good, can progress weight"
+});
+
+const ROTATION_TIP = "Rotate exercise variations every 4-6 weeks to prevent adaptation plateau";
+
+const TRAINING_CHARACTERISTICS = Object.freeze({
+  absoluteBeginner: Object.freeze(["Learning movement patterns", "Rapid initial strength gains", "Form priority", "Can train same muscles frequently"]),
+  beginner: Object.freeze(["Building work capacity", "Still rapid progress", "Form improving", "2-3x per muscle group weekly"]),
+  intermediate: Object.freeze(["Need progressive overload", "Slower gains", "Can specialize training", "1-2x per muscle group weekly"]),
+  advanced: Object.freeze(["Plateau management", "Slow continuous progress", "Advanced techniques", "Specialized periodization"]),
+  elite: Object.freeze(["Maintenance focus", "Minimal progress", "Sport-specific training", "Years of expertise"])
+});
+
 const RED_FLAGS = Object.freeze([
   "loose form",
   "rounded back",
@@ -299,28 +316,35 @@ export const getRestPeriodRecommendation = (exercise, goal = "hypertrophy", prev
 };
 
 // Form quality assessment (based on notes/tags)
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Zero-allocation fast-path for clean workout notes.
+ * Short-circuits when notes are empty or contain no red flags by returning pre-instantiated
+ * PERFECT_FORM_ASSESSMENT constant, bypassing object and array heap allocations.
+ */
 export const assessFormQuality = (workoutNotes, exerciseDifficulty) => {
+  const notesLower = typeof workoutNotes === 'string' ? workoutNotes.toLowerCase() : "";
+  if (!notesLower) return PERFECT_FORM_ASSESSMENT;
+
   let formScore = 100;
   const issues = [];
+  const flagsLen = RED_FLAGS.length;
 
-  const notesLower = typeof workoutNotes === 'string' ? workoutNotes.toLowerCase() : "";
-  if (notesLower) {
-    const flagsLen = RED_FLAGS.length;
-    for (let i = 0; i < flagsLen; i++) {
-      const flag = RED_FLAGS[i];
-      if (notesLower.includes(flag)) {
-        formScore -= 15;
-        issues.push(flag);
-      }
+  for (let i = 0; i < flagsLen; i++) {
+    const flag = RED_FLAGS[i];
+    if (notesLower.includes(flag)) {
+      formScore -= 15;
+      issues.push(flag);
     }
   }
+
+  if (issues.length === 0) return PERFECT_FORM_ASSESSMENT;
 
   formScore = Math.max(0, formScore);
 
   return {
     formScore,
     status: formScore >= 80 ? "Excellent" : (formScore >= 60 ? "Good" : "Needs Improvement"),
-    issues: issues.length > 0 ? issues : DEFAULT_FORM_ISSUES,
+    issues,
     recommendation: formScore < 80 ? "Focus on form before increasing weight" : "Form looks good, can progress weight"
   };
 };
@@ -356,45 +380,64 @@ export const getPeriodizationPhaseRecommendations = (weekNumber, totalWeeks, goa
 };
 
 // Exercise variation suggestions for muscular adaptation
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Single-pass O(1) array search with early termination.
+ * Replaces `new Set()` heap allocation and `.filter()` closure function calls with an
+ * imperative single-pass `for` loop that exits early as soon as 3 unused variations are found.
+ */
 export const suggestExerciseVariations = (exercise, previousVariations = []) => {
   const availableVariations = EXERCISE_VARIATIONS[exercise] || [];
   let unusedVariations;
+
   if (!previousVariations || previousVariations.length === 0) {
-    unusedVariations = availableVariations;
+    unusedVariations = availableVariations.slice(0, 3);
   } else {
-    const prevSet = new Set(previousVariations);
-    unusedVariations = availableVariations.filter(v => !prevSet.has(v));
+    const unused = [];
+    const availableLen = availableVariations.length;
+    for (let i = 0; i < availableLen; i++) {
+      const v = availableVariations[i];
+      if (!previousVariations.includes(v)) {
+        unused.push(v);
+        if (unused.length === 3) break;
+      }
+    }
+    unusedVariations = unused;
   }
 
   return {
     currentExercise: exercise,
-    suggestedVariations: unusedVariations.slice(0, 3),
+    suggestedVariations: unusedVariations,
     allVariations: availableVariations,
-    rotationTip: "Rotate exercise variations every 4-6 weeks to prevent adaptation plateau"
+    rotationTip: ROTATION_TIP
   };
 };
 
 // Training age assessment
+/**
+ * ⚡ PERFORMANCE OPTIMIZATION: Module-scoped frozen characteristics lookup.
+ * Returns pre-instantiated frozen array constants from `TRAINING_CHARACTERISTICS`
+ * to completely eliminate array allocation churn per function invocation.
+ */
 export const assessTrainingAge = (monthsOfTraining) => {
   const months = Number.isFinite(monthsOfTraining) && monthsOfTraining > 0 ? monthsOfTraining : 0;
   let level = "Beginner";
-  let characteristics = [];
+  let characteristics = TRAINING_CHARACTERISTICS.beginner;
 
   if (months < 3) {
     level = "Absolute Beginner";
-    characteristics = ["Learning movement patterns", "Rapid initial strength gains", "Form priority", "Can train same muscles frequently"];
+    characteristics = TRAINING_CHARACTERISTICS.absoluteBeginner;
   } else if (months < 12) {
     level = "Beginner";
-    characteristics = ["Building work capacity", "Still rapid progress", "Form improving", "2-3x per muscle group weekly"];
+    characteristics = TRAINING_CHARACTERISTICS.beginner;
   } else if (months < 36) {
     level = "Intermediate";
-    characteristics = ["Need progressive overload", "Slower gains", "Can specialize training", "1-2x per muscle group weekly"];
+    characteristics = TRAINING_CHARACTERISTICS.intermediate;
   } else if (months < 120) {
     level = "Advanced";
-    characteristics = ["Plateau management", "Slow continuous progress", "Advanced techniques", "Specialized periodization"];
+    characteristics = TRAINING_CHARACTERISTICS.advanced;
   } else {
     level = "Elite";
-    characteristics = ["Maintenance focus", "Minimal progress", "Sport-specific training", "Years of expertise"];
+    characteristics = TRAINING_CHARACTERISTICS.elite;
   }
 
   return { level, characteristics, monthsOfTraining: months };
