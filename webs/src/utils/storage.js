@@ -675,9 +675,11 @@ class StorageManager {
     }
   }
 
-  // Clear in-memory cache
+  // Clear in-memory cache, including derived snapshots of decrypted data
   clearCache() {
     this.cache.clear();
+    this.memoizedData = null;
+    this.memoizedDecoyData = null;
   }
 
   // List all VORO storage keys
