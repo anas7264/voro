@@ -313,6 +313,18 @@ const runTests = async () => {
     throw new Error("❌ Failure: Invalid update parameters were accepted!");
   }
 
+  // --- TEST 7: Cache purge invalidates memoized decrypted snapshots ---
+  console.log("🟢 Test 7: Verifying cache purge invalidates all in-memory snapshots...");
+  storage.cache.set("__cache_purge_regression__", { secret: "synthetic-only" });
+  storage.memoizedData = { __cache_purge_regression__: { secret: "synthetic-only" } };
+  storage.memoizedDecoyData = { decoy: true };
+  storage.clearCache();
+
+  if (storage.cache.size !== 0 || storage.memoizedData !== null || storage.memoizedDecoyData !== null) {
+    throw new Error("❌ Failure: Cleared storage retains a memoized snapshot of decrypted data.");
+  }
+  console.log("✅ Success: Cache purge removes cached and memoized snapshots.");
+
   console.log("\n🎉 ALL STORAGE SECURITY VERIFICATION TESTS PASSED SUCCESSFULLY!");
   console.log("=========================================");
   process.exit(0);
