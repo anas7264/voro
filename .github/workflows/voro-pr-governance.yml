@@ -37,12 +37,14 @@ jobs:
             const prs = await github.paginate(github.rest.pulls.list, {
               owner,repo,state:'open',base:'main',per_page:100
             });
+            const {data:mainBranch}=await github.rest.repos.getBranch({owner,repo,branch:'main'});
+            const currentMain=mainBranch.commit.sha;
             prs.sort((a,b)=>new Date(a.created_at)-new Date(b.created_at) || a.number-b.number);
             let p;
             for(const candidate of prs) {
               if(candidate.draft || candidate.user?.login!==owner ||
                  candidate.head.repo?.full_name!==`${owner}/${repo}`) continue;
-              const marker=`<!-- voro-gate-v4:${candidate.head.sha}:${candidate.base.sha} -->`;
+              const marker=`<!-- voro-gate-v4:${candidate.head.sha}:${currentMain} -->`;
               const comments=await github.paginate(github.rest.issues.listComments,{
                 owner,repo,issue_number:candidate.number,per_page:100
               });
@@ -57,7 +59,7 @@ jobs:
             if(!p) {core.notice('Queue drained: no active runner until next event.');return;}
             core.setOutput('number',String(p.number));
             core.setOutput('head',p.head.sha);
-            core.setOutput('base',p.base.sha);
+            core.setOutput('base',currentMain);
             core.notice(`Selected #${p.number}`);
 
       - name: Checkout trusted default branch
@@ -239,7 +241,7 @@ jobs:
             const n=Number(process.env.NUM);
             const {data:p}=await github.rest.pulls.get({owner,repo,pull_number:n});
             if (p.state!=='open'||p.draft||p.head.sha!==process.env.SHA||
-                p.base.sha!==process.env.BASE||p.base.ref!=='main'||
+                p.base.ref!=='main'||
                 p.user?.login!==owner||p.head.repo?.full_name!==`${owner}/${repo}`) {
               core.notice('PR changed; stale verdict discarded');return;
             }
@@ -371,7 +373,7 @@ jobs:
             }
             const {data:revalidated}=await github.rest.pulls.get({owner,repo,pull_number:n});
             const {data:mainBeforeMerge}=await github.rest.repos.getBranch({owner,repo,branch:'main'});
-            if(revalidated.head.sha!==process.env.SHA || revalidated.base.sha!==process.env.BASE ||
+            if(revalidated.head.sha!==process.env.SHA ||
                mainBeforeMerge.commit.sha!==process.env.BASE || revalidated.state!=='open') {
               core.warning('Heads changed during approval. Merge cancelled.');
               return;
