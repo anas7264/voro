@@ -145,7 +145,7 @@ jobs:
                 "import React, { useEffect, useState, useMemo, memo, useRef, useId, useCallback } from 'react';");
             }],
             ['webs/src/components/NotificationContainer.jsx', text => text.replace(
-              'import React, { memo } from "react";\\nimport { useRef, useId, useMemo, useCallback } from "react";',
+              'import React, { memo } from "react";\nimport { useRef, useId, useMemo, useCallback } from "react";',
               'import React, { memo, useRef, useId, useMemo, useCallback } from "react";'
             )],
             ['webs/verify_storage_security.js', text => {
@@ -154,7 +154,7 @@ jobs:
                 "path.resolve(path.dirname(fileURLToPath(import.meta.url)), './src/utils/storage.js')");
               if (!result.includes("import { fileURLToPath } from 'url';")) {
                 result = result.replace("import path from 'path';",
-                  "import path from 'path';\\nimport { fileURLToPath } from 'url';");
+                  "import path from 'path';\nimport { fileURLToPath } from 'url';");
               }
               return result;
             }]
@@ -277,7 +277,7 @@ jobs:
                     "import React, { useEffect, useState, useMemo, memo, useRef, useId, useCallback } from 'react';");
                 }],
                 ['webs/src/components/NotificationContainer.jsx', text => text.replace(
-                  'import React, { memo } from "react";\\nimport { useRef, useId, useMemo, useCallback } from "react";',
+                  'import React, { memo } from "react";\nimport { useRef, useId, useMemo, useCallback } from "react";',
                   'import React, { memo, useRef, useId, useMemo, useCallback } from "react";'
                 )],
                 ['webs/verify_storage_security.js', text => {
@@ -286,7 +286,7 @@ jobs:
                     "path.resolve(path.dirname(fileURLToPath(import.meta.url)), './src/utils/storage.js')");
                   if (!result.includes("import { fileURLToPath } from 'url';")) {
                     result=result.replace("import path from 'path';",
-                      "import path from 'path';\\nimport { fileURLToPath } from 'url';");
+                      "import path from 'path';\nimport { fileURLToPath } from 'url';");
                   }
                   return result;
                 }]
