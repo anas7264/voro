@@ -257,6 +257,10 @@ jobs:
               return;
             }
             const verdict=process.env.VERDICT;
+            if (existing.has('voro-manual-review')) {
+              core.notice('Manually flagged PR; no automatic changes or merge.');
+              return;
+            }
             if(verdict==='stale')return;
             if(verdict==='duplicate') {
               await tag('voro-reviewed','ededed');
@@ -326,6 +330,11 @@ jobs:
               await note(`Checks did not pass (${verdict}). No merge performed. Fix the branch and push a new commit to trigger re-evaluation.`);
               return;
             }
+            const {data:mainBranch}=await github.rest.repos.getBranch({owner,repo,branch:'main'});
+            if(mainBranch.commit.sha!==process.env.BASE) {
+              core.warning('Main moved after verification. Refusing untested merge.');
+              return;
+            }
             try {
               await github.rest.pulls.createReview({owner,repo,pull_number:n,event:'APPROVE',
                 body:'Automated disposable-merge build and regression suite passed.'});
@@ -334,5 +343,13 @@ jobs:
               core.warning('Approval unavailable: '+String(e.message));
               return;
             }
-            await github.rest.pulls.merge({owner,repo,pull_number:n,sha:p.head.sha,merge_method:'squash'});
+            const {data:revalidated}=await github.rest.pulls.get({owner,repo,pull_number:n});
+            const {data:mainBeforeMerge}=await github.rest.repos.getBranch({owner,repo,branch:'main'});
+            if(revalidated.head.sha!==process.env.SHA || revalidated.base.sha!==process.env.BASE ||
+               mainBeforeMerge.commit.sha!==process.env.BASE || revalidated.state!=='open') {
+              core.warning('Heads changed during approval. Merge cancelled.');
+              return;
+            }
+            const merged=await github.rest.pulls.merge({owner,repo,pull_number:n,sha:p.head.sha,merge_method:'squash'});
+            if(!merged.data.merged) core.setFailed('GitHub refused the merge.');
 
