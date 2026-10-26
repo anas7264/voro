@@ -4,13 +4,6 @@ on:
     types: [opened, reopened, synchronize, ready_for_review]
     branches: [main]
   workflow_dispatch:
-    inputs:
-      pr_number:
-        description: 'Optional pull request number to evaluate'
-        required: false
-        type: string
-  schedule:
-    - cron: '11,41 * * * *'
   push:
     branches: [main]
 
@@ -19,6 +12,7 @@ permissions:
 
 concurrency:
   group: voro-serial-pr-gate
+  queue: max
   cancel-in-progress: false
 
 jobs:
@@ -43,31 +37,20 @@ jobs:
             const prs = await github.paginate(github.rest.pulls.list, {
               owner,repo,state:'open',base:'main',per_page:100
             });
-            const priority = [865,866,858,859];
-            const blocked = new Set(['voro-reviewed','voro-manual-review','voro-ci-rejected']);
-            const candidates = prs.filter(p => !p.draft && p.user?.login === owner &&
-              p.head.repo?.full_name === `${owner}/${repo}` &&
-              !p.labels.some(l => blocked.has(l.name)));
-            candidates.sort((a,b)=>{
-              const ai=priority.indexOf(a.number), bi=priority.indexOf(b.number);
-              return (ai<0?99999:ai)-(bi<0?99999:bi) || a.number-b.number;
-            });
+            prs.sort((a,b)=>new Date(a.created_at)-new Date(b.created_at) || a.number-b.number);
             let p;
-            const explicit = context.eventName === 'workflow_dispatch' ? context.payload.inputs?.pr_number : undefined;
-            const eventPR = context.eventName === 'pull_request_target' ? context.payload.pull_request?.number : undefined;
-            const target = explicit ? Number(explicit) : eventPR;
-            if (target) {
-              if (!Number.isSafeInteger(target) || target < 1) {core.setFailed('Invalid PR number');return;}
-              const result = await github.rest.pulls.get({owner,repo,pull_number:target});
-              p=result.data;
-              if (p.state !== 'open' || p.draft || p.base.ref !== 'main' ||
-                  p.user?.login !== owner || p.head.repo?.full_name !== `${owner}/${repo}`) {
-                core.notice('Requested PR is not eligible');return;
-              }
-            } else {
-              p=candidates[0];
+            for(const candidate of prs) {
+              if(candidate.draft || candidate.user?.login!==owner ||
+                 candidate.head.repo?.full_name!==`${owner}/${repo}`) continue;
+              const marker=`<!-- voro-gate-v4:${candidate.head.sha}:${candidate.base.sha} -->`;
+              const comments=await github.paginate(github.rest.issues.listComments,{
+                owner,repo,issue_number:candidate.number,per_page:100
+              });
+              if(comments.some(c=>c.user?.login==='github-actions[bot]' && c.body?.includes(marker)))continue;
+              p=candidate;
+              break;
             }
-            if (!p) {core.notice('No pending trusted PRs');return;}
+            if(!p) {core.notice('Queue drained: no active runner until next event.');return;}
             core.setOutput('number',String(p.number));
             core.setOutput('head',p.head.sha);
             core.setOutput('base',p.base.sha);
@@ -105,6 +88,8 @@ jobs:
           if git diff HEAD --quiet; then
             echo state=duplicate >> "$GITHUB_OUTPUT"
           else
+            git diff --check HEAD
+            git diff --name-only HEAD > "$RUNNER_TEMP/voro-changed.txt"
             echo state=changed >> "$GITHUB_OUTPUT"
           fi
 
@@ -127,7 +112,16 @@ jobs:
             test -f "$t" || { echo "Missing required regression test: $t" >&2; exit 1; }
             node "$t"
           done
+          if grep -Eq '^webs/src/(context/(AppContext|StorageContext)\.jsx|pages/Settings\.jsx|utils/(storage|crypto)\.js)$' "$RUNNER_TEMP/voro-changed.txt"; then
+            test -f verify_async_storage_purge.js || { echo "Missing storage regression test" >&2; exit 1; }
+          fi
           if [[ -f verify_async_storage_purge.js ]]; then node verify_async_storage_purge.js; fi
+          while IFS= read -r file; do
+            case "$file" in
+              webs/*.js|webs/*.cjs|webs/*.mjs|webs/src/utils/*.js)
+                test ! -f "../$file" || node --check "../$file" ;;
+            esac
+          done < "$RUNNER_TEMP/voro-changed.txt"
 
       - id: autofix
         name: Try minimal deterministic repair in the disposable workspace
@@ -160,8 +154,9 @@ jobs:
             }]
           ];
           let count=0;
+          const touched=new Set(fs.readFileSync(process.env.RUNNER_TEMP+'/voro-changed.txt','utf8').trim().split('\n'));
           for (const [file, transform] of fixes) {
-            if (!fs.existsSync(file)) continue;
+            if (!touched.has(file) || !fs.existsSync(file)) continue;
             const before=fs.readFileSync(file,'utf8'), after=transform(before);
             if (before!==after) {fs.writeFileSync(file,after);count++;}
           }
@@ -182,7 +177,16 @@ jobs:
             test -f "$t" || { echo "Missing required regression test: $t" >&2; exit 1; }
             node "$t"
           done
+          if grep -Eq '^webs/src/(context/(AppContext|StorageContext)\.jsx|pages/Settings\.jsx|utils/(storage|crypto)\.js)$' "$RUNNER_TEMP/voro-changed.txt"; then
+            test -f verify_async_storage_purge.js || { echo "Missing storage regression test" >&2; exit 1; }
+          fi
           if [[ -f verify_async_storage_purge.js ]]; then node verify_async_storage_purge.js; fi
+          while IFS= read -r file; do
+            case "$file" in
+              webs/*.js|webs/*.cjs|webs/*.mjs|webs/src/utils/*.js)
+                test ! -f "../$file" || node --check "../$file" ;;
+            esac
+          done < "$RUNNER_TEMP/voro-changed.txt"
 
       - id: check
         name: Fail closed when checks are absent or unsuccessful
@@ -353,3 +357,37 @@ jobs:
             const merged=await github.rest.pulls.merge({owner,repo,pull_number:n,sha:p.head.sha,merge_method:'squash'});
             if(!merged.data.merged) core.setFailed('GitHub refused the merge.');
 
+
+      - name: Record evaluated head and base snapshot
+        if: always() && needs.validate.outputs.number != ''
+        uses: actions/github-script@v7
+        env:
+          NUM: ${{ needs.validate.outputs.number }}
+          HEAD: ${{ needs.validate.outputs.head }}
+          BASE: ${{ needs.validate.outputs.base }}
+          VERDICT: ${{ needs.validate.outputs.decision }}
+        with:
+          script: |
+            const {owner,repo}=context.repo;
+            const marker=`<!-- voro-gate-v4:${process.env.HEAD}:${process.env.BASE} -->`;
+            await github.rest.issues.createComment({
+              owner,repo,issue_number:Number(process.env.NUM),
+              body:`${marker}\nVORO Gate examined this exact PR snapshot: ${process.env.VERDICT||'unknown'}. See Actions logs for details.`
+            });
+
+  advance:
+    name: Advance queue once, then stop if empty
+    needs: [validate, decide]
+    if: always() && needs.validate.outputs.number != '' && needs.decide.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Trigger exactly one next FIFO iteration
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner:context.repo.owner,repo:context.repo.repo,
+              workflow_id:'voro-pr-governance.yml',ref:'main'
+            });
