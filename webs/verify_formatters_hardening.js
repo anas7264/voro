@@ -28,12 +28,28 @@ if (formatTime(NaN) === "0:00" && formatTime(Infinity) === "0:00" && formatTime(
   process.exit(1);
 }
 
-// 3. formatPace: 0, negative numbers, NaN, Infinity
-console.log("🛡️ Test 3: Testing formatPace with zero, negative, and non-finite values...");
-if (formatPace(0) === "0:00/km" && formatPace(-5) === "0:00/km" && formatPace(NaN) === "0:00/km" && formatPace(Infinity) === "0:00/km") {
-  console.log("✅ Success: formatPace handles zero, negative, and non-finite values safely!");
+// 3. formatPace: 0, negative numbers, NaN, Infinity, and realistic speeds
+console.log("🛡️ Test 3: Testing formatPace with zero, negative, non-finite values, and realistic m/s speeds...");
+const pZero = formatPace(0);
+const pNeg = formatPace(-5);
+const pNan = formatPace(NaN);
+const pInf = formatPace(Infinity);
+const p10kmh = formatPace(2.7777777777777777); // 10 km/h -> 6:00/km
+const p12kmh = formatPace(3.3333333333333335); // 12 km/h -> 5:00/km
+const p1ms = formatPace(1.0); // 1 m/s -> 16:40/km
+
+if (
+  pZero === "0:00/km" &&
+  pNeg === "0:00/km" &&
+  pNan === "0:00/km" &&
+  pInf === "0:00/km" &&
+  p10kmh === "6:00/km" &&
+  p12kmh === "5:00/km" &&
+  p1ms === "16:40/km"
+) {
+  console.log("✅ Success: formatPace handles zero, negative, non-finite, and realistic pace calculations correctly!");
 } else {
-  console.error(`❌ Test 3 Failed: 0 -> "${formatPace(0)}", -5 -> "${formatPace(-5)}"`);
+  console.error(`❌ Test 3 Failed: 10kmh -> "${p10kmh}", 12kmh -> "${p12kmh}", 1ms -> "${p1ms}"`);
   process.exit(1);
 }
 
