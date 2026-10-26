@@ -46,7 +46,11 @@ jobs:
               const comments=await github.paginate(github.rest.issues.listComments,{
                 owner,repo,issue_number:candidate.number,per_page:100
               });
-              if(comments.some(c=>c.user?.login==='github-actions[bot]' && c.body?.includes(marker)))continue;
+              const previouslyHandled=comments.some(c=>c.user?.login==='github-actions[bot]' &&
+                (c.body?.includes(marker) ||
+                 (candidate.labels.some(l=>l.name==='voro-manual-review') &&
+                  c.body?.includes(`<!-- voro-gate-v4:${candidate.head.sha}:`))));
+              if(previouslyHandled)continue;
               p=candidate;
               break;
             }
@@ -221,6 +225,8 @@ jobs:
       actions: write
     steps:
       - name: Validate freshness and decide on single PR
+        id: decision
+        continue-on-error: true
         uses: actions/github-script@v7
         env:
           NUM: ${{ needs.validate.outputs.number }}
@@ -325,7 +331,6 @@ jobs:
               await note(`Applied ${pending.length} deterministic repair(s). Running checks again on the new commit before approval or merge.`);
               await github.rest.actions.createWorkflowDispatch({
                 owner,repo,workflow_id:'voro-pr-governance.yml',ref:'main',
-                inputs:{pr_number:String(n)}
               });
               return;
             }
@@ -333,6 +338,23 @@ jobs:
               await tag('voro-ci-rejected','d73a4a');
               await note(`Checks did not pass (${verdict}). No merge performed. Fix the branch and push a new commit to trigger re-evaluation.`);
               return;
+            }
+            const sourcePaths=files.map(f=>f.filename).filter(f=>f.startsWith('webs/src/'));
+            if(sourcePaths.length) {
+              const others=await github.paginate(github.rest.pulls.list,{
+                owner,repo,state:'open',base:'main',per_page:100
+              });
+              for(const other of others) {
+                if(other.number===n || other.draft)continue;
+                const otherFiles=await github.paginate(github.rest.pulls.listFiles,{
+                  owner,repo,pull_number:other.number,per_page:100
+                });
+                if(otherFiles.some(f=>sourcePaths.includes(f.filename))) {
+                  await tag('voro-manual-review');
+                  await note(`Overlapping source changes in PR #${other.number}. Avoiding duplicate/partial auto-merge.`);
+                  return;
+                }
+              }
             }
             const {data:mainBranch}=await github.rest.repos.getBranch({owner,repo,branch:'main'});
             if(mainBranch.commit.sha!==process.env.BASE) {
@@ -372,7 +394,7 @@ jobs:
             const marker=`<!-- voro-gate-v4:${process.env.HEAD}:${process.env.BASE} -->`;
             await github.rest.issues.createComment({
               owner,repo,issue_number:Number(process.env.NUM),
-              body:`${marker}\nVORO Gate examined this exact PR snapshot: ${process.env.VERDICT||'unknown'}. See Actions logs for details.`
+              body:`${marker}\nVORO Gate examined this exact PR snapshot: ${process.env.VERDICT||'unknown'}. See Actions logs for details (decision stage: ${{ steps.decision.outcome }}).`
             });
 
   advance:
