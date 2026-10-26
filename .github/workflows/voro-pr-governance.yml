@@ -1,0 +1,200 @@
+name: VORO - Safe Serial PR Gate
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review]
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '11,41 * * * *'
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: voro-serial-pr-gate
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      number: ${{ steps.pr.outputs.number }}
+      head: ${{ steps.pr.outputs.head }}
+      base: ${{ steps.pr.outputs.base }}
+      decision: ${{ steps.check.outputs.decision }}
+    steps:
+      - id: pr
+        name: Select exactly one owner-authored PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner,repo} = context.repo;
+            const prs = await github.paginate(github.rest.pulls.list, {
+              owner,repo,state:'open',base:'main',per_page:100
+            });
+            const priority = [865,866,858,859];
+            const blocked = new Set(['voro-reviewed','voro-manual-review','voro-ci-rejected']);
+            const candidates = prs.filter(p => !p.draft && p.user?.login === owner &&
+              p.head.repo?.full_name === `${owner}/${repo}` &&
+              !p.labels.some(l => blocked.has(l.name)));
+            candidates.sort((a,b)=>{
+              const ai=priority.indexOf(a.number), bi=priority.indexOf(b.number);
+              return (ai<0?99999:ai)-(bi<0?99999:bi) || a.number-b.number;
+            });
+            const p = candidates[0];
+            if (!p) {core.notice('No pending trusted PRs');return;}
+            core.setOutput('number',String(p.number));
+            core.setOutput('head',p.head.sha);
+            core.setOutput('base',p.base.sha);
+            core.notice(`Selected #${p.number}`);
+
+      - name: Checkout trusted default branch
+        if: steps.pr.outputs.number != ''
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+          fetch-depth: 0
+
+      - id: preview
+        name: Try merge in disposable read-only working tree
+        if: steps.pr.outputs.number != ''
+        continue-on-error: true
+        shell: bash
+        env:
+          PR_HEAD: ${{ steps.pr.outputs.head }}
+          BASE_HEAD: ${{ steps.pr.outputs.base }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main "$PR_HEAD"
+          if [[ "$(git rev-parse origin/main)" != "$BASE_HEAD" ]]; then
+            echo state=stale >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git checkout --detach origin/main
+          if ! git -c user.name='VORO CI' -c user.email='ci@users.noreply.github.com' merge --no-commit --no-ff "$PR_HEAD"; then
+            echo state=conflict >> "$GITHUB_OUTPUT"
+            git merge --abort || true
+            exit 0
+          fi
+          if git diff HEAD --quiet; then
+            echo state=duplicate >> "$GITHUB_OUTPUT"
+          else
+            echo state=changed >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.preview.outputs.state == 'changed'
+        with:
+          node-version: '22'
+
+      - id: checks
+        name: Locked install, build and available regression suites
+        if: steps.preview.outputs.state == 'changed'
+        continue-on-error: true
+        working-directory: webs
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm run build
+          for t in verify_storage_security.js verify_masterclass_luxury.cjs verify_daily_perf_v20.cjs verify_formatters_hardening.js verify_calculators_perf.js verify_async_storage_purge.js; do
+            if [[ -f "$t" ]]; then node "$t"; fi
+          done
+
+      - id: check
+        name: Fail closed when checks are absent or unsuccessful
+        if: always() && steps.pr.outputs.number != ''
+        env:
+          PREVIEW_OUTCOME: ${{ steps.preview.outcome }}
+          PREVIEW_STATE: ${{ steps.preview.outputs.state }}
+          CHECK_OUTCOME: ${{ steps.checks.outcome }}
+        shell: bash
+        run: |
+          decision=reject
+          if [[ "$PREVIEW_OUTCOME" != success ]]; then decision=reject
+          elif [[ "$PREVIEW_STATE" == stale ]]; then decision=stale
+          elif [[ "$PREVIEW_STATE" == duplicate ]]; then decision=duplicate
+          elif [[ "$PREVIEW_STATE" == conflict ]]; then decision=conflict
+          elif [[ "$PREVIEW_STATE" == changed && "$CHECK_OUTCOME" == success ]]; then decision=pass
+          fi
+          echo "decision=$decision" >> "$GITHUB_OUTPUT"
+          echo "PR #${{ steps.pr.outputs.number }}: $decision" >> "$GITHUB_STEP_SUMMARY"
+
+  decide:
+    needs: validate
+    if: always() && needs.validate.outputs.number != '' && needs.validate.outputs.decision != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Validate freshness and decide on single PR
+        uses: actions/github-script@v7
+        env:
+          NUM: ${{ needs.validate.outputs.number }}
+          SHA: ${{ needs.validate.outputs.head }}
+          BASE: ${{ needs.validate.outputs.base }}
+          VERDICT: ${{ needs.validate.outputs.decision }}
+        with:
+          script: |
+            const {owner,repo}=context.repo;
+            const n=Number(process.env.NUM);
+            const {data:p}=await github.rest.pulls.get({owner,repo,pull_number:n});
+            if (p.state!=='open'||p.draft||p.head.sha!==process.env.SHA||
+                p.base.sha!==process.env.BASE||p.base.ref!=='main'||
+                p.user?.login!==owner||p.head.repo?.full_name!==`${owner}/${repo}`) {
+              core.notice('PR changed; stale verdict discarded');return;
+            }
+            const existing = new Set(p.labels.map(l=>l.name));
+            async function tag(name,color='b60205') {
+              try {await github.rest.issues.createLabel({owner,repo,name,color});}
+              catch(e){if(e.status!==422) throw e;}
+              if(!existing.has(name))
+                await github.rest.issues.addLabels({owner,repo,issue_number:n,labels:[name]});
+            }
+            async function note(msg) {
+              await github.rest.issues.createComment({owner,repo,issue_number:n,body:msg});
+            }
+            const dup={855:858,856:858,857:858,860:858,862:858,863:858,864:858,867:858,861:865};
+            if (dup[n]) {
+              await tag('voro-manual-review');
+              await note(`Duplicate/overlapping repair of #${dup[n]}; blocked from auto-merge. Consolidate unique tests before closing.`);
+              return;
+            }
+            const files=await github.paginate(github.rest.pulls.listFiles,{owner,repo,pull_number:n,per_page:100});
+            if(files.some(f=>f.filename.startsWith('.github/')||
+                /^(webs\/src\/utils\/(crypto|storage)\.js|webs\/(package\.json|package-lock\.json|pnpm-lock\.yaml))$/.test(f.filename))) {
+              await tag('voro-manual-review');
+              await note('Sensitive workflow, cryptography, storage engine or dependencies changed; human review required.');
+              return;
+            }
+            const verdict=process.env.VERDICT;
+            if(verdict==='stale')return;
+            if(verdict==='duplicate') {
+              await tag('voro-reviewed','ededed');
+              await note('No new changes compared with main. Review for closure rather than duplicate merge.');
+              return;
+            }
+            if(verdict!=='pass') {
+              await tag('voro-ci-rejected','d73a4a');
+              await note(`Checks did not pass (${verdict}). No merge performed. Fix the branch and push a new commit to trigger re-evaluation.`);
+              return;
+            }
+            try {
+              await github.rest.pulls.createReview({owner,repo,pull_number:n,event:'APPROVE',
+                body:'Automated disposable-merge build and regression suite passed.'});
+            } catch(e) {
+              await tag('voro-manual-review');
+              core.warning('Approval unavailable: '+String(e.message));
+              return;
+            }
+            await github.rest.pulls.merge({owner,repo,pull_number:n,sha:p.head.sha,merge_method:'squash'});
+
