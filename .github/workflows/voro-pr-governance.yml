@@ -331,9 +331,6 @@ jobs:
                 });
               }
               await note(`Applied ${pending.length} deterministic repair(s). Running checks again on the new commit before approval or merge.`);
-              await github.rest.actions.createWorkflowDispatch({
-                owner,repo,workflow_id:'voro-pr-governance.yml',ref:'main',
-              });
               return;
             }
             if(verdict!=='pass') {
@@ -396,7 +393,7 @@ jobs:
             const marker=`<!-- voro-gate-v4:${process.env.HEAD}:${process.env.BASE} -->`;
             await github.rest.issues.createComment({
               owner,repo,issue_number:Number(process.env.NUM),
-              body:`${marker}\nVORO Gate examined this exact PR snapshot: ${process.env.VERDICT||'unknown'}. See Actions logs for details (decision stage: ${{ steps.decision.outcome }}).`
+              body:`${marker}\nVORO Gate reviewed this PR snapshot. Test: ${process.env.VERDICT||'unknown'}. Decision stage: ${{ steps.decision.outcome }}. [View run](https://github.com/${owner}/${repo}/actions/runs/${context.runId}).`
             });
 
   advance:
