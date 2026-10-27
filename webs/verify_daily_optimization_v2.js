@@ -1,14 +1,18 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 console.log("=========================================");
 console.log("⚡ VERIFYING DAILY PERFORMANCE OPTIMIZATION V2");
 console.log("=========================================");
 
-const fastingTrackerPath = path.resolve('webs/src/pages/FastingTracker.jsx');
-const bodyMetricsPath = path.resolve('webs/src/pages/BodyMetrics.jsx');
-const educationHubPath = path.resolve('webs/src/pages/EducationHub.jsx');
-const workoutLogPath = path.resolve('webs/src/pages/WorkoutLog.jsx');
+const fastingTrackerPath = path.resolve(__dirname, 'src/pages/FastingTracker.jsx');
+const bodyMetricsPath = path.resolve(__dirname, 'src/pages/BodyMetrics.jsx');
+const educationHubPath = path.resolve(__dirname, 'src/pages/EducationHub.jsx');
+const workoutLogPath = path.resolve(__dirname, 'src/pages/WorkoutLog.jsx');
 
 // 🧪 Test 1: FastingTracker selector and static fallback
 console.log("🧪 Test 1: Verifying FastingTracker selectFastingData & DEFAULT_FASTING_DATA...");
