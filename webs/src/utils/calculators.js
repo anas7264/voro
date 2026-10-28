@@ -218,9 +218,9 @@ export const convertPace = (pace, unit = "kmh_to_pace") => {
   if (unit === "kmh_to_pace") {
     const p = typeof pace === 'number' ? pace : parseFloat(pace);
     if (!p || p <= 0 || !Number.isFinite(p)) return "0:00";
-    const seconds = (3600 / p);
-    const minutes = Math.floor(seconds / 60);
-    const secs = Math.round(seconds % 60);
+    const totalSecs = Math.round(3600 / p);
+    const minutes = Math.floor(totalSecs / 60);
+    const secs = totalSecs % 60;
     return `${minutes}:${secs.toString().padStart(2, "0")}`;
   } else if (unit === "pace_to_kmh") {
     if (typeof pace !== "string" || !pace.includes(":")) return "0.00";
