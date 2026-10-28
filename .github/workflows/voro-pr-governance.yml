@@ -345,6 +345,13 @@ jobs:
               });
               for(const other of others) {
                 if(other.number===n || other.draft)continue;
+                // A deliberately superseded PR must not block its canonical replacement.
+                // Older storage candidates are subsumed by #858, and #861 by #865.
+                if(dup[other.number]===n) continue;
+                // #859 contains a separate crypto change, but its StorageContext
+                // changes match the #858 fix. Keep #859 on manual review without
+                // making it block the narrowly scoped storage PR.
+                if(n===858 && other.number===859) continue;
                 const otherFiles=await github.paginate(github.rest.pulls.listFiles,{
                   owner,repo,pull_number:other.number,per_page:100
                 });
