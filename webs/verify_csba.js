@@ -6,6 +6,10 @@
 
 import nodeCrypto from 'crypto';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const webcrypto = nodeCrypto.webcrypto;
 
@@ -174,9 +178,9 @@ const runTests = async () => {
   console.log("🧪 RUNNING CSBA SECURITY INITIALIZATION VERIFICATION");
   console.log("=========================================");
 
-  const securityModulePath = path.resolve('./src/utils/security.js');
-  const cryptoModulePath = path.resolve('./src/utils/crypto.js');
-  const storageModulePath = path.resolve('./src/utils/storage.js');
+  const securityModulePath = path.resolve(__dirname, 'src/utils/security.js');
+  const cryptoModulePath = path.resolve(__dirname, 'src/utils/crypto.js');
+  const storageModulePath = path.resolve(__dirname, 'src/utils/storage.js');
   const voroSentinel = (await import(securityModulePath)).default;
   const voroCrypto = (await import(cryptoModulePath)).default;
   const voroStorage = (await import(storageModulePath)).default;
