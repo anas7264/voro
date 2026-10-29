@@ -5,6 +5,9 @@
 
 import { promises as fs } from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Store original defineProperty
 const originalDefineProperty = Object.defineProperty;
@@ -117,7 +120,7 @@ const runTests = async () => {
   mockWindow();
 
   // Load the security module
-  const securityModulePath = path.resolve('src/utils/security.js');
+  const securityModulePath = path.resolve(__dirname, 'src/utils/security.js');
   const sentinel = (await import(securityModulePath)).default;
 
   const { validateAIResponse } = sentinel;
