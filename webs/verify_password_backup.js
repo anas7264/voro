@@ -7,6 +7,7 @@
 import nodeCrypto from 'crypto';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 const webcrypto = nodeCrypto.webcrypto;
 
@@ -194,8 +195,9 @@ const runTests = async () => {
   console.log("=========================================");
 
   // Load modules
-  const cryptoModulePath = path.resolve('./src/utils/crypto.js');
-  const storageModulePath = path.resolve('./src/utils/storage.js');
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const cryptoModulePath = path.resolve(__dirname, 'src/utils/crypto.js');
+  const storageModulePath = path.resolve(__dirname, 'src/utils/storage.js');
 
   const voroCrypto = (await import(cryptoModulePath)).default;
   const storage = (await import(storageModulePath)).default;
