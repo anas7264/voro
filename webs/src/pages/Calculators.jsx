@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, memo, useRef, useId } from 'react';
+import React, { useEffect, useState, useMemo, memo, useRef, useId, useCallback } from 'react';
 import Card from '@/components/Card';
 import Tabs from '@/components/Tabs';
 import { useCalculators } from '@/hooks/useCalculators';
