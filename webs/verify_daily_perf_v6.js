@@ -1,7 +1,12 @@
 import { performance } from 'perf_hooks';
 import { execSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { supplements } from './src/data/supplements.js';
 import { getFastDateStr } from './src/utils/formatters.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 console.log('=========================================');
 console.log('⚡ VERIFYING DAILY PERFORMANCE OPTIMIZATION V6');
@@ -94,7 +99,10 @@ if (elapsedMs > 3000) {
 // Test 4: Running Vite production build
 console.log('🧪 Test 4: Executing Vite Production Build Check...');
 try {
-  execSync('pnpm --prefix webs build', { stdio: 'inherit' });
+  const buildCmd = fs.existsSync(path.resolve('package.json')) && !fs.existsSync(path.resolve('webs/package.json'))
+    ? 'pnpm build'
+    : 'pnpm --prefix webs build';
+  execSync(buildCmd, { stdio: 'inherit' });
   console.log('✅ Success: Vite production build completed without errors!');
 } catch (err) {
   console.error('❌ Failed: Vite production build failed.');

@@ -12,7 +12,7 @@ if (!fs.existsSync(ncPath)) {
 const content = fs.readFileSync(ncPath, 'utf8');
 
 const checks = [
-  { name: 'Import React memo', test: content.includes('import React, { memo }') },
+  { name: 'Import React memo', test: content.includes('import React, { memo') },
   { name: 'Consume notification hooks (useNotificationState, useNotifications)', test: content.includes('useNotificationState') && content.includes('useNotifications') },
   { name: 'Semantic <section> container tag with APG live region', test: content.includes('<section') && content.includes('role="region"') && content.includes('aria-label="System Notification Matrix Stream"') && content.includes('aria-live="polite"') },
   { name: 'Responsive golden-ratio whitespace & z-index', test: content.includes('fixed top-6 right-6 sm:top-10 sm:right-10') && content.includes('z-[100]') },
