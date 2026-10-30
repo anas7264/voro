@@ -6,6 +6,7 @@
 
 import nodeCrypto from 'crypto';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 const webcrypto = nodeCrypto.webcrypto;
 
@@ -139,7 +140,8 @@ const runTests = async () => {
   console.log("🧪 RUNNING HSIA & CONSTANT-TIME SECURITY VERIFICATION");
   console.log("=========================================");
 
-  const cryptoModulePath = path.resolve('./src/utils/crypto.js');
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const cryptoModulePath = path.resolve(__dirname, 'src/utils/crypto.js');
   const voroCrypto = (await import(cryptoModulePath)).default;
 
   // Test 1: Constant-Time Comparison Correctness
