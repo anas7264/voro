@@ -52,8 +52,8 @@ def classify(before, after, impacted=False):
         new = set(after["diagnostics"])
         if not new.issubset(old):
             return "regression", "new or changed diagnostic"
-        if impacted and old == new:
-            return "review", "affected check still fails and may mask errors"
+        if impacted:
+            return "review", "affected check still fails; later assertions may be hidden"
         if new < old:
             return "improvement", "fewer observed diagnostic messages"
     return "pass", "no detected regression"
