@@ -85,7 +85,10 @@ jobs:
             if (!Number.isSafeInteger(n) || n <= 0) {
               core.setFailed('Invalid PR number'); return;
             }
+            // Publish the FIFO cursor BEFORE any guard that can reject the PR.
+            // A failed eligibility check must not silently terminate the queue.
             core.setOutput('batch', batch ? 'true' : 'false');
+            core.setOutput('number', String(n));
             const {data:p} = await github.rest.pulls.get({owner,repo,pull_number:n});
             if (p.state !== 'open' || p.draft || p.base.ref !== 'main' ||
                 p.user.login !== owner || p.head.repo?.full_name !== owner+'/'+repo ||
@@ -110,7 +113,6 @@ jobs:
               return;
             }
             const {data:base}=await github.rest.repos.getBranch({owner,repo,branch:'main'});
-            core.setOutput('number',String(n));
             core.setOutput('head',p.head.sha);
             core.setOutput('base',base.commit.sha);
 
