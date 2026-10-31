@@ -5,6 +5,7 @@
 
 import nodeCrypto from 'crypto';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 const webcrypto = nodeCrypto.webcrypto;
 
@@ -192,7 +193,7 @@ const runTests = async () => {
   console.log("=========================================");
 
   // Dynamically import storage after environment mocks are attached
-  const storageModulePath = path.resolve('./src/utils/storage.js');
+  const storageModulePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), './src/utils/storage.js');
   const storage = (await import(storageModulePath)).default;
 
   await storage.ensureInitialized();
