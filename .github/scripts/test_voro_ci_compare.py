@@ -69,6 +69,16 @@ class CompareTests(unittest.TestCase):
         self.assertEqual(ci.classify(
             state("fail", "e1"), state("fail", "e1"), True)[0], "review")
 
+    def test_fewer_diagnostics_on_affected_failing_test_requires_review(self):
+        self.assertEqual(ci.classify(
+            state("fail", "e1", "e2"),
+            state("fail", "e1"), True)[0], "review")
+
+    def test_fewer_diagnostics_on_unaffected_test_is_improvement(self):
+        self.assertEqual(ci.classify(
+            state("fail", "e1", "e2"),
+            state("fail", "e1"), False)[0], "improvement")
+
     def test_removed_check_blocks(self):
         self.assertEqual(ci.classify(
             state("pass"), state("missing"))[0], "regression")
