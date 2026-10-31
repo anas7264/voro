@@ -28,6 +28,37 @@ ERROR = re.compile(
 )
 
 
+def log_file(stage, name):
+    """Convert a logical check ID to a flat, collision-resistant file path."""
+    safe = re.sub(r"[^A-Za-z0-9_-]+", "_", name)[:90] or "check"
+    digest = hashlib.sha256(name.encode("utf-8")).hexdigest()[:12]
+    return LOGS / f"{stage}-{safe}-{digest}.log"
+
+
+def classify(before, after, impacted=False):
+    """Return (decision, reason), not an estimated software defect count."""
+    bs, cs = before["status"], after["status"]
+    if bs == "missing":
+        return ("pass", "new check passes") if cs == "pass" else (
+            "regression", "new check does not pass")
+    if cs == "missing":
+        return "regression", "existing check removed"
+    if bs == "pass" and cs != "pass":
+        return "regression", "previously passing check now fails"
+    if bs == "fail" and cs == "pass":
+        return "improvement", "previously failing check now passes"
+    if bs == "fail" and cs == "fail":
+        old = set(before["diagnostics"])
+        new = set(after["diagnostics"])
+        if not new.issubset(old):
+            return "regression", "new or changed diagnostic"
+        if impacted and old == new:
+            return "review", "affected check still fails and may mask errors"
+        if new < old:
+            return "improvement", "fewer observed diagnostic messages"
+    return "pass", "no detected regression"
+
+
 def run(stage, name, args, timeout=35):
     if time.monotonic() >= DEADLINE:
         raise RuntimeError("CI comparison exceeded its time budget")
@@ -46,12 +77,8 @@ def run(stage, name, args, timeout=35):
     except OSError as exc:
         raise RuntimeError(f"{name} cannot be started: {exc}") from exc
 
-    # A check ID is not a filesystem path: "parse:webs/src/X.jsx" contains
-    # separators. Generate flat, collision-resistant, bounded log filenames.
-    safe_name = re.sub(r"[^A-Za-z0-9_.-]", "_", name)[:90]
-    check_id = hashlib.sha256(name.encode("utf-8")).hexdigest()[:12]
-    log_path = LOGS / f"{stage}-{safe_name}-{check_id}.log"
-    log_path.write_text(output[:1_000_000], encoding="utf-8")
+    # Logical check IDs may contain slashes; never use them as log paths.
+    log_file(stage, name).write_text(output[:1_000_000], encoding="utf-8")
     if code == 124:
         raise RuntimeError(f"{stage}: {name} timed out; no automatic merge allowed")
     return code, output
@@ -177,32 +204,15 @@ def main():
     regressions, improvements, ambiguous = [], [], []
     checks = ["build", *scripts, *("parse:" + path for path in changed)]
     for name in checks:
-        before, after = base[name], candidate[name]
-        bs, cs = before["status"], after["status"]
-        if bs == "missing":
-            if cs != "pass":
-                regressions.append(f"{name}: new check does not pass ({cs})")
-        elif cs == "missing":
-            regressions.append(f"{name}: existing check removed")
-        elif bs == "pass" and cs != "pass":
-            regressions.append(f"{name}: PASS -> FAIL")
-        elif bs == "fail" and cs == "pass":
-            improvements.append(f"{name}: FAIL -> PASS")
-        elif bs == "fail" and cs == "fail":
-            old = set(before["diagnostics"])
-            new = set(after["diagnostics"])
-            if not new.issubset(old):
-                regressions.append(f"{name}: new/changed diagnostic")
-            elif (name.startswith("parse:") or
-                  (name != "build" and directly_covers(name, changed))):
-                # The first failing assertion can mask later failures. When
-                # the test explicitly covers changed source, this is unsafe.
-                if new == old:
-                    ambiguous.append(f"{name}: affected test still fails")
-                else:
-                    improvements.append(f"{name}: fewer observed diagnostics")
-            elif new < old:
-                improvements.append(f"{name}: fewer observed diagnostics")
+        impacted = name.startswith("parse:") or (
+            name != "build" and directly_covers(name, changed))
+        decision, reason = classify(base[name], candidate[name], impacted)
+        if decision == "regression":
+            regressions.append(f"{name}: {reason}")
+        elif decision == "review":
+            ambiguous.append(f"{name}: {reason}")
+        elif decision == "improvement":
+            improvements.append(f"{name}: {reason}")
 
     for name in changed_tests:
         old, before, after = base[name], legacy[name], candidate[name]
