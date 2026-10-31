@@ -46,7 +46,12 @@ def run(stage, name, args, timeout=35):
     except OSError as exc:
         raise RuntimeError(f"{name} cannot be started: {exc}") from exc
 
-    (LOGS / f"{stage}-{name}.log").write_text(output[:1_000_000], encoding="utf-8")
+    # A check ID is not a filesystem path: "parse:webs/src/X.jsx" contains
+    # separators. Generate flat, collision-resistant, bounded log filenames.
+    safe_name = re.sub(r"[^A-Za-z0-9_.-]", "_", name)[:90]
+    check_id = hashlib.sha256(name.encode("utf-8")).hexdigest()[:12]
+    log_path = LOGS / f"{stage}-{safe_name}-{check_id}.log"
+    log_path.write_text(output[:1_000_000], encoding="utf-8")
     if code == 124:
         raise RuntimeError(f"{stage}: {name} timed out; no automatic merge allowed")
     return code, output
