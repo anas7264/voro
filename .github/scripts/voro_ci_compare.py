@@ -144,6 +144,31 @@ def main():
     base = evaluate("base", scripts, changed)
     candidate = evaluate("candidate", scripts, changed)
 
+    # If an old test was modified, rerun the ORIGINAL trusted test against
+    # the new code. This prevents a PR from gaining approval merely by
+    # weakening or deleting checks in its own test implementation.
+    changed_tests = [
+        name for name in scripts
+        if (BASE / "webs" / name).is_file()
+        and (CANDIDATE / "webs" / name).is_file()
+        and (BASE / "webs" / name).read_bytes() !=
+            (CANDIDATE / "webs" / name).read_bytes()
+    ]
+    legacy = {}
+    for name in changed_tests:
+        old = (BASE / "webs" / name).read_bytes()
+        target = CANDIDATE / "webs" / name
+        current = target.read_bytes()
+        try:
+            target.write_bytes(old)
+            code, output = run("candidate", "legacy-" + name, ["node", name])
+            legacy[name] = {
+                "status": "pass" if code == 0 else "fail",
+                "diagnostics": [] if code == 0 else fingerprints(output, CANDIDATE),
+            }
+        finally:
+            target.write_bytes(current)
+
     regressions, improvements, ambiguous = [], [], []
     checks = ["build", *scripts, *("parse:" + path for path in changed)]
     for name in checks:
@@ -174,6 +199,18 @@ def main():
             elif new < old:
                 improvements.append(f"{name}: fewer observed diagnostics")
 
+    for name in changed_tests:
+        old, before, after = base[name], legacy[name], candidate[name]
+        if after["status"] != "pass":
+            ambiguous.append(name + ": modified test does not pass in the PR")
+        if old["status"] == "pass" and before["status"] != "pass":
+            regressions.append(name + ": original trusted test now fails")
+        if old["status"] == "fail" and before["status"] == "fail":
+            if not set(before["diagnostics"]).issubset(set(old["diagnostics"])):
+                regressions.append(name + ": original trusted test gained a new failure")
+            elif directly_covers(name, changed):
+                ambiguous.append(name + ": original trusted test still fails on changed source")
+
     def count_failures(items):
         return sum(1 for x in items.values() if x["status"] == "fail")
 
@@ -183,6 +220,7 @@ def main():
     after_diag = sum(len(x["diagnostics"]) for x in candidate.values())
     summary = {
         "scripts_executed_per_snapshot": len(scripts),
+        "existing_test_scripts_rechecked_unchanged": len(changed_tests),
         "checks_including_build_and_syntax": len(checks),
         "failed_checks_before": before_count,
         "failed_checks_candidate": after_count,
@@ -202,6 +240,7 @@ def main():
         report.write(f"| Observed diagnostic messages | {before_diag} | {after_diag} |\n")
         report.write(f"\nNode verification scripts per snapshot: **{len(scripts)}**.\n")
         report.write(f"Changed source files individually parsed: **{len(changed)}**.\n")
+        report.write(f"Modified original test files rerun unchanged: **{len(changed_tests)}**.\n")
         for title, values in (("Improvements", improvements),
                               ("New regressions", regressions),
                               ("Manual review required", ambiguous)):
