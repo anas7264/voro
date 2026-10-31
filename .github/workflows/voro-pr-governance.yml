@@ -1,15 +1,29 @@
 name: VORO - Regression-aware Auto Merge
 
 on:
+  # Updating this workflow on main starts one FIFO backlog pass.
+  push:
+    branches: [main]
+    paths: ['.github/workflows/voro-pr-governance.yml']
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
     branches: [main]
   workflow_dispatch:
     inputs:
       pr_number:
-        description: 'Open PR number to evaluate'
-        type: number
-        required: true
+        description: 'Open PR number (leave empty only to start a FIFO batch)'
+        type: string
+        required: false
+      batch:
+        description: 'Process the backlog oldest-to-newest'
+        type: boolean
+        default: false
+        required: false
+      after:
+        description: 'Internal FIFO cursor; normally leave 0'
+        type: string
+        default: '0'
+        required: false
 
 permissions:
   contents: read
@@ -30,6 +44,7 @@ jobs:
       number: ${{ steps.select.outputs.number }}
       head: ${{ steps.select.outputs.head }}
       base: ${{ steps.select.outputs.base }}
+      batch: ${{ steps.select.outputs.batch }}
     steps:
       - name: Select safe owner-authored repair PR
         id: select
@@ -37,12 +52,40 @@ jobs:
         with:
           script: |
             const {owner, repo} = context.repo;
-            const n = context.eventName === 'workflow_dispatch'
-              ? Number(context.payload.inputs.pr_number)
-              : context.payload.pull_request.number;
+            const batch = context.eventName === 'push' ||
+              (context.eventName === 'workflow_dispatch' &&
+               String(context.payload.inputs?.batch) === 'true');
+            let n;
+            if (batch) {
+              const after = Number(context.payload.inputs?.after ?? 0);
+              if (!Number.isSafeInteger(after) || after < 0) {
+                core.setFailed('Invalid FIFO cursor'); return;
+              }
+              const prs = await github.paginate(github.rest.pulls.list, {
+                owner, repo, state:'open', base:'main',
+                sort:'created', direction:'asc', per_page:100
+              });
+              // Never override the manual-review guard. Each earlier PR
+              // remains visible on GitHub for a separate human decision.
+              const next = prs.find(p => p.number > after && !p.draft &&
+                p.user.login === owner &&
+                p.head.repo?.full_name === owner+'/'+repo &&
+                !(p.labels ?? []).some(l=>l.name==='voro-manual-review'));
+              if (!next) {
+                core.notice('FIFO pass finished: no more eligible PRs after #'+after);
+                return;
+              }
+              n = next.number;
+              core.notice('FIFO evaluating PR #'+n+' after cursor #'+after);
+            } else {
+              n = context.eventName === 'workflow_dispatch'
+                ? Number(context.payload.inputs?.pr_number)
+                : context.payload.pull_request?.number;
+            }
             if (!Number.isSafeInteger(n) || n <= 0) {
               core.setFailed('Invalid PR number'); return;
             }
+            core.setOutput('batch', batch ? 'true' : 'false');
             const {data:p} = await github.rest.pulls.get({owner,repo,pull_number:n});
             if (p.state !== 'open' || p.draft || p.base.ref !== 'main' ||
                 p.user.login !== owner || p.head.repo?.full_name !== owner+'/'+repo ||
@@ -72,6 +115,7 @@ jobs:
             core.setOutput('base',base.commit.sha);
 
       - name: Checkout tested main snapshot
+        if: ${{ steps.select.outputs.number != '' }}
         uses: actions/checkout@v6
         with:
           ref: ${{ steps.select.outputs.base }}
@@ -79,6 +123,7 @@ jobs:
           persist-credentials: false
 
       - name: Build isolated base and merge-preview worktrees
+        if: ${{ steps.select.outputs.number != '' }}
         shell: bash
         env:
           BASE_SHA: ${{ steps.select.outputs.base }}
@@ -99,24 +144,28 @@ jobs:
           fi
 
       - name: Self-test CI decision engine
+        if: ${{ steps.select.outputs.number != '' }}
         shell: bash
         run: |
           set -euo pipefail
           python3 -m unittest discover -s .github/scripts -p 'test_voro_ci_compare.py' -v
 
-      - uses: actions/setup-node@v6
+      - if: ${{ steps.select.outputs.number != '' }}
+        uses: actions/setup-node@v6
         with:
           node-version: '22'
           cache: npm
           cache-dependency-path: webs/package-lock.json
 
       - name: Count and compare detected regressions
+        if: ${{ steps.select.outputs.number != '' }}
         shell: bash
         run: |
           set -euo pipefail
           python3 "$RUNNER_TEMP/voro/base/.github/scripts/voro_ci_compare.py"
 
       - name: Save detailed comparison and test logs
+        if: ${{ steps.select.outputs.number != '' }}
         if: always()
         uses: actions/upload-artifact@v6
         with:
@@ -129,6 +178,7 @@ jobs:
 
   merge:
     needs: verify
+    if: ${{ needs.verify.outputs.number != '' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -181,3 +231,44 @@ jobs:
               owner,repo,pull_number:n,sha:process.env.TESTED_HEAD,merge_method:'squash'
             });
             if(!r.merged)core.setFailed(r.message || 'GitHub refused merge');
+
+  continue-fifo:
+    # Runs even if a PR failed validation or merging: that PR stays open,
+    # then the queue advances to the next older-to-newer eligible candidate.
+    needs: [verify, merge]
+    if: \${{ always() && needs.verify.outputs.batch == 'true' && needs.verify.outputs.number != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: write
+    steps:
+      - name: Dispatch next PR without running multiple checks in parallel
+        uses: actions/github-script@v8
+        env:
+          COMPLETED_NUMBER: \${{ needs.verify.outputs.number }}
+        with:
+          script: |
+            const {owner,repo}=context.repo;
+            const after=Number(process.env.COMPLETED_NUMBER);
+            if(!Number.isSafeInteger(after) || after<=0) {
+              core.setFailed('Invalid completed PR cursor');return;
+            }
+            const prs=await github.paginate(github.rest.pulls.list,{
+              owner,repo,state:'open',base:'main',
+              sort:'created',direction:'asc',per_page:100
+            });
+            const next=prs.find(p=>p.number>after && !p.draft &&
+              p.user.login===owner &&
+              p.head.repo?.full_name===owner+'/'+repo &&
+              !(p.labels??[]).some(l=>l.name==='voro-manual-review'));
+            if(!next){
+              core.notice('FIFO backlog finished; no more eligible open PRs after #'+after);
+              return;
+            }
+            core.notice('Next FIFO PR: #'+next.number+' (after #'+after+')');
+            await github.rest.actions.createWorkflowDispatch({
+              owner,repo,workflow_id:'voro-pr-governance.yml',ref:'main',
+              inputs:{pr_number:String(next.number),batch:'true',after:String(after)}
+            });
