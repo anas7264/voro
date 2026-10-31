@@ -165,8 +165,7 @@ jobs:
           python3 "$RUNNER_TEMP/voro/base/.github/scripts/voro_ci_compare.py"
 
       - name: Save detailed comparison and test logs
-        if: ${{ steps.select.outputs.number != '' }}
-        if: always()
+        if: ${{ always() && steps.select.outputs.number != '' }}
         uses: actions/upload-artifact@v6
         with:
           name: voro-regression-${{ github.run_id }}
@@ -236,7 +235,7 @@ jobs:
     # Runs even if a PR failed validation or merging: that PR stays open,
     # then the queue advances to the next older-to-newer eligible candidate.
     needs: [verify, merge]
-    if: \${{ always() && needs.verify.outputs.batch == 'true' && needs.verify.outputs.number != '' }}
+    if: ${{ always() && needs.verify.outputs.batch == 'true' && needs.verify.outputs.number != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 3
     permissions:
@@ -247,7 +246,7 @@ jobs:
       - name: Dispatch next PR without running multiple checks in parallel
         uses: actions/github-script@v8
         env:
-          COMPLETED_NUMBER: \${{ needs.verify.outputs.number }}
+          COMPLETED_NUMBER: ${{ needs.verify.outputs.number }}
         with:
           script: |
             const {owner,repo}=context.repo;
