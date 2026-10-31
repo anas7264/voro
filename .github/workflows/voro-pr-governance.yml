@@ -1,70 +1,99 @@
-name: VORO - Baseline-aware Auto Merge
+name: VORO - Regression-aware Auto Merge
 
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
     branches: [main]
   workflow_dispatch:
     inputs:
       pr_number:
-        description: 'Number of an already open PR'
-        required: true
+        description: 'Open PR number to evaluate'
         type: number
+        required: true
 
 permissions:
   contents: read
 
 concurrency:
-  group: voro-auto-merge
-  cancel-in-progress: false
+  group: voro-serial-regression-gate
   queue: max
+  cancel-in-progress: false
 
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     permissions:
       contents: read
       pull-requests: read
     outputs:
-      number: ${{ steps.pr.outputs.number }}
-      head: ${{ steps.pr.outputs.head }}
-      base: ${{ steps.pr.outputs.base }}
+      number: ${{ steps.select.outputs.number }}
+      head: ${{ steps.select.outputs.head }}
+      base: ${{ steps.select.outputs.base }}
     steps:
-      - name: Check PR author and sensitive files
-        id: pr
+      - name: Select safe owner-authored repair PR
+        id: select
         uses: actions/github-script@v7
         with:
           script: |
-            const {owner,repo} = context.repo;
-            const number = context.eventName === 'workflow_dispatch'
+            const {owner, repo} = context.repo;
+            const n = context.eventName === 'workflow_dispatch'
               ? Number(context.payload.inputs.pr_number)
               : context.payload.pull_request.number;
-            const {data:p} = await github.rest.pulls.get({owner,repo,pull_number:number});
+            if (!Number.isSafeInteger(n) || n <= 0) {
+              core.setFailed('Invalid PR number'); return;
+            }
+            const {data:p} = await github.rest.pulls.get({owner,repo,pull_number:n});
             if (p.state !== 'open' || p.draft || p.base.ref !== 'main' ||
                 p.user.login !== owner || p.head.repo?.full_name !== owner+'/'+repo ||
-                p.labels.some(l=>l.name==='voro-manual-review')) {
-              core.setFailed('PR is ineligible for automatic merge'); return;
+                p.labels.some(x=>x.name==='voro-manual-review')) {
+              core.setFailed('Owner-authored, same-repo, non-draft PR required'); return;
             }
-            const files=await github.paginate(github.rest.pulls.listFiles,{
-              owner,repo,pull_number:number,per_page:100
-            });
-            if (!files.length || files.some(f=>f.filename.startsWith('.github/') ||
-                ['webs/package.json','webs/package-lock.json','webs/pnpm-lock.yaml',
-                 'webs/src/utils/crypto.js','webs/src/utils/storage.js'].includes(f.filename))) {
-              core.setFailed('Empty or sensitive diff: manual review required'); return;
+            const files = await github.paginate(github.rest.pulls.listFiles,
+              {owner,repo,pull_number:n,per_page:100});
+            const guarded = new Set([
+              'webs/package.json','webs/package-lock.json','webs/pnpm-lock.yaml',
+              'webs/src/utils/crypto.js','webs/src/utils/storage.js'
+            ]);
+            if (!files.length || files.some(f=>
+                f.filename.startsWith('.github/') ||
+                guarded.has(f.filename) ||
+                /^webs\/verify_.*\.(?:js|cjs|mjs)$/.test(f.filename) &&
+                  f.status !== 'added')) {
+              core.setFailed('Empty PR, sensitive files or modified existing tests: manual review');
+              return;
             }
-            const {data:branch}=await github.rest.repos.getBranch({owner,repo,branch:'main'});
-            core.setOutput('number',String(number));
+            const {data:base}=await github.rest.repos.getBranch({owner,repo,branch:'main'});
+            core.setOutput('number',String(n));
             core.setOutput('head',p.head.sha);
-            core.setOutput('base',branch.commit.sha);
+            core.setOutput('base',base.commit.sha);
 
-      - name: Checkout known main snapshot
+      - name: Checkout tested main snapshot
         uses: actions/checkout@v4
         with:
-          ref: ${{ steps.pr.outputs.base }}
+          ref: ${{ steps.select.outputs.base }}
           fetch-depth: 0
           persist-credentials: false
+
+      - name: Build isolated base and merge-preview worktrees
+        shell: bash
+        env:
+          BASE_SHA: ${{ steps.select.outputs.base }}
+          HEAD_SHA: ${{ steps.select.outputs.head }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/voro"
+          git fetch --no-tags origin "$HEAD_SHA"
+          git worktree add --detach "$RUNNER_TEMP/voro/base" "$BASE_SHA"
+          git worktree add --detach "$RUNNER_TEMP/voro/candidate" "$BASE_SHA"
+          git -C "$RUNNER_TEMP/voro/candidate" \
+            -c user.name='VORO CI' -c user.email='ci@users.noreply.github.com' \
+            merge --no-commit --no-ff "$HEAD_SHA"
+          git -C "$RUNNER_TEMP/voro/candidate" diff --cached --check
+          if git -C "$RUNNER_TEMP/voro/candidate" diff --cached --quiet; then
+            echo "No effective changes against main: refuse duplicate merge" >&2
+            exit 1
+          fi
 
       - uses: actions/setup-node@v4
         with:
@@ -72,129 +101,22 @@ jobs:
           cache: npm
           cache-dependency-path: webs/package-lock.json
 
-      - name: Install dependencies from main
-        working-directory: webs
-        run: npm ci --no-audit --no-fund
-
-      - name: Capture existing failures on main
-        env:
-          STAGE: baseline
+      - name: Count and compare detected regressions
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          import hashlib, json, os, pathlib, re, subprocess
-          tasks = {'build': ['npm','run','build']}
-          for name in ('verify_storage_security.js','verify_masterclass_luxury.cjs',
-                       'verify_daily_perf_v20.cjs','verify_formatters_hardening.js',
-                       'verify_calculators_perf.js','verify_async_storage_purge.js'):
-              tasks[name] = ['node',name]
-          results={}
-          for name,cmd in tasks.items():
-              optional=name=='verify_async_storage_purge.js'
-              if name!='build' and not pathlib.Path('webs',name).exists():
-                  results[name]=None if optional else {'code':127,'signature':'missing required test'}
-                  continue
-              try:
-                  p=subprocess.run(cmd,cwd='webs',capture_output=True,text=True,
-                                   errors='replace',timeout=180)
-                  output=p.stdout+'\n'+p.stderr
-                  code=p.returncode
-              except subprocess.TimeoutExpired:
-                  output='Test timed out'; code=124
-              pathlib.Path(os.environ['RUNNER_TEMP'],os.environ['STAGE']+'-'+name+'.log').write_text(output)
-              if code==124:
-                  raise SystemExit('Baseline test timed out: '+name+'; cannot establish safe comparison')
-              lines=re.sub(r'\x1b\[[0-9;]*m','',output).splitlines()
-              errors=[s.strip() for s in lines if re.match(
-                  r'^\s*(?:AssertionError(?:\s+\[[^]]+\])?|[A-Za-z]*Error|FAIL|✗)\s*[:\- ]',s)]
-              meaningful=errors[:8] or [s.strip() for s in lines if s.strip() and not s.lstrip().startswith('at ')][-3:]
-              signature=hashlib.sha256('\n'.join(meaningful).encode()).hexdigest() if code else ''
-              results[name]={'code':code,'signature':signature}
-              print(f'{name}: ' + ('PASS' if code==0 else f'EXISTING FAILURE ({code})'))
-          pathlib.Path(os.environ['RUNNER_TEMP'],'baseline.json').write_text(json.dumps(results))
-          PY
-          git diff --exit-code
+          python3 "$RUNNER_TEMP/voro/base/.github/scripts/voro_ci_compare.py"
 
-      - name: Apply PR in a disposable merge preview
-        shell: bash
-        env:
-          PR_HEAD: ${{ steps.pr.outputs.head }}
-        run: |
-          set -euo pipefail
-          git fetch --no-tags origin "$PR_HEAD"
-          git -c user.name='VORO CI' -c user.email='ci@users.noreply.github.com' merge --no-commit --no-ff "$PR_HEAD"
-          git diff --cached --check
-          if git diff --cached --quiet; then
-            echo 'No effective change compared with main; refusing duplicate merge' >&2
-            exit 1
-          fi
-
-      - name: Install dependencies after the PR
-        working-directory: webs
-        run: npm ci --no-audit --no-fund
-
-      - name: Compare candidate errors against main
-        env:
-          STAGE: candidate
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import hashlib, json, os, pathlib, re, subprocess, sys
-          tasks = {'build': ['npm','run','build']}
-          for name in ('verify_storage_security.js','verify_masterclass_luxury.cjs',
-                       'verify_daily_perf_v20.cjs','verify_formatters_hardening.js',
-                       'verify_calculators_perf.js','verify_async_storage_purge.js'):
-              tasks[name]=['node',name]
-          baseline=json.loads(pathlib.Path(os.environ['RUNNER_TEMP'],'baseline.json').read_text())
-          problems=[]; improvements=[]
-          for name,cmd in tasks.items():
-              optional=name=='verify_async_storage_purge.js'
-              if name!='build' and not pathlib.Path('webs',name).exists():
-                  current=None if optional else {'code':127,'signature':'missing required test'}
-              else:
-                  try:
-                      p=subprocess.run(cmd,cwd='webs',capture_output=True,text=True,
-                                       errors='replace',timeout=180)
-                      output=p.stdout+'\n'+p.stderr; code=p.returncode
-                  except subprocess.TimeoutExpired:
-                      output='Test timed out'; code=124
-                  pathlib.Path(os.environ['RUNNER_TEMP'],'candidate-'+name+'.log').write_text(output)
-                  lines=re.sub(r'\x1b\[[0-9;]*m','',output).splitlines()
-                  errors=[s.strip() for s in lines if re.match(
-                      r'^\s*(?:AssertionError(?:\s+\[[^]]+\])?|[A-Za-z]*Error|FAIL|✗)\s*[:\- ]',s)]
-                  meaningful=errors[:8] or [s.strip() for s in lines if s.strip() and not s.lstrip().startswith('at ')][-3:]
-                  current={'code':code,'signature':hashlib.sha256(
-                      '\n'.join(meaningful).encode()).hexdigest() if code else ''}
-              previous=baseline.get(name)
-              old_status='absent' if previous is None else ('PASS' if previous['code']==0 else 'FAIL')
-              new_status='absent' if current is None else ('PASS' if current['code']==0 else 'FAIL')
-              print(f'{name}: {old_status} -> {new_status}')
-              if current is None:
-                  if previous is not None: problems.append(name+' removed')
-                  continue
-              if current['code'] in (124,127):
-                  problems.append(name+' unavailable or timed out')
-                  continue
-              if previous is None:
-                  if current['code']: problems.append(name+' new test fails')
-              elif current['code'] and (
-                  previous['code']==0 or previous['signature']!=current['signature']):
-                  problems.append(name+' new or changed failure')
-              elif previous['code'] and current['code']==0:
-                  improvements.append(name)
-          summary=os.environ['GITHUB_STEP_SUMMARY']
-          with open(summary,'a') as f:
-              f.write('### Baseline comparison\n')
-              f.write('Pre-existing failures are tolerated only if their detected error signatures remain unchanged.\n')
-              f.write('Improvements: '+(', '.join(improvements) or 'no existing failing check fixed')+'\n')
-              f.write('Regressions: '+(', '.join(problems) or 'none detected')+'\n')
-          if problems:
-              print('Blocking merge:',', '.join(problems),file=sys.stderr)
-              sys.exit(1)
-          print('No new failures detected by the selected checks.')
-          PY
+      - name: Save detailed comparison and test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: voro-regression-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/voro/comparison.json
+            ${{ runner.temp }}/voro/logs/
+          if-no-files-found: ignore
+          retention-days: 7
 
   merge:
     needs: verify
@@ -203,35 +125,40 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - name: Merge exact tested revision only
+      - name: Merge only the exact tested revision
         uses: actions/github-script@v7
         env:
-          NUMBER: ${{ needs.verify.outputs.number }}
-          HEAD: ${{ needs.verify.outputs.head }}
-          BASE: ${{ needs.verify.outputs.base }}
+          PR_NUMBER: ${{ needs.verify.outputs.number }}
+          TESTED_HEAD: ${{ needs.verify.outputs.head }}
+          TESTED_BASE: ${{ needs.verify.outputs.base }}
         with:
           script: |
             const {owner,repo}=context.repo;
-            const number=Number(process.env.NUMBER);
-            const {data:p}=await github.rest.pulls.get({owner,repo,pull_number:number});
-            const {data:branch}=await github.rest.repos.getBranch({owner,repo,branch:'main'});
-            if (p.state!=='open'||p.draft||p.base.ref!=='main'||
-                p.user.login!==owner||p.head.repo?.full_name!==owner+'/'+repo||
-                p.labels.some(l=>l.name==='voro-manual-review')||
-                p.head.sha!==process.env.HEAD||branch.commit.sha!==process.env.BASE||
+            const n=Number(process.env.PR_NUMBER);
+            const {data:p}=await github.rest.pulls.get({owner,repo,pull_number:n});
+            const {data:base}=await github.rest.repos.getBranch({owner,repo,branch:'main'});
+            if (p.state!=='open' || p.draft || p.base.ref!=='main' ||
+                p.user.login!==owner || p.head.repo?.full_name!==owner+'/'+repo ||
+                p.labels.some(x=>x.name==='voro-manual-review') ||
+                p.head.sha!==process.env.TESTED_HEAD ||
+                base.commit.sha!==process.env.TESTED_BASE ||
                 p.mergeable!==true) {
-              core.setFailed('PR changed, main moved or mergeability is unknown/blocked');
+              core.setFailed('PR/main changed or GitHub has not confirmed mergeability');
               return;
             }
-            const files=await github.paginate(github.rest.pulls.listFiles,{
-              owner,repo,pull_number:number,per_page:100
-            });
-            if (!files.length||files.some(f=>f.filename.startsWith('.github/')||
-                ['webs/package.json','webs/package-lock.json','webs/pnpm-lock.yaml',
-                 'webs/src/utils/crypto.js','webs/src/utils/storage.js'].includes(f.filename))) {
-              core.setFailed('Sensitive files changed since validation'); return;
+            const files=await github.paginate(github.rest.pulls.listFiles,
+              {owner,repo,pull_number:n,per_page:100});
+            const guarded=new Set([
+              'webs/package.json','webs/package-lock.json','webs/pnpm-lock.yaml',
+              'webs/src/utils/crypto.js','webs/src/utils/storage.js'
+            ]);
+            if(!files.length || files.some(f=>f.filename.startsWith('.github/') ||
+              guarded.has(f.filename) ||
+              /^webs\/verify_.*\.(?:js|cjs|mjs)$/.test(f.filename) &&
+                f.status!=='added')) {
+              core.setFailed('Sensitive or test files changed since validation');return;
             }
-            const {data:result}=await github.rest.pulls.merge({
-              owner,repo,pull_number:number,sha:process.env.HEAD,merge_method:'squash'
+            const {data:r}=await github.rest.pulls.merge({
+              owner,repo,pull_number:n,sha:process.env.TESTED_HEAD,merge_method:'squash'
             });
-            if(!result.merged)core.setFailed(result.message||'GitHub rejected merge');
+            if(!r.merged)core.setFailed(r.message || 'GitHub refused merge');
