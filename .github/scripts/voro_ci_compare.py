@@ -58,8 +58,10 @@ def fingerprints(output, directory):
     observed = set()
     for line in output.splitlines():
         line = line.strip()
-        if line.startswith("❌") or ERROR.match(line):
-            observed.add(re.sub(r"\s+", " ", line)[:500])
+        if line.startswith(("❌", "✕ FAIL:", "✗ FAIL:", "× FAIL:")) or ERROR.match(line):
+            # Ignore changing summary totals; compare individual diagnostics.
+            if not re.match(r"^❌\s*(?:VERIFICATION FAILED|SOME CHECKS FAILED)", line, re.I):
+                observed.add(re.sub(r"\s+", " ", line)[:500])
     if observed:
         return sorted(observed)
     # Unknown failure output: conservative exact-content fingerprint.
@@ -97,17 +99,32 @@ def directly_covers(test_name, changed):
                for p in changed)
 
 
-def evaluate(stage, scripts):
+def evaluate(stage, scripts, changed):
     root = BASE if stage == "base" else CANDIDATE
     install_code, _ = run(stage, "install", ["npm", "ci", "--no-audit", "--no-fund"], 180)
     if install_code != 0:
         raise RuntimeError(f"{stage}: dependency installation failed (infrastructure failure)")
+    # Parse every changed JS/JSX module independently, even if Vite already
+    # fails in a completely different module.
+    parser = (
+        "import fs from 'node:fs'; "
+        "import { transform } from 'esbuild'; "
+        "const p=process.argv[1]; "
+        "await transform(fs.readFileSync(p,'utf8'), "
+        "{loader:p.endsWith('.jsx')?'jsx':'js',sourcefile:p});"
+    )
     tasks = [("build", ["npm", "run", "build"])] + [
         (name, ["node", name]) for name in scripts
+    ] + [
+        ("parse:" + name, ["node", "--input-type=module", "-e", parser,
+                            name.removeprefix("webs/")])
+        for name in changed
     ]
     findings = {}
     for name, command in tasks:
-        if name != "build" and not (root / "webs" / name).is_file():
+        target = (name.removeprefix("parse:") if name.startswith("parse:")
+                  else "webs/" + name)
+        if name != "build" and not (root / target).is_file():
             findings[name] = {"status": "missing", "diagnostics": []}
             continue
         code, output = run(stage, name, command, 180 if name == "build" else 35)
@@ -124,11 +141,12 @@ def main():
     changed = changed_source_paths()
     print(f"Running build plus {len(scripts)} Node verification scripts on EACH snapshot.")
     print(f"Source files modified: {len(changed)}", flush=True)
-    base = evaluate("base", scripts)
-    candidate = evaluate("candidate", scripts)
+    base = evaluate("base", scripts, changed)
+    candidate = evaluate("candidate", scripts, changed)
 
     regressions, improvements, ambiguous = [], [], []
-    for name in ["build", *scripts]:
+    checks = ["build", *scripts, *("parse:" + path for path in changed)]
+    for name in checks:
         before, after = base[name], candidate[name]
         bs, cs = before["status"], after["status"]
         if bs == "missing":
@@ -145,7 +163,8 @@ def main():
             new = set(after["diagnostics"])
             if not new.issubset(old):
                 regressions.append(f"{name}: new/changed diagnostic")
-            elif name != "build" and directly_covers(name, changed):
+            elif (name.startswith("parse:") or
+                  (name != "build" and directly_covers(name, changed))):
                 # The first failing assertion can mask later failures. When
                 # the test explicitly covers changed source, this is unsafe.
                 if new == old:
@@ -164,7 +183,7 @@ def main():
     after_diag = sum(len(x["diagnostics"]) for x in candidate.values())
     summary = {
         "scripts_executed_per_snapshot": len(scripts),
-        "checks_including_build": len(scripts) + 1,
+        "checks_including_build_and_syntax": len(checks),
         "failed_checks_before": before_count,
         "failed_checks_candidate": after_count,
         "observed_diagnostics_before": before_diag,
@@ -182,6 +201,7 @@ def main():
         report.write(f"| Failed checks (not bug count) | {before_count} | {after_count} |\n")
         report.write(f"| Observed diagnostic messages | {before_diag} | {after_diag} |\n")
         report.write(f"\nNode verification scripts per snapshot: **{len(scripts)}**.\n")
+        report.write(f"Changed source files individually parsed: **{len(changed)}**.\n")
         for title, values in (("Improvements", improvements),
                               ("New regressions", regressions),
                               ("Manual review required", ambiguous)):
