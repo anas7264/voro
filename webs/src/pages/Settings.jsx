@@ -152,10 +152,11 @@ const Settings = () => {
     reader.readAsText(file);
   }, [importData, addNotification]);
 
-  const handleClearData = useCallback(() => {
+  const handleClearData = useCallback(async () => {
     const msg = 'CRITICAL: This will incinerate all local data (profile, workouts, nutrition, analytics). This action is irreversible. Proceed?';
     if (window.confirm(msg)) {
-      if (clearAllData()) {
+      const success = await clearAllData();
+      if (success) {
         addNotification('System purge complete', 'info');
         setTimeout(() => window.location.reload(), 1000);
       }
