@@ -103,6 +103,8 @@ jobs:
               except subprocess.TimeoutExpired:
                   output='Test timed out'; code=124
               pathlib.Path(os.environ['RUNNER_TEMP'],os.environ['STAGE']+'-'+name+'.log').write_text(output)
+              if code==124:
+                  raise SystemExit('Baseline test timed out: '+name+'; cannot establish safe comparison')
               lines=re.sub(r'\x1b\[[0-9;]*m','',output).splitlines()
               errors=[s.strip() for s in lines if re.match(
                   r'^\s*(?:AssertionError(?:\s+\[[^]]+\])?|[A-Za-z]*Error|FAIL|✗)\s*[:\- ]',s)]
@@ -171,6 +173,9 @@ jobs:
               print(f'{name}: {old_status} -> {new_status}')
               if current is None:
                   if previous is not None: problems.append(name+' removed')
+                  continue
+              if current['code'] in (124,127):
+                  problems.append(name+' unavailable or timed out')
                   continue
               if previous is None:
                   if current['code']: problems.append(name+' new test fails')
