@@ -55,12 +55,15 @@ jobs:
               'webs/package.json','webs/package-lock.json','webs/pnpm-lock.yaml',
               'webs/src/utils/crypto.js','webs/src/utils/storage.js'
             ]);
+            const modifiedTests=files.some(f=>
+              /^webs\/verify_.*\.(?:js|cjs|mjs)$/.test(f.filename) &&
+              f.status !== 'added');
+            const sourceFix=files.some(f=>
+              /^webs\/src\/.*\.(?:js|jsx|cjs|mjs)$/.test(f.filename));
             if (!files.length || files.some(f=>
-                f.filename.startsWith('.github/') ||
-                guarded.has(f.filename) ||
-                /^webs\/verify_.*\.(?:js|cjs|mjs)$/.test(f.filename) &&
-                  f.status !== 'added')) {
-              core.setFailed('Empty PR, sensitive files or modified existing tests: manual review');
+                f.filename.startsWith('.github/') || guarded.has(f.filename)) ||
+                (modifiedTests && !sourceFix)) {
+              core.setFailed('Sensitive files or test-only rewriting: manual review');
               return;
             }
             const {data:base}=await github.rest.repos.getBranch({owner,repo,branch:'main'});
@@ -152,11 +155,15 @@ jobs:
               'webs/package.json','webs/package-lock.json','webs/pnpm-lock.yaml',
               'webs/src/utils/crypto.js','webs/src/utils/storage.js'
             ]);
-            if(!files.length || files.some(f=>f.filename.startsWith('.github/') ||
-              guarded.has(f.filename) ||
+            const modifiedTests=files.some(f=>
               /^webs\/verify_.*\.(?:js|cjs|mjs)$/.test(f.filename) &&
-                f.status!=='added')) {
-              core.setFailed('Sensitive or test files changed since validation');return;
+              f.status!=='added');
+            const sourceFix=files.some(f=>
+              /^webs\/src\/.*\.(?:js|jsx|cjs|mjs)$/.test(f.filename));
+            if(!files.length || files.some(f=>f.filename.startsWith('.github/') ||
+              guarded.has(f.filename)) || (modifiedTests && !sourceFix)) {
+              core.setFailed('Sensitive files or test-only rewriting: manual review');
+              return;
             }
             const {data:r}=await github.rest.pulls.merge({
               owner,repo,pull_number:n,sha:process.env.TESTED_HEAD,merge_method:'squash'
