@@ -41,12 +41,15 @@ const api = useCalculators();
 assert(api.calculateOneRepMax(100, 10, "epley") === 133, "useCalculators calculates Epley correctly for 100kg x 10 reps");
 assert(api.calculateOneRepMax(100, 10, "unknown_method") === api.calculateOneRepMax(100, 10, "average"), "useCalculators falls back to average for unknown method key");
 
-// 3. Test BMI, BMR, TDEE, Wilks, FFMI
-console.log("\n🧪 Test Set 3: Biometric Calculators");
+// 3. Test BMI, BMR, TDEE, Wilks, FFMI, and Pace Conversions
+console.log("\n🧪 Test Set 3: Biometric Calculators & Pace Conversions");
 assert(calculators.calculateBMI(80, 180) === "24.7", "BMI calculation matches expected 24.7");
 assert(calculators.getBMICategory(24.7) === "Normal Weight", "BMI category matches Normal Weight");
 assert(calculators.calculateBMR(80, 180, 25, "male") === "1805", "BMR Mifflin-St Jeor matches expected 1805");
 assert(calculators.calculateTDEE(1805, "moderately_active") === 2798, "TDEE moderately active matches expected 2798");
+assert(calculators.convertPace(10, "kmh_to_pace") === "6:00", "convertPace 10 km/h converts to 6:00");
+assert(calculators.convertPace(10.01112, "kmh_to_pace") === "6:00", "convertPace 10.01112 km/h rolls over to 6:00 without 5:60 boundary bug");
+assert(calculators.convertPace("6:00", "pace_to_kmh") === "10.00", "convertPace 6:00 pace converts to 10.00 km/h");
 
 // 4. Performance Benchmark (100,000 iterations)
 console.log("\n⚡ Test Set 4: Execution Speed Benchmark (100,000 iterations)");

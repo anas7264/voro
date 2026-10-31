@@ -28,12 +28,24 @@ if (formatTime(NaN) === "0:00" && formatTime(Infinity) === "0:00" && formatTime(
   process.exit(1);
 }
 
-// 3. formatPace: 0, negative numbers, NaN, Infinity
+// 3. formatPace: 0, negative numbers, NaN, Infinity, valid paces, and boundary rollover
 console.log("🛡️ Test 3: Testing formatPace with zero, negative, and non-finite values...");
 if (formatPace(0) === "0:00/km" && formatPace(-5) === "0:00/km" && formatPace(NaN) === "0:00/km" && formatPace(Infinity) === "0:00/km") {
   console.log("✅ Success: formatPace handles zero, negative, and non-finite values safely!");
 } else {
   console.error(`❌ Test 3 Failed: 0 -> "${formatPace(0)}", -5 -> "${formatPace(-5)}"`);
+  process.exit(1);
+}
+
+console.log("🛡️ Test 3b: Testing formatPace with valid speeds and 60-second boundary conditions...");
+const pace10kmh = formatPace(2.77778); // ~10 km/h -> 6:00/km
+const pace12kmh = formatPace(3.33333); // ~12 km/h -> 5:00/km
+const paceBoundary = formatPace(1000 / 359.6); // 359.6 seconds per km -> must roll over to 6:00/km, never 5:60/km
+
+if (pace10kmh === "6:00/km" && pace12kmh === "5:00/km" && paceBoundary === "6:00/km") {
+  console.log("✅ Success: formatPace accurately computes pace and handles boundary rollover cleanly!");
+} else {
+  console.error(`❌ Test 3b Failed: 10km/h -> "${pace10kmh}", 12km/h -> "${pace12kmh}", boundary -> "${paceBoundary}"`);
   process.exit(1);
 }
 

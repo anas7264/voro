@@ -324,10 +324,9 @@ export const formatMeasurement = (value, unit = "cm", decimals = 1) => {
 export const formatPace = (metersPerSecond) => {
   const mps = typeof metersPerSecond === 'number' ? metersPerSecond : parseFloat(metersPerSecond);
   if (!Number.isFinite(mps) || mps <= 0) return "0:00/km";
-  const kmPerHour = mps * 3.6;
-  const secondsPerKm = 3600 / (kmPerHour * 1000);
-  const minutes = Math.floor(secondsPerKm / 60);
-  const seconds = Math.round(secondsPerKm % 60);
+  const totalSeconds = Math.round(1000 / mps);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
   const paddedSecs = seconds >= 0 && seconds < 60 ? PADDED_NUMS[seconds] : String(seconds).padStart(2, '0');
   return `${minutes}:${paddedSecs}/km`;
 };
