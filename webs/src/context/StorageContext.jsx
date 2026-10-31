@@ -133,9 +133,9 @@ export const StorageProvider = ({ children }) => {
   }, []);
 
   // Clear all storage
-  const clearAllData = useCallback(() => {
+  const clearAllData = useCallback(async () => {
     try {
-      return storage.clear();
+      return await storage.clear();
     } catch (err) {
       console.error("Failed to clear storage:", err);
       return false;
