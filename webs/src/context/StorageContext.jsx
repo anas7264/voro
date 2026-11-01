@@ -53,9 +53,9 @@ export const StorageProvider = ({ children }) => {
   }, []);
 
   // Delete item from storage
-  const deleteItem = useCallback((key) => {
+  const deleteItem = useCallback(async (key) => {
     try {
-      return storage.delete(key);
+      return await storage.delete(key);
     } catch (err) {
       console.error(`Failed to delete storage item ${key}:`, err);
       return false;
@@ -133,9 +133,9 @@ export const StorageProvider = ({ children }) => {
   }, []);
 
   // Clear all storage
-  const clearAllData = useCallback(() => {
+  const clearAllData = useCallback(async () => {
     try {
-      return storage.clear();
+      return await storage.clear();
     } catch (err) {
       console.error("Failed to clear storage:", err);
       return false;

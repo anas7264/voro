@@ -104,13 +104,13 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   // Reset app state (logout)
-  const resetAppState = useCallback(() => {
+  const resetAppState = useCallback(async () => {
     try {
       setUser(null);
       setProfile(null);
       setIsOnboarded(false);
       setError(null);
-      storage.clear();
+      await storage.clear();
       return true;
     } catch (err) {
       console.error("Failed to reset app state:", err);
