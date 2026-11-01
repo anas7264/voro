@@ -1,7 +1,12 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-const fileContent = fs.readFileSync('webs/src/pages/Statistics.jsx', 'utf8');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const targetPath = path.resolve(__dirname, 'src/pages/Statistics.jsx');
+const fileContent = fs.readFileSync(targetPath, 'utf8');
 
 console.log("Checking Statistics.jsx optimizations...");
 
