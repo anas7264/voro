@@ -19,6 +19,9 @@ const KEY_SIZE = 256;
 const ENCODER = typeof TextEncoder !== 'undefined' ? new TextEncoder() : null;
 const DECODER = typeof TextDecoder !== 'undefined' ? new TextDecoder() : null;
 
+// Safe accessor for Web Crypto API across browser, SSR, and Node.js environments
+const getCrypto = () => (typeof window !== 'undefined' && window.crypto) ? window.crypto : (typeof globalThis !== 'undefined' ? globalThis.crypto : null);
+
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Chunked batch conversion of Uint8Array to binary string.
  * Replaces O(N) single-character string concatenation loops with chunked String.fromCharCode.apply,
@@ -119,6 +122,9 @@ class CryptoManager {
   async getOrGenerateKeys() {
     return await executeSecurely("Retrieve Master Keys", () => {
       return new Promise((resolve, reject) => {
+        if (typeof indexedDB === 'undefined') {
+          return reject(new Error('IndexedDB is not supported in this environment'));
+        }
         const request = indexedDB.open(DB_NAME, 1);
 
         request.onupgradeneeded = (event) => {
@@ -161,8 +167,13 @@ class CryptoManager {
                     if (masterKey && !sessionAnchor) {
                       this.isUpgradeSession = true;
                     }
+                    const cryptoObj = getCrypto();
+                    if (!cryptoObj || !cryptoObj.subtle) {
+                      return reject(new Error('Web Crypto API is not supported in this environment'));
+                    }
+
                     if (!masterKey) {
-                      masterKey = await window.crypto.subtle.generateKey(
+                      masterKey = await cryptoObj.subtle.generateKey(
                         { name: ALGO, length: KEY_SIZE },
                         false,
                         ['encrypt', 'decrypt']
@@ -176,8 +187,8 @@ class CryptoManager {
 
                     if (!hkdfKey) {
                       // Generate random entropy for HKDF
-                      const entropy = window.crypto.getRandomValues(new Uint8Array(32));
-                      hkdfKey = await window.crypto.subtle.importKey(
+                      const entropy = cryptoObj.getRandomValues(new Uint8Array(32));
+                      hkdfKey = await cryptoObj.subtle.importKey(
                         'raw',
                         entropy,
                         'HKDF',
@@ -195,7 +206,7 @@ class CryptoManager {
                     }
 
                     if (!sessionAnchor) {
-                      const anchorBytes = window.crypto.getRandomValues(new Uint8Array(32));
+                      const anchorBytes = cryptoObj.getRandomValues(new Uint8Array(32));
                       sessionAnchor = Array.from(anchorBytes).map(b => b.toString(16).padStart(2, '0')).join('');
                       anchorBytes.fill(0);
                       await new Promise((res, rej) => {
@@ -247,8 +258,9 @@ class CryptoManager {
     await this.init();
     const infoBuffer = _call.call(_TEncoderEncode, ENCODER, domain);
 
+    const cryptoObj = getCrypto();
     const derivedKey = await executeSecurely(`Derive Key [${domain}]`, async () => {
-      return await window.crypto.subtle.deriveKey(
+      return await cryptoObj.subtle.deriveKey(
         {
           name: 'HKDF',
           salt: new Uint8Array(), // Static salt is acceptable in this context as HKDF key is unique
@@ -278,9 +290,10 @@ class CryptoManager {
     await this.init();
     if (this._hmacKey) return this._hmacKey;
 
+    const cryptoObj = getCrypto();
     const infoBuffer = _call.call(_TEncoderEncode, ENCODER, "voro_state_integrity_hmac");
     this._hmacKey = await executeSecurely("Derive HMAC State Key", async () => {
-      return await window.crypto.subtle.deriveKey(
+      return await cryptoObj.subtle.deriveKey(
         {
           name: 'HKDF',
           salt: new Uint8Array(),
@@ -305,9 +318,10 @@ class CryptoManager {
   async computeHmacSignature(str) {
     if (!str) return '';
     try {
+      const cryptoObj = getCrypto();
       const hmacKey = await this.deriveHmacKey();
       const data = ENCODER.encode(str);
-      const signatureBuffer = await window.crypto.subtle.sign(
+      const signatureBuffer = await cryptoObj.subtle.sign(
         'HMAC',
         hmacKey,
         data
@@ -363,10 +377,11 @@ class CryptoManager {
 
     await this.init();
 
+    const cryptoObj = getCrypto();
     const rawString = typeof data === 'string' ? data : JSON.stringify(data);
     const encodedData = _call.call(_TEncoderEncode, ENCODER, rawString);
     const iv = new Uint8Array(12);
-    window.crypto.getRandomValues(iv);
+    cryptoObj.getRandomValues(iv);
 
     // For v3 (domain isolated), we derive a key specifically for this domain
     // If no domain provided, we fallback to v2/v1 (though storage should always provide domain)
@@ -381,7 +396,7 @@ class CryptoManager {
     }
 
     const ciphertext = await executeSecurely(`Encrypt [${domain || 'master'}]`, async () => {
-      return await window.crypto.subtle.encrypt(
+      return await cryptoObj.subtle.encrypt(
         algorithm,
         encryptionKey,
         encodedData
@@ -454,8 +469,9 @@ class CryptoManager {
         algorithm.additionalData = aadBuffer;
       }
 
+      const cryptoObj = getCrypto();
       const decryptedBuffer = await executeSecurely(`Decrypt [${domain || 'master'}]`, async () => {
-        return await window.crypto.subtle.decrypt(
+        return await cryptoObj.subtle.decrypt(
           algorithm,
           decryptionKey,
           ciphertext
@@ -498,28 +514,29 @@ class CryptoManager {
       throw new Error("Security Sentinel: Encryption blocked due to environment compromise or unauthorized provenance.");
     }
 
+    const cryptoObj = getCrypto();
     const encoder = new TextEncoder();
     const rawString = typeof data === 'string' ? data : JSON.stringify(data);
     const encodedData = _call.call(_TEncoderEncode, encoder, rawString);
 
     const salt = new Uint8Array(32);
-    window.crypto.getRandomValues(salt);
+    cryptoObj.getRandomValues(salt);
 
     const iv = new Uint8Array(12);
-    window.crypto.getRandomValues(iv);
+    cryptoObj.getRandomValues(iv);
 
     const encodedPassword = _call.call(_TEncoderEncode, encoder, password);
 
     // Derive key using executeSecurely with necessary capabilities
     const derivedKey = await executeSecurely("Derive Password Key", async () => {
-      const passwordKey = await window.crypto.subtle.importKey(
+      const passwordKey = await cryptoObj.subtle.importKey(
         'raw',
         encodedPassword,
         'PBKDF2',
         false,
         ['deriveKey']
       );
-      return await window.crypto.subtle.deriveKey(
+      return await cryptoObj.subtle.deriveKey(
         {
           name: 'PBKDF2',
           salt,
@@ -535,7 +552,7 @@ class CryptoManager {
 
     // Perform encryption
     const ciphertext = await executeSecurely("Encrypt with Password Key", async () => {
-      return await window.crypto.subtle.encrypt(
+      return await cryptoObj.subtle.encrypt(
         { name: ALGO, iv },
         derivedKey,
         encodedData
@@ -639,16 +656,17 @@ class CryptoManager {
         ciphertext[i] = binaryString.charCodeAt(i);
       }
 
+      const cryptoObj = getCrypto();
       // Derive key using executeSecurely
       const derivedKey = await executeSecurely("Derive Password Key for Decryption", async () => {
-        const passwordKey = await window.crypto.subtle.importKey(
+        const passwordKey = await cryptoObj.subtle.importKey(
           'raw',
           encodedPassword,
           'PBKDF2',
           false,
           ['deriveKey']
         );
-        return await window.crypto.subtle.deriveKey(
+        return await cryptoObj.subtle.deriveKey(
           {
             name: 'PBKDF2',
             salt,
@@ -664,7 +682,7 @@ class CryptoManager {
 
       // Perform decryption
       const decryptedBuffer = await executeSecurely("Decrypt with Password Key", async () => {
-        return await window.crypto.subtle.decrypt(
+        return await cryptoObj.subtle.decrypt(
           { name: ALGO, iv },
           derivedKey,
           ciphertext
@@ -702,6 +720,9 @@ class CryptoManager {
   async getStoredHashes() {
     return await executeSecurely("Retrieve State Hashes", () => {
       return new Promise((resolve, reject) => {
+        if (typeof indexedDB === 'undefined') {
+          return resolve({});
+        }
         const request = indexedDB.open(DB_NAME, 1);
         request.onupgradeneeded = (event) => {
           const db = event.target.result;
@@ -747,6 +768,9 @@ class CryptoManager {
   async saveStoredHash(key, hash) {
     return await executeSecurely(`Save State Hash [${key}]`, () => {
       return new Promise((resolve, reject) => {
+        if (typeof indexedDB === 'undefined') {
+          return resolve(true);
+        }
         const request = indexedDB.open(DB_NAME, 1);
         request.onupgradeneeded = (event) => {
           const db = event.target.result;
@@ -774,6 +798,9 @@ class CryptoManager {
   async deleteStoredHash(key) {
     return await executeSecurely(`Delete State Hash [${key}]`, () => {
       return new Promise((resolve, reject) => {
+        if (typeof indexedDB === 'undefined') {
+          return resolve(true);
+        }
         const request = indexedDB.open(DB_NAME, 1);
         request.onupgradeneeded = (event) => {
           const db = event.target.result;
@@ -801,6 +828,9 @@ class CryptoManager {
   async clearStoredHashes() {
     return await executeSecurely("Clear State Hashes", () => {
       return new Promise((resolve, reject) => {
+        if (typeof indexedDB === 'undefined') {
+          return resolve(true);
+        }
         const request = indexedDB.open(DB_NAME, 1);
         request.onupgradeneeded = (event) => {
           const db = event.target.result;
