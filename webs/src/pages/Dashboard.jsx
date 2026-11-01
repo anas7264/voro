@@ -282,6 +282,7 @@ const Dashboard = memo(() => {
 
   const [showQuickLog, setShowQuickLog] = useState(false);
   const metabolicCardRef = useRef(null);
+  const heroHoveredRef = useRef(false);
   const heroFocusedRef = useRef(false);
   const heroRafIdRef = useRef(null);
 
@@ -308,12 +309,14 @@ const Dashboard = memo(() => {
   }, []);
 
   const handleHeroMouseEnter = useCallback(() => {
+    heroHoveredRef.current = true;
     if (metabolicCardRef.current) {
       metabolicCardRef.current.style.transition = 'none';
     }
   }, []);
 
   const handleHeroMouseLeave = useCallback(() => {
+    heroHoveredRef.current = false;
     if (heroRafIdRef.current) cancelAnimationFrame(heroRafIdRef.current);
     if (metabolicCardRef.current) {
       metabolicCardRef.current.style.setProperty('--tilt-x', '0deg');
