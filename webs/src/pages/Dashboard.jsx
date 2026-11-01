@@ -341,7 +341,7 @@ const Dashboard = memo(() => {
   const handleHeroBlur = useCallback(() => {
     heroFocusedRef.current = false;
     if (heroRafIdRef.current) cancelAnimationFrame(heroRafIdRef.current);
-    if (metabolicCardRef.current) {
+    if (metabolicCardRef.current && !heroHoveredRef.current) {
       metabolicCardRef.current.style.setProperty('--tilt-x', '0deg');
       metabolicCardRef.current.style.setProperty('--tilt-y', '0deg');
       metabolicCardRef.current.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
