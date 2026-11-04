@@ -107,15 +107,16 @@ export const calculateXP = (action, metadata = {}) => {
 
 // Get level from total XP
 export const getLevelFromXP = (totalXP) => {
+  const xp = Number.isFinite(totalXP) && totalXP > 0 ? totalXP : 0;
   const xpPerLevel = 1000;
-  const level = Math.floor(totalXP / xpPerLevel) + 1;
-  const currentLevelXP = totalXP - (level - 1) * xpPerLevel;
+  const level = Math.floor(xp / xpPerLevel) + 1;
+  const currentLevelXP = xp - (level - 1) * xpPerLevel;
   const nextLevelXP = xpPerLevel;
   const progress = (currentLevelXP / nextLevelXP) * 100;
 
   return {
     level,
-    totalXP,
+    totalXP: xp,
     currentLevelXP,
     nextLevelXP,
     progress: progress.toFixed(1),
@@ -217,27 +218,28 @@ export const calculateStreak = (completedDates) => {
 
 // Get rank from level and XP
 export const getRankTier = (level) => {
+  const lvl = Number.isFinite(level) && level >= 1 ? level : 1;
   let tier = "Novice";
   let icon = "Zap";
   let color = "#3B82F6";
 
-  if (level < 5) {
+  if (lvl < 5) {
     tier = "Novice";
     icon = "Zap";
     color = "#6B7280";
-  } else if (level < 10) {
+  } else if (lvl < 10) {
     tier = "Athlete";
     icon = "Flame";
     color = "#3B82F6";
-  } else if (level < 20) {
+  } else if (lvl < 20) {
     tier = "Champion";
     icon = "Trophy";
     color = "#10B981";
-  } else if (level < 35) {
+  } else if (lvl < 35) {
     tier = "Elite";
     icon = "Crown";
     color = "#F59E0B";
-  } else if (level < 50) {
+  } else if (lvl < 50) {
     tier = "Legend";
     icon = "Zap";
     color = "#7C3AED";
@@ -247,13 +249,23 @@ export const getRankTier = (level) => {
     color = "#EC4899";
   }
 
-  return { tier, icon, color, level };
+  return { tier, icon, color, level: lvl };
 };
 
 // Check challenge completion
 export const checkChallengeCompletion = (challenge, userProgress) => {
   // Returns object with isComplete and progress
+  if (!challenge || typeof challenge !== "object" || typeof challenge.criteria !== "string") {
+    return {
+      isComplete: false,
+      progress: 0,
+      xpReward: challenge?.xpReward || 0,
+      timeRemaining: challenge?.timeRemaining || 0
+    };
+  }
+
   const criteria = challenge.criteria;
+  const progressObj = userProgress && typeof userProgress === "object" ? userProgress : {};
   let isComplete = false;
   let progress = 0;
 
@@ -261,44 +273,48 @@ export const checkChallengeCompletion = (challenge, userProgress) => {
   if (criteria.includes("workouts")) {
     const match = criteria.match(WORKOUTS_RE);
     if (match) {
-      const required = parseInt(match[1]);
-      progress = (userProgress.workoutsThisPeriod / required) * 100;
-      isComplete = userProgress.workoutsThisPeriod >= required;
+      const required = parseInt(match[1], 10);
+      const val = Number.isFinite(progressObj.workoutsThisPeriod) && progressObj.workoutsThisPeriod > 0 ? progressObj.workoutsThisPeriod : 0;
+      progress = required > 0 ? (val / required) * 100 : 0;
+      isComplete = val >= required;
     }
   }
 
   if (criteria.includes("nutrition")) {
     const match = criteria.match(DAYS_RE);
     if (match) {
-      const required = parseInt(match[1]);
-      progress = (userProgress.nutritionDays / required) * 100;
-      isComplete = userProgress.nutritionDays >= required;
+      const required = parseInt(match[1], 10);
+      const val = Number.isFinite(progressObj.nutritionDays) && progressObj.nutritionDays > 0 ? progressObj.nutritionDays : 0;
+      progress = required > 0 ? (val / required) * 100 : 0;
+      isComplete = val >= required;
     }
   }
 
   if (criteria.includes("water")) {
     const match = criteria.match(LITERS_RE);
     if (match) {
-      const required = parseInt(match[1]);
-      progress = (userProgress.waterLiters / required) * 100;
-      isComplete = userProgress.waterLiters >= required;
+      const required = parseInt(match[1], 10);
+      const val = Number.isFinite(progressObj.waterLiters) && progressObj.waterLiters > 0 ? progressObj.waterLiters : 0;
+      progress = required > 0 ? (val / required) * 100 : 0;
+      isComplete = val >= required;
     }
   }
 
   if (criteria.includes("steps")) {
     const match = criteria.match(STEPS_RE);
     if (match) {
-      const required = parseInt(match[1]);
-      progress = (userProgress.steps / required) * 100;
-      isComplete = userProgress.steps >= required;
+      const required = parseInt(match[1], 10);
+      const val = Number.isFinite(progressObj.steps) && progressObj.steps > 0 ? progressObj.steps : 0;
+      progress = required > 0 ? (val / required) * 100 : 0;
+      isComplete = val >= required;
     }
   }
 
   return {
     isComplete,
-    progress: Math.min(100, progress),
-    xpReward: challenge.xpReward,
-    timeRemaining: challenge.timeRemaining
+    progress: Math.min(100, Number.isFinite(progress) && progress > 0 ? progress : 0),
+    xpReward: challenge.xpReward || 0,
+    timeRemaining: challenge.timeRemaining || 0
   };
 };
 
@@ -425,21 +441,24 @@ export const getRarityBreakdown = (unlockedAchievements) => {
 
 // Gamification stats summary
 export const getGamificationStats = (userData) => {
-  const level = getLevelFromXP(userData.totalXP);
+  const data = userData && typeof userData === "object" ? userData : {};
+  const totalXP = Number.isFinite(data.totalXP) && data.totalXP > 0 ? data.totalXP : 0;
+  const level = getLevelFromXP(totalXP);
   const rank = getRankTier(level.level);
-  const streak = calculateStreak(userData.completedWorkoutDates);
-  const rarity = getRarityBreakdown(userData.achievements);
+  const streak = calculateStreak(Array.isArray(data.completedWorkoutDates) ? data.completedWorkoutDates : []);
+  const achievementsList = Array.isArray(data.achievements) ? data.achievements : [];
+  const rarity = getRarityBreakdown(achievementsList);
 
   return {
     level: level.level,
-    xp: userData.totalXP,
+    xp: totalXP,
     nextLevelXP: level.nextLevelIn,
     rank: rank.tier,
     currentStreak: streak.current,
     bestStreak: streak.best,
-    achievements: userData.achievements.length,
+    achievements: achievementsList.length,
     legendaryCount: rarity.legendary,
-    challenges: userData.completedChallenges ? userData.completedChallenges.length : 0
+    challenges: Array.isArray(data.completedChallenges) ? data.completedChallenges.length : 0
   };
 };
 
