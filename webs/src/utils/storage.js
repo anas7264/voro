@@ -829,6 +829,12 @@ class StorageManager {
         return false;
       }
 
+      if (!backupData || typeof backupData !== 'object' || Array.isArray(backupData)) {
+        console.error("Storage import error: backup data is invalid or empty.");
+        return false;
+      }
+
+      let importedCount = 0;
       for (const key of Object.keys(backupData)) {
         if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
         const baseKey = key.startsWith(STORAGE_PREFIX) ? key.replace(STORAGE_PREFIX, "") : key;
@@ -850,9 +856,21 @@ class StorageManager {
           continue;
         }
 
-        await this.set(baseKey, sanitizedVal);
+        const success = await this.set(baseKey, sanitizedVal);
+        if (!success) {
+          console.error(`Storage import error: Failed to persist key "${baseKey}".`);
+          return false;
+        }
+        importedCount++;
       }
 
+      if (importedCount === 0) {
+        console.error("Storage import error: No valid keys imported.");
+        return false;
+      }
+
+      // Synchronize subscribers with the newly imported dataset
+      this.notify('*', this.getAllSync());
       return true;
     } catch (error) {
       console.error("Storage import error:", error);
