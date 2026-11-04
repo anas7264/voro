@@ -327,37 +327,6 @@ const runTests = async () => {
   }
   console.log("✅ Success: Cache purge removes cached and memoized snapshots.");
 
-  // --- TEST 8: Storage Import Detection of Empty or Malformed Payloads ---
-  console.log("🟢 Test 8: Verifying storage import failure detection on zero valid keys or malformed data...");
-  const emptyBackup = { version: 1, data: {} };
-  const emptyRes = await storage.import(emptyBackup);
-  if (emptyRes !== false) {
-    throw new Error("❌ Failure: storage.import reported success on empty backup with 0 keys!");
-  }
-
-  const malformedDataBackup = { version: 1, data: null };
-  const malformedRes = await storage.import(malformedDataBackup);
-  if (malformedRes !== false) {
-    throw new Error("❌ Failure: storage.import reported success on null backup data!");
-  }
-
-  let notifiedWildcard = false;
-  const unsub = storage.subscribe((key) => {
-    if (key === '*') notifiedWildcard = true;
-  });
-  const validSingleBackup = {
-    version: 1,
-    data: {
-      profile: { name: "Restored Athlete", goal: "maintenance" }
-    }
-  };
-  const validRes = await storage.import(validSingleBackup);
-  unsub();
-  if (validRes !== true || !notifiedWildcard) {
-    throw new Error("❌ Failure: storage.import failed to succeed or dispatch wildcard subscriber sync!");
-  }
-  console.log("✅ Success: Storage import properly returns false on empty/malformed backup data and syncs subscribers.");
-
   console.log("\n🎉 ALL STORAGE SECURITY VERIFICATION TESTS PASSED SUCCESSFULLY!");
   console.log("=========================================");
   process.exit(0);

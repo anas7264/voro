@@ -3,7 +3,12 @@ import {
   formatTime,
   formatPace,
   formatDurationText,
-  formatPhoneNumber
+  formatPhoneNumber,
+  formatHeight,
+  formatBMI,
+  formatTemperature,
+  formatBloodPressure,
+  formatBodyFat
 } from './src/utils/formatters.js';
 
 console.log("=========================================");
@@ -69,6 +74,59 @@ if (!formattedLong.includes("<script>") && formattedLong.length <= 50 && !format
   console.log("✅ Success: formatPhoneNumber handles length bounds and sanitizes input!");
 } else {
   console.error(`❌ Test 5 Failed: formattedLong -> "${formattedLong}", formattedScript -> "${formattedScript}"`);
+  process.exit(1);
+}
+
+// 6. formatHeight: NaN, undefined, 0, negative, feet conversion rollover
+console.log("🛡️ Test 6: Testing formatHeight with non-finite and edge values...");
+if (
+  formatHeight(NaN, "cm", "feet") === "0'0\"" &&
+  formatHeight(undefined, "cm", "feet") === "0'0\"" &&
+  formatHeight(0, "cm", "feet") === "0'0\"" &&
+  formatHeight(-50, "cm", "feet") === "0'0\"" &&
+  formatHeight(NaN, "cm", "inches") === "0.0" &&
+  formatHeight(180, "cm", "feet") === "5'11\""
+) {
+  console.log("✅ Success: formatHeight handles non-finite and boundary conversions cleanly!");
+} else {
+  console.error(`❌ Test 6 Failed: formatHeight boundary conversion failed.`);
+  process.exit(1);
+}
+
+// 7. formatBMI: NaN, null, undefined, 0, negative values, and normal classifications
+console.log("🛡️ Test 7: Testing formatBMI with non-finite, non-positive, and valid categories...");
+if (
+  formatBMI(NaN) === "0.0 (Unknown)" &&
+  formatBMI(null) === "0.0 (Unknown)" &&
+  formatBMI(undefined) === "0.0 (Unknown)" &&
+  formatBMI(0) === "0.0 (Unknown)" &&
+  formatBMI(-10) === "0.0 (Unknown)" &&
+  formatBMI(17.5) === "17.5 (Underweight)" &&
+  formatBMI(22.5) === "22.5 (Normal)" &&
+  formatBMI(27.5) === "27.5 (Overweight)" &&
+  formatBMI(32.5) === "32.5 (Obese)"
+) {
+  console.log("✅ Success: formatBMI handles non-finite inputs without false-positive obese classifications!");
+} else {
+  console.error(`❌ Test 7 Failed: formatBMI returned unexpected output.`);
+  process.exit(1);
+}
+
+// 8. formatTemperature, formatBloodPressure, formatBodyFat
+console.log("🛡️ Test 8: Testing formatTemperature, formatBloodPressure, and formatBodyFat...");
+if (
+  formatTemperature(null, "F") === "0.0°F" &&
+  formatTemperature(NaN, "F") === "0.0°F" &&
+  formatTemperature(25, "C") === "25.0°C" &&
+  formatTemperature(25, "F") === "77.0°F" &&
+  formatBloodPressure(NaN, null) === "0/0 mmHg" &&
+  formatBloodPressure(120, 80) === "120/80 mmHg" &&
+  formatBodyFat(NaN) === "0.0% BF" &&
+  formatBodyFat(15.5) === "15.5% BF"
+) {
+  console.log("✅ Success: formatTemperature, blood pressure, and body fat format correctly on edge inputs!");
+} else {
+  console.error(`❌ Test 8 Failed: formatTemperature, blood pressure, or body fat returned unexpected output.`);
   process.exit(1);
 }
 
