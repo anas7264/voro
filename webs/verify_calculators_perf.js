@@ -51,8 +51,19 @@ assert(calculators.convertPace(10, "kmh_to_pace") === "6:00", "convertPace 10 km
 assert(calculators.convertPace(10.01112, "kmh_to_pace") === "6:00", "convertPace 10.01112 km/h rolls over to 6:00 without 5:60 boundary bug");
 assert(calculators.convertPace("6:00", "pace_to_kmh") === "10.00", "convertPace 6:00 pace converts to 10.00 km/h");
 
-// 4. Performance Benchmark (100,000 iterations)
-console.log("\n⚡ Test Set 4: Execution Speed Benchmark (100,000 iterations)");
+// 4. Test String Input Parsing and Boundary Robustness
+console.log("\n🧪 Test Set 4: String Input Numeric Parsing and Robustness");
+assert(calculators.calculateBMI("80", "180") === "24.7", "calculateBMI accurately parses string numbers");
+assert(calculators.calculateBMR("80", "180", "25", "Male") === "1805", "calculateBMR accurately parses string numbers");
+assert(calculators.calculateTDEE("1805", "moderately_active") === 2798, "calculateTDEE accurately parses string numbers");
+assert(calculators.calculateWilksCoefficient("500", "80", "male") === "233.75", "calculateWilksCoefficient accurately parses string numbers");
+assert(calculators.calculateFFMI("80", "15", "180") === "21.0", "calculateFFMI accurately parses string numbers");
+assert(calculators.calculateTrainingVolume("3", "10", "60") === 1800, "calculateTrainingVolume accurately parses string numbers");
+assert(calculators.calculateProteinTarget("80", "muscle_gain") === 176, "calculateProteinTarget accurately parses string numbers");
+assert(calculators.calculateWaterIntake("80", "30") === "3.3", "calculateWaterIntake accurately parses string numbers");
+
+// 5. Performance Benchmark (100,000 iterations)
+console.log("\n⚡ Test Set 5: Execution Speed Benchmark (100,000 iterations)");
 const iterations = 100000;
 const start = performance.now();
 

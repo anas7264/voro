@@ -238,29 +238,23 @@ export const formatWeight = (value, from = "kg", to = "kg") => {
 
 // Format height (cm ↔ inches or cm ↔ feet+inches)
 export const formatHeight = (value, from = "cm", to = "cm") => {
-  const val = typeof value === 'number' ? value : parseFloat(value);
-  if (!Number.isFinite(val) || val <= 0) {
-    if (to === "feet") return "0'0\"";
-    return "0.0";
-  }
-
-  if (from === to) return formatNumber(val, 1);
+  if (from === to) return formatNumber(value, 1);
 
   if (from === "cm" && to === "inches") {
-    return formatNumber(val / 2.54, 1);
+    return formatNumber(value / 2.54, 1);
   } else if (from === "cm" && to === "feet") {
-    let feet = Math.floor(val / 30.48);
-    let inches = Math.round((val % 30.48) / 2.54);
+    let feet = Math.floor(value / 30.48);
+    let inches = Math.round((value % 30.48) / 2.54);
     if (inches >= 12) {
       feet += Math.floor(inches / 12);
       inches %= 12;
     }
     return `${feet}'${inches}"`;
   } else if (from === "inches" && to === "cm") {
-    return formatNumber(val * 2.54, 1);
+    return formatNumber(value * 2.54, 1);
   }
 
-  return formatNumber(val, 1);
+  return formatNumber(value, 1);
 };
 
 // Format time duration (seconds to HH:MM:SS or MM:SS)
@@ -344,44 +338,32 @@ export const formatHeartRate = (bpm) => {
 
 // Format blood pressure
 export const formatBloodPressure = (systolic, diastolic) => {
-  const sys = typeof systolic === 'number' ? systolic : parseFloat(systolic);
-  const dia = typeof diastolic === 'number' ? diastolic : parseFloat(diastolic);
-  const safeSys = Number.isFinite(sys) && sys > 0 ? sys : 0;
-  const safeDia = Number.isFinite(dia) && dia > 0 ? dia : 0;
-  return `${formatNumber(safeSys, 0)}/${formatNumber(safeDia, 0)} mmHg`;
+  return `${formatNumber(systolic, 0)}/${formatNumber(diastolic, 0)} mmHg`;
 };
 
 // Format temperature
 export const formatTemperature = (celsius, unit = "C") => {
-  const c = typeof celsius === 'number' ? celsius : parseFloat(celsius);
-  if (!Number.isFinite(c)) return unit === "F" ? "0.0°F" : "0.0°C";
   if (unit === "F") {
-    const fahrenheit = (c * 9/5) + 32;
+    const fahrenheit = (celsius * 9/5) + 32;
     return `${formatNumber(fahrenheit, 1)}°F`;
   }
-  return `${formatNumber(c, 1)}°C`;
+  return `${formatNumber(celsius, 1)}°C`;
 };
 
 // Format body fat percentage
 export const formatBodyFat = (percentage) => {
-  const val = typeof percentage === 'number' ? percentage : parseFloat(percentage);
-  if (!Number.isFinite(val) || val < 0) return "0.0% BF";
-  return `${formatNumber(val, 1)}% BF`;
+  return `${formatNumber(percentage, 1)}% BF`;
 };
 
 // Format BMI with category
 export const formatBMI = (bmi) => {
-  const val = typeof bmi === 'number' ? bmi : parseFloat(bmi);
-  if (!Number.isFinite(val) || val <= 0) {
-    return "0.0 (Unknown)";
-  }
   let category = "Normal";
-  if (val < 18.5) category = "Underweight";
-  else if (val < 25) category = "Normal";
-  else if (val < 30) category = "Overweight";
+  if (bmi < 18.5) category = "Underweight";
+  else if (bmi < 25) category = "Normal";
+  else if (bmi < 30) category = "Overweight";
   else category = "Obese";
 
-  return `${formatNumber(val, 1)} (${category})`;
+  return `${formatNumber(bmi, 1)} (${category})`;
 };
 
 // Format distance (km or miles)
