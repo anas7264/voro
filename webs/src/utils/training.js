@@ -3,6 +3,8 @@
 
 import { calculateOneRepMax, calculateTrainingVolume, suggestProgressiveOverload } from "./calculators.js";
 
+const toNum = (val) => (typeof val === 'number' ? val : parseFloat(val));
+
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted and Frozen Configuration Objects.
  * These are frozen with Object.freeze() at the module scope to completely
@@ -138,8 +140,9 @@ export const analyzeTrainingVolume = (workouts) => {
     const workout = workouts[i];
     if (!workout) continue;
 
-    const volumeVal = typeof workout.volume === 'number' && Number.isFinite(workout.volume)
-      ? workout.volume
+    const rawVolume = toNum(workout.volume);
+    const volumeVal = Number.isFinite(rawVolume)
+      ? rawVolume
       : calculateTrainingVolume(workout.sets, workout.reps, workout.weight);
 
     const volume = Number.isFinite(volumeVal) && volumeVal > 0 ? volumeVal : 0;
@@ -185,8 +188,8 @@ export const analyzeTrainingVolume = (workouts) => {
 // Detect PRs (Personal Records)
 export const detectPersonalRecords = (currentLift, previousMaxes) => {
   const exerciseName = currentLift?.exercise;
-  const prevMax = (previousMaxes && exerciseName && previousMaxes[exerciseName]) || 0;
-  const currWeight = currentLift?.weight || 0;
+  const prevMax = toNum((previousMaxes && exerciseName && previousMaxes[exerciseName]) || 0);
+  const currWeight = toNum(currentLift?.weight || 0);
 
   const safePrevMax = Number.isFinite(prevMax) && prevMax > 0 ? prevMax : 0;
   const safeCurrWeight = Number.isFinite(currWeight) && currWeight > 0 ? currWeight : 0;
@@ -208,9 +211,12 @@ export const detectPersonalRecords = (currentLift, previousMaxes) => {
 
 // Calculate Relative Intensity (RI) based on RPE and weight
 export const calculateRelativeIntensity = (weight, oneRepMax, reps) => {
-  const w = Number.isFinite(weight) && weight > 0 ? weight : 0;
-  const max = Number.isFinite(oneRepMax) && oneRepMax > 0 ? oneRepMax : 0;
-  const r = Number.isFinite(reps) && reps > 0 ? reps : 0;
+  const numW = toNum(weight);
+  const numMax = toNum(oneRepMax);
+  const numR = toNum(reps);
+  const w = Number.isFinite(numW) && numW > 0 ? numW : 0;
+  const max = Number.isFinite(numMax) && numMax > 0 ? numMax : 0;
+  const r = Number.isFinite(numR) && numR > 0 ? numR : 0;
 
   if (w <= 0 || max <= 0) {
     return {
@@ -258,10 +264,14 @@ export const analyzeFrequencyPerMuscleGroup = (workouts) => {
 
 // Calculate training stress/effort
 export const calculateTrainingStress = (sets, reps, weight, oneRepMax, trainingAge = "intermediate") => {
-  const s = Number.isFinite(sets) && sets > 0 ? sets : 0;
-  const r = Number.isFinite(reps) && reps > 0 ? reps : 0;
-  const w = Number.isFinite(weight) && weight > 0 ? weight : 0;
-  const max = Number.isFinite(oneRepMax) && oneRepMax > 0 ? oneRepMax : 0;
+  const numS = toNum(sets);
+  const numR = toNum(reps);
+  const numW = toNum(weight);
+  const numMax = toNum(oneRepMax);
+  const s = Number.isFinite(numS) && numS > 0 ? numS : 0;
+  const r = Number.isFinite(numR) && numR > 0 ? numR : 0;
+  const w = Number.isFinite(numW) && numW > 0 ? numW : 0;
+  const max = Number.isFinite(numMax) && numMax > 0 ? numMax : 0;
 
   if (s <= 0 || r <= 0 || w <= 0 || max <= 0) {
     return {
@@ -351,9 +361,12 @@ export const assessFormQuality = (workoutNotes, exerciseDifficulty) => {
 
 // Recovery time needed after workout
 export const calculateRecoveryTime = (volume, intensity, muscleGroups = 1) => {
-  const safeVolume = Number.isFinite(volume) && volume > 0 ? volume : 0;
-  const safeIntensity = Number.isFinite(intensity) && intensity > 0 ? intensity : 0;
-  const safeMuscleGroups = Number.isFinite(muscleGroups) && muscleGroups > 0 ? muscleGroups : 1;
+  const numVol = toNum(volume);
+  const numInt = toNum(intensity);
+  const numMg = toNum(muscleGroups);
+  const safeVolume = Number.isFinite(numVol) && numVol > 0 ? numVol : 0;
+  const safeIntensity = Number.isFinite(numInt) && numInt > 0 ? numInt : 0;
+  const safeMuscleGroups = Number.isFinite(numMg) && numMg > 0 ? numMg : 1;
 
   let baseRecovery = 24;
 
@@ -374,7 +387,8 @@ export const calculateRecoveryTime = (volume, intensity, muscleGroups = 1) => {
 
 // Periodization phase recommendations
 export const getPeriodizationPhaseRecommendations = (weekNumber, totalWeeks, goal) => {
-  const week = Number.isFinite(weekNumber) && weekNumber > 0 ? weekNumber : 1;
+  const numWeek = toNum(weekNumber);
+  const week = Number.isFinite(numWeek) && numWeek > 0 ? numWeek : 1;
   const phase = (week % 4) || 4;
   return PERIODIZATION_PHASES[phase];
 };
@@ -419,7 +433,8 @@ export const suggestExerciseVariations = (exercise, previousVariations = []) => 
  * to completely eliminate array allocation churn per function invocation.
  */
 export const assessTrainingAge = (monthsOfTraining) => {
-  const months = Number.isFinite(monthsOfTraining) && monthsOfTraining > 0 ? monthsOfTraining : 0;
+  const numMonths = toNum(monthsOfTraining);
+  const months = Number.isFinite(numMonths) && numMonths > 0 ? numMonths : 0;
   let level = "Beginner";
   let characteristics = TRAINING_CHARACTERISTICS.beginner;
 
