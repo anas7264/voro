@@ -28,14 +28,20 @@ const MICRONUTRIENT_TIMING_RECOMMENDATIONS = Object.freeze({
   vitaminC: "With iron sources to enhance absorption"
 });
 
+const toNum = (val) => (typeof val === 'number' ? val : parseFloat(val));
+
 // Calculate nutrition score (0-100) based on macronutrient distribution
 export const calculateNutritionScore = (protein, carbs, fat, calories) => {
-  const cals = Number.isFinite(calories) && calories > 0 ? calories : 0;
+  const numCals = toNum(calories);
+  const cals = Number.isFinite(numCals) && numCals > 0 ? numCals : 0;
   if (cals <= 0) return 0;
 
-  const p = Number.isFinite(protein) && protein > 0 ? protein : 0;
-  const c = Number.isFinite(carbs) && carbs > 0 ? carbs : 0;
-  const f = Number.isFinite(fat) && fat > 0 ? fat : 0;
+  const numP = toNum(protein);
+  const numC = toNum(carbs);
+  const numF = toNum(fat);
+  const p = Number.isFinite(numP) && numP > 0 ? numP : 0;
+  const c = Number.isFinite(numC) && numC > 0 ? numC : 0;
+  const f = Number.isFinite(numF) && numF > 0 ? numF : 0;
 
   const proteinCals = p * 4;
   const carbsCals = c * 4;
@@ -55,12 +61,19 @@ export const calculateNutritionScore = (protein, carbs, fat, calories) => {
 
 // Analyze daily macros against targets
 export const analyzeMacros = (consumedProtein, consumedCarbs, consumedFat, targetProtein, targetCarbs, targetFat) => {
-  const cProtein = Number.isFinite(consumedProtein) && consumedProtein > 0 ? consumedProtein : 0;
-  const cCarbs = Number.isFinite(consumedCarbs) && consumedCarbs > 0 ? consumedCarbs : 0;
-  const cFat = Number.isFinite(consumedFat) && consumedFat > 0 ? consumedFat : 0;
-  const tProtein = Number.isFinite(targetProtein) && targetProtein > 0 ? targetProtein : 0;
-  const tCarbs = Number.isFinite(targetCarbs) && targetCarbs > 0 ? targetCarbs : 0;
-  const tFat = Number.isFinite(targetFat) && targetFat > 0 ? targetFat : 0;
+  const numCP = toNum(consumedProtein);
+  const numCC = toNum(consumedCarbs);
+  const numCF = toNum(consumedFat);
+  const numTP = toNum(targetProtein);
+  const numTC = toNum(targetCarbs);
+  const numTF = toNum(targetFat);
+
+  const cProtein = Number.isFinite(numCP) && numCP > 0 ? numCP : 0;
+  const cCarbs = Number.isFinite(numCC) && numCC > 0 ? numCC : 0;
+  const cFat = Number.isFinite(numCF) && numCF > 0 ? numCF : 0;
+  const tProtein = Number.isFinite(numTP) && numTP > 0 ? numTP : 0;
+  const tCarbs = Number.isFinite(numTC) && numTC > 0 ? numTC : 0;
+  const tFat = Number.isFinite(numTF) && numTF > 0 ? numTF : 0;
 
   const proteinDiff = cProtein - tProtein;
   const carbsDiff = cCarbs - tCarbs;
@@ -94,12 +107,16 @@ export const analyzeMacros = (consumedProtein, consumedCarbs, consumedFat, targe
 // Get macro warnings
 export const getMacroWarnings = (protein, carbs, fat, calories) => {
   const warnings = [];
-  const cals = Number.isFinite(calories) && calories > 0 ? calories : 0;
+  const numCals = toNum(calories);
+  const cals = Number.isFinite(numCals) && numCals > 0 ? numCals : 0;
   if (cals <= 0) return warnings;
 
-  const p = Number.isFinite(protein) && protein > 0 ? protein : 0;
-  const c = Number.isFinite(carbs) && carbs > 0 ? carbs : 0;
-  const f = Number.isFinite(fat) && fat > 0 ? fat : 0;
+  const numP = toNum(protein);
+  const numC = toNum(carbs);
+  const numF = toNum(fat);
+  const p = Number.isFinite(numP) && numP > 0 ? numP : 0;
+  const c = Number.isFinite(numC) && numC > 0 ? numC : 0;
+  const f = Number.isFinite(numF) && numF > 0 ? numF : 0;
 
   const proteinCals = p * 4;
   const carbsCals = c * 4;
@@ -144,8 +161,10 @@ export const calculateGlycemicLoad = (foodItems) => {
   for (let i = 0; i < len; i++) {
     const item = foodItems[i];
     if (!item) continue;
-    const carbs = Number.isFinite(item.carbs) && item.carbs > 0 ? item.carbs : 0;
-    const gi = Number.isFinite(item.glycemicIndex) && item.glycemicIndex > 0 ? item.glycemicIndex : 0;
+    const numCarbs = toNum(item.carbs);
+    const numGI = toNum(item.glycemicIndex);
+    const carbs = Number.isFinite(numCarbs) && numCarbs > 0 ? numCarbs : 0;
+    const gi = Number.isFinite(numGI) && numGI > 0 ? numGI : 0;
     const gl = (gi * carbs) / 100;
     totalGL += gl;
     totalCarbs += carbs;
@@ -214,9 +233,12 @@ export const assessInflammatoryPotential = (foodItems) => {
 
 // Calculate thermic effect of food (TEF) - calories burned digesting
 export const calculateTEF = (protein, carbs, fat) => {
-  const p = Number.isFinite(protein) && protein > 0 ? protein : 0;
-  const c = Number.isFinite(carbs) && carbs > 0 ? carbs : 0;
-  const f = Number.isFinite(fat) && fat > 0 ? fat : 0;
+  const numP = toNum(protein);
+  const numC = toNum(carbs);
+  const numF = toNum(fat);
+  const p = Number.isFinite(numP) && numP > 0 ? numP : 0;
+  const c = Number.isFinite(numC) && numC > 0 ? numC : 0;
+  const f = Number.isFinite(numF) && numF > 0 ? numF : 0;
 
   const proteinTEF = p * 4 * 0.25;
   const carbsTEF = c * 4 * 0.08;
@@ -274,7 +296,8 @@ export const findSimilarFoods = (targetFood, tolerance = 10) => {
 
 // Calculate ideal meal composition for timing
 export const getIdealMealMacros = (mealTiming, goal, totalDailyCalories) => {
-  const totalCals = Number.isFinite(totalDailyCalories) && totalDailyCalories > 0 ? totalDailyCalories : 2000;
+  const parsedCals = toNum(totalDailyCalories);
+  const totalCals = Number.isFinite(parsedCals) && parsedCals > 0 ? parsedCals : 2000;
   const mealCalories = totalCals / 4; // Assuming 4 meals/day
 
   let macroRatios = {
@@ -302,7 +325,8 @@ export const getIdealMealMacros = (mealTiming, goal, totalDailyCalories) => {
 
 // Water needs based on weight and activity
 export const calculateDailyWaterNeeds = (weightKg, activityLevel = "moderate") => {
-  const safeWeight = Number.isFinite(weightKg) && weightKg > 0 ? weightKg : 0;
+  const parsedWeight = toNum(weightKg);
+  const safeWeight = Number.isFinite(parsedWeight) && parsedWeight > 0 ? parsedWeight : 0;
   if (safeWeight <= 0) {
     return {
       litersPerDay: 0.0,
@@ -362,10 +386,12 @@ export const detectNutrientDeficits = (dailyIntake, targets) => {
 
   for (let i = 0; i < len; i++) {
     const nutrient = keys[i];
-    const targetVal = Number.isFinite(targets[nutrient]) ? targets[nutrient] : 0;
+    const parsedTarget = toNum(targets[nutrient]);
+    const targetVal = Number.isFinite(parsedTarget) ? parsedTarget : 0;
     if (targetVal <= 0) continue;
 
-    const intakeVal = Number.isFinite(intake[nutrient]) ? intake[nutrient] : 0;
+    const parsedIntake = toNum(intake[nutrient]);
+    const intakeVal = Number.isFinite(parsedIntake) ? parsedIntake : 0;
     const percentage = (intakeVal / targetVal) * 100;
 
     if (percentage < 80) {
