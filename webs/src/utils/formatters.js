@@ -283,11 +283,17 @@ export const formatCalories = (calories, decimals = 0) => {
 
 // Format macros (protein, carbs, fat)
 export const formatMacros = (protein, carbs, fat) => {
+  const p = typeof protein === 'number' ? protein : parseFloat(protein);
+  const c = typeof carbs === 'number' ? carbs : parseFloat(carbs);
+  const f = typeof fat === 'number' ? fat : parseFloat(fat);
+  const safeP = Number.isFinite(p) && p > 0 ? p : 0;
+  const safeC = Number.isFinite(c) && c > 0 ? c : 0;
+  const safeF = Number.isFinite(f) && f > 0 ? f : 0;
   return {
-    protein: `${formatNumber(protein, 1)}g P`,
-    carbs: `${formatNumber(carbs, 1)}g C`,
-    fat: `${formatNumber(fat, 1)}g F`,
-    total: `${formatNumber(protein + carbs + fat, 1)}g`
+    protein: `${formatNumber(safeP, 1)}g P`,
+    carbs: `${formatNumber(safeC, 1)}g C`,
+    fat: `${formatNumber(safeF, 1)}g F`,
+    total: `${formatNumber(safeP + safeC + safeF, 1)}g`
   };
 };
 
@@ -306,7 +312,13 @@ export const formatCurrency = (amount, currency = "USD") => {
 
 // Format volume (sets × reps × weight)
 export const formatVolume = (sets, reps, weight) => {
-  const volume = sets * reps * weight;
+  const s = typeof sets === 'number' ? sets : parseFloat(sets);
+  const r = typeof reps === 'number' ? reps : parseFloat(reps);
+  const w = typeof weight === 'number' ? weight : parseFloat(weight);
+  const safeS = Number.isFinite(s) && s > 0 ? s : 0;
+  const safeR = Number.isFinite(r) && r > 0 ? r : 0;
+  const safeW = Number.isFinite(w) && w > 0 ? w : 0;
+  const volume = safeS * safeR * safeW;
   return `${formatNumber(volume, 0)} kg`;
 };
 
@@ -405,14 +417,16 @@ export const formatDurationText = (seconds) => {
 
 // Format level from XP
 export const formatLevel = (xp) => {
+  const parsedXp = typeof xp === 'number' ? xp : parseFloat(xp);
+  const safeXp = Number.isFinite(parsedXp) && parsedXp >= 0 ? parsedXp : 0;
   const levelThreshold = 1000; // XP per level
-  const level = Math.floor(xp / levelThreshold) + 1;
+  const level = Math.floor(safeXp / levelThreshold) + 1;
   const nextLevel = level * levelThreshold;
-  const currentXP = xp % levelThreshold;
+  const currentXP = safeXp % levelThreshold;
 
   return {
     level,
-    xp,
+    xp: safeXp,
     currentXP,
     nextLevelXP: nextLevel,
     progress: ((currentXP / levelThreshold) * 100).toFixed(1)
@@ -421,9 +435,11 @@ export const formatLevel = (xp) => {
 
 // Format streak (days)
 export const formatStreak = (days) => {
-  if (days === 0) return "No streak";
-  if (days === 1) return "1 day 🔥";
-  return `${days} days 🔥`;
+  const parsedDays = typeof days === 'number' ? days : parseFloat(days);
+  const safeDays = Number.isFinite(parsedDays) ? Math.floor(parsedDays) : 0;
+  if (safeDays <= 0) return "No streak";
+  if (safeDays === 1) return "1 day 🔥";
+  return `${safeDays} days 🔥`;
 };
 
 // Format phone number
