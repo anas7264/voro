@@ -276,8 +276,8 @@ CONSTRAINTS:
 - Preferences: ${safeStringify(preferences)}
 
 INSTRUCTIONS:
-1. Create a periodized ${availableDays}-day per week training program
-2. Each session should be approximately ${sessionDuration} minutes
+1. Create a periodized ${availableDaysVal}-day per week training program
+2. Each session should be approximately ${sessionDurationVal} minutes
 3. Include warm-up, main work, and cool-down
 4. Avoid exercises that aggravate injuries
 5. Use only available equipment
@@ -462,7 +462,7 @@ COMPETITION DETAILS:
 - Past Competition Experience: ${safeJoin(previousCompetitions, "").length > 0 ? "Yes" : "No"}
 
 INSTRUCTIONS:
-1. Create periodized prep plan for ${daysUntilCompetition} days
+1. Create periodized prep plan for ${daysUntilCompetitionVal} days
 2. Include peaking phase (final 2-3 weeks)
 3. Provide recovery and regeneration strategies
 4. Suggest mental preparation techniques
