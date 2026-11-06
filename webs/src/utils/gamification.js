@@ -4,6 +4,8 @@
 import { achievements } from "../data/achievements.js";
 import { challenges } from "../data/challenges.js";
 
+const toNum = (val) => (typeof val === 'number' ? val : parseFloat(val));
+
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted and Frozen Configuration Objects & Regular Expressions.
  * These are frozen with Object.freeze() at the module scope to completely
@@ -47,23 +49,23 @@ const STATIC_XP_VALUES = Object.freeze({
 });
 
 const TRIGGER_CHECKS = Object.freeze({
-  first_workout: (userData) => userData.totalWorkouts === 1,
-  workout_streak_7: (userData) => userData.currentStreak === 7,
-  workout_streak_30: (userData) => userData.currentStreak === 30,
-  workout_streak_365: (userData) => userData.currentStreak === 365,
-  nutrition_14days: (userData) => userData.nutritionLogDays >= 14,
-  nutrition_30days: (userData) => userData.nutritionLogDays >= 30,
-  hydration_2l: (userData) => userData.dailyWaterLiters >= 2,
-  weight_loss_5kg: (userData) => (userData.startingWeight - userData.currentWeight) >= 5,
-  weight_loss_10kg: (userData) => (userData.startingWeight - userData.currentWeight) >= 10,
-  weight_loss_20kg: (userData) => (userData.startingWeight - userData.currentWeight) >= 20,
-  muscle_gain_5kg: (userData) => (userData.currentWeight - userData.startingWeight) >= 5 && userData.bodyFatDecreased,
-  pr_hit: (userData) => userData.hitNewPR === true,
-  social_share: (userData) => userData.hasSharedWorkout === true,
-  referral_friend: (userData) => userData.referredFriends >= 1,
-  day_100: (userData) => userData.currentStreak >= 100,
-  day_365: (userData) => userData.currentStreak >= 365,
-  all_achievements: (userData) => userData.unlockedAchievements >= (achievements.length - 1)
+  first_workout: (u) => toNum(u.totalWorkouts) === 1,
+  workout_streak_7: (u) => toNum(u.currentStreak) === 7,
+  workout_streak_30: (u) => toNum(u.currentStreak) === 30,
+  workout_streak_365: (u) => toNum(u.currentStreak) === 365,
+  nutrition_14days: (u) => toNum(u.nutritionLogDays) >= 14,
+  nutrition_30days: (u) => toNum(u.nutritionLogDays) >= 30,
+  hydration_2l: (u) => toNum(u.dailyWaterLiters) >= 2,
+  weight_loss_5kg: (u) => (toNum(u.startingWeight) - toNum(u.currentWeight)) >= 5,
+  weight_loss_10kg: (u) => (toNum(u.startingWeight) - toNum(u.currentWeight)) >= 10,
+  weight_loss_20kg: (u) => (toNum(u.startingWeight) - toNum(u.currentWeight)) >= 20,
+  muscle_gain_5kg: (u) => (toNum(u.currentWeight) - toNum(u.startingWeight)) >= 5 && Boolean(u.bodyFatDecreased),
+  pr_hit: (u) => Boolean(u.hitNewPR),
+  social_share: (u) => Boolean(u.hasSharedWorkout),
+  referral_friend: (u) => toNum(u.referredFriends) >= 1,
+  day_100: (u) => toNum(u.currentStreak) >= 100,
+  day_365: (u) => toNum(u.currentStreak) >= 365,
+  all_achievements: (u) => toNum(u.unlockedAchievements) >= (achievements.length - 1)
 });
 
 const WORKOUTS_RE = /(\d+)\+?\s*workouts/i;
@@ -107,7 +109,8 @@ export const calculateXP = (action, metadata = {}) => {
 
 // Get level from total XP
 export const getLevelFromXP = (totalXP) => {
-  const xp = Number.isFinite(totalXP) && totalXP > 0 ? totalXP : 0;
+  const numXp = toNum(totalXP);
+  const xp = Number.isFinite(numXp) && numXp > 0 ? numXp : 0;
   const xpPerLevel = 1000;
   const level = Math.floor(xp / xpPerLevel) + 1;
   const currentLevelXP = xp - (level - 1) * xpPerLevel;
@@ -126,7 +129,8 @@ export const getLevelFromXP = (totalXP) => {
 
 // Check if achievement should be unlocked
 export const checkAchievementTrigger = (trigger, userData) => {
-  return TRIGGER_CHECKS[trigger] ? TRIGGER_CHECKS[trigger](userData) : false;
+  const u = userData && typeof userData === "object" ? userData : {};
+  return TRIGGER_CHECKS[trigger] ? TRIGGER_CHECKS[trigger](u) : false;
 };
 
 // Calculate streak
@@ -218,7 +222,8 @@ export const calculateStreak = (completedDates) => {
 
 // Get rank from level and XP
 export const getRankTier = (level) => {
-  const lvl = Number.isFinite(level) && level >= 1 ? level : 1;
+  const numLvl = toNum(level);
+  const lvl = Number.isFinite(numLvl) && numLvl >= 1 ? numLvl : 1;
   let tier = "Novice";
   let icon = "Zap";
   let color = "#3B82F6";
@@ -274,7 +279,8 @@ export const checkChallengeCompletion = (challenge, userProgress) => {
     const match = criteria.match(WORKOUTS_RE);
     if (match) {
       const required = parseInt(match[1], 10);
-      const val = Number.isFinite(progressObj.workoutsThisPeriod) && progressObj.workoutsThisPeriod > 0 ? progressObj.workoutsThisPeriod : 0;
+      const numVal = toNum(progressObj.workoutsThisPeriod);
+      const val = Number.isFinite(numVal) && numVal > 0 ? numVal : 0;
       progress = required > 0 ? (val / required) * 100 : 0;
       isComplete = val >= required;
     }
@@ -284,7 +290,8 @@ export const checkChallengeCompletion = (challenge, userProgress) => {
     const match = criteria.match(DAYS_RE);
     if (match) {
       const required = parseInt(match[1], 10);
-      const val = Number.isFinite(progressObj.nutritionDays) && progressObj.nutritionDays > 0 ? progressObj.nutritionDays : 0;
+      const numVal = toNum(progressObj.nutritionDays);
+      const val = Number.isFinite(numVal) && numVal > 0 ? numVal : 0;
       progress = required > 0 ? (val / required) * 100 : 0;
       isComplete = val >= required;
     }
@@ -294,7 +301,8 @@ export const checkChallengeCompletion = (challenge, userProgress) => {
     const match = criteria.match(LITERS_RE);
     if (match) {
       const required = parseInt(match[1], 10);
-      const val = Number.isFinite(progressObj.waterLiters) && progressObj.waterLiters > 0 ? progressObj.waterLiters : 0;
+      const numVal = toNum(progressObj.waterLiters);
+      const val = Number.isFinite(numVal) && numVal > 0 ? numVal : 0;
       progress = required > 0 ? (val / required) * 100 : 0;
       isComplete = val >= required;
     }
@@ -304,7 +312,8 @@ export const checkChallengeCompletion = (challenge, userProgress) => {
     const match = criteria.match(STEPS_RE);
     if (match) {
       const required = parseInt(match[1], 10);
-      const val = Number.isFinite(progressObj.steps) && progressObj.steps > 0 ? progressObj.steps : 0;
+      const numVal = toNum(progressObj.steps);
+      const val = Number.isFinite(numVal) && numVal > 0 ? numVal : 0;
       progress = required > 0 ? (val / required) * 100 : 0;
       isComplete = val >= required;
     }
@@ -442,7 +451,8 @@ export const getRarityBreakdown = (unlockedAchievements) => {
 // Gamification stats summary
 export const getGamificationStats = (userData) => {
   const data = userData && typeof userData === "object" ? userData : {};
-  const totalXP = Number.isFinite(data.totalXP) && data.totalXP > 0 ? data.totalXP : 0;
+  const numXp = toNum(data.totalXP);
+  const totalXP = Number.isFinite(numXp) && numXp > 0 ? numXp : 0;
   const level = getLevelFromXP(totalXP);
   const rank = getRankTier(level.level);
   const streak = calculateStreak(Array.isArray(data.completedWorkoutDates) ? data.completedWorkoutDates : []);
