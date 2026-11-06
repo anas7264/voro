@@ -259,9 +259,12 @@ export const findSimilarFoods = (targetFood, tolerance = 10) => {
   if (!targetFood) return [];
 
   const targetId = targetFood.id;
-  const targetProtein = Number.isFinite(targetFood.protein) && targetFood.protein > 0 ? targetFood.protein : 0;
-  const targetCarbs = Number.isFinite(targetFood.carbs) && targetFood.carbs > 0 ? targetFood.carbs : 0;
-  const targetFat = Number.isFinite(targetFood.fat) && targetFood.fat > 0 ? targetFood.fat : 0;
+  const numP = toNum(targetFood.protein);
+  const numC = toNum(targetFood.carbs);
+  const numF = toNum(targetFood.fat);
+  const targetProtein = Number.isFinite(numP) && numP > 0 ? numP : 0;
+  const targetCarbs = Number.isFinite(numC) && numC > 0 ? numC : 0;
+  const targetFat = Number.isFinite(numF) && numF > 0 ? numF : 0;
 
   const denomProtein = Math.max(targetProtein, 1);
   const denomCarbs = Math.max(targetCarbs, 1);
@@ -349,7 +352,8 @@ export const calculateDailyWaterNeeds = (weightKg, activityLevel = "moderate") =
 
 // Assess hydration status by various metrics
 export const assessHydrationStatus = (urineDensity, urine_color, thirstLevel) => {
-  const density = Number.isFinite(urineDensity) && urineDensity > 0 ? urineDensity : 1.015;
+  const numDensity = toNum(urineDensity);
+  const density = Number.isFinite(numDensity) && numDensity > 0 ? numDensity : 1.015;
 
   let status = "Optimally Hydrated";
   let score = 75;
@@ -371,7 +375,7 @@ export const assessHydrationStatus = (urineDensity, urine_color, thirstLevel) =>
   return {
     status,
     hydrationScore: score,
-    recommendation: status === "Optimally Hydrated" ? "Maintain current water intake" : (status.includes("Dehydrated") ? "Increase water intake immediately" : "Reduce water intake slightly")
+    recommendation: status === "Optimally Hydrated" ? "Maintain current water intake" : (status.includes("Dehydrat") ? "Increase water intake immediately" : "Reduce water intake slightly")
   };
 };
 
