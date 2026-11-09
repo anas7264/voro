@@ -362,13 +362,15 @@ export const calculateTotalRewards = (unlockedAchievements, completedChallenges)
 
   if (Array.isArray(unlockedAchievements)) {
     for (let i = 0; i < unlockedAchievements.length; i++) {
-      totalXP += unlockedAchievements[i]?.xpReward || 0;
+      const reward = toNum(unlockedAchievements[i]?.xpReward);
+      totalXP += Number.isFinite(reward) && reward > 0 ? reward : 0;
     }
   }
 
   if (Array.isArray(completedChallenges)) {
     for (let i = 0; i < completedChallenges.length; i++) {
-      totalXP += completedChallenges[i]?.xpReward || 0;
+      const reward = toNum(completedChallenges[i]?.xpReward);
+      totalXP += Number.isFinite(reward) && reward > 0 ? reward : 0;
     }
   }
 
@@ -397,22 +399,25 @@ export const calculateLeaderboardPosition = (userStats, allUsers) => {
     };
   }
 
-  const userXP = userStats?.totalXP || 0;
+  const parsedUserXP = toNum(userStats?.totalXP);
+  const userXP = Number.isFinite(parsedUserXP) ? parsedUserXP : 0;
   let higherCount = 0;
 
   for (let i = 0; i < allUsers.length; i++) {
-    if ((allUsers[i]?.totalXP || 0) > userXP) {
+    const peerXP = toNum(allUsers[i]?.totalXP);
+    if ((Number.isFinite(peerXP) ? peerXP : 0) > userXP) {
       higherCount++;
     }
   }
 
   const position = higherCount + 1;
-  const percentile = ((allUsers.length - position) / allUsers.length) * 100;
+  const rawPercentile = ((allUsers.length - position) / allUsers.length) * 100;
+  const clampedPercentile = Math.max(0, Math.min(100, Number.isFinite(rawPercentile) ? rawPercentile : 0));
 
   return {
     position,
     totalUsers: allUsers.length,
-    percentile: percentile.toFixed(1),
+    percentile: clampedPercentile.toFixed(1),
     topPercentile: position <= Math.floor(allUsers.length * 0.1)
   };
 };
@@ -481,7 +486,8 @@ export const getGamificationStats = (userData) => {
 export const predictNextAchievement = (userData) => {
   if (!userData) return undefined;
   const unlockedSet = new Set(userData.unlockedAchievements || []);
-  const currentStreak = userData.currentStreak || 0;
+  const parsedStreak = toNum(userData.currentStreak);
+  const currentStreak = Number.isFinite(parsedStreak) && parsedStreak > 0 ? parsedStreak : 0;
 
   let bestAchievement = null;
   let minDays = Infinity;
