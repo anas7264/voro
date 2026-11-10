@@ -204,19 +204,31 @@ export const assessInflammatoryPotential = (foodItems) => {
     const item = foodItems[i];
     if (!item) continue;
 
-    const cat = item.category;
-    if (cat) {
+    const rawCat = item.category;
+    if (typeof rawCat === "string") {
+      const cat = rawCat.toLowerCase();
       if (cat.includes("processed")) score += 2;
       if (cat.includes("fried")) score += 2;
       if (cat.includes("sugary")) score += 2;
     }
 
     const tags = item.tags;
-    if (tags) {
-      if (tags.includes("high-omega6")) score += 1;
-      if (tags.includes("antioxidant")) score -= 2;
-      if (tags.includes("high-omega3")) score -= 2;
-      if (tags.includes("polyphenol-rich")) score -= 1;
+    if (Array.isArray(tags)) {
+      const tagsLen = tags.length;
+      for (let j = 0; j < tagsLen; j++) {
+        const tag = typeof tags[j] === "string" ? tags[j].toLowerCase() : "";
+        if (!tag) continue;
+        if (tag.includes("high-omega6")) score += 1;
+        if (tag.includes("antioxidant")) score -= 2;
+        if (tag.includes("high-omega3")) score -= 2;
+        if (tag.includes("polyphenol-rich")) score -= 1;
+      }
+    } else if (typeof tags === "string") {
+      const tagStr = tags.toLowerCase();
+      if (tagStr.includes("high-omega6")) score += 1;
+      if (tagStr.includes("antioxidant")) score -= 2;
+      if (tagStr.includes("high-omega3")) score -= 2;
+      if (tagStr.includes("polyphenol-rich")) score -= 1;
     }
   }
 
