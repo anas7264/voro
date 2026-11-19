@@ -16,6 +16,8 @@ const PADDED_DAYS = [
 ];
 const PADDED_NUMS = Array.from({ length: 60 }, (_, i) => i < 10 ? `0${i}` : `${i}`);
 
+const toNum = (val) => (typeof val === 'number' ? val : parseFloat(val));
+
 /**
  * ⚡ PERFORMANCE OPTIMIZATION: Hoisted and Frozen Unit Dictionary.
  * Avoids object allocation and Garbage Collection (GC) churn on every formatUnits call.
@@ -283,11 +285,18 @@ export const formatCalories = (calories, decimals = 0) => {
 
 // Format macros (protein, carbs, fat)
 export const formatMacros = (protein, carbs, fat) => {
+  const numP = toNum(protein);
+  const numC = toNum(carbs);
+  const numF = toNum(fat);
+  const p = Number.isFinite(numP) && numP > 0 ? numP : 0;
+  const c = Number.isFinite(numC) && numC > 0 ? numC : 0;
+  const f = Number.isFinite(numF) && numF > 0 ? numF : 0;
+
   return {
-    protein: `${formatNumber(protein, 1)}g P`,
-    carbs: `${formatNumber(carbs, 1)}g C`,
-    fat: `${formatNumber(fat, 1)}g F`,
-    total: `${formatNumber(protein + carbs + fat, 1)}g`
+    protein: `${formatNumber(p, 1)}g P`,
+    carbs: `${formatNumber(c, 1)}g C`,
+    fat: `${formatNumber(f, 1)}g F`,
+    total: `${formatNumber(p + c + f, 1)}g`
   };
 };
 
@@ -306,7 +315,13 @@ export const formatCurrency = (amount, currency = "USD") => {
 
 // Format volume (sets × reps × weight)
 export const formatVolume = (sets, reps, weight) => {
-  const volume = sets * reps * weight;
+  const numS = toNum(sets);
+  const numR = toNum(reps);
+  const numW = toNum(weight);
+  const s = Number.isFinite(numS) && numS > 0 ? numS : 0;
+  const r = Number.isFinite(numR) && numR > 0 ? numR : 0;
+  const w = Number.isFinite(numW) && numW > 0 ? numW : 0;
+  const volume = s * r * w;
   return `${formatNumber(volume, 0)} kg`;
 };
 
@@ -405,14 +420,16 @@ export const formatDurationText = (seconds) => {
 
 // Format level from XP
 export const formatLevel = (xp) => {
+  const numXp = toNum(xp);
+  const safeXp = Number.isFinite(numXp) && numXp > 0 ? Math.floor(numXp) : 0;
   const levelThreshold = 1000; // XP per level
-  const level = Math.floor(xp / levelThreshold) + 1;
+  const level = Math.floor(safeXp / levelThreshold) + 1;
   const nextLevel = level * levelThreshold;
-  const currentXP = xp % levelThreshold;
+  const currentXP = safeXp % levelThreshold;
 
   return {
     level,
-    xp,
+    xp: safeXp,
     currentXP,
     nextLevelXP: nextLevel,
     progress: ((currentXP / levelThreshold) * 100).toFixed(1)
@@ -421,9 +438,11 @@ export const formatLevel = (xp) => {
 
 // Format streak (days)
 export const formatStreak = (days) => {
-  if (days === 0) return "No streak";
-  if (days === 1) return "1 day 🔥";
-  return `${days} days 🔥`;
+  const numDays = toNum(days);
+  const safeDays = Number.isFinite(numDays) && numDays > 0 ? Math.floor(numDays) : 0;
+  if (safeDays === 0) return "No streak";
+  if (safeDays === 1) return "1 day 🔥";
+  return `${safeDays} days 🔥`;
 };
 
 // Format phone number
